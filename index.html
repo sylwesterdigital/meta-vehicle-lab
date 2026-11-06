@@ -1,0 +1,1459 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Meta Vehicle Lab — Procedural Studio</title>
+  <meta name="vehicle-lab-version" content="0.1.1">
+  <style>
+    :root {
+      color-scheme:dark;
+      --bg:#101820;--panel:#16222e;--line:#2b4150;
+      --text:#e9f4f5;--muted:#90a8b4;--accent:#a8f1c8;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;background:var(--bg);color:var(--text);font:12px system-ui,sans-serif}
+    button,input{font:inherit}
+    button{cursor:pointer;background:#233a49;color:var(--text);border:1px solid #3b5665;border-radius:6px;padding:8px 10px}
+    button:hover{border-color:var(--accent)}
+    button.active{background:var(--accent);color:#102821;border-color:var(--accent)}
+    header{height:56px;padding:8px 14px;display:flex;align-items:center;justify-content:space-between;gap:8px;background:#14212c;border-bottom:1px solid var(--line)}
+    .brand{font-weight:800;font-size:15px;letter-spacing:.03em}
+    .brand small{display:block;font-size:10px;font-weight:400;color:var(--muted);margin-top:3px}
+    .actions{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+    main{height:calc(100dvh - 56px);display:grid;grid-template-columns:192px minmax(0,1fr)}
+    aside{overflow:auto;background:var(--panel);border-right:1px solid var(--line);padding:12px}
+    h3{font-size:10px;text-transform:uppercase;letter-spacing:.12em;color:#aac1cb;margin:16px 0 8px}
+    h3:first-child{margin-top:4px}
+    #search{width:100%;background:#0c1822;color:var(--text);border:1px solid #405b6b;border-radius:6px;padding:9px}
+    #presets{display:grid;gap:4px;margin-top:8px}
+    #presets button{width:100%;text-align:left;padding:8px;font-size:11px}
+    #presets button small{float:right;opacity:.65}
+    #saved{display:grid;gap:5px}
+    .saved-item{display:grid;grid-template-columns:minmax(0,1fr) 26px;gap:4px}
+    .saved-item button:first-child{text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .saved-item button:last-child{padding:4px;color:#f5b1b4}
+    #stage{position:relative;min-width:0;overflow:hidden;background:#15232f}
+    #stage canvas{display:block;width:100%;height:100%;touch-action:none}
+    #guiMount{position:absolute;top:12px;right:12px;z-index:10;max-height:calc(100% - 24px);overflow:auto}
+    #guiMount .lil-gui{--width:290px;--background-color:#162633;--title-background-color:#254050;--text-color:#e4f2f4;--widget-color:#263d4d;--focus-color:#47667b;--hover-color:#375365;--number-color:#a8f1c8;--string-color:#ccecd5;--name-width:47%;font-size:11px}
+    #hud{position:absolute;left:16px;top:16px;pointer-events:none}
+    #hud strong{font-size:19px}
+    #hud p{font-size:11px;color:#b0c5cd;margin:5px 0}
+    #speedHud{display:none;margin-top:14px;padding:10px 13px;width:max-content;border:1px solid #456474;background:#0c1b27da;border-radius:8px}
+    #speed{font-size:30px;font-weight:800}
+    #status{position:absolute;left:16px;bottom:15px;max-width:50%;background:#0b1a27dc;border:1px solid #405c6d;border-radius:7px;padding:9px 11px;color:#bcd5da;font-size:11px;line-height:1.5;pointer-events:none}
+    #joystick{display:none;position:absolute;bottom:65px;left:20px;width:120px;height:120px;border:2px solid #a4d7cf;border-radius:50%;background:#244454aa;touch-action:none}
+    #knob{position:absolute;left:38px;top:38px;width:40px;height:40px;border-radius:50%;background:var(--accent);border:3px solid white;pointer-events:none}
+    #brake{display:none;position:absolute;bottom:69px;right:18px;width:74px;height:74px;border-radius:50%;background:#b34350;border:2px solid #ffd5d8;font-weight:800;touch-action:none}
+    #boarding{position:absolute;right:14px;bottom:14px;display:flex;gap:5px}
+    #boarding button{background:#18303fdf;font-size:11px}
+    #referenceCard{position:absolute;left:16px;bottom:76px;width:170px;padding:7px;background:#101f2dde;border:1px solid #436074;border-radius:8px}
+    #referenceCard[hidden]{display:none}
+    #referenceCard img{width:100%;display:block;border-radius:4px}
+    #referenceCard span{display:block;font-size:10px;color:#b9d0db;margin-top:5px}
+    #referenceCard button{position:absolute;top:6px;right:6px;padding:2px 6px}
+    #libraryInfo{font-size:10px;line-height:1.5;color:var(--muted);margin-top:10px}
+    @media(max-width:750px){
+     header{height:auto;min-height:56px;flex-wrap:wrap}
+     main{height:calc(100dvh - 56px);display:block;position:relative}
+     aside{position:absolute;z-index:9;bottom:0;left:0;right:0;max-height:90px;overflow:auto;border-right:0;border-top:1px solid var(--line);padding:8px}
+     aside h3,aside #search,aside #libraryInfo,aside #saved{display:none}
+     #presets{display:flex;overflow:auto;white-space:nowrap;margin:0}
+     #presets button{width:auto;flex-shrink:0}
+     #stage{height:100%;padding-bottom:90px}
+     #guiMount{right:6px;top:6px;max-height:calc(100% - 105px)}
+     #guiMount .lil-gui{--width:250px}
+     #status{max-width:46%;font-size:10px;bottom:105px}
+     #boarding{bottom:104px}
+     #joystick{left:12px;bottom:175px;width:105px;height:105px}
+     #knob{left:31px;top:31px}
+     #brake{bottom:178px}
+     #referenceCard{bottom:165px;width:125px}
+   }
+ </style>
+
+ <script type="importmap">
+  {
+   "imports":{
+    "three":"https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js",
+    "three/addons/":"https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/",
+    "cannon-es":"https://cdn.jsdelivr.net/npm/cannon-es@0.20.0/dist/cannon-es.js",
+    "lil-gui":"https://cdn.jsdelivr.net/npm/lil-gui@0.21.0/dist/lil-gui.esm.js"
+  }
+}
+</script>
+</head>
+<body>
+
+  <header>
+   <div class="brand">
+    META VEHICLE LAB
+    <small>v0.1.1 · Procedural assembly · Physics · AI · Blueprint v3</small>
+  </div>
+  <div class="actions">
+    <button id="buildBtn" class="active">BUILD</button>
+    <button id="driveBtn">DRIVE</button>
+    <button id="rotateBtn">Stop rotation</button>
+    <button id="lightsBtn">Lights on</button>
+    <button id="saveBtn">Save layout</button>
+    <button id="exportBtn">Export JSON</button>
+  </div>
+</header>
+
+<main>
+ <aside>
+  <h3>Vehicles</h3>
+  <input id="search" placeholder="Search vehicles">
+  <div id="presets"></div>
+  <h3>Saved layouts</h3>
+  <div id="saved"></div>
+  <div id="libraryInfo">IndexedDB keeps layouts and imported GLBs on this device. API keys stay in memory, are sent only to the configured same-origin backend, and are never saved. AI endpoints require a separately configured backend.</div>
+</aside>
+
+<div id="stage">
+  <form id="credentialsForm" autocomplete="off" novalidate>
+    <div id="guiMount"></div>
+  </form>
+
+  <div id="hud">
+   <strong id="vehicleName">City Car</strong>
+   <p id="vehicleInfo">Procedural vehicle</p>
+   <div id="speedHud"><strong id="speed">0</strong><div>km/h</div></div>
+ </div>
+
+ <div id="status">Drag to orbit · Scroll to zoom · Select a vehicle type</div>
+
+ <div id="referenceCard" hidden>
+   <button id="closeReference">×</button>
+   <img id="referenceImage" alt="AI model reference">
+   <span>AI / model reference</span>
+ </div>
+
+ <div id="joystick"><div id="knob"></div></div>
+ <button id="brake">BRAKE</button>
+
+ <div id="boarding">
+   <button id="exitBtn">Exit −</button>
+   <button id="boardBtn">Board +</button>
+   <button id="doorsBtn">Open doors</button>
+ </div>
+</div>
+</main>
+
+<input id="importJSON" type="file" accept=".json" hidden>
+<input id="importGLB" type="file" accept=".glb" hidden>
+<input id="importImage" type="file" accept="image/png,image/jpeg,image/webp" hidden>
+
+<script type="module">
+  import * as THREE from 'three';
+  import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
+  import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
+  import {GLTFExporter} from 'three/addons/exporters/GLTFExporter.js';
+  import * as CANNON from 'cannon-es';
+  import GUI from 'lil-gui';
+
+  const $=id=>document.getElementById(id);
+  // lil-gui creates the password inputs inside this form (no DOM warning).
+  $('credentialsForm').addEventListener('submit', event=>event.preventDefault());
+  const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+  const lerp=(a,b,t)=>a+(b-a)*t;
+  const rad=v=>v*Math.PI/180;
+
+  const vehicle=(name,category,L,W,H,axles,radius,seats,doors,windows,engine,drive,equipment='none')=>
+  ({name,category,L,W,H,axles,radius,seats,doors,windows,engine,drive,equipment});
+
+  const PRESETS=[
+   vehicle('City Car','Urban',3.6,1.7,1.45,2,.34,4,2,2,'electric','FWD'),
+   vehicle('Hatchback','Urban',4.1,1.78,1.5,2,.36,5,2,3,'petrol','FWD'),
+   vehicle('Sedan','Urban',4.8,1.86,1.48,2,.37,5,2,3,'hybrid','FWD'),
+   vehicle('Sports Coupe','Urban',4.4,1.94,1.25,2,.4,2,1,2,'petrol','RWD'),
+   vehicle('SUV','Urban',4.9,2.06,1.92,2,.47,7,2,3,'hybrid','AWD'),
+   vehicle('Pickup','Urban',5.6,2.02,1.9,2,.5,5,2,2,'diesel','AWD','pickup'),
+   vehicle('Delivery Van','Urban',5.8,2.12,2.5,2,.45,3,2,2,'electric','RWD','cargo'),
+   vehicle('Autonomous Shuttle','Urban',5.2,2.2,2.3,2,.43,9,2,4,'electric','AWD'),
+   vehicle('Minibus','Urban',7,2.3,2.6,2,.49,16,2,6,'diesel','RWD'),
+   vehicle('City Bus','Urban',12,2.55,3.15,3,.54,32,3,10,'electric','RWD'),
+   vehicle('Coach','Urban',13,2.55,3.5,3,.55,40,2,10,'diesel','RWD'),
+   vehicle('Ambulance','Emergency',5.7,2.2,2.55,2,.45,5,2,3,'diesel','AWD','emergency'),
+   vehicle('Police Car','Emergency',4.7,1.9,1.65,2,.4,5,2,3,'hybrid','AWD','emergency'),
+   vehicle('Fire Engine','Emergency',9,2.5,3.2,3,.58,6,2,4,'diesel','AWD','emergency'),
+   vehicle('Garbage Truck','Municipal',8.2,2.5,3.2,3,.59,3,2,2,'diesel','RWD','compactor'),
+   vehicle('Street Sweeper','Municipal',5.2,2.15,2.4,2,.45,2,2,2,'electric','AWD','sweeper'),
+   vehicle('Tow Tractor','Industrial',4,1.8,1.6,2,.46,2,1,2,'electric','RWD','hitch'),
+   vehicle('Forklift','Industrial',3.2,1.65,2.15,2,.4,1,1,2,'electric','RWD','forks'),
+   vehicle('Telehandler','Industrial',6,2.35,2.6,2,.65,2,1,2,'diesel','AWD','boom'),
+   vehicle('Flatbed Truck','Industrial',8,2.5,2.85,3,.59,3,2,2,'diesel','RWD','flatbed'),
+   vehicle('Dump Truck','Industrial',8.5,2.65,3.3,3,.69,3,2,2,'diesel','RWD','dump'),
+   vehicle('Tanker','Industrial',10.5,2.55,3.15,3,.61,3,2,2,'diesel','RWD','tanker'),
+   vehicle('Mobile Crane','Industrial',10,2.55,3.3,4,.65,3,2,2,'diesel','AWD','crane'),
+   vehicle('Heavy Hauler','Industrial',12.5,3.1,3.25,5,.73,3,2,2,'diesel','AWD','flatbed'),
+   vehicle('Autonomous Taxi','Urban',4.5,1.9,1.8,2,.39,4,2,4,'electric','AWD'),
+   vehicle('Shuttle Bus','Urban',6.5,2.3,2.7,2,.47,15,2,6,'electric','AWD'),
+   vehicle('Electric Bus','Urban',12.4,2.55,3.2,3,.54,34,3,10,'electric','RWD'),
+   vehicle('Cargo Bike','Micromobility',2.7,1.2,1.3,2,.29,1,1,2,'electric','RWD','cargo-bike'),
+   vehicle('Electric Scooter','Micromobility',2.5,1.2,1.1,2,.26,1,1,1,'electric','RWD','scooter'),
+   vehicle('Utility Vehicle','Municipal',4.3,1.95,2.1,2,.47,2,2,2,'electric','AWD','flatbed'),
+   vehicle('Reach Stacker','Industrial',8.5,2.7,3.4,2,.76,2,1,2,'diesel','AWD','stacker'),
+   vehicle('Warehouse Robot','Robotics',2.5,1.3,1.3,2,.27,1,1,1,'electric','AWD','agv'),
+   vehicle('AGV','Robotics',3.1,1.65,1.25,2,.3,1,1,1,'electric','AWD','agv'),
+   vehicle('Excavator','Construction',7.5,2.8,3.1,3,.62,1,1,2,'diesel','AWD','excavator'),
+   vehicle('Wheel Loader','Construction',7.5,2.65,3.1,2,.74,1,1,2,'diesel','AWD','loader'),
+   vehicle('Bulldozer','Construction',7.0,3.0,2.9,3,.56,1,1,2,'diesel','AWD','dozer'),
+   vehicle('Concrete Mixer','Construction',9,2.55,3.45,3,.61,3,2,2,'diesel','RWD','mixer'),
+   vehicle('Road Roller','Construction',6.3,2.5,2.7,2,.75,1,1,2,'diesel','AWD','roller'),
+   vehicle('Tractor','Agriculture',4.7,2.2,2.6,2,.75,2,1,2,'diesel','AWD','tractor'),
+   vehicle('Mining Truck','Mining',15,5.0,6.3,3,1.25,2,1,2,'diesel','AWD','mining')
+ ];
+
+ const defaultModule=()=>({
+   width:1,height:1,depth:1,radius:.15,
+   x:0,y:0,z:0,rx:0,ry:0,rz:0,sx:1,sy:1,sz:1
+ });
+ const defaultMods=()=>Object.fromEntries(
+   ['front','cabin','rear','equipment'].map(n=>[n,defaultModule()])
+ );
+
+ const defaults={
+   ...PRESETS[0],
+   paint:'#70afd5',glass:'#73bbd8',
+   roughness:.34,metalness:.45,glassOpacity:.48,
+   glassRoughness:.12,pattern:'solid',seed:21,
+   headlights:true,rearWindow:true,maxSpeed:90,
+   modelScale:1,modelRotation:0,
+   hills:true,cameraDistance:12
+ };
+
+ let cfg=structuredClone(defaults);
+ let mods=defaultMods();
+ let selectedPart='cabin'; // Always initialise before the first build/highlight.
+ let occupants=cfg.seats;
+ let mode='build',autoRotate=true,doorsOpen=false,braking=false;
+ let car=null,bodyRoot=null,highlight=null;
+ let wheels=[],doorHinges=[],partGroups={},passengerFigures=[];
+ let headMaterials=[],brakeMaterials=[],headlights=[];
+ let physics=null,previousYaw=null;
+ let modelSource=null,modelBlob=null,modelName=null;
+ let layoutId=null,gui=null,queued=false;
+ let imageReference=null,busyAI=false;
+
+ // Keys remain in volatile memory. Never place credentials in a blueprint or IndexedDB.
+ const keys={meta:'',openai:'',xai:'',tripo:''};
+ const ai={
+   provider:'openai',
+   tripoModel:'P2-20260801',
+   prompt:'Photorealistic industrial vehicle concept based on this exact vehicle. Preserve its dimensions, proportions, axle locations, windows, doors and overall silhouette.'
+ };
+
+ function note(text,error=false){
+   $('status').textContent=text;
+   $('status').style.color=error?'#ffb8b8':'#d0e4e5';
+ }
+
+ const scene=new THREE.Scene();
+ scene.background=new THREE.Color('#172532');
+ scene.fog=new THREE.Fog('#172532',85,230);
+
+ const camera=new THREE.PerspectiveCamera(48,1,.1,350);
+ camera.position.set(9,6,11);
+
+ const renderer=new THREE.WebGLRenderer({
+   antialias:true,preserveDrawingBuffer:true
+ });
+ renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.7));
+ renderer.shadowMap.enabled=true;
+ renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+ renderer.outputColorSpace=THREE.SRGBColorSpace;
+ renderer.toneMapping=THREE.ACESFilmicToneMapping;
+ renderer.toneMappingExposure=1.5;
+
+ $('stage').prepend(renderer.domElement);
+
+ const orbit=new OrbitControls(camera,renderer.domElement);
+ orbit.enableDamping=true;
+ orbit.dampingFactor=.07;
+ orbit.minDistance=2.5;
+ orbit.maxDistance=130;
+ orbit.maxPolarAngle=Math.PI*.49;
+ orbit.autoRotate=true;
+ orbit.autoRotateSpeed=1.2;
+ orbit.addEventListener('end',()=>{
+  if(car)cfg.cameraDistance=clamp(camera.position.distanceTo(orbit.target),3,130);
+ });
+
+ scene.add(new THREE.HemisphereLight(0xe5f3ff,0x35495a,1.6));
+
+ const sunlight=new THREE.DirectionalLight(0xffffff,3);
+ sunlight.position.set(-15,23,12);
+ sunlight.castShadow=true;
+ sunlight.shadow.mapSize.set(2048,2048);
+ sunlight.shadow.camera.left=-75;
+ sunlight.shadow.camera.right=75;
+ sunlight.shadow.camera.top=75;
+ sunlight.shadow.camera.bottom=-75;
+ scene.add(sunlight);
+
+ const world=new CANNON.World({
+   gravity:new CANNON.Vec3(0,-9.82,0)
+ });
+ world.allowSleep=true;
+ world.defaultContactMaterial.friction=.85;
+
+// Shared terrain representation for rendering and collision.
+ const SIZE=180,STEP=1.5,N=Math.round(SIZE/STEP);
+ const plateaus=[
+   [12,14,10,9,2.4,.3],
+   [-17,8,12,11,3.1,.24],
+   [18,-17,13,11,3.6,.34],
+   [-23,-22,18,15,4.6,.2]
+ ];
+ function heightAt(x,z){
+   if(!cfg.hills)return 0;
+   let h=0;
+   for(const [cx,cz,rx,rz,amplitude,top] of plateaus){
+    const d=Math.max(Math.abs(x-cx)/rx,Math.abs(z-cz)/rz);
+    h=Math.max(h,amplitude*clamp((1-d)/(1-top),0,1));
+  }
+  for(const [cx,cz,s,a] of [[39,-28,19,8],[-43,33,23,9]]){
+    const dx=(x-cx)/s,dz=(z-cz)/s;
+    h+=a*Math.exp(-2.3*(dx*dx+dz*dz));
+  }
+  return h;
+}
+
+let terrain=null,terrainBody=null;
+function buildTerrain(){
+ if(terrain){
+  terrain.geometry.dispose();
+  terrain.material.dispose();
+  scene.remove(terrain);
+}
+if(terrainBody)world.removeBody(terrainBody);
+
+const vertices=[],indices=[],heights=[];
+for(let i=0;i<=N;i++){
+  const row=[];
+  for(let j=0;j<=N;j++){
+   const x=-SIZE/2+i*STEP;
+   const z=SIZE/2-j*STEP;
+   const y=heightAt(x,z);
+   row.push(y);
+   vertices.push(x,y,z);
+ }
+ heights.push(row);
+}
+for(let i=0;i<N;i++)for(let j=0;j<N;j++){
+  const a=i*(N+1)+j,b=(i+1)*(N+1)+j;
+  indices.push(a,a+1,b,a+1,b+1,b);
+}
+
+const g=new THREE.BufferGeometry();
+g.setAttribute('position',new THREE.Float32BufferAttribute(vertices,3));
+g.setIndex(indices);
+g.computeVertexNormals();
+
+terrain=new THREE.Mesh(g,new THREE.MeshStandardMaterial({
+  color:0x547065,roughness:.96,side:THREE.DoubleSide
+}));
+terrain.receiveShadow=true;
+scene.add(terrain);
+
+const shape=new CANNON.Heightfield(heights,{elementSize:STEP});
+terrainBody=new CANNON.Body({mass:0});
+terrainBody.addShape(shape);
+terrainBody.quaternion.setFromEuler(-Math.PI/2,0,0);
+terrainBody.position.set(-SIZE/2,0,SIZE/2);
+world.addBody(terrainBody);
+}
+buildTerrain();
+
+const grid=new THREE.GridHelper(180,90,0x61757f,0x314a57);
+grid.position.y=.06;
+grid.material.transparent=true;
+grid.material.opacity=.15;
+scene.add(grid);
+
+function mat(color,metalness=.2,roughness=.65,options={}){
+ return new THREE.MeshStandardMaterial({
+  color,metalness,roughness,side:THREE.DoubleSide,...options
+});
+}
+function add(parent,geometry,material,x=0,y=0,z=0){
+ const object=new THREE.Mesh(geometry,material);
+ object.position.set(x,y,z);
+ object.castShadow=true;object.receiveShadow=true;
+ parent.add(object);
+ return object;
+}
+function box(parent,w,h,d,material,x=0,y=0,z=0){
+ return add(parent,new THREE.BoxGeometry(
+  Math.max(.01,w),Math.max(.01,h),Math.max(.01,d)
+),material,x,y,z);
+}
+function disposeTree(node,seen=new Set()){
+ if(!node)return;
+ node.traverse(o=>{
+  if(o.userData?.externalModel)return;
+  if(o.geometry&&!seen.has(o.geometry)){
+   seen.add(o.geometry);o.geometry.dispose();
+ }
+ for(const m of Array.isArray(o.material)?o.material:o.material?[o.material]:[]){
+   if(seen.has(m))continue;
+   seen.add(m);
+   if(m.map&&!seen.has(m.map)){seen.add(m.map);m.map.dispose()}
+   m.dispose();
+ }
+});
+ node.parent?.remove(node);
+}
+
+function hash(x,y,s){
+ let n=Math.imul(x,374761393)+Math.imul(y,668265263)+Math.imul(s,1442695041);
+ n=Math.imul(n^(n>>>13),1274126177);
+ return ((n^(n>>>16))>>>0)/4294967295;
+}
+function noise(x,y,s){
+ const ix=Math.floor(x),iy=Math.floor(y),fx=x-ix,fy=y-iy;
+ const u=fx*fx*(3-2*fx),v=fy*fy*(3-2*fy);
+ return lerp(
+  lerp(hash(ix,iy,s),hash(ix+1,iy,s),u),
+  lerp(hash(ix,iy+1,s),hash(ix+1,iy+1,s),u),v
+);
+}
+function paintTexture(){
+ if(cfg.pattern==='solid')return null;
+ const canvas=document.createElement('canvas');
+ canvas.width=canvas.height=128;
+ const c=canvas.getContext('2d'),data=c.createImageData(128,128);
+ const colour=new THREE.Color(cfg.paint).convertLinearToSRGB();
+ for(let y=0;y<128;y++)for(let x=0;x<128;x++){
+  const n=noise(x/14,y/14,cfg.seed);
+  const fine=noise(x/3,y/3,cfg.seed+1);
+  let f=1;
+  if(cfg.pattern==='speckle')f=.72+fine*.45;
+  if(cfg.pattern==='cloud')f=.65+n*.58;
+  if(cfg.pattern==='camo')f=n>.65?.60:n>.42?1.15:.78;
+  if(cfg.pattern==='brushed')f=.7+noise(y/40,x/1.2,cfg.seed)*.5;
+  const i=(y*128+x)*4;
+  data.data[i]=clamp(Math.round(colour.r*f*255),0,255);
+  data.data[i+1]=clamp(Math.round(colour.g*f*255),0,255);
+  data.data[i+2]=clamp(Math.round(colour.b*f*255),0,255);
+  data.data[i+3]=255;
+}
+c.putImageData(data,0,0);
+const tex=new THREE.CanvasTexture(canvas);
+tex.colorSpace=THREE.SRGBColorSpace;
+tex.wrapS=tex.wrapT=THREE.RepeatWrapping;
+tex.repeat.set(1.5,2.5);
+return tex;
+}
+function bodyMaterial(){
+ const texture=paintTexture();
+ return mat(texture?'#ffffff':cfg.paint,cfg.metalness,cfg.roughness,
+  texture?{map:texture}:{});
+}
+function windowMaterial(){
+ return new THREE.MeshPhysicalMaterial({
+  color:cfg.glass,metalness:.12,roughness:cfg.glassRoughness,
+  transparent:true,opacity:cfg.glassOpacity,
+  depthWrite:false,side:THREE.DoubleSide
+});
+}
+function hull(w,h,d,kind,round){
+ const ring=[
+  [-.40,0],[.40,0],[.50,.17],[.48,.61],
+  [.36,.97],[-.36,.97],[-.48,.61],[-.50,.17]
+];
+const e=clamp(round,.025,Math.min(.4,d*.2));
+const stations=[-d/2,-d/2+e,d/2-e,d/2];
+const vertices=[],uv=[],idx=[];
+for(let k=0;k<4;k++){
+  const t=(stations[k]+d/2)/d;
+  const taper=k===0||k===3?.95:1;
+  const roof=kind==='front'?lerp(.95,.66,t):
+  kind==='rear'?lerp(.67,.95,t):1;
+  for(let j=0;j<8;j++){
+   const [px,py]=ring[j];
+   vertices.push(px*w*taper,-.43+py*h*roof,stations[k]);
+   uv.push(t,j/7);
+ }
+}
+for(let k=0;k<3;k++)for(let j=0;j<8;j++){
+  const a=k*8+j,b=k*8+(j+1)%8;
+  const c=(k+1)*8+j,d1=(k+1)*8+(j+1)%8;
+  idx.push(a,b,c,b,d1,c);
+}
+for(let j=1;j<7;j++)idx.push(0,j+1,j,24,24+j,24+j+1);
+ const g=new THREE.BufferGeometry();
+g.setAttribute('position',new THREE.Float32BufferAttribute(vertices,3));
+g.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2));
+g.setIndex(idx);g.computeVertexNormals();
+return g;
+}
+
+function human(parent,x,y,z){
+ const root=new THREE.Group();root.position.set(x,y,z);parent.add(root);
+ const skin=mat('#e2b598'),shirt=mat('#91aaca'),dark=mat('#26313f');
+ add(root,new THREE.SphereGeometry(.11,10,9),skin,0,.66,0);
+ add(root,new THREE.CylinderGeometry(.11,.15,.34,10),shirt,0,.40,0);
+ box(root,.10,.12,.26,dark,-.08,.14,.1);
+ box(root,.10,.12,.26,dark,.08,.14,.1);
+ return root;
+}
+function makeWheel(parent,x,y,z,r){
+ const root=new THREE.Group();
+ root.position.set(x,y,z);parent.add(root);
+ const tire=add(root,new THREE.CylinderGeometry(r,r,r*.28,28),mat('#131921',0,.9));
+ tire.rotation.z=Math.PI/2;
+ const rim=add(root,new THREE.CylinderGeometry(r*.55,r*.55,r*.29,20),
+  mat('#a9bac5',.85,.28));
+ rim.rotation.z=Math.PI/2;
+ return root;
+}
+function equipment(parent,L,W,H,paint){
+ const steel=mat('#425c6c',.58,.43),yellow=mat('#e3b257',.3,.4);
+ const kind=cfg.equipment;
+ if(['pickup','flatbed'].includes(kind)){
+  box(parent,W*.9,.12,L*.40,steel,0,.08,0);
+  for(const s of [-1,1])box(parent,.07,.30,L*.39,paint,s*W*.44,.24,0);
+}
+if(['cargo','compactor','dump'].includes(kind)){
+  const b=box(parent,W*.9,H*.52,L*.4,steel,0,H*.3,0);
+  if(kind==='dump')b.rotation.x=-.12;
+}
+if(kind==='tanker'){
+  const b=add(parent,new THREE.CylinderGeometry(W*.42,W*.42,L*.5,24),
+   mat('#c0cad0',.8,.3),0,.5,0);
+  b.rotation.x=Math.PI/2;
+}
+if(['forks','boom','crane'].includes(kind)){
+  const height=kind==='crane'?H*1.7:H;
+  for(const s of [-1,1])box(parent,.12,height,.12,steel,s*W*.24,height/2-.35,0);
+    if(kind==='forks'){
+     for(const s of [-1,1])box(parent,.11,.1,L*.5,yellow,s*W*.2,-.3,L*.25);
+   }else{
+     const arm=box(parent,.25,.25,L*.75,yellow,0,height*.75,L*.2);
+     arm.rotation.x=-.3;
+   }
+ }
+ if(kind==='sweeper')for(const s of [-1,1]){
+  const brush=add(parent,new THREE.CylinderGeometry(.34,.34,.16,20),
+   yellow,s*W*.4,-.26,L*.13);
+  brush.rotation.z=Math.PI/2;
+}
+if(kind==='emergency'){
+  box(parent,W*.4,.12,.22,steel,0,H*.9,0);
+  box(parent,.19,.10,.17,mat('#fc4050'),-.14,H*.97,0);
+  box(parent,.19,.10,.17,mat('#356aff'),.14,H*.97,0);
+}
+if(kind==='hitch')box(parent,.14,.13,L*.5,steel,0,-.35,-L*.32);
+if(['agv','scooter','cargo-bike'].includes(kind)){
+ box(parent,W*.8,.11,L*.48,steel,0,-.28,0);
+ if(kind==='cargo-bike')box(parent,W*.65,.5,L*.28,yellow,0,.06,L*.08);
+ if(kind==='scooter'){
+  box(parent,.07,H*.6,.08,steel,0,H*.10,L*.28);
+  box(parent,W*.4,.06,.08,steel,0,H*.42,L*.28);
+ }
+}
+if(['excavator','loader','stacker'].includes(kind)){
+ const arm=new THREE.Group();arm.position.set(0,H*.33,L*.06);parent.add(arm);
+ arm.rotation.x=-.30;
+ box(arm,W*.14,W*.14,L*.6,yellow,0,0,L*.2);
+ box(arm,W*.13,W*.13,L*.32,steel,0,H*.17,L*.49);
+ const bucket=box(arm,W*.72,H*.24,L*.18,steel,0,-H*.10,L*.67);
+ bucket.rotation.x=.22;
+ if(kind==='stacker')for(const side of [-1,1])box(arm,.08,.1,L*.28,yellow,side*W*.32,-H*.2,L*.68);
+}
+if(kind==='dozer'){
+ const blade=box(parent,W*1.15,H*.43,.18,steel,0,-H*.12,L*.49);
+ blade.rotation.x=.13;
+}
+if(['mixer','roller','tractor','mining'].includes(kind)){
+ if(kind==='mixer'){
+  const drum=add(parent,new THREE.CylinderGeometry(W*.34,W*.42,L*.45,20),mat('#ccd7df',.62,.35),0,H*.33,-L*.09);
+  drum.rotation.x=Math.PI/2-.18;
+ }
+ if(kind==='roller'){
+  const drum=add(parent,new THREE.CylinderGeometry(W*.47,W*.47,W*.75,28),steel,0,-H*.25,L*.36);
+  drum.rotation.z=Math.PI/2;
+ }
+ if(kind==='tractor')box(parent,W*.68,.14,L*.42,steel,0,-H*.13,-L*.31);
+ if(kind==='mining'){
+  const bed=box(parent,W*.88,H*.42,L*.50,yellow,0,H*.37,-L*.13);
+  bed.rotation.x=-.07;
+ }
+}
+}
+
+function clearVehicle(){
+ if(highlight){highlight.dispose();scene.remove(highlight);highlight=null}
+ for(const w of wheels)if(w.parent===scene)disposeTree(w);
+   wheels=[];
+ if(car)disposeTree(car);
+ car=null;doorHinges=[];partGroups={};passengerFigures=[];
+ headMaterials=[];brakeMaterials=[];headlights=[];
+}
+function addLamp(parent,x,z,front){
+ const colour=front?'#fff4ce':'#fa263e';
+ const m=mat(colour,.1,.22,{
+  emissive:new THREE.Color(colour),emissiveIntensity:0
+});
+ box(parent,.25,.12,.05,m,x,-.13,z);
+ if(front){
+  headMaterials.push(m);
+  const spot=new THREE.SpotLight(0xfff2da,0,22,Math.PI/7,.65,1.5);
+  spot.position.set(x,-.12,z);
+  const target=new THREE.Object3D();
+  target.position.set(x,-.7,z+17);
+  parent.add(spot,target);spot.target=target;
+  headlights.push(spot);
+}else brakeMaterials.push(m);
+}
+function updateLights(){
+ for(const m of headMaterials)m.emissiveIntensity=cfg.headlights?3:.02;
+   for(const l of headlights)l.intensity=cfg.headlights?18:0;
+     for(const m of brakeMaterials)m.emissiveIntensity=braking?5:cfg.headlights?.7:.05;
+   }
+
+ function addImportedModel(){
+   if(!modelSource)return;
+   const clone=modelSource.clone(true);
+   clone.traverse(o=>o.userData.externalModel=true);
+   const bounds=new THREE.Box3().setFromObject(clone);
+   const size=bounds.getSize(new THREE.Vector3());
+   const center=bounds.getCenter(new THREE.Vector3());
+   if(Math.min(size.x,size.y,size.z)<=0)return;
+   const s=Math.min(cfg.W/size.x,cfg.H/size.y,cfg.L/size.z)*cfg.modelScale;
+   clone.scale.setScalar(s);
+   clone.position.set(-center.x*s,cfg.H*.35-center.y*s,-center.z*s);
+   clone.rotation.y=rad(cfg.modelRotation);
+   car.add(clone);
+   bodyRoot.visible=false;
+ }
+
+ function buildVehicle(){
+   clearVehicle();
+   const {L,W,H}=cfg;
+   const bus=/Bus|Coach|Shuttle|Minibus/.test(cfg.name);
+   const utility=['pickup','flatbed','cargo','compactor','dump','tanker'].includes(cfg.equipment);
+   const a=(bus?.18:utility?.25:.29)*L;
+   const b=(bus?.65:utility?.35:.46)*L;
+   const c=L-a-b;
+   const paint=bodyMaterial(),glass=windowMaterial(),trim=mat('#283d4a',.4,.4);
+
+   car=new THREE.Group();car.name=cfg.name;
+   car.position.set(0,heightAt(0,0)+cfg.radius+.65,0);
+   scene.add(car);
+   bodyRoot=new THREE.Group();car.add(bodyRoot);
+
+   function part(name,z){
+    const p=mods[name],g=new THREE.Group();
+    g.name=name;g.userData.part=name;
+    g.position.set(p.x,p.y,z+p.z);
+    g.rotation.set(rad(p.rx),rad(p.ry),rad(p.rz));
+    g.scale.set(p.sx,p.sy,p.sz);
+    bodyRoot.add(g);partGroups[name]=g;
+    return g;
+  }
+  const front=part('front',L/2-a/2),fm=mods.front;
+  add(front,hull(W*fm.width,H*.65*fm.height,a*fm.depth,'front',fm.radius),paint);
+
+  const cabin=part('cabin',L/2-a-b/2),cm=mods.cabin;
+  const cw=W*cm.width,ch=H*cm.height,cd=b*cm.depth;
+  add(cabin,hull(cw,ch*.42,cd,'cabin',cm.radius),paint);
+  box(cabin,cw*.78,.10,cd*.95,paint,0,-.43+ch*.96,0);
+  for(const side of [-1,1]){
+    for(const z of [-cd*.43,cd*.43])
+     box(cabin,.065,ch*.5,.09,paint,side*cw*.38,-.43+ch*.67,z);
+   const ws=cd*.86/cfg.windows;
+   for(let i=0;i<cfg.windows;i++){
+     const z=-cd*.43+ws*(i+.5);
+     box(cabin,.025,ch*.34,ws*.9,glass,side*cw*.45,-.43+ch*.69,z);
+   }
+   const ds=cd*.86/cfg.doors;
+   for(let i=0;i<cfg.doors;i++){
+     const z=-cd*.43+ds*(i+.5);
+     const hinge=new THREE.Group();
+     hinge.position.set(side*cw*.48,-.13,z+ds*.43);
+     cabin.add(hinge);
+     box(hinge,.028,ch*.38,ds*.85,paint,0,0,-ds*.43);
+     box(hinge,.04,.035,.12,trim,side*.02,.06,-ds*.47);
+     doorHinges.push({hinge,side});
+   }
+ }
+ box(cabin,cw*.74,ch*.34,.02,glass,0,-.43+ch*.69,cd*.485);
+ if(cfg.rearWindow)box(cabin,cw*.72,ch*.31,.02,glass,
+  0,-.43+ch*.69,-cd*.485);
+
+   const rear=part('rear',-L/2+c/2),rm=mods.rear;
+ add(rear,hull(W*rm.width,H*.62*rm.height,c*rm.depth,'rear',rm.radius),paint);
+
+ const eq=part('equipment',-L*.19);
+ equipment(eq,L,W,H,paint);
+
+ for(let axle=0;axle<cfg.axles;axle++){
+  const z=L*.38-axle*L*.76/(cfg.axles-1);
+  for(const side of [-1,1]){
+   wheels.push(makeWheel(car,side*W*.54,-.3,z,cfg.radius));
+ }
+}
+const lamps=new THREE.Group();car.add(lamps);
+for(const side of [-1,1]){
+  addLamp(lamps,side*W*.34,L*.495,true);
+  addLamp(lamps,side*W*.38,-L*.495,false);
+}
+
+const passengers=new THREE.Group();car.add(passengers);
+const columns=clamp(Math.floor(W/.75),2,4);
+const rows=Math.ceil(cfg.seats/columns);
+for(let i=0;i<cfg.seats;i++){
+  const col=i%columns,row=Math.floor(i/columns);
+  const x=(col-(columns-1)/2)*W*.66/columns;
+  const z=b*.36-(row+.5)*b*.72/rows+(L/2-a-b/2);
+  box(passengers,.29,.10,.3,trim,x,-.22,z);
+  box(passengers,.29,.32,.075,trim,x,-.01,z-.12);
+  const figure=human(passengers,x,-.14,z);
+  figure.visible=i<occupants;passengerFigures.push(figure);
+}
+for(const {hinge,side} of doorHinges)
+  hinge.rotation.y=doorsOpen?side*.8:0;
+addImportedModel();
+updateLights();
+
+$('vehicleName').textContent=cfg.name;
+$('vehicleInfo').textContent=
+`${L.toFixed(1)} m · ${cfg.axles*2} wheels · ${cfg.seats} seats · ${cfg.engine}`;
+$('doorsBtn').textContent=doorsOpen?'Close doors':'Open doors';
+updateHighlight();
+}
+
+function updateHighlight(){
+ if(highlight){highlight.dispose();scene.remove(highlight);highlight=null}
+ if(mode!=='build'||modelSource)return;
+ const target=partGroups[selectedPart];
+ if(target){
+  highlight=new THREE.BoxHelper(target,0xa8f1c8);
+  scene.add(highlight);
+}
+}
+function scheduleBuild(){
+ if(mode==='drive')leaveDrive();
+ if(queued)return;
+ queued=true;
+ requestAnimationFrame(()=>{queued=false;buildVehicle()});
+}
+
+// Orbit camera follows both vehicle position and heading while
+// preserving the user's current orbit angle and zoom.
+function resetCamera(){
+ const target=car?.position.clone().add(new THREE.Vector3(0,cfg.H*.3,0))||
+ new THREE.Vector3(0,1,0);
+ orbit.target.copy(target);
+ const d=Math.max(6,cfg.cameraDistance);
+ camera.position.copy(target).add(new THREE.Vector3(d*.65,d*.42,d*.65));
+ orbit.update();
+}
+function followCamera(dt){
+ if(!car)return;
+ const yaw=new THREE.Euler().setFromQuaternion(car.quaternion,'YXZ').y;
+ if(previousYaw!==null){
+  let dy=yaw-previousYaw;
+  dy=Math.atan2(Math.sin(dy),Math.cos(dy));
+  const offset=camera.position.clone().sub(orbit.target);
+  offset.applyAxisAngle(new THREE.Vector3(0,1,0),dy);
+  camera.position.copy(orbit.target).add(offset);
+}
+previousYaw=yaw;
+const desired=car.position.clone().add(new THREE.Vector3(0,cfg.H*.33,0));
+const before=orbit.target.clone();
+orbit.target.lerp(desired,1-Math.exp(-10*dt));
+camera.position.add(orbit.target.clone().sub(before));
+orbit.update();
+}
+
+// Physics and driving.
+function enterDrive(){
+ if(mode==='drive')return;
+ mode='drive';previousYaw=null;
+ $('buildBtn').classList.remove('active');
+ $('driveBtn').classList.add('active');
+ $('speedHud').style.display='block';
+ $('joystick').style.display='block';
+ $('brake').style.display='block';
+ orbit.autoRotate=false;
+
+ if(highlight){highlight.dispose();scene.remove(highlight);highlight=null}
+
+ const chassis=new CANNON.Body({
+  mass:Math.max(650,cfg.L*cfg.W*cfg.H*145+occupants*75),
+  position:new CANNON.Vec3(0,heightAt(0,0)+cfg.radius+.85,0),
+  linearDamping:.13,angularDamping:.55
+});
+ chassis.addShape(new CANNON.Box(new CANNON.Vec3(
+  cfg.W*.44,Math.max(.23,cfg.H*.24),cfg.L*.44
+)),new CANNON.Vec3(0,-.07,0));
+
+ const vehiclePhysics=new CANNON.RaycastVehicle({
+  chassisBody:chassis,indexRightAxis:0,indexUpAxis:1,indexForwardAxis:2
+});
+ for(let axle=0;axle<cfg.axles;axle++){
+  const z=cfg.L*.38-axle*cfg.L*.76/(cfg.axles-1);
+  for(const side of [-1,1]){
+   vehiclePhysics.addWheel({
+    radius:cfg.radius,
+    directionLocal:new CANNON.Vec3(0,-1,0),
+    axleLocal:new CANNON.Vec3(1,0,0),
+    chassisConnectionPointLocal:new CANNON.Vec3(side*cfg.W*.54,-.3,z),
+    suspensionRestLength:.32,
+    suspensionStiffness:42,
+    dampingCompression:4.6,dampingRelaxation:2.8,
+    frictionSlip:5.4,maxSuspensionForce:150000,
+    maxSuspensionTravel:.3,rollInfluence:.045
+  });
+ }
+}
+vehiclePhysics.addToWorld(world);
+physics={chassis,vehicle:vehiclePhysics};
+for(const w of wheels)scene.attach(w);
+ note('Drive: arrows to move and steer · Space to brake · Drag to orbit · Scroll/pinch to zoom');
+}
+function leaveDrive(){
+ if(mode!=='drive')return;
+ physics?.vehicle.removeFromWorld(world);
+ physics=null;mode='build';previousYaw=null;braking=false;
+ $('buildBtn').classList.add('active');
+ $('driveBtn').classList.remove('active');
+ $('speedHud').style.display='none';
+ $('joystick').style.display='none';
+ $('brake').style.display='none';
+ $('speed').textContent='0';
+ orbit.autoRotate=autoRotate;
+ buildVehicle();resetCamera();
+}
+const held=new Set();
+const joystick={x:0,y:0,active:false};
+let touchBrake=false;
+window.addEventListener('keydown',e=>{
+ if(['INPUT','TEXTAREA','SELECT'].includes(document.activeElement?.tagName))return;
+ if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(e.code)){
+  held.add(e.code);e.preventDefault();
+}
+});
+window.addEventListener('keyup',e=>held.delete(e.code));
+window.addEventListener('blur',()=>{
+ held.clear();joystick.x=joystick.y=0;touchBrake=false;
+});
+const stick=$('joystick');
+function moveStick(e){
+ const r=stick.getBoundingClientRect(),half=r.width/2;
+ let x=(e.clientX-r.left-half)/(half*.72);
+ let y=(e.clientY-r.top-half)/(half*.72);
+ const mag=Math.max(1,Math.hypot(x,y));
+ joystick.x=x/mag;joystick.y=y/mag;
+ $('knob').style.transform=
+`translate(${joystick.x*half*.54}px,${joystick.y*half*.54}px)`;
+}
+function releaseStick(){
+ joystick.active=false;joystick.x=0;joystick.y=0;
+ $('knob').style.transform='translate(0,0)';
+}
+stick.addEventListener('pointerdown',e=>{
+ joystick.active=true;stick.setPointerCapture(e.pointerId);moveStick(e);
+});
+stick.addEventListener('pointermove',e=>{
+ if(joystick.active)moveStick(e);
+});
+for(const event of ['pointerup','pointercancel','lostpointercapture'])
+ stick.addEventListener(event,releaseStick);
+
+$('brake').addEventListener('pointerdown',e=>{
+ touchBrake=true;$('brake').setPointerCapture(e.pointerId);
+});
+for(const event of ['pointerup','pointercancel','lostpointercapture'])
+ $('brake').addEventListener(event,()=>touchBrake=false);
+
+function stepVehicle(dt){
+ if(!physics)return;
+ const {chassis,vehicle}=physics;
+ const throttle=clamp(
+  (held.has('ArrowUp')?1:0)-(held.has('ArrowDown')?1:0)-joystick.y,-1,1
+);
+ const steer=clamp(
+  (held.has('ArrowRight')?1:0)-(held.has('ArrowLeft')?1:0)+joystick.x,-1,1
+);
+ const forward=new CANNON.Vec3();
+ chassis.vectorToWorldFrame(new CANNON.Vec3(0,0,1),forward);
+ const forwardSpeed=chassis.velocity.dot(forward);
+ const speed=Math.hypot(chassis.velocity.x,chassis.velocity.z)*3.6;
+
+ braking=touchBrake||held.has('Space')||
+ (throttle>.2&&forwardSpeed<-.7)||
+ (throttle<-.2&&forwardSpeed>.7);
+
+ const powers={electric:4500,petrol:3600,diesel:4900,hybrid:4000,hydrogen:4400};
+ const force=speed>cfg.maxSpeed&&throttle*forwardSpeed>=0?
+ 0:-throttle*(powers[cfg.engine]||4000);
+
+ for(let i=0;i<vehicle.wheelInfos.length;i++){
+  const axle=Math.floor(i/2);
+  const driven=cfg.drive==='AWD'||
+  (cfg.drive==='FWD'&&axle===0)||
+  (cfg.drive==='RWD'&&axle===cfg.axles-1);
+  vehicle.applyEngineForce(driven?force:0,i);
+  vehicle.setSteeringValue(axle===0?-steer*.47:0,i);
+  vehicle.setBrake(braking?400:0,i);
+}
+world.step(1/60,dt,5);
+car.position.set(chassis.position.x,chassis.position.y,chassis.position.z);
+car.quaternion.set(chassis.quaternion.x,chassis.quaternion.y,
+  chassis.quaternion.z,chassis.quaternion.w);
+
+for(let i=0;i<wheels.length;i++){
+  vehicle.updateWheelTransform(i);
+  const w=vehicle.wheelInfos[i].worldTransform;
+  wheels[i].position.set(w.position.x,w.position.y,w.position.z);
+  wheels[i].quaternion.set(w.quaternion.x,w.quaternion.y,
+   w.quaternion.z,w.quaternion.w);
+}
+updateLights();followCamera(dt);
+$('speed').textContent=String(Math.round(speed));
+}
+
+// IndexedDB local layout library.
+const DB_NAME='procedural-vehicle-studio';
+const STORE='layouts';
+let dbPromise=null;
+
+function database(){
+ if(!dbPromise)dbPromise=new Promise((resolve,reject)=>{
+  const req=indexedDB.open(DB_NAME,1);
+  req.onupgradeneeded=()=>{
+   if(!req.result.objectStoreNames.contains(STORE))
+    req.result.createObjectStore(STORE,{keyPath:'id'});
+};
+req.onsuccess=()=>resolve(req.result);
+req.onerror=()=>reject(req.error);
+});
+   return dbPromise;
+ }
+ async function transaction(mode,method,value){
+   const db=await database();
+   return new Promise((resolve,reject)=>{
+    const req=db.transaction(STORE,mode).objectStore(STORE)[method](value);
+    req.onsuccess=()=>resolve(req.result);
+    req.onerror=()=>reject(req.error);
+  });
+ }
+ async function allLayouts(){
+   const records=await transaction('readonly','getAll');
+   return records.sort((a,b)=>b.modified-b.modified);
+ }
+ function blueprint(){
+   return {
+    schema:'procedural-vehicle/v3',
+    units:'metres',
+    orientation:'Y up; +Z forward',
+    vehicle:structuredClone(cfg),
+    modules:structuredClone(mods),
+    occupants,
+    modelName,
+    note:'Imported GLB binary is not embedded in JSON. IndexedDB layout saves retain it.'
+  };
+}
+async function saveLayout(copy=false){
+ if(copy)layoutId=null;
+ const id=layoutId||crypto.randomUUID();
+ const previousName=cfg.name+(modelName?' · GLB':'');
+ const name=prompt('Layout name',previousName);
+ if(name===null)return;
+ const record={
+  id,name:name.trim().slice(0,100)||previousName,
+  modified:Date.now(),
+  ...blueprint(),
+  glbBlob:modelBlob||null
+};
+await transaction('readwrite','put',record);
+layoutId=id;
+await refreshSaved();
+note('Layout saved to IndexedDB. API keys were not included.');
+}
+async function refreshSaved(){
+ const root=$('saved');root.replaceChildren();
+ for(const item of await allLayouts()){
+  const row=document.createElement('div');row.className='saved-item';
+  const open=document.createElement('button');
+  open.textContent=item.name;
+  open.title=new Date(item.modified).toLocaleString();
+  open.onclick=()=>loadLayout(item);
+  const remove=document.createElement('button');
+  remove.textContent='×';remove.title='Delete saved layout';
+  remove.onclick=async()=>{
+   if(!confirm('Delete "'+item.name+'"?'))return;
+   await transaction('readwrite','delete',item.id);
+   if(layoutId===item.id)layoutId=null;
+   refreshSaved();
+ };
+ row.append(open,remove);root.append(row);
+}
+if(!root.children.length)root.textContent='No saved layouts';
+}
+async function loadLayout(item){
+ if(mode==='drive')leaveDrive();
+ cfg={...structuredClone(defaults),...item.vehicle};
+ cfg.axles=clamp(Math.round(Number(cfg.axles)||2),2,6);
+ cfg.seats=clamp(Math.round(Number(cfg.seats)||1),1,48);
+ cfg.windows=clamp(Math.round(Number(cfg.windows)||1),1,14);
+ cfg.doors=clamp(Math.round(Number(cfg.doors)||1),1,6);
+ mods=defaultMods();
+ for(const name of Object.keys(mods))
+  mods[name]={...defaultModule(),...(item.modules?.[name]||{})};
+occupants=clamp(item.occupants??cfg.seats,0,cfg.seats);
+modelSource=null;modelBlob=null;modelName=null;
+layoutId=item.id;
+if(item.glbBlob){
+  try{await loadGLB(item.glbBlob,item.modelName||'Saved model',false)}
+  catch(e){note('Layout loaded, but GLB failed: '+e.message,true)}
+}
+renderPresets();setupGUI();buildVehicle();resetCamera();
+note('Loaded layout: '+item.name);
+}
+function download(data,name,type){
+ const blob=data instanceof Blob?data:new Blob([data],{type});
+ const url=URL.createObjectURL(blob);
+ const a=document.createElement('a');
+ a.href=url;a.download=name;
+ document.body.append(a);a.click();a.remove();
+ setTimeout(()=>URL.revokeObjectURL(url),1500);
+}
+function exportJSON(){
+ download(JSON.stringify(blueprint(),null,2),'vehicle-layout.json','application/json');
+ note('JSON exported. Imported GLB binary is saved in IndexedDB, not inside JSON.');
+}
+function importJSON(){
+ $('importJSON').click();
+}
+$('importJSON').onchange=async e=>{
+ const file=e.target.files?.[0];if(!file)return;
+ try{
+  const data=JSON.parse(await file.text());
+  if(!['procedural-vehicle/v1','procedural-vehicle/v2','procedural-vehicle/v3'].includes(data.schema))
+   throw Error('Unsupported blueprint schema');
+ if(mode==='drive')leaveDrive();
+ cfg={...structuredClone(defaults),...(data.vehicle||data.config||{})};
+ if(!Number.isFinite(cfg.L)||!Number.isFinite(cfg.W)||!Number.isFinite(cfg.H)||!Number.isFinite(cfg.radius))throw Error('Invalid vehicle dimensions');
+ cfg.L=clamp(cfg.L,2.5,18);cfg.W=clamp(cfg.W,1.2,5);cfg.H=clamp(cfg.H,1.1,7);cfg.radius=clamp(cfg.radius,.24,1.5);
+ mods=defaultMods();
+ for(const name of Object.keys(mods))
+   mods[name]={...defaultModule(),...(data.modules?.[name]||{})};
+ cfg.axles=clamp(Math.round(cfg.axles),2,6);
+ cfg.doors=clamp(Math.round(cfg.doors),1,6);
+ cfg.windows=clamp(Math.round(cfg.windows),1,14);
+ cfg.seats=clamp(Math.round(cfg.seats),1,48);
+ occupants=clamp(data.occupants??cfg.seats,0,cfg.seats);
+ layoutId=null;modelSource=null;modelBlob=null;modelName=null;
+ renderPresets();setupGUI();buildVehicle();resetCamera();
+ note('JSON blueprint imported.');
+}catch(error){note(error.message,true)}
+e.target.value='';
+};
+
+// Imported 3D model is a visual body replacement.
+// Wheels, suspension and chassis physics remain procedural.
+const loader=new GLTFLoader();
+async function loadGLB(blob,name='Imported GLB',rebuild=true){
+ if(blob.size>80*1024*1024)throw Error('GLB exceeds 80 MB');
+ if(blob.size<12 || new TextDecoder().decode(new Uint8Array(await blob.slice(0,4).arrayBuffer()))!=='glTF')throw Error('File is not a binary GLB model');
+ const url=URL.createObjectURL(blob);
+ try{
+  const result=await loader.loadAsync(url);
+  if(!result.scene)throw Error('No model scene');
+  const bounds=new THREE.Box3().setFromObject(result.scene);
+  if(bounds.isEmpty())throw Error('No visible mesh');
+  modelSource=result.scene;modelBlob=blob;modelName=name;
+  if(rebuild){
+   if(mode==='drive')leaveDrive();
+   buildVehicle();
+ }
+}finally{URL.revokeObjectURL(url)}
+}
+$('importGLB').onchange=async e=>{
+ const file=e.target.files?.[0];if(!file)return;
+ try{
+  await loadGLB(file,file.name);
+  note('GLB loaded as visual body. Physics remains procedural.');
+}catch(error){note(error.message,true)}
+e.target.value='';
+};
+function exportGLB(){
+ if(mode==='drive')leaveDrive();
+ const exporter=new GLTFExporter();
+ exporter.parse(car,result=>{
+  download(new Blob([result],{type:'model/gltf-binary'}),'vehicle.glb');
+  note('Vehicle GLB exported.');
+},error=>note(error.message,true),{binary:true,onlyVisible:true});
+}
+
+// AI references and API integration. Keys are deliberately in memory only.
+function captureReference(){
+ renderer.render(scene,camera);
+ const source=renderer.domElement;
+ const canvas=document.createElement('canvas');
+ const s=Math.min(1,1280/Math.max(source.width,source.height));
+ canvas.width=Math.max(1,Math.floor(source.width*s));
+ canvas.height=Math.max(1,Math.floor(source.height*s));
+ canvas.getContext('2d').drawImage(source,0,0,canvas.width,canvas.height);
+ imageReference=canvas.toDataURL('image/png');
+ $('referenceImage').src=imageReference;
+ $('referenceCard').hidden=false;
+ note('Reference captured from the current vehicle view.');
+ return imageReference;
+}
+$('closeReference').onclick=()=>$('referenceCard').hidden=true;
+$('importImage').onchange=e=>{
+ const file=e.target.files?.[0];if(!file)return;
+ if(file.size>20*1024*1024){note('Image exceeds 20 MB.',true);return}
+ const reader=new FileReader();
+ reader.onload=()=>{
+  imageReference=reader.result;
+  $('referenceImage').src=imageReference;
+  $('referenceCard').hidden=false;
+  note('Reference image loaded.');
+};
+reader.readAsDataURL(file);
+};
+
+async function api(path,method='GET',payload=null,key=''){
+ const response=await fetch(path,{
+  method,credentials:'same-origin',
+  headers:{
+   'Content-Type':'application/json',
+   ...(key?{'X-Provider-Key':key}:{})
+ },
+ ...(payload?{body:JSON.stringify(payload)}:{})
+});
+ const data=await response.json().catch(()=>({}));
+ if(!response.ok){
+  if(response.status===404)throw Error('AI backend endpoint not installed.');
+  throw Error(data.error||'AI backend HTTP '+response.status);
+}
+return data;
+}
+async function generateImage(){
+ if(busyAI)return;
+ const key=keys[ai.provider];
+ if(!key){note('Enter the selected provider API key in AI / API Keys.',true);return}
+ busyAI=true;
+ try{
+  note('Generating image...');
+  const data=await api('/api/vehicle/generate-image','POST',{
+   provider:ai.provider,
+   prompt:ai.prompt,
+   reference_image:imageReference||captureReference(),
+   blueprint:blueprint()
+ },key);
+  if(!data.image)throw Error('Backend returned no image');
+  imageReference=data.image;
+  $('referenceImage').src=imageReference;
+  $('referenceCard').hidden=false;
+  note('AI image generated. Ready for Tripo.');
+}catch(error){note(error.message,true)}
+finally{busyAI=false}
+}
+async function generateTripo(){
+ if(busyAI)return;
+ if(!keys.tripo){note('Enter a Tripo API key in AI / API Keys.',true);return}
+ busyAI=true;
+ try{
+  const image=imageReference||captureReference();
+  note('Starting Tripo image-to-3D job...');
+  const started=await api('/api/vehicle/tripo/start','POST',{
+   image,model:ai.tripoModel,blueprint:blueprint()
+ },keys.tripo);
+  const id=started.task_id;
+  if(!id||!/^[-_a-zA-Z0-9]{4,120}$/.test(id))throw Error('Invalid Tripo task ID');
+
+  for(let i=0;i<120;i++){
+   await new Promise(resolve=>setTimeout(resolve,2500));
+   const data=await api('/api/vehicle/tripo/status/'+encodeURIComponent(id));
+   if(data.status==='failed')throw Error('Tripo generation failed');
+   if(data.status==='success'){
+    if(!data.download_url)throw Error('Backend must return a model download URL');
+    const url=new URL(data.download_url,location.href);
+    if(url.origin!==location.origin)
+     throw Error('Backend must proxy the GLB through a same-origin URL');
+   const response=await fetch(url,{credentials:'same-origin'});
+   if(!response.ok)throw Error('Model download failed');
+   await loadGLB(await response.blob(),'tripo-'+id+'.glb');
+   note('Tripo model loaded as visual chassis.');
+   return;
+ }
+ note('Tripo: '+(data.progress??'processing')+'%');
+}
+throw Error('Task polling timed out');
+}catch(error){note(error.message,true)}
+finally{busyAI=false}
+}
+
+// Compact lil-gui interface. Module folders remain collapsed.
+function setupGUI(){
+ gui?.destroy();
+ gui=new GUI({
+  container:$('guiMount'),
+  title:'VEHICLE PARAMETERS',
+  width:290
+});
+
+ const changed=()=>scheduleBuild();
+ const vehicleFolder=gui.addFolder('01 · Vehicle');
+ vehicleFolder.add(cfg,'L',2.5,18,.1).name('Length').onChange(changed);
+ vehicleFolder.add(cfg,'W',1.2,5,.05).name('Width').onChange(changed);
+ vehicleFolder.add(cfg,'H',1.1,7,.05).name('Height').onChange(changed);
+ vehicleFolder.add(cfg,'axles',2,6,1).name('Axles').onChange(changed);
+ vehicleFolder.add(cfg,'radius',.24,1.5,.01).name('Wheel radius').onChange(changed);
+ vehicleFolder.add(cfg,'seats',1,48,1).name('Seats').onChange(()=>{
+  occupants=clamp(occupants,0,cfg.seats);changed();
+});
+ vehicleFolder.add(cfg,'doors',1,6,1).name('Doors / side').onChange(changed);
+ vehicleFolder.add(cfg,'windows',1,14,1).name('Windows / side').onChange(changed);
+ vehicleFolder.add(cfg,'rearWindow').name('Rear window').onChange(changed);
+ vehicleFolder.add(cfg,'engine',['electric','petrol','diesel','hybrid','hydrogen'])
+ .name('Engine').onChange(changed);
+ vehicleFolder.add(cfg,'drive',['FWD','RWD','AWD'])
+ .name('Drivetrain').onChange(changed);
+ vehicleFolder.add(cfg,'equipment',[
+  'none','pickup','cargo','flatbed','dump','tanker','compactor',
+  'forks','boom','crane','sweeper','hitch','emergency'
+]).name('Equipment').onChange(changed);
+ vehicleFolder.close();
+
+ const appearance=gui.addFolder('02 · Materials');
+ appearance.addColor(cfg,'paint').name('Paint colour').onChange(changed);
+ appearance.add(cfg,'metalness',0,1,.01).name('Metalness').onChange(changed);
+ appearance.add(cfg,'roughness',0,1,.01).name('Roughness').onChange(changed);
+ appearance.addColor(cfg,'glass').name('Glass tint').onChange(changed);
+ appearance.add(cfg,'glassOpacity',.1,.95,.01).name('Glass opacity').onChange(changed);
+ appearance.add(cfg,'glassRoughness',.02,1,.01).name('Glass roughness').onChange(changed);
+ appearance.add(cfg,'pattern',['solid','speckle','cloud','camo','brushed'])
+ .name('Texture').onChange(changed);
+ appearance.add(cfg,'seed',0,99999,1).name('Noise seed').onChange(changed);
+ appearance.close();
+
+ for(const [number,name] of ['front','cabin','rear','equipment'].entries()){
+  const folder=gui.addFolder(
+  `${String(number+3).padStart(2,'0')} · ${name.toUpperCase()} module`
+);
+  const p=mods[name];
+  for(const key of ['width','height','depth','sx','sy','sz'])
+   folder.add(p,key,.3,2,.01).onChange(changed);
+ folder.add(p,'radius',.02,.5,.01).onChange(changed);
+ for(const key of ['x','y'])folder.add(p,key,-3,3,.01).onChange(changed);
+  folder.add(p,'z',-5,5,.01).onChange(changed);
+for(const key of ['rx','ry','rz'])
+ folder.add(p,key,-90,90,1).name(key+' °').onChange(changed);
+folder.add({select:()=>{
+ selectedPart=name;updateHighlight();
+}},'select').name('Highlight module');
+folder.close();
+}
+
+const driving=gui.addFolder('07 · Physics & camera');
+driving.add(cfg,'maxSpeed',15,180,5).name('Max speed km/h');
+driving.add(cfg,'cameraDistance',3,65,.5).name('Camera distance')
+.onChange(value=>{
+ const direction=camera.position.clone().sub(orbit.target).normalize();
+ camera.position.copy(orbit.target).addScaledVector(direction,value);
+ orbit.update();
+});
+driving.add(cfg,'headlights').name('Headlights').onChange(()=>{
+  updateLights();updateLightsButton();
+});
+driving.add(cfg,'hills').name('Terrain hills').onChange(()=>{
+  if(mode==='drive')leaveDrive();
+  buildTerrain();buildVehicle();
+});
+driving.add({resetCamera},'resetCamera').name('Reset camera');
+driving.close();
+
+const asset=gui.addFolder('08 · GLB & blueprint');
+asset.add(cfg,'modelScale',.25,2.5,.01).name('GLB scale').onChange(changed);
+asset.add(cfg,'modelRotation',-180,180,1).name('GLB rotation').onChange(changed);
+asset.add({importGLB:()=>$('importGLB').click()},'importGLB').name('Import GLB');
+asset.add({restore:()=>{
+  modelSource=null;modelBlob=null;modelName=null;
+  buildVehicle();note('Procedural body restored.');
+}},'restore').name('Use procedural body');
+asset.add({exportGLB},'exportGLB').name('Export assembled GLB');
+asset.add({importJSON},'importJSON').name('Import blueprint JSON');
+asset.close();
+
+const aiFolder=gui.addFolder('09 · AI image / Tripo');
+aiFolder.add(ai,'provider',['meta','openai','xai']).name('Image provider');
+aiFolder.add(ai,'tripoModel',['P2-20260801','v3.1-20260211'])
+.name('Tripo model');
+aiFolder.add(ai,'prompt').name('Image prompt');
+aiFolder.add({captureReference},'captureReference').name('Capture reference');
+aiFolder.add({upload:()=>$('importImage').click()},'upload').name('Upload reference');
+aiFolder.add({generateImage},'generateImage').name('Generate AI image');
+aiFolder.add({generateTripo},'generateTripo').name('Create 3D via Tripo');
+aiFolder.close();
+
+const secret=gui.addFolder('10 · AI / API Keys');
+for(const provider of ['meta','openai','xai','tripo']){
+  const ctl=secret.add(keys,provider).name(provider.toUpperCase()+' key');
+  const input=ctl.domElement.querySelector('input');
+  if(input){
+   input.type='password';
+   input.autocomplete='off';
+   input.spellcheck=false;
+ }
+}
+secret.add({clear:()=>{
+  for(const p of Object.keys(keys))keys[p]='';
+    setupGUI();
+  note('All in-memory API keys cleared.');
+}},'clear').name('Clear API keys');
+secret.close();
+
+const library=gui.addFolder('11 · Layout library');
+library.add({save:()=>saveLayout(false).catch(e=>note(e.message,true))},'save').name('Save to IndexedDB');
+library.add({copy:()=>saveLayout(true).catch(e=>note(e.message,true))},'copy').name('Save as copy');
+library.add({exportJSON},'exportJSON').name('Export JSON');
+library.add({importJSON},'importJSON').name('Import JSON');
+library.add({refresh:()=>refreshSaved().catch(e=>note(e.message,true))},'refresh').name('Refresh saved layouts');
+library.close();
+
+ // All module and settings folders start collapsed.
+}
+
+function renderPresets(){
+ const root=$('presets');root.replaceChildren();
+ const search=$('search').value.toLowerCase();
+ let lastCategory='';
+ for(const p of PRESETS){
+  if(!p.name.toLowerCase().includes(search))continue;
+  if(lastCategory!==p.category){
+   lastCategory=p.category;
+   const h=document.createElement('h3');
+   h.textContent=p.category;root.append(h);
+ }
+ const b=document.createElement('button');
+ b.textContent=p.name;
+ b.className=p.name===cfg.name?'active':'';
+ const small=document.createElement('small');
+ small.textContent=p.axles*2+'W';
+ b.append(small);
+ b.onclick=()=>{
+   if(mode==='drive')leaveDrive();
+   const appearance=Object.fromEntries(
+    ['paint','glass','roughness','metalness','glassOpacity',
+     'glassRoughness','pattern','seed','headlights',
+     'rearWindow','maxSpeed','cameraDistance','hills']
+     .map(key=>[key,cfg[key]])
+   );
+   cfg={...structuredClone(defaults),...p,...appearance};
+   mods=defaultMods();occupants=cfg.seats;
+   modelSource=null;modelBlob=null;modelName=null;
+   layoutId=null;doorsOpen=false;
+   renderPresets();setupGUI();buildVehicle();resetCamera();
+ };
+ root.append(b);
+}
+}
+
+function updateLightsButton(){
+ $('lightsBtn').textContent=cfg.headlights?'Lights on':'Lights off';
+}
+$('search').oninput=renderPresets;
+$('buildBtn').onclick=leaveDrive;
+$('driveBtn').onclick=enterDrive;
+$('rotateBtn').onclick=()=>{
+ autoRotate=!autoRotate;
+ orbit.autoRotate=autoRotate&&mode==='build';
+ $('rotateBtn').textContent=autoRotate?'Stop rotation':'Start rotation';
+};
+$('lightsBtn').onclick=()=>{
+ cfg.headlights=!cfg.headlights;updateLights();
+ updateLightsButton();
+};
+$('saveBtn').onclick=()=>saveLayout(false).catch(e=>note(e.message,true));
+$('exportBtn').onclick=exportJSON;
+$('doorsBtn').onclick=()=>{
+ doorsOpen=!doorsOpen;
+ for(const {hinge,side} of doorHinges)
+  hinge.rotation.y=doorsOpen?side*.8:0;
+$('doorsBtn').textContent=doorsOpen?'Close doors':'Open doors';
+};
+function board(delta){
+ if(mode==='drive'&&physics&&
+  Math.hypot(physics.chassis.velocity.x,physics.chassis.velocity.z)>.3){
+  note('Stop the vehicle before boarding or exiting.',true);return;
+}
+occupants=clamp(occupants+delta,0,cfg.seats);
+for(let i=0;i<passengerFigures.length;i++)passengerFigures[i].visible=i<occupants;
+if(physics){
+ physics.chassis.mass=Math.max(650,cfg.L*cfg.W*cfg.H*145+occupants*75);
+ physics.chassis.updateMassProperties();
+}
+note(`${occupants}/${cfg.seats} passengers onboard`);
+}
+$('boardBtn').onclick=()=>board(1);
+$('exitBtn').onclick=()=>board(-1);
+
+// Click the model to highlight its procedural module.
+const raycaster=new THREE.Raycaster(),pointer=new THREE.Vector2();
+let startPointer=null;
+renderer.domElement.addEventListener('pointerdown',e=>{
+ startPointer=[e.clientX,e.clientY];
+});
+renderer.domElement.addEventListener('pointerup',e=>{
+ if(mode!=='build'||!startPointer||
+  Math.hypot(e.clientX-startPointer[0],e.clientY-startPointer[1])>5)return;
+   const rect=renderer.domElement.getBoundingClientRect();
+ pointer.set(
+  (e.clientX-rect.left)/rect.width*2-1,
+  -(e.clientY-rect.top)/rect.height*2+1
+);
+ raycaster.setFromCamera(pointer,camera);
+ const hits=raycaster.intersectObjects(bodyRoot?.children||[],true);
+ for(const hit of hits){
+  let obj=hit.object;
+  while(obj&&!obj.userData.part)obj=obj.parent;
+  if(obj?.userData.part){
+   selectedPart=obj.userData.part;updateHighlight();break;
+ }
+}
+});
+
+new ResizeObserver(()=>{
+ const r=$('stage').getBoundingClientRect();
+ if(r.width<1||r.height<1)return;
+ renderer.setSize(r.width,r.height,false);
+ camera.aspect=r.width/r.height;
+ camera.updateProjectionMatrix();
+}).observe($('stage'));
+
+const clock=new THREE.Clock();
+function animate(){
+ requestAnimationFrame(animate);
+ const dt=Math.min(clock.getDelta(),.05);
+ if(mode==='drive')stepVehicle(dt);
+ else{
+  orbit.autoRotate=autoRotate;
+  orbit.update();
+  highlight?.update();
+}
+renderer.render(scene,camera);
+}
+
+renderPresets();
+setupGUI();
+buildVehicle();
+resetCamera();
+updateLightsButton();
+refreshSaved().catch(e=>note('IndexedDB: '+e.message,true));
+animate();
+
+</script>
+</body>
+</html>
