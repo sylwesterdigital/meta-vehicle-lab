@@ -36,7 +36,7 @@ PUBLISH = ('index.html', 'version.json')
 ALLOWED = frozenset(('index.html', 'version.json', 'README.md', 'CHANGELOG.md', '.gitignore'))
 VERSION_RE = re.compile(r'^\d+\.\d+\.\d+$')
 VALID_ZIP_RE = re.compile(r'^META_VEHICLE_LAB_(?:RELEASE|UPDATE|SETUP)_v\d+\.\d+\.\d+(?:_[A-Z0-9]+)*\.zip$')
-WATCHER_BUILD = '2.0.0'
+WATCHER_BUILD = '2.0.1'
 RESTART_REQUESTED = False
 SHA_RE = re.compile(r'^[0-9a-f]{64}$')
 LOG_FILE = None
@@ -361,7 +361,24 @@ def push_git(stage,version):
     log('GitHub main verified at '+expected[:12],'PASS')
     return updated
 
+def public_baseline():
+    """Snapshot HTTP availability *before* publishing new bytes.
+
+    An already-broken external reverse proxy must not repeatedly undo verified
+    origin files. A newly broken public endpoint must still trigger rollback.
+    """
+    try:
+        public_get('index.html')
+        public_get('version.json')
+        return True, ''
+    except Exception as error:
+        return False, f'{type(error).__name__}: {error}'
+
+
 def publish(stage,version):
+    was_public_healthy, prior_public_error = public_baseline()
+    if not was_public_healthy:
+        log('Public HTTPS failed BEFORE release: '+prior_public_error[:480], 'WARN')
     token=f'{version}-{int(time.time())}-{secrets.token_hex(4)}'
     work='/var/www/.vehiclelab-staging-'+token
     backup='/var/www/.vehiclelab-backups/'+token
@@ -386,8 +403,20 @@ def publish(stage,version):
             install -m 644 {qwork}/"$f" {qroot}/".$f.{token}.tmp"
             mv -f {qroot}/".$f.{token}.tmp" {qroot}/"$f"
            done''')
-        smoke_public(version)
+        # Verify installed files in the destination, not just the staging dir.
+        # This proves correct bytes at origin even when the public site/CDN
+        # already has a redirect loop outside this app's release control.
+        ssh(f'cd {qroot} && sha256sum -c {qwork}/deploy.sha256')
+        try:
+            smoke_public(version)
+        except Exception as error:
+            if was_public_healthy:
+                # A new external failure is a release regression, so rollback.
+                raise ReleaseError('Public HTTPS failed AFTER release (was healthy before): '+str(error)) from error
+            log('Origin v'+version+' installed and SHA-256 verified. Public URL was already failing before deployment; HTTPS remains UNVERIFIED: '+str(error)[:440], 'WARN')
+            return False
         log(f'Public HTTPS smoke passed; previous files backed up in {backup}','PASS')
+        return True
     except Exception:
         if backup_ready:
             try:
@@ -446,12 +475,17 @@ def process(archive,dry_run):
         log('Committing/pushing verified release to GitHub…')
         changed_watcher=push_git(stage,version)
         log('Deploying only index.html and version.json to server…')
-        try:publish(stage,version)
+        try:public_verified=publish(stage,version)
         except Exception:
             log('GitHub may already contain this release. Server rolled back if possible. Re-drop ZIP to retry.','WARN')
             raise
-        (STATE/'deployed.json').write_text(json.dumps({'version':version,'utc':dt.datetime.now(dt.timezone.utc).isoformat()},indent=2)+'\n')
-        log(f'LIVE v{version} — {SITE} — GitHub main updated','PASS')
+        (STATE/'deployed.json').write_text(json.dumps({'version':version,
+          'publicVerified':public_verified,
+          'utc':dt.datetime.now(dt.timezone.utc).isoformat()},indent=2)+'\n')
+        if public_verified:
+            log(f'LIVE v{version} — {SITE} — GitHub main updated','PASS')
+        else:
+            log(f'ORIGIN DEPLOYED v{version} — GitHub main updated; PUBLIC HTTPS NOT VERIFIED (pre-existing redirect failure)','WARN')
         if changed_watcher: RESTART_REQUESTED=True
 
 def main():
@@ -468,7 +502,12 @@ def main():
     for d in ('processed','failed'): (UPDATES/d).mkdir(exist_ok=True)
     (STATE/'logs').mkdir(exist_ok=True)
     if args.status:
-        log('Last watcher-confirmed deploy: v'+last_deployed())
+        log('Last watcher-confirmed origin deploy: v'+last_deployed())
+        try:
+            deployed=json.loads((STATE/'deployed.json').read_text())
+            if not deployed.get('publicVerified',False):
+                log('Last deployment did NOT confirm working public HTTPS','WARN')
+        except (ValueError,OSError):pass
         try:
             data=json.loads(public_get('version.json'))
             log('Public site reports v'+str(data['version']),'PASS')

@@ -66,7 +66,7 @@ From the cloned repository root, with Python 3, Node.js, Git, SSH and SCP:
 ```sh
 chmod +x watcher-meta-vehicle.sh
 mkdir -p updates
-cp META_VEHICLE_LAB_UPDATE_v0.1.1.zip updates/
+cp META_VEHICLE_LAB_UPDATE_v0.1.2.zip updates/
 ./watcher-meta-vehicle.sh --dry-run
 ./watcher-meta-vehicle.sh --once
 # or continuous operation: ./watcher-meta-vehicle.sh
@@ -114,9 +114,19 @@ For the v1 → v2 upgrade, download **only** the UPDATE ZIP into `updates/` then
 run this one-time command in the repository root (with the old watcher stopped):
 
 ```sh
-unzip -p updates/META_VEHICLE_LAB_UPDATE_v0.1.1.zip bootstrap.py | python3 - updates/META_VEHICLE_LAB_UPDATE_v0.1.1.zip
+unzip -p updates/META_VEHICLE_LAB_UPDATE_v0.1.2.zip bootstrap.py | python3 - updates/META_VEHICLE_LAB_UPDATE_v0.1.2.zip
 ```
 
 The bootstrap validates checksums and watcher shell syntax, keeps a backup,
 installs the new watcher, runs a complete dry-run and then attempts deployment.
 For all later updates simply drop new versioned ZIPs into `updates/`.
+
+## Public HTTPS diagnosis
+
+The watcher now probes the public HTTPS endpoint before changing production files.
+If the URL already fails (for example, a 301 redirect loop), the watcher
+confirms the SHA-256 of deployed files on the SSH origin, reports **PUBLIC
+HTTPS NOT VERIFIED**, and does not undo an otherwise verified upload.
+If HTTPS worked before deployment and fails afterward, the watcher rolls
+back the two deployed files. This does not automatically repair DNS, Nginx,
+Cloudflare SSL/TLS mode, or redirect rules. Fix those separately.

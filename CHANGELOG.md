@@ -1,5 +1,17 @@
 # Meta Vehicle Lab — release notes
 
+## v0.1.2 (2026-11-06)
+
+- Diagnose public HTTPS problems before publishing, distinguishing pre-existing
+  redirect loops from new failures caused by a release.
+- Verify SHA-256 checksums in the live server directory after deployment.
+- Preserve verified origin deployment when the public URL was already broken;
+  report public HTTPS as UNVERIFIED without misrepresenting it as LIVE.
+- Continue rolling back if server-side checksum validation fails or a previously
+  healthy public endpoint regresses after deployment.
+- Watcher 2.0.1 self-updates from the next single ZIP. No vehicle simulation
+  or blueprint changes.
+
 ## v0.1.1 (2026-11-06)
 
 - Add a versioned all-in-one UPDATE ZIP with application, self-updating watcher and one-time ZIP-contained bootstrap.
