@@ -5,7 +5,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Meta Vehicle Lab — Procedural Studio</title>
-  <meta name="vehicle-lab-version" content="0.1.3">
+  <meta name="vehicle-lab-version" content="0.2.0">
   <style>
     :root {
       color-scheme:dark;
@@ -59,7 +59,7 @@
      header{height:auto;min-height:56px;flex-wrap:wrap}
      main{height:calc(100dvh - 56px);display:block;position:relative}
      aside{position:absolute;z-index:9;bottom:0;left:0;right:0;max-height:90px;overflow:auto;border-right:0;border-top:1px solid var(--line);padding:8px}
-     aside h3,aside #search,aside #libraryInfo,aside #saved{display:none}
+     aside h3,aside #search,aside #libraryInfo,aside #saved,aside #serverSaved{display:none}
      #presets{display:flex;overflow:auto;white-space:nowrap;margin:0}
      #presets button{width:auto;flex-shrink:0}
      #stage{height:100%;padding-bottom:90px}
@@ -90,14 +90,15 @@
   <header>
    <div class="brand">
     META VEHICLE LAB
-    <small>v0.1.3 · Procedural assembly · Physics · AI · Blueprint v3</small>
+    <small>v0.2.0 · Procedural assembly · Physics · AI · Blueprint v3</small>
   </div>
   <div class="actions">
     <button id="buildBtn" class="active">BUILD</button>
     <button id="driveBtn">DRIVE</button>
     <button id="rotateBtn">Stop rotation</button>
     <button id="lightsBtn">Lights on</button>
-    <button id="saveBtn">Save layout</button>
+    <button id="saveBtn">Local save</button>
+    <button id="serverSaveBtn">SQLite save</button>
     <button id="exportBtn">Export JSON</button>
   </div>
 </header>
@@ -109,7 +110,9 @@
   <div id="presets"></div>
   <h3>Saved layouts</h3>
   <div id="saved"></div>
-  <div id="libraryInfo">IndexedDB keeps layouts and imported GLBs on this device. API keys stay in memory, are sent only to the configured same-origin backend, and are never saved. AI endpoints require a separately configured backend.</div>
+  <h3>SQLite layouts</h3>
+  <div id="serverSaved" class="hint">Enter a server access token in lil-gui → SQLite server, then Refresh.</div>
+  <div id="libraryInfo">IndexedDB saves locally. SQLite saves on the Flask server; imported GLBs are uploaded as separate assets. The server token and AI keys stay in volatile memory only.</div>
 </aside>
 
 <div id="stage">
@@ -236,6 +239,8 @@
  let physics=null,previousYaw=null;
  let modelSource=null,modelBlob=null,modelName=null;
  let layoutId=null,gui=null,queued=false;
+ let serverLayoutId=null,serverRevision=null,serverAssetId=null,serverAssetBlob=null;
+ const serverAccess={token:''};
  let imageReference=null,busyAI=false;
 
  // Keys remain in volatile memory. Never place credentials in a blueprint or IndexedDB.
@@ -976,7 +981,7 @@ async function saveLayout(copy=false){
 await transaction('readwrite','put',record);
 layoutId=id;
 await refreshSaved();
-note('Layout saved to IndexedDB. API keys were not included.');
+note('Layout saved to IndexedDB. Credentials were not included.');
 }
 async function refreshSaved(){
  const root=$('saved');root.replaceChildren();
@@ -999,6 +1004,7 @@ async function refreshSaved(){
 if(!root.children.length)root.textContent='No saved layouts';
 }
 async function loadLayout(item){
+ serverLayoutId=null;serverRevision=null;serverAssetId=null;serverAssetBlob=null;
  if(mode==='drive')leaveDrive();
  cfg={...structuredClone(defaults),...item.vehicle};
  cfg.axles=clamp(Math.round(Number(cfg.axles)||2),2,6);
@@ -1017,6 +1023,87 @@ if(item.glbBlob){
 }
 renderPresets();setupGUI();buildVehicle();resetCamera();
 note('Loaded layout: '+item.name);
+}
+// SQLite-backed Flask library. All credentials are kept in memory and sent
+// only in Authorization headers to same-origin /api endpoints.
+async function serverRequest(method,path,payload=null){
+ if(!serverAccess.token.trim())throw Error('Enter your SQLite server token in lil-gui → SQLite server.');
+ const form=payload instanceof FormData;
+ const response=await fetch(path,{
+  method,credentials:'same-origin',cache:'no-store',
+  headers:{Authorization:'Bearer '+serverAccess.token.trim(),...(payload&&!form?{'Content-Type':'application/json'}:{})},
+  ...(payload?{body:form?payload:JSON.stringify(payload)}:{})
+ });
+ if(response.status===204)return null;
+ const data=await response.json().catch(()=>({}));
+ if(!response.ok)throw Error(data.error||('SQLite server HTTP '+response.status));
+ return data;
+}
+async function refreshServer(){
+ const root=$('serverSaved');root.replaceChildren();
+ if(!serverAccess.token.trim()){
+  root.textContent='Enter the server token in lil-gui → SQLite server.';return;
+ }
+ try{
+  const data=await serverRequest('GET','/api/layouts');
+  for(const item of data.layouts){
+   const row=document.createElement('div');row.className='saved-item';
+   const open=document.createElement('button');open.textContent=item.name;
+   open.title='SQLite revision '+item.revision+' · '+new Date(item.updated_at).toLocaleString();
+   open.onclick=()=>loadServer(item.id).catch(e=>note(e.message,true));
+   const remove=document.createElement('button');remove.textContent='×';
+   remove.title='Delete server layout';
+   remove.onclick=async()=>{
+    if(!confirm('Delete server layout "'+item.name+'"?'))return;
+    try{
+     await serverRequest('DELETE','/api/layouts/'+encodeURIComponent(item.id),{revision:item.revision});
+     if(serverLayoutId===item.id){serverLayoutId=null;serverRevision=null;}
+     await refreshServer();note('Deleted SQLite layout.');
+    }catch(e){note(e.message,true)}
+   };
+   row.append(open,remove);root.append(row);
+  }
+  if(!root.children.length)root.textContent='No layouts in SQLite yet.';
+ }catch(error){root.textContent='SQLite unavailable: '+error.message;throw error}
+}
+async function loadServer(id){
+ const data=await serverRequest('GET','/api/layouts/'+encodeURIComponent(id));
+ const item=data.layout;
+ await loadLayout({...item.blueprint,id:item.id,name:item.name});
+ layoutId=null;serverLayoutId=item.id;serverRevision=item.revision;
+ serverAssetId=item.asset_id;serverAssetBlob=null;
+ if(item.asset_id){
+  const blobResponse=await fetch('/api/assets/'+encodeURIComponent(item.asset_id),{
+   headers:{Authorization:'Bearer '+serverAccess.token.trim()},credentials:'same-origin',cache:'no-store'
+  });
+  if(!blobResponse.ok)throw Error('Server GLB download failed: '+blobResponse.status);
+  const blob=await blobResponse.blob();
+  await loadGLB(blob,item.blueprint.modelName||'Server model.glb');
+  serverAssetBlob=blob;
+ }
+ note('Loaded from Flask / SQLite: '+item.name);
+}
+async function saveServer(copy=false){
+ const candidate=cfg.name+(modelName?' · GLB':'');
+ const name=prompt('SQLite layout name',candidate);
+ if(name===null)return;
+ let assetId=serverAssetId;
+ if(modelBlob && (serverAssetBlob!==modelBlob || !assetId)){
+  const upload=new FormData();upload.append('file',modelBlob,modelName||'vehicle.glb');
+  const result=await serverRequest('POST','/api/assets',upload);
+  assetId=result.asset.id;
+ }
+ if(!modelBlob)assetId=null;
+ const id=copy||!serverLayoutId?crypto.randomUUID():serverLayoutId;
+ const body={id,name:name.trim()||candidate,blueprint:blueprint(),asset_id:assetId};
+ const updating=!copy&&Boolean(serverLayoutId);
+ if(updating)body.revision=serverRevision;
+ const result=await serverRequest(updating?'PUT':'POST',
+  '/api/layouts'+(updating?'/'+encodeURIComponent(id):''),body);
+ serverLayoutId=result.layout.id;serverRevision=result.layout.revision;
+ serverAssetId=assetId;serverAssetBlob=modelBlob;
+ await refreshServer();
+ note('Saved to Flask / SQLite (revision '+serverRevision+').');
 }
 function download(data,name,type){
  const blob=data instanceof Blob?data:new Blob([data],{type});
@@ -1323,6 +1410,16 @@ library.add({importJSON},'importJSON').name('Import JSON');
 library.add({refresh:()=>refreshSaved().catch(e=>note(e.message,true))},'refresh').name('Refresh saved layouts');
 library.close();
 
+const serverFolder=gui.addFolder('12 · SQLite server');
+const access=serverFolder.add(serverAccess,'token').name('Access token');
+const tokenInput=access.domElement.querySelector('input');
+if(tokenInput){tokenInput.type='password';tokenInput.autocomplete='off';tokenInput.spellcheck=false;}
+serverFolder.add({refresh:()=>refreshServer().catch(e=>note(e.message,true))},'refresh').name('Refresh SQLite');
+serverFolder.add({save:()=>saveServer().catch(e=>note(e.message,true))},'save').name('Save to server');
+serverFolder.add({copy:()=>saveServer(true).catch(e=>note(e.message,true))},'copy').name('Save copy to server');
+serverFolder.add({disconnect:()=>{serverAccess.token='';serverLayoutId=null;serverRevision=null;setupGUI();refreshServer();}},'disconnect').name('Forget token');
+serverFolder.close();
+
  // All module and settings folders start collapsed.
 }
 
@@ -1355,6 +1452,7 @@ function renderPresets(){
    mods=defaultMods();occupants=cfg.seats;
    modelSource=null;modelBlob=null;modelName=null;
    layoutId=null;doorsOpen=false;
+   serverLayoutId=null;serverRevision=null;serverAssetId=null;serverAssetBlob=null;
    renderPresets();setupGUI();buildVehicle();resetCamera();
  };
  root.append(b);
@@ -1377,6 +1475,7 @@ $('lightsBtn').onclick=()=>{
  updateLightsButton();
 };
 $('saveBtn').onclick=()=>saveLayout(false).catch(e=>note(e.message,true));
+$('serverSaveBtn').onclick=()=>saveServer(false).catch(e=>note(e.message,true));
 $('exportBtn').onclick=exportJSON;
 $('doorsBtn').onclick=()=>{
  doorsOpen=!doorsOpen;

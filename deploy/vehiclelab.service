@@ -1,0 +1,22 @@
+[Unit]
+Description=Meta Vehicle Lab Flask API
+After=network.target
+
+[Service]
+Type=simple
+User=www-data
+Group=www-data
+WorkingDirectory=/opt/vehiclelab/current
+EnvironmentFile=/etc/vehiclelab/vehiclelab.env
+ExecStart=/opt/vehiclelab/current/.venv/bin/gunicorn --workers 2 --threads 2 --timeout 90 --bind 127.0.0.1:8766 backend.wsgi:app
+Restart=on-failure
+RestartSec=3
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+ReadWritePaths=/var/lib/vehiclelab
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target

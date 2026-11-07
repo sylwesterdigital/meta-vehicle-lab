@@ -1,16 +1,89 @@
-# Meta Vehicle Lab — watcher bridge v0.1.3
+# Meta Vehicle Lab — Flask + SQLite v0.2.0
 
-This compatibility release preserves the current single-page Three.js procedural vehicle studio and upgrades the root watcher from v2.0.x to **v2.1.0**.
+The 3D procedural studio remains one `index.html` using pinned Three.js, cannon-es and lil-gui. A Flask 3.1 API and SQLite database now provide persistent server layout storage, revision-controlled updates and GLB asset uploads. IndexedDB local saves and JSON/GLB export are unchanged.
 
-It must deploy **before** the Flask/SQLite v0.2.0 release. The old watcher can verify this ZIP because it contains exactly the same five frontend application files plus a checksum-verified watcher. In continuous watch mode, the watcher then restarts into v2.1.0 and processes the Flask backend release ZIP automatically.
+## Architecture
 
-Drop both update ZIPs into the repository's `updates/` folder and leave `./watcher-meta-vehicle.sh` running. Only downloaded `.zip` files are required; there is no separate `.sh` download and no one-time bootstrap command.
+- **Frontend:** `index.html` (served by Nginx in production; Flask can also serve it in local development), procedural vehicles, terrain, lights, physics and orbit camera.
+- **Backend:** `backend/app.py` (Flask routes), `backend/storage.py` (stdlib SQLite transactions), `backend/wsgi.py` (Gunicorn entrypoint).
+- **SQLite:** `/var/lib/vehiclelab/vehiclelab.sqlite3` on the server; local default `.data/vehiclelab.sqlite3`. Model assets stored separately under `assets/` with SHA-256 metadata in SQLite. This directory is not in the webroot and never copied into Git.
+- **Server:** versioned `/opt/vehiclelab/releases/v0.2.0`, symlink `/opt/vehiclelab/current`, `vehiclelab-flask.service` bound to `127.0.0.1:8766`; Nginx proxies only `/api/` to Flask and continues serving the frontend directly.
+- **Authentication:** Bearer token required for all layout, asset and placeholder AI endpoints. It is generated on first install in `/etc/vehiclelab/vehiclelab.env` (root-owned, www-data readable). Enter it in lil-gui → **12 · SQLite server → Access token**, then choose **Refresh SQLite**. The token is never persisted in the browser, the JSON blueprint or SQLite.
 
-See the README in v0.2.0 for the Flask architecture, authentication, SQL storage, API contract and server prerequisites.
+## API
+
+| Route | Action |
+| --- | --- |
+| `GET /api/health` | Public JSON readiness and release version; checks SQLite |
+| `GET /api/layouts` | Authenticated recent layout list |
+| `POST /api/layouts` | Create a blueprint record |
+| `GET /api/layouts/<uuid>` | Retrieve blueprint, revisions and asset ID |
+| `PUT /api/layouts/<uuid>` | Update only with matching `revision`; conflicts return 409 |
+| `DELETE /api/layouts/<uuid>` | Delete only with matching `revision` |
+| `POST /api/assets` | Upload validated GLB (up to 80 MiB) |
+| `GET /api/assets/<uuid>` | Download GLB |
+
+AI image/Tripo endpoints deliberately return `501 Not Implemented` until provider adapters and policy/rate limiting are implemented. A working Flask/SQLite backend is not equivalent to a configured AI image-generation service.
+
+## Local development
+
+```bash
+cd /Users/smielniczuk/Documents/works/meta-vehicle-lab
+python3 -m venv .venv
+.venv/bin/python -m pip install -r backend/requirements.txt
+export VEHICLELAB_API_TOKEN="$(python3 -c 'import secrets;print(secrets.token_urlsafe(48))')"
+.venv/bin/python -m backend.app
+```
+
+Open `http://127.0.0.1:8766/`. The separate UI/server access-token entry must match the exported value. Avoid binding the development process to a public interface.
+
+Check the SQLite/core installer tests before deployment:
+
+```bash
+python3 -m unittest discover -s tests -v
+```
+
+Flask route tests require Flask to be installed; without it they are explicitly skipped. Production installs exact versions of Flask and Gunicorn through a release-specific virtualenv and checks its `/api/health` endpoint before switching Nginx.
+
+## Deployment: two automatic ZIP phases
+
+The *existing* watcher v2.0.x allows only five frontend application files. It cannot verify the new backend source in a ZIP until it has self-updated. Accordingly, drop **both** versioned ZIPs directly into `updates/` while the watcher is running continuously:
+
+1. `META_VEHICLE_LAB_UPDATE_v0.1.3.zip`: compatibility release, upgrades watcher from v2.0.x to v2.1.0, deploying the existing frontend.
+2. `META_VEHICLE_LAB_UPDATE_v0.2.0.zip`: the Flask + SQLite application, tests and systemd/Nginx installer.
+
+The first update runs, the continuous watcher restarts into its new version, and the second update is then validated and deployed. **Do not run the old watcher with `--once` against both ZIPs**: it cannot understand the second archive until it restarts. If you use `--once`, run it separately for each version.
+
+Requirements: Mac Git/SSH/Node/Python, remote Ubuntu Python 3 + `python3-venv`, network access to PyPI for pinned packages, Nginx with an existing `vehiclelab.xyz` HTTPS site and SSL certificate, and systemd. The watcher logs failures and retains valid ZIPs for retry. It will not install an entire Python runtime or alter any other virtual host. It never places API secrets or database files in Git.
+
+Inspect the generated access token after successful deployment on **your own terminal**:
+
+```bash
+ssh -p 333 root@vehiclelab.xyz 'grep ^VEHICLELAB_API_TOKEN= /etc/vehiclelab/vehiclelab.env'
+```
+
+Keep it private. Enter only the value after `=` in lil-gui. Do not post the output to GitHub or chats.
+
+Useful checks:
+
+```bash
+ssh -p 333 root@vehiclelab.xyz 'systemctl status vehiclelab-flask --no-pager; ls -lh /var/lib/vehiclelab/vehiclelab.sqlite3'
+curl --noproxy '*' -fsS https://vehiclelab.xyz/api/health
+```
+
+## Security / limits
+
+- SQLite uses parameterized SQL and WAL journaling. Revision numbers protect against unintended overwrites. A server API token gates reads as well as writes; there is **no user account separation** in this prototype.
+- Browser keys and token remain in memory and are never included in blueprint exports or server saves. Server rejects credential-like property names inside blueprint objects.
+- Uploaded GLBs are checked for a valid GLB version-2 header and advertised byte length. They are stored by random UUID outside the website directory.
+- Assets are not automatically garbage-collected when a layout is deleted. There is no account-level ownership, billing, audit logging, rate limiting or AI provider implementation yet.
+- Nginx install patches **only** the HTTPS `vehiclelab.xyz` server block, retains a backup, and refuses ambiguous/conflicting configurations. Only application, own service, own API block and own release symlink are rollback targets. Existing SQLite data is intentionally never rolled back.
+
+The automated tests performed for this release cover local JavaScript syntax, manifest/checksum validation, Python syntax, SQLite persistence/concurrency, and safe Nginx vhost insertion. Live browser integration and actual Ubuntu/GitHub deployment must be verified after deployment. See `CHANGELOG.md`.
 
 ---
 
-## Previous editor and watcher documentation (historical)
+## Existing procedural editor reference
 
 # Meta Vehicle Lab
 
@@ -53,94 +126,3 @@ on the same origin. API keys entered in the UI are kept in memory and sent to
 that backend per request; they are not saved in JSON or IndexedDB. Do not enter
 private keys on a host that is not fully under your control.
 
-## Deploy via release watcher
-
-The repository-root `watcher-meta-vehicle.sh` runs on the development Mac. It
-only watches `updates/*.zip`, not other folders. A release must contain:
-
-```
-manifest.json                # version, changes[], SHA-256 map
-app/index.html              # single-page app
-app/version.json            # matches the manifest version
-app/README.md
-app/CHANGELOG.md
-app/.gitignore
-watcher-meta-vehicle.sh   # optional, checksum-verified self-update
-bootstrap.py              # optional one-time updater; never executed by the watcher
-```
-
-Archive filenames must contain matching `vX.Y.Z`. Versions must increase
-strictly beyond the last confirmed deployment. The watcher validates all
-checksums, archive paths, imports, JavaScript syntax and core app features.
-It refuses dirty tracked files, wrong Git origins, divergent main branches,
-server version downgrades and symlinks in deployment targets.
-
-From the cloned repository root, with Python 3, Node.js, Git, SSH and SCP:
-
-```sh
-chmod +x watcher-meta-vehicle.sh
-mkdir -p updates
-cp META_VEHICLE_LAB_UPDATE_v0.1.2.zip updates/
-./watcher-meta-vehicle.sh --dry-run
-./watcher-meta-vehicle.sh --once
-# or continuous operation: ./watcher-meta-vehicle.sh
-```
-
-Required connection: GitHub SSH origin `git@github.com:sylwesterdigital/meta-vehicle-lab.git`
-(branch `main`), and key-based SSH using `ssh -p 333 root@vehiclelab.xyz`
-for the web root `/var/www/vehiclelab.xyz`. The watcher defaults to port 333;
-override via `VEHICLELAB_SSH_PORT=...` if needed. Before deployment, the destination vhost
-must already serve `https://vehiclelab.xyz/` with a valid certificate.
-
-Watcher behavior: verified release -> GitHub commit/push + verify HEAD ->
-checksum-checked server staging -> backup the two public files -> replace
-only `index.html` and `version.json` -> public HTTPS check -> record success.
-It leaves every other server file in place. A failed public check triggers
-rollback of those two files. GitHub may be ahead of the server if deployment
-fails after push; re-drop the failed ZIP after fixing the issue. Local logs
-are in `.vehiclelab/logs/`, processed ZIPs go to `updates/processed/`, and
-invalid ZIPs go to `updates/failed/`. Failed Git or SSH deployments leave
-the verified ZIP in `updates/` for retry (60-second cooldown in watch mode). The watcher does not upload secrets,
-credentials, arbitrary untracked content or IndexedDB/browser data.
-
-**Testing status:** Source syntax and ZIP/watcher dry-run were checked before
-release. Live browser use, authenticated GitHub push, and deployment to the
-remote host have not been verified from this environment.
-
-## ZIP-only watcher updates (v2)
-
-Drop a `META_VEHICLE_LAB_UPDATE_vX.Y.Z.zip` into `updates/` and the watcher
-validates the application files and the optional `watcher-meta-vehicle.sh`
-against `manifest.json`. On a successful deploy it installs the verified
-watcher atomically, retains a local backup and reloads the watcher when running
-continuously. The older `META_VEHICLE_LAB_RELEASE_*.zip` files still work.
-Old-format `META_VEHICLE_LAB_SETUP_*.zip` files with a nested release ZIP are
-recognized; their older, unchecksummed watcher is never installed.
-
-**One-time bootstrap:** Legacy watcher v1 cannot update itself because it rejects
-watcher-containing ZIPs. To install v2 once, extract only the watcher script
-from the first trusted UPDATE ZIP in `updates/` and run `bash -n` on the file
-before replacing the old watcher. Thereafter only drop UPDATE ZIPs into
-`updates/`. Self-update integrity checks do not authenticate a release
-producer, so only accept ZIPs from a trusted source.
-
-For the v1 → v2 upgrade, download **only** the UPDATE ZIP into `updates/` then
-run this one-time command in the repository root (with the old watcher stopped):
-
-```sh
-unzip -p updates/META_VEHICLE_LAB_UPDATE_v0.1.2.zip bootstrap.py | python3 - updates/META_VEHICLE_LAB_UPDATE_v0.1.2.zip
-```
-
-The bootstrap validates checksums and watcher shell syntax, keeps a backup,
-installs the new watcher, runs a complete dry-run and then attempts deployment.
-For all later updates simply drop new versioned ZIPs into `updates/`.
-
-## Public HTTPS diagnosis
-
-The watcher now probes the public HTTPS endpoint before changing production files.
-If the URL already fails (for example, a 301 redirect loop), the watcher
-confirms the SHA-256 of deployed files on the SSH origin, reports **PUBLIC
-HTTPS NOT VERIFIED**, and does not undo an otherwise verified upload.
-If HTTPS worked before deployment and fails afterward, the watcher rolls
-back the two deployed files. This does not automatically repair DNS, Nginx,
-Cloudflare SSL/TLS mode, or redirect rules. Fix those separately.

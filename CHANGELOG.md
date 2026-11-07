@@ -1,12 +1,16 @@
-# v0.1.3 — Flask deployment watcher bridge (2026-11-07)
+# v0.2.0 — Flask + SQLite server migration (2026-11-07)
 
-- Preserve existing procedural studio and driving functions.
-- Self-update watcher to v2.1.0, adding checksum-checked Flask backend release support, test validation, systemd/Nginx deployment and rollback.
-- Do not activate Flask in this compatibility release; v0.2.0 follows automatically when both ZIPs are dropped into updates/ in continuous watch mode.
+- Add Flask / Gunicorn API and a server-owned SQLite database with WAL journaling and revision-controlled procedural blueprint CRUD.
+- Add GLB upload/download with UUID-named asset storage outside the website root; SQLite stores asset metadata and SHA-256 hashes.
+- Extend the compact lil-gui interface with volatile-memory SQLite token, remote save, refresh, load, revision-safe delete, and cloud GLB persistence, preserving IndexedDB workflows.
+- Add bearer-token authentication, same-origin write guard, request size limits, credential-field rejection, and absence of embedded provider keys.
+- Package versioned backend virtualenv, systemd unit, single-site Nginx `/api/` proxy, origin health checks and rollback of service/code/config without reverting persisted data.
+- Include stdlib SQLite and Nginx configuration regressions plus Flask integration tests (the latter require Flask installed).
+- AI generation endpoints are **501 placeholders**, not functional third-party integrations.
 
-# v0.1.2 — Origin verification release
+# v0.1.3 — Watcher bridge
 
-- Improve release handling for a previously failing public HTTPS endpoint.
+- Upgrades the legacy five-file watcher to accept and deploy versioned backend releases.
 
 ---
 
