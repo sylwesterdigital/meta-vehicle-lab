@@ -1,6 +1,4 @@
-> **v0.2.1:** The watcher logs a dated START/END banner, elapsed seconds and colored terminal statuses. Failed remote Python tests now include their real unittest traceback in the release log. The first v0.2.0 server-side test failure could not be reproduced without its server traceback; deployment still aborts safely if tests fail.
-
-# Meta Vehicle Lab — Flask + SQLite v0.2.1
+# Meta Vehicle Lab — Flask + SQLite v0.2.0
 
 The 3D procedural studio remains one `index.html` using pinned Three.js, cannon-es and lil-gui. A Flask 3.1 API and SQLite database now provide persistent server layout storage, revision-controlled updates and GLB asset uploads. IndexedDB local saves and JSON/GLB export are unchanged.
 
@@ -9,7 +7,7 @@ The 3D procedural studio remains one `index.html` using pinned Three.js, cannon-
 - **Frontend:** `index.html` (served by Nginx in production; Flask can also serve it in local development), procedural vehicles, terrain, lights, physics and orbit camera.
 - **Backend:** `backend/app.py` (Flask routes), `backend/storage.py` (stdlib SQLite transactions), `backend/wsgi.py` (Gunicorn entrypoint).
 - **SQLite:** `/var/lib/vehiclelab/vehiclelab.sqlite3` on the server; local default `.data/vehiclelab.sqlite3`. Model assets stored separately under `assets/` with SHA-256 metadata in SQLite. This directory is not in the webroot and never copied into Git.
-- **Server:** versioned `/opt/vehiclelab/releases/v0.2.1`, symlink `/opt/vehiclelab/current`, `vehiclelab-flask.service` bound to `127.0.0.1:8766`; Nginx proxies only `/api/` to Flask and continues serving the frontend directly.
+- **Server:** versioned `/opt/vehiclelab/releases/v0.2.0`, symlink `/opt/vehiclelab/current`, `vehiclelab-flask.service` bound to `127.0.0.1:8766`; Nginx proxies only `/api/` to Flask and continues serving the frontend directly.
 - **Authentication:** Bearer token required for all layout, asset and placeholder AI endpoints. It is generated on first install in `/etc/vehiclelab/vehiclelab.env` (root-owned, www-data readable). Enter it in lil-gui → **12 · SQLite server → Access token**, then choose **Refresh SQLite**. The token is never persisted in the browser, the JSON blueprint or SQLite.
 
 ## API

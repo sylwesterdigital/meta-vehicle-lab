@@ -1,10 +1,3 @@
-# v0.2.1 — Release watcher telemetry and diagnostic-safe Flask installer (2026-11-07)
-
-- Add colored INFO/PASS/WARN/FAIL terminal lines and distinct versioned START/END banners with full date/time, duration and final result for each ZIP attempt. Local log files remain clean, searchable text without ANSI escapes.
-- On failed server-side Python tests, surface the real unittest output and traceback instead of only `CalledProcessError` exit 1. Log the successful regression suite summary.
-- Keep SHA-256 integrity, Git working-tree safeguards, self-update, backup/rollback, SQLite data protection and existing procedural editor behavior.
-- The underlying v0.2.0 remote test failure remains undiagnosed until the full server traceback is available. This release does not claim to have fixed an unknown test failure.
-
 # v0.2.0 — Flask + SQLite server migration (2026-11-07)
 
 - Add Flask / Gunicorn API and a server-owned SQLite database with WAL journaling and revision-controlled procedural blueprint CRUD.
