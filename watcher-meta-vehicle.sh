@@ -33,10 +33,22 @@ SSH_PORT = os.environ.get('VEHICLELAB_SSH_PORT', '333')
 WEBROOT = '/var/www/vehiclelab.xyz'
 SITE = 'https://vehiclelab.xyz/'
 PUBLISH = ('index.html', 'version.json')
-ALLOWED = frozenset(('index.html', 'version.json', 'README.md', 'CHANGELOG.md', '.gitignore'))
+APP_FILES = frozenset(('index.html', 'version.json', 'README.md', 'CHANGELOG.md', '.gitignore'))
+BACKEND_FILES = frozenset((
+    'backend/__init__.py','backend/app.py','backend/storage.py','backend/wsgi.py',
+    'backend/requirements.txt','deploy/install.py','deploy/vehiclelab.service',
+    'tests/test_storage.py','tests/test_flask_api.py','tests/test_nginx_config.py'
+))
+ALLOWED = APP_FILES | BACKEND_FILES
+
+def release_files(stage):
+    return APP_FILES | (BACKEND_FILES if (stage/'backend/app.py').is_file() else frozenset())
+
+def is_flask(stage):
+    return (stage/'backend/app.py').is_file()
 VERSION_RE = re.compile(r'^\d+\.\d+\.\d+$')
 VALID_ZIP_RE = re.compile(r'^META_VEHICLE_LAB_(?:RELEASE|UPDATE|SETUP)_v\d+\.\d+\.\d+(?:_[A-Z0-9]+)*\.zip$')
-WATCHER_BUILD = '2.0.1'
+WATCHER_BUILD = '2.1.0'
 RESTART_REQUESTED = False
 SHA_RE = re.compile(r'^[0-9a-f]{64}$')
 LOG_FILE = None
@@ -140,7 +152,7 @@ def unwrap_legacy_setup(archive, scratch):
 def validate_archive(archive, stage):
     with zipfile.ZipFile(archive) as z:
         info=z.infolist()
-        if len(info)>40 or sum(x.file_size for x in info)>12*1024*1024:
+        if len(info)>64 or sum(x.file_size for x in info)>25*1024*1024:
             raise ReleaseError('Archive exceeds release safety limits')
         names=[x.filename for x in info if not x.is_dir()]
         if len(names)!=len(set(names)) or 'manifest.json' not in names:
@@ -153,7 +165,7 @@ def validate_archive(archive, stage):
                 or (mode & 0o170000)==0o120000):
                 raise ReleaseError('Unsafe ZIP member: '+x.filename)
             if not x.is_dir() and x.filename not in ('manifest.json','watcher-meta-vehicle.sh','bootstrap.py'):
-                if len(parts.parts)!=2 or parts.parts[0]!='app' or parts.parts[1] not in ALLOWED:
+                if x.filename not in {'app/'+p for p in ALLOWED}:
                     raise ReleaseError('Unexpected application file: '+x.filename)
         manifest=json.loads(z.read('manifest.json'))
         version=manifest.get('version','')
@@ -165,8 +177,8 @@ def validate_archive(archive, stage):
         if vt(version)<=vt(last_deployed()):
             raise ReleaseError(f'v{version} is not newer than last deployed v{last_deployed()}')
         hashes=manifest.get('sha256')
-        if not isinstance(hashes,dict) or set(hashes)!=ALLOWED:
-            raise ReleaseError('SHA-256 manifest must list the five allowed app files')
+        if not isinstance(hashes,dict) or set(hashes) not in (APP_FILES,ALLOWED):
+            raise ReleaseError('SHA-256 manifest must list exactly the static or full Flask app files')
         expected={'manifest.json'}|{'app/'+name for name in hashes}
         update=manifest.get('watcher')
         if update is not None:
@@ -192,8 +204,11 @@ def validate_archive(archive, stage):
             content=z.read('app/'+rel)
             if h(content)!=expected:
                 raise ReleaseError('SHA-256 mismatch: '+rel)
-            (stage/rel).write_bytes(content)
+            target=stage/rel
+            target.parent.mkdir(parents=True,exist_ok=True)
+            target.write_bytes(content)
         check_app(stage,version)
+        if set(hashes)==ALLOWED:check_backend(stage)
         if update is not None:
             content=z.read('watcher-meta-vehicle.sh')
             if h(content)!=update['sha256']:
@@ -256,6 +271,31 @@ def check_app(stage,version):
         f=Path(t)/'vehicle.mjs';f.write_text(source)
         command(['node','--check',str(f)],timeout=25)
     log('JavaScript syntax, manifest, import map and app smoke checks passed','PASS')
+
+def check_backend(stage):
+    """Run stdlib regression tests and compile every backend/installer module.
+
+    Flask API integration tests run on the server after pip installation; local
+    validation does not silently assume Flask is installed on the Mac.
+    """
+    deps=(stage/'backend/requirements.txt').read_text().splitlines()
+    if not any(line.startswith('Flask==') for line in deps) or not any(line.startswith('gunicorn==') for line in deps):
+        raise ReleaseError('Flask/Gunicorn pinned requirements are missing')
+    for rel in sorted(BACKEND_FILES):
+        if rel.endswith('.py'):
+            command(['python3','-m','py_compile',str(stage/rel)],timeout=20)
+    result=command(['python3','-m','unittest','discover','-s','tests','-v'],cwd=stage,timeout=50)
+    if 'test_create_read_update_and_delete' not in result.stderr and 'test_create_read_update_and_delete' not in result.stdout:
+        raise ReleaseError('SQLite regression tests did not run')
+    for required in ('insert_api_location','rollback','vehiclelab-flask','/var/lib/vehiclelab'):
+        if required not in (stage/'deploy/install.py').read_text() and required!='vehiclelab-flask':
+            raise ReleaseError('Installer regression guard missing '+required)
+    if '/opt/vehiclelab/current' not in (stage/'deploy/vehiclelab.service').read_text():
+        raise ReleaseError('Systemd service missing versioned backend entrypoint')
+    # Never ship generated bytecode: the remote payload must match the manifest.
+    for cache in stage.rglob('__pycache__'):
+        if cache.is_dir():shutil.rmtree(cache)
+    log('Python syntax, SQLite regressions and deployment module checks passed','PASS')
 
 def git_preflight(stage):
     if not (ROOT/'.git').exists():raise ReleaseError('Run the watcher inside the cloned Git repository')
@@ -328,7 +368,7 @@ def install_watcher(stage):
     return True
 
 def push_git(stage,version):
-    for name in sorted(ALLOWED):
+    for name in sorted(release_files(stage)):
         target=ROOT/name
         if target.is_symlink():raise ReleaseError('Refusing local symlink: '+name)
         # No untracked application files may be overwritten without explicit approval.
@@ -343,9 +383,10 @@ def push_git(stage,version):
             if additions:
                 target.write_text(original.rstrip('\n')+'\n'+'\n'.join(additions)+'\n')
             continue
+        target.parent.mkdir(parents=True,exist_ok=True)
         shutil.copy2(stage/name,target)
     updated=install_watcher(stage)
-    stage_names=sorted(ALLOWED)
+    stage_names=sorted(release_files(stage))
     if (ROOT/'watcher-meta-vehicle.sh').is_file():stage_names.append('watcher-meta-vehicle.sh')
     command(['git','add','--',*stage_names],cwd=ROOT)
     diff=command(['git','diff','--cached','--quiet'],cwd=ROOT,check=False)
@@ -434,6 +475,60 @@ def publish(stage,version):
         try:ssh(f'rm -rf -- {qwork}')
         except Exception as e:log('Remote staging cleanup needed: '+str(e),'WARN')
 
+def publish_flask(stage, version):
+    """Install one isolated Flask release, server-owned SQLite and API proxy.
+
+    Nginx config changes are performed only by deploy/install.py, which retains
+    originals and can revert current symlink, service, site config and statics.
+    """
+    was_public_healthy, prior_error=public_baseline()
+    if not was_public_healthy:
+        log('Public HTTPS failed BEFORE release: '+prior_error[:440],'WARN')
+    token=f'{version}-{int(time.time())}-{secrets.token_hex(4)}'
+    work='/var/www/.vehiclelab-staging-'+token
+    qwork=shlex.quote(work)
+    receipt='/var/lib/vehiclelab/deploy-backups/'+token+'.json'
+    source_files=sorted(BACKEND_FILES)
+    hashes={name:h((stage/name).read_bytes()) for name in source_files}
+    hashes.update({name:h((stage/name).read_bytes()) for name in PUBLISH})
+    checks=''.join(f'{digest}  {name}\n' for name,digest in sorted(hashes.items()))
+    (stage/'deploy.sha256').write_text(checks)
+    try:
+        ssh(f'mkdir -m 700 -p {qwork}')
+        command(['scp','-o','BatchMode=yes','-o','StrictHostKeyChecking=yes',
+                 '-P',SSH_PORT,'-r',str(stage/'backend'),str(stage/'deploy'),
+                 str(stage/'tests'),str(stage/'index.html'),str(stage/'version.json'),
+                 str(stage/'deploy.sha256'),f'{SSH_HOST}:{work}/'],timeout=140)
+        ssh(f'cd {qwork} && sha256sum -c deploy.sha256')
+        log('Installing pinned Flask/Gunicorn release and configuring vehiclelab API…')
+        ssh(f'python3 {qwork}/deploy/install.py --stage {qwork} '
+            f'--version {shlex.quote(version)} --id {shlex.quote(token)}',timeout=360)
+        # Server-side install has already checked the loopback health endpoint.
+        try:
+            smoke_public(version)
+            data=json.loads(public_get('api/health'))
+            if data.get('version')!=version or data.get('storage')!='sqlite' or not data.get('ok'):
+                raise ReleaseError('Public Flask/SQLite health endpoint is not serving this version')
+        except Exception as error:
+            if was_public_healthy:
+                raise ReleaseError('Public verification failed after Flask install: '+str(error)) from error
+            log('Flask/SQLite installed and verified on origin. Public HTTPS was already failing: '+str(error)[:440],'WARN')
+            return False
+        log('Public Flask/SQLite and HTTPS smoke passed','PASS')
+        return True
+    except Exception:
+        try:
+            ssh(f'''if test -f {shlex.quote(receipt)}; then
+              python3 {qwork}/deploy/install.py --rollback {shlex.quote(receipt)}
+              fi''',timeout=120)
+            log('Flask release rollback attempted; SQLite database retained','WARN')
+        except Exception as error:
+            log('URGENT: remote Flask rollback failed: '+str(error),'FAIL')
+        raise
+    finally:
+        try:ssh(f'rm -rf -- {qwork}')
+        except Exception as e:log('Remote staging cleanup needed: '+str(e),'WARN')
+
 def public_get(path):
     url=SITE+path+'?vehiclelab_release_check='+str(int(time.time()))
     request=urllib.request.Request(url,headers={'Cache-Control':'no-cache','User-Agent':'VehicleLabReleaseWatcher/1.0'})
@@ -474,8 +569,8 @@ def process(archive,dry_run):
         git_preflight(stage)
         log('Committing/pushing verified release to GitHub…')
         changed_watcher=push_git(stage,version)
-        log('Deploying only index.html and version.json to server…')
-        try:public_verified=publish(stage,version)
+        log('Deploying Flask/SQLite backend and frontend…' if is_flask(stage) else 'Deploying static frontend…')
+        try:public_verified=publish_flask(stage,version) if is_flask(stage) else publish(stage,version)
         except Exception:
             log('GitHub may already contain this release. Server rolled back if possible. Re-drop ZIP to retry.','WARN')
             raise
@@ -485,7 +580,7 @@ def process(archive,dry_run):
         if public_verified:
             log(f'LIVE v{version} — {SITE} — GitHub main updated','PASS')
         else:
-            log(f'ORIGIN DEPLOYED v{version} — GitHub main updated; PUBLIC HTTPS NOT VERIFIED (pre-existing redirect failure)','WARN')
+            log(f'ORIGIN DEPLOYED v{version} — GitHub main updated; PUBLIC HTTPS NOT VERIFIED','WARN')
         if changed_watcher: RESTART_REQUESTED=True
 
 def main():

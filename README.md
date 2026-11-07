@@ -1,3 +1,17 @@
+# Meta Vehicle Lab — watcher bridge v0.1.3
+
+This compatibility release preserves the current single-page Three.js procedural vehicle studio and upgrades the root watcher from v2.0.x to **v2.1.0**.
+
+It must deploy **before** the Flask/SQLite v0.2.0 release. The old watcher can verify this ZIP because it contains exactly the same five frontend application files plus a checksum-verified watcher. In continuous watch mode, the watcher then restarts into v2.1.0 and processes the Flask backend release ZIP automatically.
+
+Drop both update ZIPs into the repository's `updates/` folder and leave `./watcher-meta-vehicle.sh` running. Only downloaded `.zip` files are required; there is no separate `.sh` download and no one-time bootstrap command.
+
+See the README in v0.2.0 for the Flask architecture, authentication, SQL storage, API contract and server prerequisites.
+
+---
+
+## Previous editor and watcher documentation (historical)
+
 # Meta Vehicle Lab
 
 A single-page procedural Three.js + cannon-es vehicle editor. Includes an editable

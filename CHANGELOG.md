@@ -1,3 +1,17 @@
+# v0.1.3 — Flask deployment watcher bridge (2026-11-07)
+
+- Preserve existing procedural studio and driving functions.
+- Self-update watcher to v2.1.0, adding checksum-checked Flask backend release support, test validation, systemd/Nginx deployment and rollback.
+- Do not activate Flask in this compatibility release; v0.2.0 follows automatically when both ZIPs are dropped into updates/ in continuous watch mode.
+
+# v0.1.2 — Origin verification release
+
+- Improve release handling for a previously failing public HTTPS endpoint.
+
+---
+
+## Earlier releases
+
 # Meta Vehicle Lab — release notes
 
 ## v0.1.2 (2026-11-06)
