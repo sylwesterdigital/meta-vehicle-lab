@@ -6,6 +6,7 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 exec python3 - "$ROOT" "$@" <<'VEHICLE_WATCH_PY'
 import argparse
 import datetime as dt
+import traceback
 import fcntl
 import hashlib
 import json
@@ -48,10 +49,40 @@ def is_flask(stage):
     return (stage/'backend/app.py').is_file()
 VERSION_RE = re.compile(r'^\d+\.\d+\.\d+$')
 VALID_ZIP_RE = re.compile(r'^META_VEHICLE_LAB_(?:RELEASE|UPDATE|SETUP)_v\d+\.\d+\.\d+(?:_[A-Z0-9]+)*\.zip$')
-WATCHER_BUILD = '2.1.0'
+WATCHER_BUILD = '2.2.0'
 RESTART_REQUESTED = False
 SHA_RE = re.compile(r'^[0-9a-f]{64}$')
 LOG_FILE = None
+# Colors are deliberately limited to interactive terminal output. Audit logs
+# remain plain UTF-8 text so they can be searched and copied without escapes.
+ANSI = {
+    'INFO':'\033[36m', 'PASS':'\033[1;32m',
+    'WARN':'\033[1;33m', 'FAIL':'\033[1;31m',
+    'START':'\033[1;36m', 'END':'\033[1;32m',
+}
+RESET = '\033[0m'
+
+def use_color():
+    return (not os.getenv('NO_COLOR') and os.getenv('TERM','')!='dumb' and
+            (sys.stdout.isatty() or os.getenv('FORCE_COLOR')=='1'))
+
+def clock():
+    return dt.datetime.now().astimezone().strftime('%Y-%m-%d %H:%M:%S %Z').rstrip()
+
+def banner(phase, version, *, detail='', duration=None, failed=False):
+    # One START and exactly one END per attempt, including rejected archives.
+    label = f' {phase} v{version} | {clock()} '
+    if duration is not None:
+        label += f'| elapsed {duration:.1f}s '
+    line = '\n' + ('='*12) + label + ('='*12)
+    if detail:line += '\n'+detail
+    if use_color():
+        shade = ANSI['FAIL'] if failed else ANSI['START' if phase=='START' else 'END']
+        print(shade+line+RESET,flush=True)
+    else:
+        print(line,flush=True)
+    if LOG_FILE:
+        with LOG_FILE.open('a',encoding='utf-8') as f:f.write(line+'\n')
 
 class ReleaseError(Exception):
     pass
@@ -60,10 +91,11 @@ class ArchiveError(ReleaseError):
     """Invalid ZIP: quarantine, rather than repeatedly attempting it."""
 
 def log(message, level='INFO'):
-    line = f'{dt.datetime.now().strftime("%H:%M:%S")} [{level}] {message}'
-    print(line, flush=True)
+    line = f'{dt.datetime.now().strftime("%H:%M:%S")} [{level:5}] {message}'
+    color=ANSI.get(level,'') if use_color() else ''
+    print((color+line+RESET) if color else line,flush=True)
     if LOG_FILE:
-        with LOG_FILE.open('a', encoding='utf-8') as f:
+        with LOG_FILE.open('a',encoding='utf-8') as f:
             f.write(line+'\n')
 
 def command(args, *, cwd=None, timeout=120, stdin=None, check=True):
@@ -74,8 +106,11 @@ def command(args, *, cwd=None, timeout=120, stdin=None, check=True):
         with LOG_FILE.open('a',encoding='utf-8') as f:
             f.write('COMMAND '+shlex.join(list(map(str,args)))+'\n'+(p.stdout or '')+(p.stderr or '')+'\n')
     if check and p.returncode:
-        excerpt = '\n'.join(((p.stderr or '')+'\n'+(p.stdout or '')).splitlines()[-5:])
-        raise ReleaseError(f'{args[0]} failed ({p.returncode}): {excerpt[:800]}')
+        # The old five-line truncation concealed the assertion / traceback that
+        # caused v0.2.0's server-side Flask test failure. Keep a useful tail in
+        # the console, and the complete command output in the per-release log.
+        tail = '\n'.join(((p.stdout or '')+'\n'+(p.stderr or '')).splitlines()[-35:])
+        raise ReleaseError(f'{args[0]} failed ({p.returncode}):\n{tail[-6500:]}')
     return p
 
 def ssh(script, timeout=70):
@@ -635,12 +670,18 @@ def main():
                     continue  # Ignore incomplete file transfers.
                 stamp=dt.datetime.now().strftime('%Y%m%d-%H%M%S')
                 LOG_FILE=STATE/'logs'/(stamp+'-'+re.sub(r'[^a-zA-Z0-9_.-]','_',archive.stem)+'.log')
+                release_version = re.search(r'_v(\d+\.\d+\.\d+)',archive.name)
+                release_version = release_version.group(1) if release_version else 'unknown'
+                started = time.monotonic()
+                succeeded = False
+                banner('START',release_version,detail=f'ZIP: {archive.name} | mode: {"DRY RUN" if args.dry_run else "DEPLOY"}')
                 try:
                     process(archive,args.dry_run)
                     if not args.dry_run:
                         destination=UPDATES/'processed'/archive.name
                         if destination.exists():destination=destination.with_name(destination.stem+'-'+stamp+'.zip')
                         archive.rename(destination)
+                    succeeded=True
                 except Exception as exc:
                     failed=True
                     log('RELEASE FAILED: '+str(exc),'FAIL')
@@ -653,6 +694,10 @@ def main():
                         retry_after[archive.name]=time.time()+60
                         log('Verified ZIP remains in updates/ for safe retry; next attempt ≥60 seconds','WARN')
                 finally:
+                    banner('END',release_version,
+                           detail='RESULT: '+('SUCCESS' if succeeded else 'FAILURE')+
+                                  (' (validation only)' if args.dry_run else ''),
+                           duration=time.monotonic()-started,failed=not succeeded)
                     LOG_FILE=None
                 if RESTART_REQUESTED and not (args.once or args.dry_run):
                     log('Restarting watcher to activate verified self-update','PASS')

@@ -47,7 +47,18 @@ API_LOCATION='''
 
 
 def shell(*cmd, timeout=180, cwd=None):
-    return subprocess.run(cmd, check=True, text=True, timeout=timeout, capture_output=True, cwd=cwd)
+    # Preserve the underlying traceback / unittest assertion on deployment
+    # failure. The old CalledProcessError only showed an exit status and hid the
+    # actionable reason for the remote Flask regression failure.
+    result=subprocess.run(cmd, check=False, text=True, timeout=timeout,
+                          capture_output=True, cwd=cwd)
+    if result.returncode:
+        diagnostic=((result.stdout or '')+'\n'+(result.stderr or '')).strip()
+        label=' '.join(map(str,cmd))
+        raise RuntimeError(f'Command failed ({result.returncode}): {label}\n'
+                           f'--- COMMAND OUTPUT (last 12000 characters) ---\n'
+                           f'{diagnostic[-12000:]}')
+    return result
 
 
 def find_server_spans(config):
@@ -187,8 +198,9 @@ def activate(stage,version,release_id):
         shell(str(next_release/'.venv/bin/python'),'-m','pip','install','--disable-pip-version-check',
               '--no-input','-r',str(next_release/'backend/requirements.txt'),timeout=240)
         # Run Flask test-client and SQLite/Nginx regressions in the exact new venv.
-        shell(str(next_release/'.venv/bin/python'),'-m','unittest','discover',
-              '-s','tests','-v',cwd=next_release,timeout=90)
+        tested=shell(str(next_release/'.venv/bin/python'),'-m','unittest','discover',
+                     '-s','tests','-v',cwd=next_release,timeout=90)
+        print('SERVER UNIT TESTS PASSED: '+(tested.stderr or tested.stdout).strip().splitlines()[-1], flush=True)
     except Exception:
         # This release has never been activated; safe to discard incomplete files.
         shutil.rmtree(next_release)
