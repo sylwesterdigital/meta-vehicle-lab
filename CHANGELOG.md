@@ -1,3 +1,11 @@
+# v0.2.3 — Watcher release visibility and durable diagnostics (2026-11-07)
+
+- High-contrast terminal status, with red failed releases, green verified releases, and yellow origin-only partial outcomes. Release START/END banners include version, full date/time, duration, source ZIP, installed watcher build and exact log pathname.
+- Default terminal output includes numbered ZIP validation, preflight, GitHub and server verification phases with elapsed times; use `--verbose` for command/output detail and `--color always` for terminal wrappers that do not expose TTY capability. The watcher prints its active build on startup to distinguish on-disk self-update from the old running process.
+- Complete per-attempt plaintext logs under `.vehiclelab/logs/` retain each external command, output, return code and runtime; `--logs` lists recent files and `--tail` reads the latest. ANSI color codes never enter logs.
+- Activate a reviewed watcher after an attempt even when the deployment phase fails, with persistent retry cooldown across restarts to avoid rapid retry storms. Move older superseded ZIPs to `updates/superseded/` without treating an already-deployed version as a new failure. Existing SHA-256 archive validation, clean Git preflight, atomic watcher backup, Flask rollback and SQLite preservation are maintained.
+- Vehicle geometry, driving, backend API and schema remain unchanged. This version primarily makes deployment status observable.
+
 # v0.2.2 — Repair missing deploy package in staged Flask tests (2026-11-07)
 
 - Fix repeated server rollback during unit tests: `deploy/install.py` was not copied into `/opt/vehiclelab/releases/vX.Y.Z/`, although `tests/test_nginx_config.py` imports `deploy.install`. This was reproduced locally with the exact observed summary `Ran 5 tests` / `FAILED (errors=1)`.

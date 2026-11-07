@@ -1,8 +1,10 @@
+> **v0.2.3 watcher:** Terminal displays high-contrast colored START/END release banners, version/date/time, detailed phase timings and an exact log file path. `./watcher-meta-vehicle.sh --logs` lists the newest complete logs, `--tail` shows the last 100 lines, `--verbose` prints commands and outputs, and `--color always` forces ANSI colors inside terminals/IDE wrappers. Flask/SQLite persistence is unchanged. A verified release and an earlier failed attempt are reported separately.
+
 > **v0.2.2 server test fix:** The installer now copies `deploy/` into the versioned backend release, together with `backend/` and `tests/`. This resolves the previously reproduced `ModuleNotFoundError: No module named 'deploy'` failure (five tests, one error). A relocation regression checks the staged test imports before any deployment. Flask imports are also checked explicitly after installation. Existing data and prior release safeguards remain intact.
 
 > **v0.2.1:** The watcher logs a dated START/END banner, elapsed seconds and colored terminal statuses. Failed remote Python tests now include their real unittest traceback in the release log. The first v0.2.0 server-side test failure could not be reproduced without its server traceback; deployment still aborts safely if tests fail.
 
-# Meta Vehicle Lab — Flask + SQLite v0.2.2
+# Meta Vehicle Lab — Flask + SQLite v0.2.3
 
 The 3D procedural studio remains one `index.html` using pinned Three.js, cannon-es and lil-gui. A Flask 3.1 API and SQLite database now provide persistent server layout storage, revision-controlled updates and GLB asset uploads. IndexedDB local saves and JSON/GLB export are unchanged.
 

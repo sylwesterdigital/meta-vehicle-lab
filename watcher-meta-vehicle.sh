@@ -49,40 +49,71 @@ def is_flask(stage):
     return (stage/'backend/app.py').is_file()
 VERSION_RE = re.compile(r'^\d+\.\d+\.\d+$')
 VALID_ZIP_RE = re.compile(r'^META_VEHICLE_LAB_(?:RELEASE|UPDATE|SETUP)_v\d+\.\d+\.\d+(?:_[A-Z0-9]+)*\.zip$')
-WATCHER_BUILD = '2.2.0'
+WATCHER_BUILD = '2.3.0'
 RESTART_REQUESTED = False
 SHA_RE = re.compile(r'^[0-9a-f]{64}$')
 LOG_FILE = None
-# Colors are deliberately limited to interactive terminal output. Audit logs
-# remain plain UTF-8 text so they can be searched and copied without escapes.
+# Terminal rendering and durable plaintext release logs are intentionally separate.
+# --color always helps when terminals are wrapped by an IDE or log viewer.
+VERBOSE = False
+COLOR_MODE = 'auto'
 ANSI = {
-    'INFO':'\033[36m', 'PASS':'\033[1;32m',
-    'WARN':'\033[1;33m', 'FAIL':'\033[1;31m',
-    'START':'\033[1;36m', 'END':'\033[1;32m',
+    'INFO': '\033[1;36m',      # cyan
+    'STEP': '\033[1;34m',      # blue
+    'DETAIL': '\033[2;37m',    # subdued (verbose output)
+    'PASS': '\033[1;32m',      # green
+    'WARN': '\033[1;33m',      # yellow
+    'FAIL': '\033[1;97;41m',   # high-contrast white on red
+    'START': '\033[1;97;44m',  # white on blue
+    'SUCCESS': '\033[1;97;42m',# white on green
+    'PARTIAL': '\033[1;30;103m',# black on yellow
 }
 RESET = '\033[0m'
 
 def use_color():
-    return (not os.getenv('NO_COLOR') and os.getenv('TERM','')!='dumb' and
-            (sys.stdout.isatty() or os.getenv('FORCE_COLOR')=='1'))
+    if COLOR_MODE == 'never': return False
+    if COLOR_MODE == 'always': return True
+    if os.getenv('NO_COLOR') is not None: return False
+    if os.getenv('FORCE_COLOR') not in (None, '', '0'): return True
+    if os.getenv('CLICOLOR_FORCE') not in (None, '', '0'): return True
+    return sys.stdout.isatty() and os.getenv('TERM','')!='dumb'
+
+def paint(text, level):
+    return (ANSI.get(level,'') + text + RESET) if use_color() and level in ANSI else text
 
 def clock():
     return dt.datetime.now().astimezone().strftime('%Y-%m-%d %H:%M:%S %Z').rstrip()
 
-def banner(phase, version, *, detail='', duration=None, failed=False):
-    # One START and exactly one END per attempt, including rejected archives.
-    label = f' {phase} v{version} | {clock()} '
-    if duration is not None:
-        label += f'| elapsed {duration:.1f}s '
-    line = '\n' + ('='*12) + label + ('='*12)
-    if detail:line += '\n'+detail
-    if use_color():
-        shade = ANSI['FAIL'] if failed else ANSI['START' if phase=='START' else 'END']
-        print(shade+line+RESET,flush=True)
-    else:
-        print(line,flush=True)
+def emit_block(lines, color):
+    raw='\n'.join(lines)
+    print(paint(raw, color),flush=True)
     if LOG_FILE:
-        with LOG_FILE.open('a',encoding='utf-8') as f:f.write(line+'\n')
+        with LOG_FILE.open('a',encoding='utf-8') as f:
+            f.write(raw+'\n')
+
+def banner(phase, version, *, filename='', mode='', duration=None,
+           status='SUCCESS', details=''):
+    line='━'*72
+    if phase=='START':
+        lines=['',line,
+               f'  ▶ RELEASE START  v{version}  |  {clock()}',
+               f'  ZIP: {filename}  |  MODE: {mode}  |  WATCHER: v{WATCHER_BUILD}',
+               f'  FULL LOG: {LOG_FILE}',line,'']
+        emit_block(lines,'START')
+        return
+    elapsed=f'{duration:.1f}s' if duration is not None else '?'
+    label={'SUCCESS':'SUCCESS / LIVE', 'FAILURE':'FAILED / RELEASE NOT LIVE',
+           'DRY RUN':'DRY RUN / VALIDATION ONLY',
+           'PARTIAL':'ORIGIN DEPLOYED / PUBLIC NOT VERIFIED'}.get(status,status)
+    theme='FAIL' if status=='FAILURE' else 'PARTIAL' if status=='PARTIAL' else 'SUCCESS'
+    lines=['',line,
+           f'  ■ RELEASE END  v{version}  |  {clock()}',
+           f'  RESULT: {label}',
+           f'  DURATION: {elapsed}',
+           f'  FULL LOG: {LOG_FILE}']
+    if details:lines.append(f'  DETAILS: {details}')
+    lines.extend([line,''])
+    emit_block(lines,theme)
 
 class ReleaseError(Exception):
     pass
@@ -91,26 +122,47 @@ class ArchiveError(ReleaseError):
     """Invalid ZIP: quarantine, rather than repeatedly attempting it."""
 
 def log(message, level='INFO'):
-    line = f'{dt.datetime.now().strftime("%H:%M:%S")} [{level:5}] {message}'
-    color=ANSI.get(level,'') if use_color() else ''
-    print((color+line+RESET) if color else line,flush=True)
-    if LOG_FILE:
-        with LOG_FILE.open('a',encoding='utf-8') as f:
-            f.write(line+'\n')
+    now=dt.datetime.now().astimezone()
+    for fragment in str(message).splitlines() or ['']:
+        terminal = f'{now:%H:%M:%S} [{level:6}] {fragment}'
+        print(paint(terminal,level),flush=True)
+        if LOG_FILE:
+            with LOG_FILE.open('a',encoding='utf-8') as f:
+                f.write(f'{now:%Y-%m-%d %H:%M:%S%z} [{level:6}] {fragment}\n')
 
 def command(args, *, cwd=None, timeout=120, stdin=None, check=True):
-    p = subprocess.run([str(x) for x in args], cwd=cwd, input=stdin,
-                       text=True, capture_output=True, timeout=timeout,
-                       env={**os.environ, 'GIT_TERMINAL_PROMPT':'0'})
+    argv=[str(x) for x in args]
+    started=time.monotonic()
+    safe_cmd=shlex.join(argv)
+    if VERBOSE:
+        log('$ '+safe_cmd+(f'  [cwd={cwd}]' if cwd else ''),'DETAIL')
+    try:
+        p=subprocess.run(argv,cwd=cwd,input=stdin,text=True,capture_output=True,
+                         timeout=timeout,env={**os.environ,'GIT_TERMINAL_PROMPT':'0'})
+    except subprocess.TimeoutExpired as exc:
+        raise ReleaseError(f'{argv[0]} timed out after {timeout}s') from exc
+    elapsed=time.monotonic()-started
     if LOG_FILE:
         with LOG_FILE.open('a',encoding='utf-8') as f:
-            f.write('COMMAND '+shlex.join(list(map(str,args)))+'\n'+(p.stdout or '')+(p.stderr or '')+'\n')
+            f.write(f'COMMAND START {clock()} {safe_cmd} [cwd={cwd}]\n')
+            f.write((p.stdout or '')+(p.stderr or '')+'\n')
+            f.write(f'COMMAND END exit={p.returncode} duration={elapsed:.2f}s\n')
+    if VERBOSE:
+        log(f'Command exit={p.returncode} elapsed={elapsed:.2f}s: {argv[0]}','DETAIL')
+        output=((p.stdout or '')+'\n'+(p.stderr or '')).strip()
+        if output:
+            lines=output.splitlines()
+            if len(lines)>65:
+                log(f'Command output ({len(lines)} lines, showing last 65; full output in log):','DETAIL')
+                lines=lines[-65:]
+            for line in lines:
+                log('│ '+line[:500],'DETAIL')
     if check and p.returncode:
-        # The old five-line truncation concealed the assertion / traceback that
-        # caused v0.2.0's server-side Flask test failure. Keep a useful tail in
-        # the console, and the complete command output in the per-release log.
-        tail = '\n'.join(((p.stdout or '')+'\n'+(p.stderr or '')).splitlines()[-35:])
-        raise ReleaseError(f'{args[0]} failed ({p.returncode}):\n{tail[-6500:]}')
+        output=((p.stdout or '')+'\n'+(p.stderr or '')).strip()
+        lines=output.splitlines()
+        tail='\n'.join(lines[-55:])
+        if len(lines)>55:tail='[showing last 55 lines; see full release log]\n'+tail
+        raise ReleaseError(f'{argv[0]} failed (exit {p.returncode}, {elapsed:.1f}s):\n{tail[-8500:]}')
     return p
 
 def ssh(script, timeout=70):
@@ -157,7 +209,8 @@ def check_watcher(path):
         extracted.write_text(match.group(1)+'\n',encoding='utf-8')
         command(['python3','-m','py_compile',str(extracted)],timeout=15)
     for token in ('StrictHostKeyChecking=yes','SHA-256 mismatch','git_preflight','smoke_public',
-                  'install_watcher','WATCHER_BUILD'):
+                  'install_watcher','WATCHER_BUILD', 'RELEASE END', 'FULL LOG:',
+                  '--color', '--tail', '--verbose'):
         if token not in source:raise ReleaseError('Watcher regression check missing: '+token)
     log('Watcher shell/Python syntax and version checks passed','PASS')
 
@@ -378,6 +431,7 @@ def git_preflight(stage):
 
 def install_watcher(stage):
     """Install the reviewed watcher atomically and retain the previous copy."""
+    global RESTART_REQUESTED
     incoming=stage/'watcher-meta-vehicle.sh'
     if not incoming.is_file(): return False
     dest=ROOT/'watcher-meta-vehicle.sh'
@@ -400,6 +454,7 @@ def install_watcher(stage):
     finally:
         if temp.exists():temp.unlink()
     log('Installed reviewed watcher; previous script saved in .vehiclelab/watcher-backups/','PASS')
+    RESTART_REQUESTED=True
     return True
 
 def push_git(stage,version):
@@ -536,8 +591,11 @@ def publish_flask(stage, version):
                  str(stage/'deploy.sha256'),f'{SSH_HOST}:{work}/'],timeout=140)
         ssh(f'cd {qwork} && sha256sum -c deploy.sha256')
         log('Installing pinned Flask/Gunicorn release and configuring vehiclelab API…')
-        ssh(f'python3 {qwork}/deploy/install.py --stage {qwork} '
+        installer_output=ssh(f'python3 {qwork}/deploy/install.py --stage {qwork} '
             f'--version {shlex.quote(version)} --id {shlex.quote(token)}',timeout=360)
+        for line in installer_output.splitlines():
+            if line.startswith(('SERVER UNIT TESTS PASSED:', 'DEPLOYED ')):
+                log('Remote installer: '+line,'PASS')
         # Server-side install has already checked the loopback health endpoint.
         try:
             smoke_public(version)
@@ -584,7 +642,9 @@ def process(archive,dry_run):
     with tempfile.TemporaryDirectory(prefix='vehiclelab-validate-',dir=STATE) as tmp:
         work=Path(tmp)
         stage=work/'stage';stage.mkdir()
-        log('Validating '+archive.name)
+        started=time.monotonic()
+        log('[1/4] VERIFY ZIP, CHECKSUMS, JAVASCRIPT AND PYTHON','STEP')
+        log('Archive: '+str(archive))
         source=archive
         if archive.name.startswith('META_VEHICLE_LAB_SETUP_'):
             # Old setup archives nest a normal release ZIP. Newer updates carry
@@ -597,47 +657,118 @@ def process(archive,dry_run):
         except Exception as exc:
             raise ArchiveError(str(exc)) from exc
         version=manifest['version']
-        log(f'ZIP v{version} / {len(manifest["sha256"])} checked files','PASS')
+        log(f'[1/4] VERIFIED v{version}: {len(manifest["sha256"])} files, SHA-256 and tests ({time.monotonic()-started:.1f}s)','PASS')
         if dry_run:
-            log(f'DRY RUN PASSED v{version}: local validation only; no GitHub or server changes','PASS')
-            return
+            log('[2/4] GIT PREFLIGHT SKIPPED (dry run)','INFO')
+            log('[3/4] GITHUB PUSH SKIPPED (dry run)','INFO')
+            log('[4/4] SERVER DEPLOY SKIPPED (dry run)','INFO')
+            return {'status':'DRY RUN','details':'No GitHub or server changes'}
+
+        step=time.monotonic()
+        log('[2/4] GIT AND SSH PREFLIGHT','STEP')
         git_preflight(stage)
-        log('Committing/pushing verified release to GitHub…')
+        log(f'[2/4] PREFLIGHT PASSED ({time.monotonic()-step:.1f}s)','PASS')
+
+        step=time.monotonic()
+        log('[3/4] COMMIT + PUSH GITHUB MAIN','STEP')
         changed_watcher=push_git(stage,version)
-        log('Deploying Flask/SQLite backend and frontend…' if is_flask(stage) else 'Deploying static frontend…')
-        try:public_verified=publish_flask(stage,version) if is_flask(stage) else publish(stage,version)
+        log(f'[3/4] GITHUB VERIFIED ({time.monotonic()-step:.1f}s)','PASS')
+
+        step=time.monotonic()
+        log('[4/4] DEPLOY '+('FLASK + SQLITE + FRONTEND' if is_flask(stage) else 'STATIC FRONTEND')+' + VERIFY','STEP')
+        try:
+            public_verified=publish_flask(stage,version) if is_flask(stage) else publish(stage,version)
         except Exception:
-            log('GitHub may already contain this release. Server rolled back if possible. Re-drop ZIP to retry.','WARN')
+            log('GitHub may already contain this release. Server rolled back if possible. Release retained for retry.','WARN')
             raise
         (STATE/'deployed.json').write_text(json.dumps({'version':version,
           'publicVerified':public_verified,
           'utc':dt.datetime.now(dt.timezone.utc).isoformat()},indent=2)+'\n')
         if public_verified:
+            log(f'[4/4] PUBLIC SITE VERIFIED (HTTPS, Flask/SQLite) ({time.monotonic()-step:.1f}s)','PASS')
             log(f'LIVE v{version} — {SITE} — GitHub main updated','PASS')
         else:
+            log(f'[4/4] ORIGIN VERIFIED ({time.monotonic()-step:.1f}s), BUT PUBLIC HTTPS NOT VERIFIED','WARN')
             log(f'ORIGIN DEPLOYED v{version} — GitHub main updated; PUBLIC HTTPS NOT VERIFIED','WARN')
-        if changed_watcher: RESTART_REQUESTED=True
+        if changed_watcher:RESTART_REQUESTED=True
+        return {'status':'SUCCESS' if public_verified else 'PARTIAL',
+                'details':f'GitHub main updated | HTTPS {"VERIFIED" if public_verified else "NOT VERIFIED"}'}
+
+def latest_logs():
+    return sorted((STATE/'logs').glob('*.log'),key=lambda p:p.stat().st_mtime,reverse=True)
+
+def save_retry_times(mapping):
+    data={name:until for name,until in mapping.items()
+          if isinstance(until,(int,float)) and until>time.time() and VALID_ZIP_RE.fullmatch(name)}
+    path=STATE/'retry-times.json'
+    temp=path.with_suffix('.tmp')
+    temp.write_text(json.dumps(data,indent=2)+'\n',encoding='utf-8')
+    os.replace(temp,path)
+
+def load_retry_times():
+    try:
+        data=json.loads((STATE/'retry-times.json').read_text(encoding='utf-8'))
+        if not isinstance(data,dict):return {}
+        return {name:until for name,until in data.items()
+                if isinstance(until,(int,float)) and until>time.time() and VALID_ZIP_RE.fullmatch(name)}
+    except (ValueError,OSError,TypeError):
+        return {}
 
 def main():
-    global LOG_FILE
+    global LOG_FILE, VERBOSE, COLOR_MODE
     parser=argparse.ArgumentParser(description='Meta Vehicle Lab ZIP watcher and verified deployer')
     options=parser.add_mutually_exclusive_group()
-    options.add_argument('--once',action='store_true',help='Deploy all ZIPs then stop')
-    options.add_argument('--dry-run',action='store_true',help='Validate ZIPs locally without any network writes')
-    options.add_argument('--status',action='store_true',help='Report last deployment and public HTTP version')
+    options.add_argument('--once',action='store_true',help='Process all ZIPs then stop')
+    options.add_argument('--dry-run',action='store_true',help='Validate ZIPs locally without network writes')
+    options.add_argument('--status',action='store_true',help='Report deployed version and public HTTP status')
+    options.add_argument('--logs',action='store_true',help='List recent release logs')
+    options.add_argument('--tail',action='store_true',help='Show latest complete release log tail')
+    parser.add_argument('--lines',type=int,default=100,help='Number of lines for --tail (default: 100)')
     parser.add_argument('--interval',type=int,default=3,help='Polling interval in seconds')
+    parser.add_argument('--verbose',action='store_true',help='Print commands and output in the terminal')
+    parser.add_argument('--color',choices=('auto','always','never'),default='auto',
+                        help='Terminal ANSI colors: auto (TTY), always, or never')
     args=parser.parse_args()
-    if args.interval<1:parser.error('interval must be positive')
+    VERBOSE=args.verbose
+    COLOR_MODE=args.color
+    if args.interval<1 or args.lines<1:parser.error('interval and lines must be positive')
     UPDATES.mkdir(exist_ok=True);STATE.mkdir(exist_ok=True)
-    for d in ('processed','failed'): (UPDATES/d).mkdir(exist_ok=True)
-    (STATE/'logs').mkdir(exist_ok=True)
+    for d in ('processed','failed','superseded'):(UPDATES/d).mkdir(exist_ok=True)
+    (STATE/'logs').mkdir(mode=0o700,exist_ok=True)
+    (STATE/'logs').chmod(0o700)
+    if args.logs:
+        paths=latest_logs()
+        if not paths:log('No release logs yet','WARN')
+        for path in paths[:15]:
+            size=path.stat().st_size
+            content=path.read_text(encoding='utf-8',errors='replace')
+            results=re.findall(r'RESULT: ([^\n]+)',content)
+            outcome=results[-1] if results else 'INCOMPLETE / INTERRUPTED'
+            shade=('PASS' if 'SUCCESS' in outcome or 'DRY RUN' in outcome else
+                   'WARN' if 'PUBLIC NOT VERIFIED' in outcome else 'FAIL')
+            log(f'{outcome:40} {path} ({size:,} bytes)',shade)
+        return 0
+    if args.tail:
+        paths=latest_logs()
+        if not paths:
+            log('No release logs yet','WARN');return 1
+        path=paths[0]
+        log(f'LATEST RELEASE LOG: {path}','STEP')
+        with path.open(encoding='utf-8',errors='replace') as f:
+            from collections import deque
+            lines=deque(f,maxlen=args.lines)
+        print(''.join(lines),end='',flush=True)
+        return 0
     if args.status:
-        log('Last watcher-confirmed origin deploy: v'+last_deployed())
+        log('Installed watcher: v'+WATCHER_BUILD,'PASS')
+        log('Last confirmed origin deploy: v'+last_deployed())
         try:
             deployed=json.loads((STATE/'deployed.json').read_text())
             if not deployed.get('publicVerified',False):
                 log('Last deployment did NOT confirm working public HTTPS','WARN')
         except (ValueError,OSError):pass
+        paths=latest_logs()
+        if paths:log('Latest full log: '+str(paths[0]))
         try:
             data=json.loads(public_get('version.json'))
             log('Public site reports v'+str(data['version']),'PASS')
@@ -647,10 +778,12 @@ def main():
     with (STATE/'watch.lock').open('w') as lock:
         try:fcntl.flock(lock,fcntl.LOCK_EX|fcntl.LOCK_NB)
         except BlockingIOError:raise ReleaseError('Another watcher is already running')
+        log(f'WATCHER v{WATCHER_BUILD} ACTIVE | color={"ON" if use_color() else "OFF"} | verbose={"ON" if VERBOSE else "OFF"}','PASS')
         log('Watching '+str(UPDATES)+' | GitHub main | '+SSH_HOST+':'+WEBROOT)
+        log('Release logs: '+str(STATE/'logs')+' | View latest: ./watcher-meta-vehicle.sh --tail')
         failed=False
         ignored=set()
-        retry_after={}
+        retry_after=load_retry_times()
         while True:
             all_archives=sorted(UPDATES.glob('*.zip'))
             candidates=[]
@@ -664,45 +797,66 @@ def main():
                 log('No update ZIP found in updates/. Expected META_VEHICLE_LAB_{RELEASE,UPDATE,SETUP}_vX.Y.Z.zip','WARN')
                 return 1
             for archive in candidates:
+                known=re.search(r'_v(\d+\.\d+\.\d+)',archive.name)
+                installed=last_deployed()
+                if known and vt(known.group(1))<=vt(installed):
+                    dest=UPDATES/'superseded'/archive.name
+                    if dest.exists():
+                        dest=dest.with_name(dest.stem+'-'+dt.datetime.now().strftime('%Y%m%d-%H%M%S-%f')+'.zip')
+                    archive.rename(dest)
+                    retry_after.pop(archive.name,None)
+                    save_retry_times(retry_after)
+                    log(f'SKIPPED SUPERSEDED v{known.group(1)} (already deployed v{installed}); preserved at {dest}','WARN')
+                    continue
                 if not (args.once or args.dry_run) and time.time()<retry_after.get(archive.name,0):
                     continue
                 if not (args.once or args.dry_run) and time.time()-archive.stat().st_mtime<4:
-                    continue  # Ignore incomplete file transfers.
-                stamp=dt.datetime.now().strftime('%Y%m%d-%H%M%S')
+                    continue # Ignore partial file transfers.
+                stamp=dt.datetime.now().strftime('%Y%m%d-%H%M%S-%f')
                 LOG_FILE=STATE/'logs'/(stamp+'-'+re.sub(r'[^a-zA-Z0-9_.-]','_',archive.stem)+'.log')
-                release_version = re.search(r'_v(\d+\.\d+\.\d+)',archive.name)
-                release_version = release_version.group(1) if release_version else 'unknown'
-                started = time.monotonic()
-                succeeded = False
-                banner('START',release_version,detail=f'ZIP: {archive.name} | mode: {"DRY RUN" if args.dry_run else "DEPLOY"}')
+                LOG_FILE.touch(mode=0o600,exist_ok=False)
+                release_version=re.search(r'_v(\d+\.\d+\.\d+)',archive.name)
+                release_version=release_version.group(1) if release_version else 'unknown'
+                started=time.monotonic()
+                result={'status':'FAILURE','details':'Deployment did not complete'}
+                banner('START',release_version,filename=archive.name,
+                       mode='DRY RUN' if args.dry_run else 'DEPLOY')
                 try:
-                    process(archive,args.dry_run)
+                    result=process(archive,args.dry_run)
                     if not args.dry_run:
                         destination=UPDATES/'processed'/archive.name
                         if destination.exists():destination=destination.with_name(destination.stem+'-'+stamp+'.zip')
                         archive.rename(destination)
-                    succeeded=True
+                        retry_after.pop(archive.name,None)
+                        save_retry_times(retry_after)
                 except Exception as exc:
                     failed=True
-                    log('RELEASE FAILED: '+str(exc),'FAIL')
+                    lines=str(exc).splitlines()
+                    log('RELEASE FAILED: '+(lines[0] if lines else type(exc).__name__),'FAIL')
+                    for line in lines[1:]:log(line,'FAIL')
+                    result={'status':'FAILURE','details':f'{type(exc).__name__}: '+(lines[0] if lines else '')[:200]}
+                    if VERBOSE:log(traceback.format_exc(),'DETAIL')
                     if not args.dry_run and isinstance(exc,ArchiveError):
                         destination=UPDATES/'failed'/archive.name
                         if destination.exists():destination=destination.with_name(destination.stem+'-'+stamp+'.zip')
                         archive.rename(destination)
+                        retry_after.pop(archive.name,None)
+                        save_retry_times(retry_after)
                         log('Invalid ZIP moved to '+str(destination),'WARN')
                     elif not args.dry_run:
                         retry_after[archive.name]=time.time()+60
-                        log('Verified ZIP remains in updates/ for safe retry; next attempt ≥60 seconds','WARN')
+                        save_retry_times(retry_after)
+                        log('Verified ZIP remains in updates/; automatic retry in ≥60 seconds','WARN')
                 finally:
-                    banner('END',release_version,
-                           detail='RESULT: '+('SUCCESS' if succeeded else 'FAILURE')+
-                                  (' (validation only)' if args.dry_run else ''),
-                           duration=time.monotonic()-started,failed=not succeeded)
+                    banner('END',release_version, status=result['status'],
+                           details=result.get('details',''),duration=time.monotonic()-started)
                     LOG_FILE=None
                 if RESTART_REQUESTED and not (args.once or args.dry_run):
-                    log('Restarting watcher to activate verified self-update','PASS')
+                    log('ACTIVATING VERIFIED WATCHER v'+WATCHER_BUILD+' FROM DISK','PASS')
                     program=str(ROOT/'watcher-meta-vehicle.sh')
-                    os.execv(program,[program,'--interval',str(args.interval)])
+                    argv=[program,'--interval',str(args.interval),'--color',args.color]
+                    if args.verbose:argv.append('--verbose')
+                    os.execv(program,argv)
             if args.once or args.dry_run:return int(failed)
             time.sleep(args.interval)
 
