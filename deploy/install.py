@@ -161,6 +161,21 @@ def rollback(receipt):
     print('Previous vehiclelab release/service/Nginx configuration restored; SQLite retained.')
 
 
+def copy_release_payload(stage, target):
+    """Copy the same runnable tree used for server-side regression tests.
+
+    Nginx tests import deploy.install. Excluding deploy/ from the staged release
+    caused v0.2.0 and v0.2.1 to fail with ModuleNotFoundError after a successful
+    GitHub push, even though the source tree passed local tests.
+    """
+    stage=Path(stage)
+    target=Path(target)
+    for directory in ('backend', 'deploy', 'tests'):
+        shutil.copytree(stage/directory, target/directory)
+    for filename in ('index.html', 'version.json'):
+        shutil.copy2(stage/filename, target/filename)
+
+
 def activate(stage,version,release_id):
     if os.geteuid()!=0:raise RuntimeError('Must run as root on the server')
     if not VERSION_RE.fullmatch(version):raise ValueError('Invalid version')
@@ -190,13 +205,14 @@ def activate(stage,version,release_id):
         raise RuntimeError('Backend release path already exists; refuse overwrite: '+str(next_release))
     next_release.mkdir(mode=0o755)
     try:
-        shutil.copytree(stage/'backend',next_release/'backend')
-        shutil.copytree(stage/'tests',next_release/'tests')
-        shutil.copy2(stage/'index.html',next_release/'index.html')
-        shutil.copy2(stage/'version.json',next_release/'version.json')
+        copy_release_payload(stage,next_release)
         shell('python3','-m','venv',str(next_release/'.venv'),timeout=75)
         shell(str(next_release/'.venv/bin/python'),'-m','pip','install','--disable-pip-version-check',
               '--no-input','-r',str(next_release/'backend/requirements.txt'),timeout=240)
+        # Explicitly require the production Flask app to be importable.
+        shell(str(next_release/'.venv/bin/python'), '-c',
+              'from backend.app import create_app; assert callable(create_app)',
+              cwd=next_release,timeout=25)
         # Run Flask test-client and SQLite/Nginx regressions in the exact new venv.
         tested=shell(str(next_release/'.venv/bin/python'),'-m','unittest','discover',
                      '-s','tests','-v',cwd=next_release,timeout=90)

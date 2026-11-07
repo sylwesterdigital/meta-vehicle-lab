@@ -1,3 +1,10 @@
+# v0.2.2 — Repair missing deploy package in staged Flask tests (2026-11-07)
+
+- Fix repeated server rollback during unit tests: `deploy/install.py` was not copied into `/opt/vehiclelab/releases/vX.Y.Z/`, although `tests/test_nginx_config.py` imports `deploy.install`. This was reproduced locally with the exact observed summary `Ran 5 tests` / `FAILED (errors=1)`.
+- Stage `backend/`, `deploy/` and `tests/` together before invoking the Python test suite. Add a relocation regression that checks the real staged module can be imported, avoiding future false-positive local validation.
+- Require the production Flask module to import explicitly after venv installation. Only skip local Flask tests when Flask itself is missing, not when backend imports are broken.
+- Preserve existing watcher colors and per-iteration START/END logs, versioned deployment, Git integrity checks, rollback and persistent SQLite data.
+
 # v0.2.1 — Release watcher telemetry and diagnostic-safe Flask installer (2026-11-07)
 
 - Add colored INFO/PASS/WARN/FAIL terminal lines and distinct versioned START/END banners with full date/time, duration and final result for each ZIP attempt. Local log files remain clean, searchable text without ANSI escapes.

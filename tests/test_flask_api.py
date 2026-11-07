@@ -1,10 +1,13 @@
 import tempfile
 import unittest
 import uuid
-try:
-    from backend.app import create_app
-except ImportError:
+import importlib.util
+# Only skip when Flask itself is not installed (local stdlib-only validation).
+# An actual backend import failure must surface as a test error on the server.
+if importlib.util.find_spec('flask') is None:
     create_app=None
+else:
+    from backend.app import create_app
 
 @unittest.skipIf(create_app is None,'Flask must be installed for API tests')
 class FlaskAPITests(unittest.TestCase):
