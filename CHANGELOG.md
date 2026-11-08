@@ -1,3 +1,15 @@
+# v0.2.7 — Materials, independent axles, driving terrain, occupant library, viewport fix, WebXR (2026-11-08)
+
+- Fix gallery capture leaving the 3D stage at 288×192 by preserving and restoring render target, viewport, scissor, scissor test, full canvas dimensions and camera aspect. Exclude water, tracks and splash effects from snapshots.
+- Round profile-avatar buttons open image picker directly; webcam capture still requires explicit permission. Add a font-name selector, opt-in Local Font Access API enumeration and luminance-aware generated UI themes with accessible contrasting labels.
+- Add a reusable floating Material Studio with native color spectrum, six palette families, independent body/glass/seat/interior/tyre/rim/trim materials and seeded procedural finishes.
+- Add independent front/rear wheel radii, tyre widths, lateral offsets and rim styles, retaining longitudinal axle offsets and using matching radii/positions in Cannon/Rapier/Ammo adapters.
+- Add procedurally textured asphalt/grass/dirt/gravel/sand/snow/moon surfaces, layered FBM cloud and night-sky shaders, animated puddles/beach water, wheel tracks, splash particles, approximate low-grip surfaces and water drag/lift approximations.
+- Store separate imported rigged GLB avatars in IndexedDB, associate models and clip names with seats, support named sitting/driving/walking/entering/exiting/door animations when available, visual door-opening and staged boarding, and cockpit steering wheel/dash models. Assets are not embedded in portable JSON.
+- Add experimental WebXR immersive-VR mode with controller ray and terrain teleport, door interaction and cabin relocation. Not device-verified; robust XR collision, physically articulated door/passenger bodies and animation retargeting remain future work.
+- No Flask/SQLite schema migration, authentication or SMTP changes. The application and watcher retain their existing release deployment behavior.
+- Offline verification: syntax and Python storage/Nginx regressions. Live browser/VR/physics engine acceptance and production deployment remain unverified; do not describe this package as browser-tested.
+
 # v0.2.6 — Profile photo, camera continuity, history, vehicle gallery and terrain (2026-11-08)
 
 - Profile creation offers a circular image upload or opt-in webcam capture, with explicit camera teardown; UI copy uses **profile** rather than **guest profile**. API route names remain backward compatible.
