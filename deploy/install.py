@@ -16,6 +16,7 @@ import shutil
 import subprocess
 import sys
 import time
+import tempfile
 import urllib.request
 from pathlib import Path
 
@@ -306,6 +307,12 @@ def activate(stage,version,release_id):
         for name in ('index.html','version.json'):
             atomic_write(WEBROOT/name,(stage/name).read_bytes())
         report_mail_prerequisites()
+        # Read-only Blender status during deployments. Installing large Ubuntu
+        # packages on this multi-site server is deliberately a separate, explicit
+        # maintenance action: python deploy/install.py --blender-install.
+        blender=shutil.which('blender')
+        print('BLENDER ASSET WORKER: '+(blender or
+              'not installed (offline rendering disabled; run separate admin install)'),flush=True)
         print('DEPLOYED '+version+'; Flask healthy; SQLite data preserved; receipt='+str(receipt))
         return receipt
     except Exception:
@@ -313,13 +320,69 @@ def activate(stage,version,release_id):
         raise
 
 
+# Offline, administrator-operated Blender renderer. Kept in the existing
+# deployment module to remain compatible with watcher v2.3.1 ZIP manifests.
+# No public HTTP route accepts untrusted GLB jobs or shares the Flask secrets.
+BLENDER_WORKER_SOURCE = "from pathlib import Path\nfrom mathutils import Vector\nimport sys\nimport json\nimport argparse\n\ndef render_with_bpy(source: Path, target: Path, decimate: float):\n    import bpy\n    from mathutils import Vector\n    bpy.ops.object.select_all(action='SELECT')\n    bpy.ops.object.delete(use_global=False)\n    bpy.ops.import_scene.gltf(filepath=str(source))\n    meshes = [o for o in bpy.context.scene.objects if o.type == 'MESH']\n    if not meshes:\n        raise ValueError('Imported GLB contains no mesh')\n    if decimate < 0.999:\n        for obj in meshes:\n            bpy.context.view_layer.objects.active = obj\n            obj.select_set(True)\n            # Do not decimate skinned or shape-key meshes; preserve animations.\n            if not obj.vertex_groups and not obj.data.shape_keys:\n                mod = obj.modifiers.new('VehicleLab decimation', 'DECIMATE')\n                mod.ratio = decimate\n                try: bpy.ops.object.modifier_apply(modifier=mod.name)\n                except RuntimeError: obj.modifiers.remove(mod)\n            obj.select_set(False)\n    target.mkdir(parents=True, exist_ok=True)\n    dest = target / 'optimized.glb'\n    kwargs = dict(filepath=str(dest), export_format='GLB', export_animations=True)\n    try:\n        bpy.ops.export_scene.gltf(**kwargs, export_draco_mesh_compression_enable=True,\n                                  export_draco_mesh_compression_level=6)\n        compressor = 'draco'\n    except (TypeError, RuntimeError):\n        bpy.ops.export_scene.gltf(**kwargs)\n        compressor = 'none (Blender glTF exporter unavailable)'\n    bpy.context.view_layer.update()\n    points = [obj.matrix_world @ Vector(corner) for obj in meshes for corner in obj.bound_box]\n    mini = Vector(tuple(min(v[i] for v in points) for i in range(3)))\n    maxi = Vector(tuple(max(v[i] for v in points) for i in range(3)))\n    center = (mini + maxi) * .5\n    extent = max((maxi - mini).length, 1.0)\n    bpy.ops.object.camera_add(location=center + Vector((extent, -extent, extent)))\n    camera = bpy.context.object\n    camera.data.type = 'ORTHO'\n    camera.data.ortho_scale = extent * 1.35\n    bpy.context.scene.camera = camera\n    for position,energy,size in [((1.2,-.8,1.5),1100,5),((-1,.7,.8),650,6),((0,1.5,1.0),650,8)]:\n        bpy.ops.object.light_add(type='AREA', location=center+Vector(position)*extent)\n        light=bpy.context.object\n        light.data.energy=energy\n        light.data.shape='DISK'\n        light.data.size=size\n        direction=center-light.location\n        light.rotation_euler=direction.to_track_quat('-Z','Y').to_euler()\n    world=bpy.data.worlds.new('Vehicle Lab studio')\n    world.use_nodes=True\n    world.node_tree.nodes['Background'].inputs['Color'].default_value=(.24,.32,.40,1)\n    world.node_tree.nodes['Background'].inputs['Strength'].default_value=.85\n    bpy.context.scene.world=world\n    scene=bpy.context.scene\n    engines={entry.identifier for entry in scene.bl_rna.properties['render'].fixed_type.properties} if False else []\n    try: scene.render.engine='BLENDER_EEVEE_NEXT'\n    except TypeError: scene.render.engine='BLENDER_EEVEE'\n    scene.render.image_settings.file_format='PNG'\n    scene.render.film_transparent=False\n    scene.render.resolution_x=960\n    scene.render.resolution_y=720\n    scene.render.resolution_percentage=100\n    views = {'hero':(1,-1.45,.75),'front':(0,-1.6,.30),'rear':(0,1.6,.30),\n             'side':(1.8,0,.25),'top':(0,-.0001,2.1)}\n    for name,axis in views.items():\n        camera.location=center+Vector(axis).normalized()*extent*1.55\n        camera.rotation_euler=(center-camera.location).to_track_quat('-Z','Y').to_euler()\n        scene.render.filepath=str(target/(name+'.png'))\n        bpy.ops.render.render(write_still=True)\n    (target/'render.json').write_text(json.dumps({'views':list(views),'optimized':dest.name,\n         'compression':compressor,'source':source.name},indent=2), encoding='utf-8')\n\n\n\nparser=argparse.ArgumentParser()\nparser.add_argument('--input',required=True,type=Path)\nparser.add_argument('--output',required=True,type=Path)\nparser.add_argument('--decimate',type=float,default=1.0)\nargs=parser.parse_args(sys.argv[sys.argv.index('--')+1:])\nrender_with_bpy(args.input,args.output,args.decimate)\n"
+
+
+def check_blender():
+    binary=shutil.which('blender')
+    print('BLENDER: '+(binary or 'not installed')+' (offline admin asset tool only)',flush=True)
+    return binary
+
+
+def install_blender():
+    if check_blender():return
+    if os.geteuid()!=0 or not Path('/etc/os-release').exists() or 'ubuntu' not in Path('/etc/os-release').read_text().lower():
+        raise RuntimeError('Only an Ubuntu administrator can install Blender')
+    # Never run apt during a release deployment; --blender-install is explicit.
+    shell('apt-get','update',timeout=300)
+    shell('apt-get','install','-y','--no-install-recommends','blender',timeout=900)
+    if not check_blender():raise RuntimeError('Blender was not found after installation')
+
+
+def offline_render_blender(input_file,output_dir,decimate=1.0):
+    binary=check_blender()
+    if not binary:raise RuntimeError('Blender not installed; use --blender-install as Ubuntu root')
+    source=Path(input_file).resolve(strict=True)
+    if not source.is_file() or source.suffix.lower()!='.glb' or not 12<=source.stat().st_size<=80*1024*1024:
+        raise RuntimeError('Input must be GLB of 12 bytes to 80 MiB')
+    if not .1<=decimate<=1.0:raise RuntimeError('Decimation range is 0.1..1.0')
+    target=Path(output_dir).resolve()
+    target.mkdir(parents=True,exist_ok=True)
+    with tempfile.TemporaryDirectory(prefix='vehiclelab-blender-') as tmp:
+        script=Path(tmp)/'render_asset.py';script.write_text(BLENDER_WORKER_SOURCE)
+        # Remove application credential environment variables from this process.
+        env={key:value for key,value in os.environ.items() if key not in
+             ('VEHICLELAB_API_TOKEN','MODEL_API_KEY') and not key.endswith('_API_KEY')}
+        result=subprocess.run([binary,'-b','--factory-startup','-t','2','--python',str(script),
+               '--','--input',str(source),'--output',str(target),'--decimate',str(decimate)],
+               capture_output=True,text=True,timeout=420,env=env)
+        if result.returncode:
+            raise RuntimeError('Blender failed: '+((result.stderr or '')+'\n'+(result.stdout or ''))[-2200:])
+        if not all((target/(view+'.png')).is_file() for view in ('hero','front','rear','side','top')):
+            raise RuntimeError('Blender did not produce all five views')
+        if not (target/'optimized.glb').is_file():raise RuntimeError('Blender did not export GLB')
+        print('BLENDER COMPLETE: '+str(target),flush=True)
+
 def main():
     parser=argparse.ArgumentParser()
     parser.add_argument('--stage')
     parser.add_argument('--version')
     parser.add_argument('--id')
     parser.add_argument('--rollback')
+    parser.add_argument('--blender-check',action='store_true')
+    parser.add_argument('--blender-install',action='store_true')
+    parser.add_argument('--blender-render')
+    parser.add_argument('--blender-output')
+    parser.add_argument('--blender-decimate',type=float,default=1.0)
     args=parser.parse_args()
+    if args.blender_check:check_blender();return
+    if args.blender_install:install_blender();return
+    if args.blender_render:
+        if not args.blender_output:parser.error('--blender-output required')
+        offline_render_blender(args.blender_render,args.blender_output,args.blender_decimate);return
     if args.rollback:
         rollback(Path(args.rollback));return
     if not args.stage or not args.version or not args.id:

@@ -5,7 +5,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Vehicle Lab — Procedural Studio</title>
-  <meta name="vehicle-lab-version" content="0.2.7">
+  <meta name="vehicle-lab-version" content="0.2.8">
   <style>
     :root {
       color-scheme:dark;
@@ -312,7 +312,7 @@
   </section>
   <section id="toolsWindow" class="float-window" aria-label="Vehicle tools">
     <div class="window-head"><strong>02 / Vehicle tools</strong><button class="mini-btn minimize" title="Minimize">−</button></div>
-    <div class="window-body"><div id="boarding">
+    <div class="window-body"><div id="boarding"><button type="button" id="openOccupants" title="Choose driver and passenger 3D models">Driver / passengers</button>
       <button id="exitBtn">Exit −</button><button id="boardBtn">Board +</button><button id="doorsBtn">Open doors</button><button id="xrBtn" title="WebXR immersive VR">Enter XR</button><button id="xrSeatBtn" title="Teleport into the cabin (XR only)">Cabin</button>
     </div></div>
   </section>
@@ -470,6 +470,9 @@
   import * as THREE from 'three';
   import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
   import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
+  import {DRACOLoader} from 'three/addons/loaders/DRACOLoader.js';
+  import {KTX2Loader} from 'three/addons/loaders/KTX2Loader.js';
+  import {MeshoptDecoder} from 'three/addons/libs/meshopt_decoder.module.js';
   import {GLTFExporter} from 'three/addons/exporters/GLTFExporter.js';
   import {clone as cloneSkeleton} from 'three/addons/utils/SkeletonUtils.js';
   import * as CANNON from 'cannon-es';
@@ -545,16 +548,45 @@
    wheelWidth:.23,wheelOutset:0,axleFrontOffset:0,axleRearOffset:0,
    frontWheelRadius:.34,rearWheelRadius:.34,frontWheelWidth:.23,rearWheelWidth:.23,
    frontWheelOutset:0,rearWheelOutset:0,frontWheelStyle:'alloy',rearWheelStyle:'alloy',
+   frontSpokes:8,rearSpokes:7,frontTireSidewall:'#20252a',rearTireSidewall:'#20252a',
+   frontRimColor:'#b5c2cc',rearRimColor:'#b5c2cc',frontTreadDepth:.028,rearTreadDepth:.032,
    tireColor:'#171d23',rimColor:'#b5c2cc',seatColor:'#3b4651',trimColor:'#283d4a',interiorColor:'#252b32',
    tirePattern:'tread',seatPattern:'fabric',rimFinish:'polished',glassPattern:'clear',interiorPattern:'leather',trimPattern:'matte',
    groundSurface:'grass',puddles:true,waterLevel:0,trackMarks:true,waterEffect:true,
-   cloudCoverage:.48,windSpeed:.4,waterOpacity:.68
+   cloudCoverage:.48,windSpeed:.4,waterOpacity:.68,
+   noiseScale:26,noiseOctaves:5,noiseLacunarity:2.02,noiseGain:.5,
+   noiseWarp:.33,noiseContrast:1.25,noiseDetail:.24,
+   noiseTiling:2.2,terrainNormalStrength:.55,terrainTextureScale:.11
  };
 
  let cfg=structuredClone(defaults);
+// Pre-v0.2.7 IndexedDB and server layouts can lack wheel/texture properties.
+// lil-gui fails while creating a numeric controller for an absent property.
+function normalizeVehicleConfig(){
+ const wheelKeys=['frontWheelRadius','rearWheelRadius','frontWheelWidth','rearWheelWidth',
+  'frontWheelOutset','rearWheelOutset','axleFrontOffset','axleRearOffset'];
+ for(const [key,value] of Object.entries(defaults)){
+  if(cfg[key]===undefined||cfg[key]===null ||
+     (typeof value==='number'&&!Number.isFinite(Number(cfg[key]))))cfg[key]=value;
+ }
+ if(!Number.isFinite(cfg.frontWheelRadius)||cfg.frontWheelRadius<=0)cfg.frontWheelRadius=cfg.radius;
+ if(!Number.isFinite(cfg.rearWheelRadius)||cfg.rearWheelRadius<=0)cfg.rearWheelRadius=cfg.radius;
+ for(const key of wheelKeys)cfg[key]=Number(cfg[key]);
+ if(!['cannon','rapier','ammo'].includes(simulator?.engine))simulator.engine='cannon';
+}
+
  let mods=defaultMods();
  let selectedPart='cabin'; // Always initialise before the first build/highlight.
  let occupants=cfg.seats;
+ let seatPresence=Array.from({length:cfg.seats},()=>true);
+ function normalizeSeatPresence(){
+  if(!Array.isArray(seatPresence)||seatPresence.length!==cfg.seats){
+   seatPresence=Array.from({length:cfg.seats},(_,i)=>i<occupants);
+  }
+  seatPresence=seatPresence.map(Boolean);
+  occupants=seatPresence.filter(Boolean).length;
+ }
+ 
  let mode='build',autoRotate=(()=>{try{return localStorage.getItem('vehiclelab.rotation.v1')!=='off'}catch{return true}})(),doorsOpen=false,braking=false;
  let car=null,bodyRoot=null,highlight=null;
  let wheels=[],doorHinges=[],partGroups={},passengerFigures=[];
@@ -566,7 +598,7 @@ const outsideRigs=new Set();
 
  let headMaterials=[],brakeMaterials=[],headlights=[];
  let physics=null,previousYaw=null;
- const ENGINE_LABELS={cannon:'Cannon-es',rapier:'Rapier (WASM)',ammo:'Ammo.js / Bullet',baseline:'Kinematic baseline (no physics)'};
+ const ENGINE_LABELS={cannon:'Cannon-es',rapier:'Rapier (WASM)',ammo:'Ammo.js / Bullet'};
  const simulator={engine:'cannon',benchmarkSeconds:10};
  const telemetry={frames:0,frameTime:0,stepCount:0,stepMs:0,lastDisplay:0,history:[],active:null};
  let rapierModule=null,ammoModule=null,engineLoading=false,driveGeneration=0,stepAccumulator=0;
@@ -580,7 +612,7 @@ const outsideRigs=new Set();
  const serverAccess={token:''};
  let activeProfile=null,guestToken='',serverVisibility='private',adminLogToken='';
  const appEvents=[];
- const VERSION='0.2.7';
+ const VERSION='0.2.8';
  let imageReference=null,busyAI=false;
 
  // Keys remain in volatile memory. Never place credentials in a blueprint or IndexedDB.
@@ -708,7 +740,7 @@ function buildTerrain(){
  N=Math.round(SIZE/STEP);
  if(terrain){
   terrain.geometry.dispose();
-  terrain.material.map?.dispose();terrain.material.dispose();
+  terrain.material.map?.dispose();terrain.material.normalMap?.dispose();terrain.material.dispose();
   scene.remove(terrain);
 }
 if(terrainBody)world.removeBody(terrainBody);
@@ -721,7 +753,7 @@ for(let i=0;i<=N;i++){
    const z=SIZE/2-j*STEP;
    const y=heightAt(x,z);
    row.push(y);
-   vertices.push(x,y,z);uvs.push(x*.11,z*.11);
+   vertices.push(x,y,z);uvs.push(x*(cfg.terrainTextureScale||.11),z*(cfg.terrainTextureScale||.11));
  }
  heights.push(row);
 }
@@ -736,9 +768,10 @@ g.setAttribute('uv',new THREE.Float32BufferAttribute(uvs,2));
 g.setIndex(indices);
 g.computeVertexNormals();
 
-const terrainMap=terrainAlbedo(cfg.groundSurface|| (cfg.terrainProfile==='beach'?'sand':'grass'),cfg.seed);
+const terrainTextures=terrainMaps(cfg.groundSurface|| (cfg.terrainProfile==='beach'?'sand':'grass'),cfg.seed);
 terrain=new THREE.Mesh(g,new THREE.MeshStandardMaterial({
- map:terrainMap,color:0xffffff,roughness:.95,metalness:0,side:THREE.DoubleSide
+ ...terrainTextures,color:0xffffff,roughness:.94,metalness:0,
+ normalScale:new THREE.Vector2(cfg.terrainNormalStrength,cfg.terrainNormalStrength),side:THREE.DoubleSide
 }));
 terrain.receiveShadow=true;
 scene.add(terrain);
@@ -752,34 +785,53 @@ terrainBody.position.set(-SIZE/2,0,SIZE/2);
   updateEnvironment();
 }
 // Deterministic tiled multiscale materials, shared by terrain meshes and previews.
-function terrainAlbedo(style='grass',seed=21){
- const swatches={asphalt:[[60,66,70],[118,121,122]],grass:[[56,94,53],[139,151,82]],
-  dirt:[[103,75,51],[158,122,79]],sand:[[181,153,104],[233,211,164]],
-  snow:[[169,185,193],[245,249,249]],moon:[[71,74,88],[145,145,155]],
-  gravel:[[85,90,94],[167,163,144]]};
- const stops=swatches[style]||swatches.grass;const n=512;
- const canvas=document.createElement('canvas');canvas.width=canvas.height=n;
- const ctx=canvas.getContext('2d',{willReadFrequently:false}),data=ctx.createImageData(n,n);
- const hash=(x,y)=>{let t=Math.imul(x,374761393)^Math.imul(y,668265263)^Math.imul(seed|0,1274126177);
-  t=Math.imul(t^(t>>>13),1274126177);return ((t^(t>>>16))>>>0)/4294967295};
- const sm=t=>t*t*(3-2*t);
- function val(x,y,scale){const ax=Math.floor(x/scale),ay=Math.floor(y/scale);
-  const fx=sm(x/scale-ax),fy=sm(y/scale-ay);
-  return lerp(lerp(hash(ax,ay),hash(ax+1,ay),fx),lerp(hash(ax,ay+1),hash(ax+1,ay+1),fx),fy);
- }
+function terrainMaps(style='grass',seed=21){
+ const swatches={asphalt:[[40,48,56],[128,132,137]],grass:[[37,77,45],[149,171,92]],
+  dirt:[[70,47,30],[174,127,82]],sand:[[156,129,87],[250,225,169]],
+  snow:[[155,177,189],[250,251,247]],moon:[[51,56,68],[159,157,164]],
+  gravel:[[72,81,87],[171,164,147]]};
+ const stops=swatches[style]||swatches.grass,n=512;
+ const detail=new Float32Array(n*n),grain=new Float32Array(n*n);
+ const scale=clamp(cfg.noiseScale||26,4,180);
+ const fine=clamp(cfg.noiseDetail??.24,0,1);
  for(let y=0;y<n;y++)for(let x=0;x<n;x++){
-  let noise=val(x,y,82)*.42+val(x,y,23)*.31+val(x,y,5)*.18+hash(x,y)*.09;
-  if(style==='sand')noise+=.08*Math.sin(x*.48+y*.11);
-  if(style==='asphalt')noise=noise*.7+.15*hash(x,y);
-  const t=clamp(noise,0,1),i=4*(y*n+x);
-  for(let c=0;c<3;c++)data.data[i+c]=Math.round(lerp(stops[0][c],stops[1][c],t));
-  data.data[i+3]=255;
+  const i=y*n+x;
+  const a=fbmNoise(x,y,seed,scale);
+  const b=fbmNoise(x,y,seed+6559,Math.max(3,scale*.22));
+  const gran=hash(x,y,seed+991);
+  let h=lerp(a,b,fine*.55)+fine*.12*(gran-.5);
+  if(style==='sand')h+=.055*Math.sin(x*.18+y*.53);
+  if(style==='asphalt')h=.41+h*.32+(gran-.5)*.06;
+  if(style==='gravel')h+=.12*Math.max(0,gran-.5);
+  if(style==='moon')h*=.94;
+  detail[i]=clamp(h,0,1);grain[i]=gran;
  }
- ctx.putImageData(data,0,0);
- const texture=new THREE.CanvasTexture(canvas);
- texture.wrapS=texture.wrapT=THREE.RepeatWrapping;
- texture.colorSpace=THREE.SRGBColorSpace;texture.anisotropy=Math.min(renderer.capabilities.getMaxAnisotropy(),8);
- return texture;
+ const canvas=document.createElement('canvas');canvas.width=canvas.height=n;
+ const nc=document.createElement('canvas');nc.width=nc.height=n;
+ const ctx=canvas.getContext('2d'),nctx=nc.getContext('2d');
+ const color=ctx.createImageData(n,n),normal=nctx.createImageData(n,n);
+ const read=(x,y)=>detail[((y+n)%n)*n+(x+n)%n];
+ for(let y=0;y<n;y++)for(let x=0;x<n;x++){
+  const i=y*n+x,p=i*4,t=detail[i];
+  for(let c=0;c<3;c++)color.data[p+c]=Math.round(lerp(stops[0][c],stops[1][c],t));
+  color.data[p+3]=255;
+  const dx=(read(x+1,y)-read(x-1,y))*(cfg.terrainNormalStrength??.55)*2;
+  const dy=(read(x,y+1)-read(x,y-1))*(cfg.terrainNormalStrength??.55)*2;
+  const length=Math.hypot(dx,dy,1);
+  normal.data[p]=Math.round(127.5*(1-dx/length));
+  normal.data[p+1]=Math.round(127.5*(1-dy/length));
+  normal.data[p+2]=Math.round(127.5*(1+1/length));normal.data[p+3]=255;
+ }
+ ctx.putImageData(color,0,0);nctx.putImageData(normal,0,0);
+ const albedo=new THREE.CanvasTexture(canvas),normals=new THREE.CanvasTexture(nc);
+ albedo.colorSpace=THREE.SRGBColorSpace;
+ const tiling=clamp(cfg.noiseTiling??2.2,.25,16);
+ for(const t of [albedo,normals]){
+  t.wrapS=t.wrapT=THREE.RepeatWrapping;
+  t.repeat.set(tiling,tiling);
+  t.anisotropy=Math.min(renderer.capabilities.getMaxAnisotropy(),8);
+ }
+ return {map:albedo,normalMap:normals};
 }
 let waterPatches=[],waterUniforms=[],skyUniforms=null;
 const puddleCenters=[[7,-2,3,2],[-8,5,2.7,1.9],[15,13,3.8,2.5],[-13,-12,3,2.5],[22,-19,4,2.1],[-27,8,3,3],[-4,24,2,1.7],[26,21,2.5,1.8]];
@@ -983,6 +1035,24 @@ function noise(x,y,s){
   lerp(hash(ix,iy+1,s),hash(ix+1,iy+1,s),u),v
 );
 }
+function fbmNoise(x,y,seed,scale=1){
+ const octaves=clamp(Math.round(cfg.noiseOctaves||5),1,9);
+ const lacunarity=clamp(cfg.noiseLacunarity||2,1.2,3.5);
+ const gain=clamp(cfg.noiseGain||.5,.15,.85);
+ const warp=clamp(cfg.noiseWarp??0,0,2);
+ let xx=x/Math.max(2,scale),yy=y/Math.max(2,scale);
+ if(warp){const wx=noise(xx*.6+11,yy*.6+17,seed+81)-.5;
+  const wy=noise(xx*.6+29,yy*.6-7,seed+89)-.5;
+  xx+=wx*warp*2;yy+=wy*warp*2;
+ }
+ let result=0,weight=0,amplitude=1,freq=1;
+ for(let octave=0;octave<octaves;octave++){
+  result+=amplitude*noise(xx*freq,yy*freq,seed+octave*199);
+  weight+=amplitude;amplitude*=gain;freq*=lacunarity;
+ }
+ const base=result/Math.max(.01,weight);
+ return clamp(.5+(base-.5)*(cfg.noiseContrast||1),0,1);
+}
 function paintTexture(){
  if(cfg.pattern==='solid')return null;
  const canvas=document.createElement('canvas');
@@ -990,8 +1060,8 @@ function paintTexture(){
  const c=canvas.getContext('2d'),data=c.createImageData(128,128);
  const colour=new THREE.Color(cfg.paint).convertLinearToSRGB();
  for(let y=0;y<128;y++)for(let x=0;x<128;x++){
-  const n=noise(x/14,y/14,cfg.seed);
-  const fine=noise(x/3,y/3,cfg.seed+1);
+  const n=fbmNoise(x,y,cfg.seed,Math.max(4,cfg.noiseScale*.75));
+  const fine=fbmNoise(x,y,cfg.seed+1,Math.max(3,cfg.noiseScale*.20));
   let f=1;
   if(cfg.pattern==='speckle')f=.72+fine*.45;
   if(cfg.pattern==='cloud')f=.65+n*.58;
@@ -1075,7 +1145,7 @@ function detailTexture(color,pattern){
  const context=canvas.getContext('2d'),image=context.createImageData(256,256);
  const base=new THREE.Color(color),baseRGB=[base.r,base.g,base.b].map(v=>Math.round(Math.pow(v,1/2.2)*255));
  for(let y=0;y<256;y++)for(let x=0;x<256;x++){
-  const n=noise(x*.15,y*.15,cfg.seed),grain=hash(x,y,cfg.seed+2);
+  const n=fbmNoise(x,y,cfg.seed,cfg.noiseScale),grain=hash(x,y,cfg.seed+2);
   let mult=1;
   if(pattern==='tread')mult=(y%28<6||Math.abs((x+y*.62)%39-19)<3)?.62:.91;
   if(pattern==='allterrain')mult=(y%40<10||x%34<7)?.64:.96;
@@ -1116,25 +1186,58 @@ function human(parent,x,y,z){
  box(root,.10,.12,.26,dark,.08,.14,.1);
  return root;
 }
+// Wheel mesh is a reusable independent component. Cylindrical tire, sidewall,
+// spoke / disk / turbine rim and instanced 3-D tread all follow axle settings.
 function makeWheel(parent,x,y,z,r,axle=0){
- const root=new THREE.Group();
- root.position.set(x,y,z);parent.add(root);
-  const front=axle===0;
- const width=clamp(front?cfg.frontWheelWidth:cfg.rearWheelWidth,.08,1.25);
- const style=front?cfg.frontWheelStyle:cfg.rearWheelStyle;
- const tire=add(root,new THREE.CylinderGeometry(r,r,width,36,1),detailMaterial(cfg.tireColor,cfg.tirePattern,0,.95));
- tire.rotation.z=Math.PI/2;
- const rimMaterial=detailMaterial(cfg.rimColor,cfg.rimFinish,.84,cfg.rimFinish==='matte'?.58:.24);
- const hub=add(root,new THREE.CylinderGeometry(r*.5,r*.5,width*.86,30),rimMaterial);
- hub.rotation.z=Math.PI/2;
- if(style!=='disc'){
-  const spokes=style==='spoke'?10:style==='steel'?5:6;
-  for(const side of [-1,1])for(let i=0;i<spokes;i++){
-   const theta=i*2*Math.PI/spokes;
-   const spoke=box(root,r*.075,r*.61,.035,rimMaterial,
-     side*(width*.52),Math.cos(theta)*r*.28,Math.sin(theta)*r*.28);
-   spoke.rotation.x=theta;
+ const root=new THREE.Group();root.name=`${axle===0?'Front':'Rear'} wheel`;root.position.set(x,y,z);parent.add(root);
+ const prefix=axle===0?'front':'rear';
+ const width=clamp(cfg[prefix+'WheelWidth'],.08,1.25);
+ const rimStyle=cfg[prefix+'WheelStyle'];
+ const spokeCount=clamp(Math.round(cfg[prefix+'Spokes']||8),3,32);
+ const treadDepth=clamp(cfg[prefix+'TreadDepth']??.03,.005,.09);
+ const rubber=detailMaterial(cfg.tireColor,cfg.tirePattern,0,.96);
+ const sidewall=mat(cfg[prefix+'TireSidewall']||cfg.tireColor,0,.92);
+ const alloy=detailMaterial(cfg[prefix+'RimColor']||cfg.rimColor,cfg.rimFinish,.81,.27);
+ const dark=mat('#252c33',.3,.71);
+ const tire=add(root,new THREE.CylinderGeometry(r,r,width,48,1),rubber);tire.rotation.z=Math.PI/2;
+ // A true opaque sidewall ring prevents the tread texture from coloring the face.
+ for(const sign of [-1,1]){
+  const face=add(root,new THREE.RingGeometry(r*.42,r*.975,48),sidewall,sign*(width*.505),0,0);
+  face.rotation.y=Math.PI/2;
+  const rim=add(root,new THREE.CircleGeometry(r*.44,48),alloy,sign*(width*.513),0,0);
+  rim.rotation.y=Math.PI/2;
+  const bead=add(root,new THREE.RingGeometry(r*.43,r*.49,48),alloy,sign*(width*.519),0,0);
+  bead.rotation.y=Math.PI/2;
+  if(rimStyle!=='disc'){
+   const n=rimStyle==='steel'?5:spokeCount;
+   for(let i=0;i<n;i++){
+    const theta=i*Math.PI*2/n;
+    const spoke=box(root,.018,r*(rimStyle==='turbine'?.30:.39),
+      rimStyle==='mesh'?r*.037:r*.068,alloy,
+      sign*(width*.534),Math.cos(theta)*r*.21,Math.sin(theta)*r*.21);
+    spoke.rotation.x=theta+(rimStyle==='turbine'?.4:rimStyle==='mesh'?.2:0);
+   }
   }
+  if(['steel','beadlock','alloy','mesh'].includes(rimStyle))for(let i=0;i<8;i++){
+   const t=i*Math.PI/4;
+   add(root,new THREE.SphereGeometry(r*.029,6,4),dark,
+    sign*(width*.54),Math.cos(t)*r*.34,Math.sin(t)*r*.34);
+  }
+  add(root,new THREE.CylinderGeometry(r*.12,r*.12,width*.03,24),alloy,sign*(width*.55),0,0).rotation.z=Math.PI/2;
+ }
+ if(cfg.tirePattern!=='smooth'){
+  const segments=40,columns=2;
+  const tread=new THREE.InstancedMesh(new THREE.BoxGeometry(width*.44,treadDepth,r*.17),
+   mat(cfg.tireColor,0,.96),segments*columns);
+  const dummy=new THREE.Object3D();
+  for(let k=0;k<segments;k++)for(let column=0;column<columns;column++){
+   const theta=2*Math.PI*(k+(column*.5)) /segments;
+   dummy.position.set((column?1:-1)*width*.25,
+    Math.cos(theta)*(r+treadDepth*.45),Math.sin(theta)*(r+treadDepth*.45));
+   dummy.rotation.set(theta+(column?-.15:.15),0,0);dummy.updateMatrix();
+   tread.setMatrixAt(k*columns+column,dummy.matrix);
+  }
+  tread.instanceMatrix.needsUpdate=true;tread.castShadow=true;root.add(tread);
  }
  return root;
 }
@@ -1280,9 +1383,9 @@ function updateSeatAnimations(dt){
   else rig.figure.position.lerpVectors(rig.seatPosition,rig.externalPosition,e);
   if(t>=1){
    if(rig.state==='entering'){
-    occupants=Math.min(cfg.seats,occupants+1);rig.state=rig.seat===0?'driving':'sitting';chooseRigAction(rig,rig.state);
+    seatPresence[rig.seat]=true;occupants=seatPresence.filter(Boolean).length;rig.state=rig.seat===0?'driving':'sitting';chooseRigAction(rig,rig.state);
    }else{
-    occupants=Math.max(0,occupants-1);rig.state='outside';
+    seatPresence[rig.seat]=false;occupants=seatPresence.filter(Boolean).length;rig.state='outside';
     scene.attach(rig.figure);outsideRigs.add(rig.figure);
     chooseRigAction(rig,'walking');
    }
@@ -1320,6 +1423,7 @@ function updateSeatAnimations(dt){
  }
 
  function buildVehicle(){
+   normalizeVehicleConfig();normalizeSeatPresence();
    clearVehicle();
    const {L,W,H}=cfg;
    const bus=/Bus|Coach|Shuttle|Minibus/.test(cfg.name);
@@ -1424,15 +1528,15 @@ for(let i=0;i<cfg.seats;i++){
     clone.traverse(o=>{if(o.isMesh||o.isSkinnedMesh)o.userData.importedOccupant=true});
     figure.add(clone);
     const rig={seat:i,figure,seatPosition:new THREE.Vector3(x,-.14,z),
-       state:i<occupants?(i===0?'driving':'sitting'):'empty',time:0,
+       state:seatPresence[i]?(i===0?'driving':'sitting'):'empty',time:0,
        mixer:null,actions:new Map(),clips:availableClips,modelId:modelId||null,entrySide:x<=0?-1:1};
     if(availableClips.length){rig.mixer=new THREE.AnimationMixer(clone);passengerMixers.push(rig.mixer)}
     rigs[i]=rig;chooseRigAction(rig,rig.state);
   }else{
     figure=human(passengers,x,-.14,z);
-    rigs[i]={seat:i,figure,seatPosition:figure.position.clone(),state:i<occupants?(i===0?'driving':'sitting'):'empty',time:0,mixer:null,entrySide:x<=0?-1:1};
+    rigs[i]={seat:i,figure,seatPosition:figure.position.clone(),state:seatPresence[i]?(i===0?'driving':'sitting'):'empty',time:0,mixer:null,entrySide:x<=0?-1:1};
   }
-  figure.visible=i<occupants;passengerFigures.push(figure);
+  figure.visible=seatPresence[i];passengerFigures.push(figure);
 }
 for(const {hinge,side} of doorHinges)
   hinge.rotation.y=side*.95*doorMotion;
@@ -1611,7 +1715,7 @@ async function makeRapierAdapter(){
   for(let axle=0;axle<cfg.axles;axle++)for(const side of [-1,1]){
    const i=vehicle.numWheels();
    vehicle.addWheel({x:side*(cfg.W*.54+wheelOutsetFor(axle)),y:-.3,z:wheelZ(axle)},
-       {x:0,y:-1,z:0},{x:1,y:0,z:0},.32,wheelRadiusFor(axle));
+       {x:0,y:-1,z:0},{x:-1,y:0,z:0},.32,wheelRadiusFor(axle));
    vehicle.setWheelSuspensionStiffness(i,42);
    vehicle.setWheelSuspensionCompression(i,4.6);
    vehicle.setWheelSuspensionRelaxation(i,2.8);
@@ -1638,7 +1742,7 @@ async function makeRapierAdapter(){
      const here=chassis.translation();
      const grip=surfaceGrip(here.x,here.z);
      vehicle.setWheelFrictionSlip(i,5.4*grip);
-     vehicle.setWheelEngineForce(i,drivenWheel(i)?input.throttle*input.power*grip:0);
+     vehicle.setWheelEngineForce(i,drivenWheel(i)?input.throttle*input.power*2.1*grip:0);
      vehicle.setWheelSteering(i,wheelAxle(i)===0?-input.steer*.47:0);
      vehicle.setWheelBrake(i,input.brake?400:0);
     }
@@ -1801,44 +1905,8 @@ async function makeAmmoAdapter(){
   throw error;
  }
 }
-function makeBaselineAdapter(){
- let x=0,z=0,yaw=0,speed=0;
- let y=heightAt(x,z)+cfg.radius+.65;
- let wheelSpin=0;
- const chassis={};
- return {
-  kind:'baseline',chassis,
-  getSpeed:()=>Math.abs(speed),getForwardSpeed:()=>speed,
-  setMass:()=>{},
-  step:(dt,input)=>{
-   const target=input.throttle*cfg.maxSpeed/3.6*surfaceGrip(x,z);
-   speed+=(target-speed)*Math.min(1,dt*(input.brake?12:1.3));
-   if(input.brake)speed*=Math.max(0,1-dt*9);
-   yaw+=input.steer*speed*dt*.11;
-   x+=Math.sin(yaw)*speed*dt;
-   z+=Math.cos(yaw)*speed*dt;
-   x=clamp(x,-SIZE/2+1,SIZE/2-1);
-   z=clamp(z,-SIZE/2+1,SIZE/2-1);
-   y=heightAt(x,z)+(wheelRadiusFor(0)+wheelRadiusFor(cfg.axles-1))*.5+.65;
-   if(cfg.terrainProfile==='beach'&&y<cfg.waterLevel+cfg.H*.25){speed*=Math.max(0,1-dt*.8);y=Math.max(y,cfg.waterLevel+cfg.H*.18)}
-   wheelSpin+=speed*dt/((wheelRadiusFor(0)+wheelRadiusFor(cfg.axles-1))/2);
-  },
-  pose:()=>pose({x,y,z},{x:0,y:Math.sin(yaw/2),z:0,w:Math.cos(yaw/2)},
-      {x:Math.sin(yaw)*speed,y:0,z:Math.cos(yaw)*speed}),
-  syncWheels:()=>{
-   const q=new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,1,0),yaw);
-   for(let i=0;i<wheels.length;i++){
-    const p=new THREE.Vector3((i%2===0?-1:1)*(cfg.W*.54+wheelOutsetFor(wheelAxle(i))),-.3,wheelZ(wheelAxle(i)))
-      .applyQuaternion(q);
-    wheels[i].position.set(x+p.x,y+p.y,z+p.z);
-    wheels[i].quaternion.copy(q).multiply(new THREE.Quaternion()
-      .setFromAxisAngle(new THREE.Vector3(1,0,0),wheelSpin));
-   }
-  },
-  destroy:()=>{}
- };
-}
 function updatePhysicsHud(){
+ if(!ENGINE_LABELS[simulator.engine])simulator.engine='cannon';
  $('engineName').textContent=ENGINE_LABELS[simulator.engine];
  $('physicsMode').textContent=mode==='drive'?'DRIVE':'BUILD';
 }
@@ -1851,7 +1919,7 @@ async function enterDrive(){
  try{
   const adapter=simulator.engine==='rapier'?await makeRapierAdapter():
     simulator.engine==='ammo'?await makeAmmoAdapter():
-    simulator.engine==='baseline'?makeBaselineAdapter():makeCannonAdapter();
+    makeCannonAdapter();
   // A stale asynchronous Rapier load must not reactivate a dismissed drive.
   if(generation!==driveGeneration){adapter.destroy();return}
   physics=adapter;stepAccumulator=0;previousYaw=null;mode='drive';
@@ -1887,6 +1955,7 @@ function leaveDrive(){
  $('speed').textContent='0';
  orbit.autoRotate=autoRotate;
  buildVehicle();preserveCameraOrbit();updatePhysicsHud();
+ if(wheels.length!==cfg.axles*2)note('Vehicle axle mesh count mismatch after returning to BUILD.',true);
 }
 const held=new Set();
 const joystick={x:0,y:0,active:false};
@@ -2077,7 +2146,7 @@ async function parseAvatarAsset(data){
  if(occupantModels.has(data.id))return;
  const url=URL.createObjectURL(data.blob);
  try{
-  const gltf=await loader.loadAsync(url);
+  const gltf=await decodeGLB(url);
   if(!gltf.scene||new THREE.Box3().setFromObject(gltf.scene).isEmpty())throw Error('GLB has no geometry');
   occupantModels.set(data.id,{...data,source:gltf.scene,animations:gltf.animations||[]});
  }finally{URL.revokeObjectURL(url)}
@@ -2099,7 +2168,7 @@ async function loadAvatarLibrary(){
     vehicle:structuredClone(cfg),
     modules:structuredClone(mods),
     simulation:{backend:simulator.engine,fixedStepHz:60},
-    occupants,
+    occupants,seatOccupancy:structuredClone(seatPresence),
     avatarBindings:structuredClone(seatBindings),avatarClipMappings:structuredClone(avatarClips),
     modelName,passengerModelName:passengerName,passengerAnimationNames:passengerAnimations.map(c=>c.name),
     metadata:{description:vehicleDescription,category:vehicleCategory,images:galleryImages},
@@ -2244,6 +2313,7 @@ async function loadLayout(item){
  for(const name of Object.keys(mods))
   mods[name]={...defaultModule(),...(item.modules?.[name]||{})};
 occupants=clamp(item.occupants??cfg.seats,0,cfg.seats);
+ seatPresence=Array.isArray(item.seatOccupancy)?item.seatOccupancy.slice(0,cfg.seats):[];
  for(const key of Object.keys(seatBindings))delete seatBindings[key];
  Object.assign(seatBindings,item.avatarBindings||{});
  for(const key of Object.keys(avatarClips))delete avatarClips[key];
@@ -2401,6 +2471,7 @@ $('importJSON').onchange=async e=>{
  cfg.windows=clamp(Math.round(cfg.windows),1,14);
  cfg.seats=clamp(Math.round(cfg.seats),1,48);
  occupants=clamp(data.occupants??cfg.seats,0,cfg.seats);
+ seatPresence=Array.isArray(data.seatOccupancy)?data.seatOccupancy.slice(0,cfg.seats):[];
  vehicleDescription=data.metadata?.description||'';vehicleCategory=data.metadata?.category||cfg.category||'Urban';galleryImages=data.metadata?.images||[];
  layoutId=null;modelSource=null;modelBlob=null;modelName=null;
  passengerSource=null;passengerGLB=null;passengerAnimations=[];passengerName=null;
@@ -2412,13 +2483,34 @@ e.target.value='';
 
 // Imported 3D model is a visual body replacement.
 // Wheels, suspension and chassis physics remain procedural.
+// One configured loader for chassis, avatar library and occupant imports.
+// KHR_draco_mesh_compression, EXT_meshopt_compression and KHR_texture_basisu
+// are supported with the SAME pinned Three.js build as GLTFLoader.
 const loader=new GLTFLoader();
+const dracoLoader=new DRACOLoader();
+dracoLoader.setDecoderPath('https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/libs/draco/gltf/');
+dracoLoader.setDecoderConfig({type:'wasm'});
+loader.setDRACOLoader(dracoLoader);
+loader.setMeshoptDecoder(MeshoptDecoder);
+const ktx2Loader=new KTX2Loader();
+ktx2Loader.setTranscoderPath('https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/libs/basis/');
+ktx2Loader.detectSupport(renderer);
+loader.setKTX2Loader(ktx2Loader);
+async function decodeGLB(source){
+ try{return await loader.loadAsync(source)}
+ catch(error){
+  const message=String(error?.message||error);
+  if(/draco|meshopt|basis|ktx2|decoder|wasm/i.test(message))
+   throw Error('Compressed GLB decoder unavailable or invalid: '+message);
+  throw error;
+ }
+}
 async function loadGLB(blob,name='Imported GLB',rebuild=true){
  if(blob.size>80*1024*1024)throw Error('GLB exceeds 80 MB');
  if(blob.size<12 || new TextDecoder().decode(new Uint8Array(await blob.slice(0,4).arrayBuffer()))!=='glTF')throw Error('File is not a binary GLB model');
  const url=URL.createObjectURL(blob);
  try{
-  const result=await loader.loadAsync(url);
+  const result=await decodeGLB(url);
   if(!result.scene)throw Error('No model scene');
   const bounds=new THREE.Box3().setFromObject(result.scene);
   if(bounds.isEmpty())throw Error('No visible mesh');
@@ -2437,7 +2529,7 @@ async function loadPassengerGLB(blob,name='Occupants.glb',rebuild=true){
  if(String.fromCharCode(...bytes.slice(0,4))!=='glTF')throw Error('Expected binary GLB');
  const url=URL.createObjectURL(blob);
  try{
-  const result=await loader.loadAsync(url);
+  const result=await decodeGLB(url);
   if(!result.scene)throw Error('GLB has no scene');
   const bounds=new THREE.Box3().setFromObject(result.scene);
   if(bounds.isEmpty())throw Error('GLB has no visible occupant geometry');
@@ -2575,7 +2667,7 @@ finally{busyAI=false}
 const HISTORY_KEY='vehiclelab.history.v1';
 let editHistory=[],editCursor=-1,historyReady=false,historyTimer=null,replayingHistory=false;
 function stateSnapshot(){
- return {cfg:structuredClone(cfg),mods:structuredClone(mods),occupants,
+ return {cfg:structuredClone(cfg),mods:structuredClone(mods),occupants,seatPresence:structuredClone(seatPresence),
   vehicleDescription,vehicleCategory,doorsOpen,selectedPart,autoRotate,
   modelSource,modelBlob,modelName,passengerSource,passengerGLB,passengerName,passengerAnimations,
   seatBindings:structuredClone(seatBindings),avatarClips:structuredClone(avatarClips)};
@@ -2607,7 +2699,7 @@ function restoreEditState(entry){
  try{
   if(mode==='drive')leaveDrive();
   cfg=structuredClone(entry.state.cfg);mods=structuredClone(entry.state.mods);
-  occupants=entry.state.occupants;vehicleDescription=entry.state.vehicleDescription||'';
+  occupants=entry.state.occupants;seatPresence=entry.state.seatPresence||[];vehicleDescription=entry.state.vehicleDescription||'';
   vehicleCategory=entry.state.vehicleCategory||cfg.category||'Urban';
   doorsOpen=Boolean(entry.state.doorsOpen);selectedPart=entry.state.selectedPart||'cabin';
   autoRotate=entry.state.autoRotate!==false;
@@ -2657,6 +2749,7 @@ function initializeHistory(){
 
 // Compact lil-gui interface. Module folders remain collapsed.
 function setupGUI(){
+ normalizeVehicleConfig();
  gui?.destroy();
  gui=new GUI({
   container:$('editorGuiMount'),
@@ -2699,6 +2792,23 @@ function setupGUI(){
  .name('Texture').onChange(changed);
  appearance.add(cfg,'seed',0,99999,1).name('Noise seed').onChange(changed);
  appearance.close();
+ const noiseFolder=gui.addFolder('03 · Procedural noise / texture lab');
+ const rebuildNoise=()=>{
+  if(mode==='drive')leaveDrive();
+  textureCanvasCache.clear();buildTerrain();scheduleBuild();scheduleHistory('Procedural texture controls');
+ };
+ noiseFolder.add(cfg,'seed',0,999999,1).name('Seed').onFinishChange(rebuildNoise);
+ noiseFolder.add(cfg,'noiseScale',4,180,1).name('Base feature scale').onFinishChange(rebuildNoise);
+ noiseFolder.add(cfg,'noiseOctaves',1,9,1).name('FBM octaves').onFinishChange(rebuildNoise);
+ noiseFolder.add(cfg,'noiseLacunarity',1.2,3.5,.01).name('Lacunarity').onFinishChange(rebuildNoise);
+ noiseFolder.add(cfg,'noiseGain',.15,.85,.01).name('Persistence / gain').onFinishChange(rebuildNoise);
+ noiseFolder.add(cfg,'noiseWarp',0,2,.02).name('Domain warp').onFinishChange(rebuildNoise);
+ noiseFolder.add(cfg,'noiseContrast',.4,2.5,.02).name('Contrast').onFinishChange(rebuildNoise);
+ noiseFolder.add(cfg,'noiseDetail',0,1,.02).name('Micro detail').onFinishChange(rebuildNoise);
+ noiseFolder.add(cfg,'noiseTiling',.25,16,.05).name('Texture tiling').onFinishChange(rebuildNoise);
+ noiseFolder.add(cfg,'terrainNormalStrength',0,2,.05).name('Normal intensity').onFinishChange(rebuildNoise);
+ noiseFolder.add(cfg,'terrainTextureScale',.02,.8,.01).name('Terrain UV scale').onFinishChange(rebuildNoise);
+ noiseFolder.close();
 
  for(const [number,name] of ['front','cabin','rear','equipment'].entries()){
   const folder=gui.addFolder(
@@ -2718,26 +2828,29 @@ folder.add({select:()=>{
 folder.close();
 }
 
-const wheelsFolder=gui.addFolder('07 · Wheel geometry');
+ const wheelsFolder=gui.addFolder('07 · Wheels / front / rear');
  for(const [n,label] of [['front','Front axle'],['rear','Rear axle']]){
   const folder=wheelsFolder.addFolder(label);
   folder.add(cfg,n+'WheelRadius',.2,1.6,.01).name('Radius').onChange(changed);
   folder.add(cfg,n+'WheelWidth',.08,1.25,.01).name('Tyre thickness').onChange(changed);
   folder.add(cfg,n+'WheelOutset',-.35,1,.01).name('Track offset').onChange(changed);
-  folder.add(cfg,n+'WheelStyle',['alloy','steel','disc','spoke']).name('Rim geometry').onChange(changed);
+  folder.add(cfg,n+'WheelStyle',['alloy','steel','disc','spoke','turbine','mesh','beadlock']).name('Rim geometry').onChange(changed);
+  folder.add(cfg,n+'Spokes',3,32,1).name('Spokes / repeats').onChange(changed);
+  folder.addColor(cfg,n+'TireSidewall').name('Sidewall shade').onChange(changed);
+  folder.addColor(cfg,n+'RimColor').name('Wheel alloy colour').onChange(changed);
+  folder.add(cfg,n+'TreadDepth',.005,.09,.001).name('Tread profile').onChange(changed);
   folder.close();
  }
  wheelsFolder.add({colors:()=>openMaterialEditor('tireColor')},'colors').name('Tyre / rim materials');
  wheelsFolder.add(cfg,'axleFrontOffset',-1.6,1.6,.01).name('Front axle Z').onChange(changed);
  wheelsFolder.add(cfg,'axleRearOffset',-1.6,1.6,.01).name('Rear axle Z').onChange(changed);
- wheelsFolder.close();
+ wheelsFolder.open();
 
-const driving=gui.addFolder('07 · Physics & camera');
+const driving=gui.addFolder('08 · Physics solver & camera');
  driving.add(simulator,'engine',{
    'Cannon-es · raycast vehicle':'cannon',
    'Rapier WASM · raycast vehicle':'rapier',
-   'Ammo.js / Bullet · raycast vehicle':'ammo',
-   'Kinematic reference · no physics':'baseline'
+   'Ammo.js / Bullet · raycast vehicle':'ammo'
  }).name('Solver').onChange(()=>{
    const wasDriving=mode==='drive';
    if(wasDriving)leaveDrive();
@@ -2758,7 +2871,7 @@ driving.add(cfg,'cameraDistance',3,65,.5).name('Camera distance')
 driving.add(cfg,'headlights').name('Headlights').onChange(()=>{
   updateLights();updateLightsButton();
 });
-const environment=gui.addFolder('08 · Terrain & sky');
+const environment=gui.addFolder('09 · Terrain & sky');
  environment.add(cfg,'terrainProfile',['flat','bumps','hills','extreme','moon','beach']).name('Terrain').onChange(()=>{if(mode==='drive')leaveDrive();if(cfg.terrainProfile==='beach')cfg.groundSurface='sand';if(cfg.terrainProfile==='moon')cfg.groundSurface='moon';buildTerrain();clearTracks();buildVehicle();scheduleHistory('Terrain')});
  environment.add(cfg,'terrainSize',90,300,30).name('Terrain width').onFinishChange(()=>{if(mode==='drive')leaveDrive();buildTerrain();clearTracks();scheduleHistory('Terrain size')});
  environment.add(cfg,'skyStyle',['solid','gradient','clouds','night']).name('Sky').onChange(()=>{updateEnvironment();scheduleHistory('Sky')});
@@ -2774,10 +2887,10 @@ const environment=gui.addFolder('08 · Terrain & sky');
  environment.add({reset:()=>{cfg.terrainProfile='hills';cfg.skyStyle='gradient';cfg.terrainSize=180;buildTerrain();updateEnvironment();setupGUI();scheduleHistory('Terrain reset')}},'reset').name('Reset terrain');
  environment.close();
 driving.add({resetCamera},'resetCamera').name('Reset camera');
-driving.close();
+driving.open();
 
-const passengerFolder=gui.addFolder('09 · Occupant rigs / actions');
-passengerFolder.add(avatarEdit,'seat',1,Math.max(1,cfg.seats),1).name('Seat index').onFinishChange(()=>{
+const passengerFolder=gui.addFolder('10 · Driver / passenger rigs');
+passengerFolder.add(avatarEdit,'seat',1,Math.max(1,cfg.seats),1).name('Seat (1=driver)').onFinishChange(()=>{
  avatarEdit.model=seatBindings[avatarEdit.seat-1]||'Procedural';setupGUI();
 });
 const models={'Procedural':'Procedural',...Object.fromEntries([...occupantModels].map(([id,item])=>[item.name+' · '+id.slice(0,6),id]))};
@@ -2788,6 +2901,8 @@ passengerFolder.add(avatarEdit,'model',models).name('Assigned 3D avatar').onChan
  buildVehicle();scheduleHistory('Seat avatar assignment');
 });
 passengerFolder.add({upload:()=>$('importPassenger').click()},'upload').name('Import rigged GLB');
+passengerFolder.add({board:()=>board(1)},'board').name('Board selected seat');
+passengerFolder.add({exit:()=>board(-1)},'exit').name('Exit selected seat');
 passengerFolder.add({preview:()=>{const rig=rigs[avatarEdit.seat-1];if(!rig)return;
   rig.figure.visible=true;chooseRigAction(rig,'walking');note('Preview model clip on seat '+avatarEdit.seat)}},'preview').name('Preview walking');
 const id=seatBindings[avatarEdit.seat-1],selectedAvatarAsset=occupantModels.get(id);
@@ -2808,7 +2923,7 @@ if(selectedAvatarAsset){
 passengerFolder.add({clear:()=>{
  delete seatBindings[avatarEdit.seat-1];avatarEdit.model='Procedural';buildVehicle();setupGUI();scheduleHistory('Seat avatar removed')
 }},'clear').name('Use procedural occupant');
-passengerFolder.close();
+passengerFolder.open();
 
 const asset=gui.addFolder('08 · GLB & blueprint');
 asset.add(cfg,'modelScale',.25,2.5,.01).name('GLB scale').onChange(changed);
@@ -2914,7 +3029,7 @@ function choosePreset(p){
  cfg.frontWheelWidth=clamp(p.radius*.72,.19,1.12);
  cfg.rearWheelWidth=clamp(p.radius*.78,.19,1.15);
  cfg.frontWheelOutset=cfg.rearWheelOutset=0;
- mods=defaultMods();occupants=cfg.seats;vehicleDescription='';vehicleCategory=p.category;galleryImages=[];
+ mods=defaultMods();occupants=cfg.seats;seatPresence=[];vehicleDescription='';vehicleCategory=p.category;galleryImages=[];
  modelSource=null;modelBlob=null;modelName=null;
  passengerSource=null;passengerGLB=null;passengerAnimations=[];passengerName=null;
  for(const key of Object.keys(seatBindings))delete seatBindings[key];
@@ -2959,9 +3074,12 @@ $('doorsBtn').onclick=()=>{
 function board(delta){
  if(mode==='drive'&&physics&&physics.getSpeed()>.3){note('Stop the vehicle before boarding or exiting.',true);return}
  if(rigs.some(r=>r&&['openingDoor','entering','exiting'].includes(r.state))){note('Complete the passenger transition first.');return}
- const seat=delta>0?occupants:occupants-1;
+  const seat=clamp(Math.round(avatarEdit.seat)-1,0,cfg.seats-1);
  const rig=rigs[seat];
- if(!rig||seat<0||seat>=cfg.seats){note('No more seats available for that action.',true);return}
+ if(!rig||seat<0||seat>=cfg.seats){note('Choose a valid seat.',true);return}
+ if((delta>0&&seatPresence[seat])||(delta<0&&!seatPresence[seat])){
+  note('Seat '+(seat+1)+(delta>0?' is already occupied.':' is already empty.'),true);return;
+ }
  if(delta>0&&rig.state==='outside'){
   passengersGroup.attach(rig.figure);outsideRigs.delete(rig.figure);
  }
@@ -2972,8 +3090,15 @@ function board(delta){
  if(delta>0)rig.figure.position.copy(rig.externalPosition);
  doorsOpen=true;doorAutomatic=true;chooseRigAction(rig,'openDoor');
  $('doorsBtn').dataset.actionLabel='Close doors';applyButtonMode();
- note(delta>0?'Passenger boarding animation started.':'Passenger exiting animation started.');
+ note('Seat '+(seat+1)+(delta>0?' boarding started.':' exiting started.'));
 }
+$('boardBtn').dataset.actionLabel='Board seat';$('exitBtn').dataset.actionLabel='Exit seat';
+$('openOccupants').onclick=()=>{
+ setWindowVisible('paramsWindow',true);
+ const found=gui?.folders?.find(folder=>folder._title?.startsWith('10 · Driver'));
+ if(found)found.open();
+ note('Driver and passenger model settings are in 10 · Driver / passenger rigs.');
+};
 $('boardBtn').onclick=()=>board(1);
 $('exitBtn').onclick=()=>board(-1);
 
@@ -3788,6 +3913,14 @@ $('galleryRefreshBtn').onclick=refreshGallery;
 $('layoutPublic').onchange=()=>{serverVisibility=$('layoutPublic').checked?'public':'private'};
 
 const RELEASE_NOTES=[
+ {v:'0.2.8',date:'2026-11-08',title:'Compressed GLB importing, solver parity, wheels and material noise lab',items:[
+  'GLB loader supports Draco, Meshopt and Basis/KTX2 compressed assets using pinned Three.js decoders.',
+  'Fix older layout defaults that could interrupt wheel controller creation and leave axle folders empty.',
+  'Separate front and rear alloy colours, sidewalls, spoke repeat counts and physical tread patterns.',
+  'Restore direct access to driver/passenger seat rigging and individual animation mappings.',
+  'Remove non-physics kinematic option; adjust Rapier wheel orientation and steering and calibrate drive force.',
+  'Expanded seeded material noise parameters and terrain normal textures; preserve build/drive camera controls.'
+ ]},
  {v:'0.2.7',date:'2026-11-08',title:'Material studio, differentiated wheels, avatar rigs & environmental interaction',items:[
   'Five-view captures preserve the renderer viewport and full-size 3D stage; gallery cards display a safe fallback when no preview exists.',
   'A reusable material studio provides native color spectrum, named palettes, editable tyre/rim/interior/seat/window colors and textured body patterns.',

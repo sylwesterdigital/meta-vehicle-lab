@@ -1,3 +1,15 @@
+# v0.2.8 — Compressed GLB loading, wheel editor compatibility and physics parity (2026-11-08)
+
+- All chassis/driver/avatar GLB loading shares pinned Three.js Draco, Meshopt and KTX2/Basis decoders; compression errors are surfaced clearly.
+- Legacy saved vehicle configurations normalize missing wheel and texture properties before lil-gui controller creation. Fix the empty Front axle folder when loading pre-v0.2.7 saves; show independent front/rear wheel controls.
+- Physically modeled tyre face/sidewall, rim discs and spoke/bolt patterns; instanced geometry treads with per-axle colors, thickness, radii, offsets, tread depth and spoke counts.
+- Rapier controller axle orientation and steering are aligned with the +Z vehicle blueprint; engine-force magnitude raised for comparison. Remove the no-physics baseline selection. Exact solver parity **requires browser driving tests**.
+- Add a configurable multi-octave FBM texture editor: base frequency, octaves, lacunarity, gain, warp, contrast, micro-detail, tiling, UV scale and normal-map intensity. Generate terrain albedo and normal textures, and reuse FBM for paint and upholstery.
+- Occupant panel is reachable from Tools; seat 1 is Driver, model/animation clips are per-seat and boarding/exiting act on the selected seat. Seat occupancy is included in blueprint and edit history.
+- Versioned offline Blender admin tool generates five studio images and optimized GLB with optional Draco export. Blender installation is explicit (not automatic during deployments on a multi-site host); public untrusted GLB processing is not enabled.
+- Regression tests for decoder registration, wheel defaults, physics selector, selected-seat behavior, noise parameters and Blender tool entry points. No SQLite schema migrations; existing layouts remain compatible.
+- **Validation boundary:** JavaScript syntax and local Python/SQLite tests passed; CDN decoding, WebGL render, browser driving and remote Blender execution still require actual device/server acceptance.
+
 # v0.2.7 — Materials, independent axles, driving terrain, occupant library, viewport fix, WebXR (2026-11-08)
 
 - Fix gallery capture leaving the 3D stage at 288×192 by preserving and restoring render target, viewport, scissor, scissor test, full canvas dimensions and camera aspect. Exclude water, tracks and splash effects from snapshots.
