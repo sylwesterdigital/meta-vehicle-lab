@@ -58,6 +58,14 @@ v3 blueprint uses Three.js Y-up +Z-forward geometry, `vehicle` and independent `
 
 Profile identity is a random bearer secret (not UUID-based login). JSON profile backups include credentials and must not be shared. No verified password/email recovery, SMTP activation or Postfix configuration. AI generator endpoints remain contracts, while API-key model-list diagnostics are separate. Admin logs require a legacy administrator token; guests cannot access them.
 
+## Lux3D integration (v0.2.9)
+
+Open Configuration → **Lux3D · chassis generator & API diagnostics**. Choose region and enter a Lux3D API key. **Test key · no generation** sends only `GET /generate/task/list?page=1&pagesize=3` through the authenticated Flask backend. **This cannot return credit balance:** the currently published AHOLO OpenAPI does not expose an account-balance endpoint. Check credits in your Lux3D account/dashboard instead. The key lives in browser memory only and never enters the profile, SQLite, blueprint or browser storage.
+
+The component generator composes prompts for a car exterior body shell without wheels and tyres, or separate bumpers and lights. Choose G1/G1-Turbo, style and optionally a reference image; explicitly acknowledge potentially billable generation. Flask submits to the documented asynchronous Lux3D text-to-3D endpoint, polls read-only status and exposes provider output URLs. Download GLB and import in Tools → Import GLB to replace the visual body; physics and separately generated wheels remain procedural. Generated geometry separation requires inspection because prompts cannot guarantee object exclusion. Supports international `https://api.aholo.ai/global/lux3d/v1` and China `https://api.aholo3d.cn/lux3d/v1` with `Authorization: <key>` (not Bearer). Task URLs may expire after two hours.
+
+Actual production API-key use, quality, billing and GLB integration **have not been tested** with a real Lux3D account. Lux3D homepage docs: https://lux3d.aholo.ai/docs and the published OpenAPI: https://labs.aholo.ai/api-docs/en/openapi.json . Tripo generation still requires its missing server integration.
+
 ## Roadmap — staged priorities
 
 **P0 acceptance:** independently test v0.2.8 browser startup, Rapier/Ammo loading, photo capture/stream stop, screenshot capture, gallery privacy, camera invariant, undo/redo, mobile interactions and server deployment.

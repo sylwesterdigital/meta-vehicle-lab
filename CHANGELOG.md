@@ -1,3 +1,13 @@
+# v0.2.9 — Lux3D key diagnostics and component-oriented 3D generation (2026-11-08)
+
+- Add a dedicated Lux3D testing and generation page inside the AI configuration drawer; select international or China region, test key, inspect recent task count/status.
+- The documented GET task list operation validates credentials WITHOUT creating generation tasks. The published Lux3D OpenAPI does not expose a balance endpoint: the UI reports it as unavailable rather than inventing credits or using a billable call.
+- Add explicit charge acknowledgement before generating text-to-3D. Generate body shells without wheels, separate front/rear bumpers or light assemblies, with G1/G1-Turbo and documented style controls. Reference image is optional.
+- Flask proxies provider requests to fixed documented gateways, never stores API keys, validates guest authorization and request bounds, limits repeated generations, polls by task ID, and returns provider download links (not an unsafe arbitrary-URL proxy).
+- Generated GLB must be downloaded and imported through the existing Import GLB action; provider output quality (such as actual absence of tyres) is not guaranteed by the prompt. Model output/credit billing remain subject to Lux3D's service.
+- Existing Tripo backend remains an unimplemented integration contract. No account-balance read operation is documented for Lux3D, and no paid API calls or real provider-key tests were performed in the authoring environment.
+- Local JavaScript syntax, SQLite regressions, new mocked Flask tests (when Flask available), archive integrity and watcher dry run are the release gates; real provider browser and server deployment require runtime acceptance.
+
 # v0.2.8 — Compressed GLB loading, wheel editor compatibility and physics parity (2026-11-08)
 
 - All chassis/driver/avatar GLB loading shares pinned Three.js Draco, Meshopt and KTX2/Basis decoders; compression errors are surfaced clearly.

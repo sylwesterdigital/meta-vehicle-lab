@@ -5,7 +5,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Vehicle Lab — Procedural Studio</title>
-  <meta name="vehicle-lab-version" content="0.2.8">
+  <meta name="vehicle-lab-version" content="0.2.9">
   <style>
     :root {
       color-scheme:dark;
@@ -232,6 +232,15 @@
     #galleryWindow.dock-left{left:0!important;top:55px!important;width:min(340px,45vw)!important;height:calc(100dvh - 60px)!important}
     #galleryWindow.dock-right{right:0!important;left:auto!important;top:55px!important;width:min(340px,45vw)!important;height:calc(100dvh - 60px)!important}
     #galleryWindow.dock-bottom{left:10%!important;right:10%!important;top:auto!important;bottom:0!important;width:80%!important;height:min(270px,38dvh)!important}
+    #lux3dSection .lux-diagnostics{border:1px solid #8099a7;padding:10px;border-radius:8px;color:#ecf5fc;background:#162a38;white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.55;margin:10px 0}
+    #lux3dSection .lux-account{display:inline-block;color:#b9eaff;text-decoration:underline;font-size:12px;margin:7px 0}
+    #lux3dSection .lux-divider{border-top:1px solid #678092;margin:15px 0}
+    #lux3dSection .lux-check{display:flex;align-items:flex-start;gap:8px;line-height:1.4;margin:10px 0}
+    #lux3dSection .lux-check input{width:17px;height:17px;flex:0 0 17px;accent-color:#286f86}
+    #lux3dSection button{background:#21465f;color:#f5fbff;border:1px solid #809dad;padding:9px 11px;min-height:36px;font-weight:650}
+    #lux3dSection button:hover,#lux3dSection button:focus-visible{background:#37637d;color:#fff}
+    #lux3dSection button[disabled]{opacity:.5;cursor:wait}
+    .lux-downloads{display:grid;gap:7px}.lux-downloads a{color:#001824;background:#b8e8f8;padding:9px;border-radius:7px;text-decoration:none;font-weight:700;overflow-wrap:anywhere}
     .utility-overlay{position:fixed;inset:0;display:grid;place-items:center;z-index:95;padding:14px;background:#03101bcc}
     .utility-overlay[hidden]{display:none}.compact-dialog{width:min(460px,96vw)}
     .utility-overlay input,.utility-overlay textarea{width:100%;box-sizing:border-box;padding:11px;background:#0d1c27;color:#f0f6fc;border:1px solid #769eb4;border-radius:7px}
@@ -395,12 +404,35 @@
     <label>Panel <input id="themePanel" type="color" value="#152431"></label></div>
     <div class="drawer-actions"><button id="themeExport">Export theme JSON</button><button id="themeImport">Import theme JSON</button></div>
   </details>
-  <details><summary>AI providers & API keys</summary><p>Keys remain in this browser tab only. Test checks documented model-list endpoints; it does not enable image generation.</p>
+  <details><summary>AI providers & API keys</summary><p>Keys remain in this browser tab only. Model-list and Lux3D task-list tests do not launch generation.</p>
     <form id="aiKeysForm" autocomplete="off"><label>Provider
-      <select id="providerChoice"><option value="openai">OpenAI</option><option value="xai">xAI</option><option value="meta">Meta</option><option value="tripo">Tripo (no model-list test)</option></select></label>
+      <select id="providerChoice"><option value="openai">OpenAI</option><option value="xai">xAI</option><option value="meta">Meta</option><option value="tripo">Tripo (no model-list test)</option><option value="lux3d">Lux3D (task-list auth test)</option></select></label>
       <label>API key<input id="providerKey" type="password" autocomplete="off" placeholder="Paste API key"></label>
       <div class="drawer-actions"><button type="submit" id="saveProviderKey">Use in tab</button><button id="testProviderKey" type="button">Test + list models</button><button id="clearProviderKey" type="button">Forget key</button></div>
     </form><pre id="providerResult" style="white-space:pre-wrap;overflow-wrap:anywhere;font-size:11px"></pre>
+  </details>
+  <details id="lux3dSection"><summary>Lux3D · chassis generator & API diagnostics</summary>
+    <p>Read-only key test uses task history. It starts no generation job and does not consume generation credits. Your credit balance is not available through the published OpenAPI.</p>
+    <form id="lux3dTestForm" autocomplete="off">
+      <label>Region <select id="lux3dRegion"><option value="international">International / aholo.ai</option><option value="china">China / aholo3d.cn</option></select></label>
+      <label>Lux3D API key <input id="lux3dKey" type="password" autocomplete="off" spellcheck="false" placeholder="API key (kept in this tab only)"></label>
+      <div class="drawer-actions"><button type="submit" id="lux3dTest">Test key · no generation</button><button id="lux3dForget" type="button">Forget key</button></div>
+    </form>
+    <div id="lux3dDiagnostics" class="lux-diagnostics" role="status" aria-live="polite">Not tested. Balance: unavailable from documented API.</div>
+    <a class="lux-account" href="https://labs.aholo.ai/" target="_blank" rel="noopener noreferrer">Open Lux3D account / credits dashboard</a>
+    <div class="lux-divider"></div>
+    <form id="lux3dCreateForm">
+      <label>Component <select id="lux3dComponent"><option value="chassis">Car body shell (no wheels / tyres)</option><option value="bumper">Front bumper</option><option value="rear-bumper">Rear bumper</option><option value="headlight">Headlight assembly</option><option value="taillight">Rear light assembly</option></select></label>
+      <label>Model <select id="lux3dModel"><option value="G1">G1 · high quality GLB + ZIP</option><option value="G1-Turbo">G1-Turbo · fast GLB</option></select></label>
+      <label>Style <select id="lux3dStyle"><option value="photorealistic">Photorealistic</option><option value="cartoon">Cartoon</option><option value="hand_painted">Hand painted</option><option value="cyberpunk">Cyberpunk</option><option value="anime">Anime</option><option value="fantasy">Fantasy</option></select></label>
+      <label>Design instructions <textarea id="lux3dPrompt" rows="4" maxlength="1000" placeholder="Aerodynamic compact hatchback shell with a low nose, muscular shoulders, and clean wheel arches."></textarea></label>
+      <label class="lux-check"><input id="lux3dUseReference" type="checkbox"> Include current reference image (if uploaded)</label>
+      <label class="lux-check"><input id="lux3dSpendAck" type="checkbox" required> I authorize starting a potentially billable 3D generation task.</label>
+      <button type="submit" id="lux3dGenerate">Generate selected 3D component</button>
+    </form>
+    <div id="lux3dTaskStatus" class="lux-diagnostics" role="status" aria-live="polite">No task running.</div>
+    <div id="lux3dDownloads" class="lux-downloads" hidden></div>
+    <p>Generated files are downloaded directly from provider links. Import a downloaded GLB with Vehicle Tools → Import GLB. Generated body meshes remain visual replacements; wheels/physics stay procedural. External model output and charges require a real provider key.</p>
   </details>
   <details><summary>Server logs (administrator only)</summary>
     <form id="adminTokenForm" autocomplete="off"><label>Administrator API token<input id="adminLogToken" type="password" autocomplete="off" placeholder="Required for server logs"></label>
@@ -612,11 +644,11 @@ const outsideRigs=new Set();
  const serverAccess={token:''};
  let activeProfile=null,guestToken='',serverVisibility='private',adminLogToken='';
  const appEvents=[];
- const VERSION='0.2.8';
+ const VERSION='0.2.9';
  let imageReference=null,busyAI=false;
 
  // Keys remain in volatile memory. Never place credentials in a blueprint or IndexedDB.
- const keys={meta:'',openai:'',xai:'',tripo:''};
+ const keys={meta:'',openai:'',xai:'',tripo:'',lux3d:''};
  const ai={
    provider:'openai',
    tripoModel:'P2-20260801',
@@ -2946,6 +2978,7 @@ aiFolder.add({captureReference},'captureReference').name('Capture reference');
 aiFolder.add({upload:()=>$('importImage').click()},'upload').name('Upload reference');
 aiFolder.add({generateImage},'generateImage').name('Generate AI image');
 aiFolder.add({generateTripo},'generateTripo').name('Create 3D via Tripo');
+aiFolder.add({openLux3d:()=>{showDrawer('config');$('lux3dSection').open=true;$('lux3dSection').scrollIntoView({behavior:'smooth',block:'start'});}},'openLux3d').name('Lux3D · body shell / key test');
 aiFolder.close();
 
 /* API keys are edited in the dedicated configuration drawer.
@@ -3913,6 +3946,12 @@ $('galleryRefreshBtn').onclick=refreshGallery;
 $('layoutPublic').onchange=()=>{serverVisibility=$('layoutPublic').checked?'public':'private'};
 
 const RELEASE_NOTES=[
+ {v:'0.2.9',date:'2026-11-08',title:'Lux3D chassis generation and read-only API verification',items:[
+  'Separate Lux3D key diagnostics via documented read-only task-list call; no generation or credits consumed by test.',
+  'AI 3D component prompt presets for body shell without wheels, bumpers, front and rear lamps.',
+  'Explicit billing authorization for text-to-3D tasks, status polling and official GLB/ZIP download links.',
+  'Keys stay in volatile browser memory. Credit balance is not documented by Lux3D OpenAPI and is not fabricated.'
+ ]},
  {v:'0.2.8',date:'2026-11-08',title:'Compressed GLB importing, solver parity, wheels and material noise lab',items:[
   'GLB loader supports Draco, Meshopt and Basis/KTX2 compressed assets using pinned Three.js decoders.',
   'Fix older layout defaults that could interrupt wheel controller creation and leave axle folders empty.',
@@ -3982,6 +4021,7 @@ $('clearProviderKey').onclick=()=>{
 $('testProviderKey').onclick=async()=>{
  const provider=$('providerChoice').value;
  if(provider==='tripo'){$('providerResult').textContent='Tripo model-list endpoint is not verified; no request made.';return}
+ if(provider==='lux3d'){$('lux3dSection').open=true; $('lux3dKey').value=$('providerKey').value.trim()||keys.lux3d; $('providerKey').value=''; $('lux3dSection').scrollIntoView({behavior:'smooth',block:'start'}); $('providerResult').textContent='Lux3D has a dedicated read-only task-list test below.';return}
  const key=$('providerKey').value.trim()||keys[provider];
  if(!key){$('providerResult').textContent='Paste an API key first.';return}
  if(!guestToken){$('providerResult').textContent='Create a profile before testing providers.';return}
@@ -3998,6 +4038,87 @@ $('testProviderKey').onclick=async()=>{
  }catch(e){$('providerResult').textContent=e.message;note(e.message,true)}
 };
 
+// Lux3D OpenAPI: read-only account task-list test and explicit, potentially billable task creation.
+// Authentication key stays in memory; no key, result URL or credential enters a blueprint.
+let lux3dTask=null,lux3dPolling=false;
+const lux3dComponentPrompts={
+ chassis:'An aerodynamic passenger car exterior body shell without any wheels, tyres, axles or suspension; sculpted roof, wheel arches, windows and doors.',
+ bumper:'A standalone front bumper for a modular passenger car, no whole car or wheels, clean attachment interface.',
+ 'rear-bumper':'A standalone rear bumper for a modular passenger car, no whole car or wheels, clean attachment interface.',
+ headlight:'A single front headlamp assembly for a modular passenger car, transparent lens, accurate mounting points, no car body.',
+ taillight:'A single red rear taillamp assembly for a modular passenger car, molded lens, accurate mounting points, no car body.'
+};
+const lux3dStatus=msg=>{$('lux3dDiagnostics').textContent=msg};
+function getLux3dKey(){return $('lux3dKey').value.trim()||keys.lux3d||''}
+async function lux3dPost(path, body){
+ if(!guestToken)throw Error('Create or import your Vehicle Lab profile first.');
+ const response=await fetch(path,{method:'POST',credentials:'same-origin',cache:'no-store',
+  headers:{'Content-Type':'application/json',...authHeaders()},body:JSON.stringify(body)});
+ const result=await response.json().catch(()=>({}));
+ if(!response.ok)throw Error(result.error||'Lux3D API returned HTTP '+response.status);
+ return result;
+}
+$('lux3dTestForm').onsubmit=async e=>{
+ e.preventDefault();const key=getLux3dKey(),region=$('lux3dRegion').value;
+ if(!key){lux3dStatus('Enter a Lux3D API key first.');return}
+ const button=$('lux3dTest');button.disabled=true;lux3dStatus('Contacting Lux3D task history (read-only). No generation requested…');
+ try{
+  const data=await lux3dPost('/api/providers/lux3d/test',{key,region});
+  keys.lux3d=key;$('lux3dKey').value='';
+  lux3dStatus('✓ API key authenticated · '+region+'\n'+
+   'Last task count: '+(data.total_tasks??'not reported')+'\n'+
+   'Available balance: not published via Lux3D OpenAPI\n'+
+   'Check: '+data.check+'\nNo new 3D task created.');
+ }catch(err){lux3dStatus('✕ Test failed: '+err.message)}
+ finally{button.disabled=false}
+};
+$('lux3dForget').onclick=()=>{keys.lux3d='';$('lux3dKey').value='';lux3dStatus('Key cleared from browser memory.');};
+$('lux3dCreateForm').onsubmit=async e=>{
+ e.preventDefault();if(busyAI)return;
+ const key=getLux3dKey();if(!key){$('lux3dTaskStatus').textContent='Enter and test a Lux3D key first.';return}
+ if(!$('lux3dSpendAck').checked){$('lux3dTaskStatus').textContent='Explicit authorization required.';return}
+ const component=$('lux3dComponent').value;
+ const description=$('lux3dPrompt').value.trim();
+ const prompt=(lux3dComponentPrompts[component]||lux3dComponentPrompts.chassis)+' '+description;
+ const reference=$('lux3dUseReference').checked?imageReference:null;
+ const submit=$('lux3dGenerate');submit.disabled=true;busyAI=true;
+ $('lux3dTaskStatus').textContent='Submitting potentially billable Lux3D task…';
+ $('lux3dDownloads').hidden=true;$('lux3dDownloads').replaceChildren();
+ try{
+  const task=await lux3dPost('/api/providers/lux3d/create',{key,region:$('lux3dRegion').value,
+   prompt,component,style:$('lux3dStyle').value,version:$('lux3dModel').value,reference_image:reference,
+   spend_ack:true});
+  keys.lux3d=key;$('lux3dKey').value='';
+  lux3dTask={id:task.task_id,region:task.region,component};
+  $('lux3dTaskStatus').textContent='Created task '+task.task_id+'. Polling…';
+  await pollLux3d(task.task_id,task.region,key);
+ }catch(err){$('lux3dTaskStatus').textContent='Lux3D: '+err.message;note('Lux3D: '+err.message,true)}
+ finally{busyAI=false;submit.disabled=false;$('lux3dSpendAck').checked=false}
+};
+async function pollLux3d(taskId,region,key){
+ lux3dPolling=true;
+ try{
+  for(let i=0;i<90;i++){
+   if(i)await new Promise(resolve=>setTimeout(resolve,4000));
+   const data=await lux3dPost('/api/providers/lux3d/status',{key,region,task_id:taskId});
+   if(data.state==='success'){
+    $('lux3dTaskStatus').textContent='Task '+taskId+' completed. Download GLB/ZIP below; import GLB to replace the procedural body.';
+    const regionData=$('lux3dDownloads');regionData.replaceChildren();
+    for(const url of data.download_urls||[]){
+     try{
+      const parsed=new URL(url);if(parsed.protocol!=='https:')continue;
+      const link=document.createElement('a');link.href=parsed.href;link.target='_blank';link.rel='noopener noreferrer';
+      link.textContent='Download '+(parsed.pathname.toLowerCase().endsWith('.glb')?'GLB':parsed.pathname.toLowerCase().endsWith('.zip')?'ZIP':'3D result')+' ↗';regionData.append(link);
+     }catch{}
+    }
+    regionData.hidden=false;return;
+   }
+   if(data.state==='failed'||data.state==='canceled')throw Error('Lux3D task '+data.state);
+   $('lux3dTaskStatus').textContent='Lux3D task '+taskId+': '+data.state+' · '+(i+1)+' checks';
+  }
+  throw Error('Polling timed out; task '+taskId+' may still be active. Check Lux3D task history.');
+ }finally{lux3dPolling=false}
+}
 const SHORTCUTS=[
  ['Undo last edit','⌘/Ctrl + Z','undo'],['Redo edit','⌘/Ctrl + Shift + Z','redo'],
  ['Redo (alternate)','Ctrl + Y','redo'],['Keyboard shortcuts','⌘/Ctrl + /','help'],

@@ -99,7 +99,7 @@ def create_app(config=None):
         # Public gallery and guest profile routes have scoped, per-profile
         # authentication below. Never let them fall through to the server
         # administrator's legacy layout token.
-        guest_paths=('/api/identity/', '/api/me/', '/api/gallery', '/api/providers/test')
+        guest_paths=('/api/identity/', '/api/me/', '/api/gallery', '/api/providers/test', '/api/providers/lux3d/')
         if request.path.startswith(guest_paths):
             if request.method not in ('GET','HEAD'):
                 origin=request.headers.get('Origin')
@@ -365,6 +365,149 @@ def create_app(config=None):
         except OSError:lines=[]
         return jsonify(lines=[row.rstrip('\n') for row in lines],scope='application',
                        note='Gunicorn/systemd and Mac watcher logs require server/local administrator access.')
+
+    # International AHOLO OpenAPI uses /global; China uses the domestic gateway.
+    # No account-balance endpoint is defined in the published Lux3D OpenAPI.
+    LUX3D_ENDPOINTS = {
+        'international': 'https://api.aholo.ai/global/lux3d/v1',
+        'china': 'https://api.aholo3d.cn/lux3d/v1',
+    }
+    lux3d_last_create = {}
+
+    def lux3d_request(key, region, endpoint, payload=None):
+        if region not in LUX3D_ENDPOINTS:
+            raise ValueError('Select international or China region')
+        if not isinstance(key, str) or not 8 <= len(key) <= 512 or any(c in key for c in '\r\n'):
+            raise ValueError('Lux3D API key is missing or invalid')
+        if endpoint not in ('/generate/task/list?page=1&pagesize=3',
+                            '/generate/text-to-3d/task/create') and not (
+             endpoint.startswith('/generate/task/get?taskid=') and
+             endpoint.partition('taskid=')[2].isdigit() and len(endpoint.partition('taskid=')[2]) <= 18):
+            raise ValueError('Lux3D operation not permitted')
+        content = None if payload is None else json.dumps(payload, separators=(',', ':')).encode('utf-8')
+        req = urllib.request.Request(
+            LUX3D_ENDPOINTS[region] + endpoint, data=content,
+            headers={'Authorization':key, 'Accept':'application/json',
+                     **({'Content-Type':'application/json'} if content is not None else {})},
+            method='POST' if content is not None else 'GET')
+        try:
+            with urllib.request.urlopen(req, timeout=15) as response:
+                if int(response.headers.get('Content-Length', '0')) > 512000:
+                    raise ValueError('Lux3D response exceeds expected size')
+                response_data = response.read(512001)
+                if len(response_data) > 512000:
+                    raise ValueError('Lux3D response exceeds expected size')
+                data = json.loads(response_data)
+        except urllib.error.HTTPError as exc:
+            raise RuntimeError(f'Lux3D returned HTTP {exc.code}; check API key and region') from None
+        except (urllib.error.URLError, TimeoutError, OSError, ValueError) as exc:
+            raise RuntimeError('Could not read Lux3D response (' + type(exc).__name__ + ')') from None
+        if not isinstance(data, dict) or str(data.get('c', '')) != '0':
+            code=str(data.get('c', '?'))[:45] if isinstance(data,dict) else '?'
+            raise RuntimeError('Lux3D API did not accept the operation (code ' + code + ')')
+        return data.get('d')
+
+    def lux3d_credential():
+        member, error = guest_or_error()
+        if error: return None, None, None, error
+        obj = request.get_json(silent=True)
+        if not isinstance(obj, dict): return None, None, None, (jsonify(error='Expected JSON object'),400)
+        region = obj.get('region', 'international')
+        key = obj.get('key', '')
+        if region not in LUX3D_ENDPOINTS or not isinstance(key,str) or not 8 <= len(key) <= 512:
+            return None, None, None, (jsonify(error='Region or API key invalid'),400)
+        return member, key, region, None
+
+    @app.post('/api/providers/lux3d/test')
+    def lux3d_probe():
+        member, key, region, error = lux3d_credential()
+        if error:return error
+        try:
+            result = lux3d_request(key,region,'/generate/task/list?page=1&pagesize=3')
+        except RuntimeError as exc:
+            return jsonify(ok=False, error=str(exc), balance_available=False),502
+        except ValueError as exc:
+            return jsonify(ok=False,error=str(exc)),400
+        if not isinstance(result,dict):return jsonify(error='Unexpected Lux3D task-list response'),502
+        tasks=result.get('items',[])
+        return jsonify(ok=True,authenticated=True,provider='lux3d',region=region,
+                       check='GET task list (read-only, no generation task)',
+                       total_tasks=result.get('total'),
+                       recent_tasks=[{'id':t.get('taskId'),'status':t.get('status')} for t in tasks[:3]
+                                     if isinstance(t,dict)] if isinstance(tasks,list) else [],
+                       balance=None,balance_available=False,
+                       balance_note='Lux3D OpenAPI does not document a read-only account balance endpoint.'),200
+
+    @app.post('/api/providers/lux3d/create')
+    def lux3d_create_chassis():
+        member, key, region, error = lux3d_credential()
+        if error:return error
+        obj=request.get_json(silent=True)
+        if obj.get('spend_ack') is not True:
+            return jsonify(error='Explicit acknowledgment of potential credits charge required'),400
+        user_prompt=obj.get('prompt','')
+        version=obj.get('version','G1')
+        style=obj.get('style','photorealistic')
+        if not isinstance(user_prompt,str) or not 10 <= len(user_prompt.strip()) <= 1000:
+            return jsonify(error='Prompt must contain 10 to 1000 characters'),400
+        if version not in ('G1','G1-Turbo') or style not in ('photorealistic','cartoon','anime','hand_painted','cyberpunk','fantasy','glass'):
+            return jsonify(error='Unsupported model or style'),400
+        # Prevent rapid duplicate charged submissions from the same profile.
+        now=time.monotonic()
+        if now-lux3d_last_create.get(member['id'],0)<35:
+            return jsonify(error='Wait at least 35 seconds between Lux3D generation requests'),429
+        reference=obj.get('reference_image')
+        if reference is not None and (not isinstance(reference,str) or len(reference)>2*1024*1024
+             or not reference.startswith(('data:image/png;base64,','data:image/jpeg;base64,','data:image/webp;base64,'))):
+            return jsonify(error='Reference must be a PNG/JPEG/WebP data URL below 2 MB'),400
+        component=obj.get('component','chassis')
+        component_prompts={
+            'chassis':('A single isolated automotive EXTERIOR BODY SHELL ONLY. No wheels, tyres, rims, '
+              'suspension, axles or undercarriage. No complete car assembly or people. Define precise wheel '
+              'arches, functional door seams and window apertures, roof, hood and rear hatch. The body shell '
+              'must fit separately procedural wheels and chassis.'),
+            'bumper':'A SINGLE removable FRONT bumper assembly ONLY. No body shell, tyres or complete car.',
+            'rear-bumper':'A SINGLE removable REAR bumper assembly ONLY. No body shell, tyres or complete car.',
+            'headlight':'A SINGLE standalone automotive FRONT headlight module ONLY. No body shell or wheels.',
+            'taillight':'A SINGLE standalone automotive REAR taillight module ONLY. No body shell or wheels.',
+        }
+        if component not in component_prompts:
+            return jsonify(error='Unsupported vehicle component'),400
+        component_prompt=component_prompts[component]+' Design brief: '+user_prompt.strip()
+        payload={'prompt':component_prompt,'style':style,'version':version,
+                 'outputFormat':['glb','zip'] if version=='G1' else ['glb']}
+        if reference:payload['img']=reference
+        lux3d_last_create[member['id']]=now
+        try:task_id=lux3d_request(key,region,'/generate/text-to-3d/task/create',payload)
+        except RuntimeError as exc:return jsonify(error=str(exc)),502
+        except ValueError as exc:return jsonify(error=str(exc)),400
+        if not isinstance(task_id,(int,str)) or not str(task_id).isdigit():
+            return jsonify(error='Unexpected Lux3D task identifier'),502
+        app.logger.info('lux3d user generation submitted (no key or prompt logged)')
+        return jsonify(ok=True,task_id=str(task_id),region=region,potentially_billable=True),202
+
+    @app.post('/api/providers/lux3d/status')
+    def lux3d_status():
+        member,key,region,error=lux3d_credential()
+        if error:return error
+        task_id=request.get_json(silent=True).get('task_id','')
+        if not str(task_id).isdigit() or len(str(task_id))>18:
+            return jsonify(error='Invalid task identifier'),400
+        try:result=lux3d_request(key,region,'/generate/task/get?taskid='+str(task_id))
+        except RuntimeError as exc:return jsonify(error=str(exc)),502
+        except ValueError as exc:return jsonify(error=str(exc)),400
+        if not isinstance(result,dict):return jsonify(error='Unexpected task response'),502
+        status=result.get('status')
+        urls=[]
+        for item in result.get('outputs',[]) if isinstance(result.get('outputs'),list) else []:
+            if isinstance(item,dict):
+                value=item.get('content','')
+                if isinstance(value,str) and value.startswith('https://') and len(value)<4096:
+                    urls.append(value)
+        # These are provider-generated signed URLs, not same-origin proxy URLs.
+        return jsonify(ok=True,task_id=str(task_id),status=status,
+                       state={0:'queued',1:'running',3:'success',4:'failed',6:'canceled'}.get(status,'unknown'),
+                       download_urls=urls[:6])
 
     @app.post('/api/providers/test')
     def test_provider():
