@@ -1,3 +1,37 @@
+# Vehicle Lab v0.2.5 — full-screen 3D studio and guest collaboration
+
+## Layout and controls
+
+The 3D stage now fills the entire viewport; Actions, Vehicle Tools, Vehicle Library, Parameters (lil-gui), and Application Logs are independent movable, resizable, minimizable windows. Drag the title bar; resize using the bottom-right handle, including touch; minimize with **−**; reopen closed windows in **Configuration → Windows & workspace**. Window locations persist locally and can be backed up independently using workspace JSON. Theme colors are editable and exported separately. Top-right roundels open the Configuration and Profile drawers. The vehicle badge says **Vehicle Lab v0.2.5**. A scrolling release-history overlay appears once per installed version.
+
+## Physics comparison
+
+The physics selector offers **Cannon-es**, **Rapier WASM**, **Ammo.js/Bullet** and a clearly labelled **Kinematic reference (non-physics)**. All three physics modes use an independently implemented raycast vehicle, the procedural chassis/wheels and the same 60 Hz simulation test. Rapier is imported from a pinned ESM endpoint (with fallback) to fix the original 404 `rapier.es.js` request; Ammo loads lazily. A failed optional backend reports an error and leaves Cannon available. Compare solver step durations, FPS and benchmark CSV. Native/physics fidelity and hardware make results inherently non-identical.
+
+**Browser acceptance remains necessary** for Rapier/Ammo on target machines, especially since CDN modules cannot be exercised in the offline local validation runtime. No GPU- or solver-performance scores are fabricated.
+
+## Flask + SQLite, identity and collaboration
+
+New guest users provide only username and optional avatar. SQLite profiles have UUID identifiers and **random bearer secrets**, stored hashed server-side; UUID alone never authenticates. Secrets are stored in the active browser's local storage and can be explicitly exported as a **PRIVATE JSON identity backup**. Possession of that backup is equivalent to account access: do not publish or commit it. Import restores a session after server-side credential verification. Profile fields include name, bio, HTTPS social link, and **unverified** phone/email. Password account protection and recovery are not implemented.
+
+Each guest can create/read/change/delete their own SQLite layouts with revision checks. New layouts default **private**; explicitly selecting Publish to gallery exposes a vehicle in the public gallery. Public listings include creator name, vehicle metadata, and the published blueprint/asset, **not** creator email/phone, session secret or unpublished layouts. The legacy administrator layout API remains supported but guest sessions do not authorize it.
+
+## Logs, provider keys and mail
+
+Browser errors/events are accessible via the floating Logs window. Authenticated administrator application log tail is accessible separately via Config → Server logs, requiring `VEHICLELAB_API_TOKEN` (never a guest token). The log endpoint does not expose full systemd/Gunicorn/watcher logs; those remain on the server/local host. API keys for OpenAI, xAI and Meta can be tested against **their model-list endpoints** from the Flask backend; passwords are never persisted in blueprints or theme exports. The Tripo model-list test is intentionally disabled. AI image generation and image-to-3D endpoints remain integration contracts.
+
+The installer performs a **read-only** Postfix prerequisite check and reports the result in the deployment log. It does **not** configure SMTP, claim verified email delivery, enable password recovery or modify other hosted domains. To enable outgoing `no-reply@vehiclelab.xyz` mail in a future release, the administrator must first configure DNS SPF/DKIM/DMARC/PTR, SMTP transport and rate limits.
+
+## Production release
+
+Use only the single versioned update ZIP in `meta-vehicle-lab/updates/`; the existing watcher checks SHA-256, updates itself to v2.3.1, runs regressions, publishes reviewed source to GitHub and deploys versioned Flask/SQLite code to Ubuntu. It preserves `/var/lib/vehiclelab` across deployments.
+
+## Limitations
+
+3D models are visual chassis replacements; machinery is not fully articulated and passengers are visual. Some ultra-light vehicles are represented on a four-wheel chassis. No verified browser end-to-end test or live deployment occurred in this packaging session. Password recovery, SMTP delivery and image-generation backend adapters are not yet active.
+
+---
+
 # Meta Vehicle Lab — physics comparison v0.2.4
 
 **Vehicle library:** the left catalog is now nested lil-gui folders (Urban, Emergency, Municipal, Industrial, Micromobility, Robotics, Construction, Agriculture, Mining). Search automatically opens matching categories; selecting a preset preserves the current paint and chosen physics engine.

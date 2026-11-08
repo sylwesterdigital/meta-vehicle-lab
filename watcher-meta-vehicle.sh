@@ -49,7 +49,7 @@ def is_flask(stage):
     return (stage/'backend/app.py').is_file()
 VERSION_RE = re.compile(r'^\d+\.\d+\.\d+$')
 VALID_ZIP_RE = re.compile(r'^META_VEHICLE_LAB_(?:RELEASE|UPDATE|SETUP)_v\d+\.\d+\.\d+(?:_[A-Z0-9]+)*\.zip$')
-WATCHER_BUILD = '2.3.0'
+WATCHER_BUILD = '2.3.1'
 RESTART_REQUESTED = False
 SHA_RE = re.compile(r'^[0-9a-f]{64}$')
 LOG_FILE = None
@@ -318,7 +318,9 @@ class Tags(HTMLParser):
         super().__init__();self.stack=[];self.forms=0;self.passwords=0
     def handle_starttag(self,tag,attrs):
         a=dict(attrs)
-        if tag=='form':self.forms+=1
+        if tag=='form':
+            if self.forms:raise ReleaseError('Nested HTML forms are not allowed')
+            self.forms+=1
         if tag=='input' and a.get('type')=='password':
             self.passwords+=1
             if not self.forms:raise ReleaseError('Password input outside form')
@@ -335,12 +337,15 @@ def check_app(stage,version):
         raise ReleaseError('version.json mismatch')
     if '<!DOCTYPE html>' not in doc or '</html>' not in doc:
         raise ReleaseError('Incomplete HTML')
-    form=doc.find('<form id="credentialsForm"')
-    mount=doc.find('<div id="guiMount"')
-    form_end=doc.find('</form>',form) if form>=0 else -1
-    if not (0 <= form < mount < form_end):
-        raise ReleaseError('AI key fields require a containing form')
-    Tags().feed(doc)
+    # The old watcher required a wrapper form around the entire lil-gui,
+    # which caused browser DOM warnings. In v2.3.1, each credential field
+    # must belong to its own purposeful form; nested forms are rejected.
+    parser=Tags();parser.feed(doc)
+    if parser.forms != 0 or not parser.passwords:
+        raise ReleaseError('Form nesting or password field validation failed')
+    for name in ('aiKeysForm','adminTokenForm','profileEditForm','welcomeForm'):
+        if f'<form id="{name}"' not in doc:
+            raise ReleaseError('Missing dedicated UI form: '+name)
     found=re.search(r'<script\s+type="importmap"\s*>\s*(.*?)\s*</script>',doc,re.S)
     if not found:raise ReleaseError('Missing browser import map')
     imports=json.loads(found.group(1)).get('imports',{})
@@ -594,7 +599,7 @@ def publish_flask(stage, version):
         installer_output=ssh(f'python3 {qwork}/deploy/install.py --stage {qwork} '
             f'--version {shlex.quote(version)} --id {shlex.quote(token)}',timeout=360)
         for line in installer_output.splitlines():
-            if line.startswith(('SERVER UNIT TESTS PASSED:', 'DEPLOYED ')):
+            if line.startswith(('SERVER UNIT TESTS PASSED:', 'DEPLOYED ', 'MAIL CHECK:')):
                 log('Remote installer: '+line,'PASS')
         # Server-side install has already checked the loopback health endpoint.
         try:

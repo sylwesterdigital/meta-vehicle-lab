@@ -1,3 +1,14 @@
+# v0.2.5 — Full-stage workspace, guest profiles and three physics backends (2026-11-08)
+
+- Full-browser 3D stage, with independently draggable, touch-resizable and minimizable action, tools, library, parameters and diagnostic windows.
+- Profile and configuration drawers opened by fixed upper-right roundels, compact theme/font pills, editable accent and panel colors, plus independent theme/workspace JSON import/export.
+- Fix Rapier browser 404 import with pinned ESM host and second-CDN fallback; offer Bullet/Ammo as third optional 3D raycast vehicle engine.
+- Add passwordless guest identity with random server-verified secret, JSON recovery backup, avatar and editable profile, isolated SQLite vehicle ownership and opt-in public gallery.
+- Add browser diagnostics and admin-scoped rotating Flask application-log viewer, plus protected provider model-list key tests for OpenAI, xAI and Meta.
+- Add first-visit release history modal; separate credential forms to address Chromium form warnings.
+- Watcher self-update v2.3.1 validates dedicated forms and runs an informational Postfix readiness check without altering server mail configuration.
+- Preserve existing Flask/SQLite admin layout API and vehicle blueprints; password/email/phone verification and full AI generation remain future work.
+
 # v0.2.4 — Switchable physics and grouped vehicle library (2026-11-08)
 
 - Add selectable Cannon-es and Rapier WASM raycast-wheel physics, plus an explicitly non-physics kinematic reference.

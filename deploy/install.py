@@ -176,6 +176,25 @@ def copy_release_payload(stage, target):
         shutil.copy2(stage/filename, target/filename)
 
 
+def report_mail_prerequisites():
+    """Read-only Postfix inspection. Never alter another site's SMTP service.
+
+    Email/phone are unverified profile metadata in this release. A working
+    password-reset sender requires DNS SPF/DKIM/DMARC/PTR, verified outbound
+    delivery and abuse controls. Installing/configuring SMTP automatically from
+    the app's release watcher could disrupt existing domains on this host.
+    """
+    if not shutil.which('postconf'):
+        print('MAIL CHECK: Postfix not installed. Recovery emails DISABLED. '
+              'DNS and outbound SMTP require administrator setup.',flush=True)
+        return
+    result=subprocess.run(['postconf','-h','myhostname'],capture_output=True,text=True,timeout=8)
+    name=(result.stdout or '').strip()[:120] if result.returncode==0 else 'unknown'
+    service=subprocess.run(['systemctl','is-active','postfix'],capture_output=True,text=True,timeout=8)
+    print('MAIL CHECK: Postfix present; hostname='+name+'; service='+(service.stdout or '').strip()+
+          '. No global MTA changes made. Password recovery DISABLED.',flush=True)
+
+
 def activate(stage,version,release_id):
     if os.geteuid()!=0:raise RuntimeError('Must run as root on the server')
     if not VERSION_RE.fullmatch(version):raise ValueError('Invalid version')
@@ -286,6 +305,7 @@ def activate(stage,version,release_id):
             shell('systemctl','reload','nginx',timeout=30)
         for name in ('index.html','version.json'):
             atomic_write(WEBROOT/name,(stage/name).read_bytes())
+        report_mail_prerequisites()
         print('DEPLOYED '+version+'; Flask healthy; SQLite data preserved; receipt='+str(receipt))
         return receipt
     except Exception:

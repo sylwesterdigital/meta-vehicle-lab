@@ -4,8 +4,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Meta Vehicle Lab — Procedural Studio</title>
-  <meta name="vehicle-lab-version" content="0.2.4">
+  <title>Vehicle Lab — Procedural Studio</title>
+  <meta name="vehicle-lab-version" content="0.2.5">
   <style>
     :root {
       color-scheme:dark;
@@ -36,8 +36,8 @@
     .saved-item button:last-child{padding:4px;color:#f5b1b4}
     #stage{position:relative;min-width:0;overflow:hidden;background:#15232f}
     #stage canvas{display:block;width:100%;height:100%;touch-action:none}
-    #guiMount{position:absolute;top:12px;right:12px;z-index:10;max-height:calc(100% - 24px);overflow:auto}
-    #guiMount .lil-gui{--width:290px;--background-color:#162633;--title-background-color:#254050;--text-color:#e4f2f4;--widget-color:#263d4d;--focus-color:#47667b;--hover-color:#375365;--number-color:#a8f1c8;--string-color:#ccecd5;--name-width:47%;font-size:11px}
+    #editorGuiMount{position:absolute;top:12px;right:12px;z-index:10;max-height:calc(100% - 24px);overflow:auto}
+    #editorGuiMount .lil-gui{--width:290px;--background-color:#162633;--title-background-color:#254050;--text-color:#e4f2f4;--widget-color:#263d4d;--focus-color:#47667b;--hover-color:#375365;--number-color:#a8f1c8;--string-color:#ccecd5;--name-width:47%;font-size:11px}
     #hud{position:absolute;left:16px;top:16px;pointer-events:none}
     #hud strong{font-size:19px}
     #hud p{font-size:11px;color:#b0c5cd;margin:5px 0}
@@ -71,8 +71,8 @@
      #physicsHud{font-size:10px;max-width:190px}
      #catalog{max-height:120px}
      #stage{height:100%;padding-bottom:90px}
-     #guiMount{right:6px;top:6px;max-height:calc(100% - 105px)}
-     #guiMount .lil-gui{--width:250px}
+     #editorGuiMount{right:6px;top:6px;max-height:calc(100% - 105px)}
+     #editorGuiMount .lil-gui{--width:250px}
      #status{max-width:46%;font-size:10px;bottom:105px}
      #boarding{bottom:104px}
      #joystick{left:12px;bottom:175px;width:105px;height:105px}
@@ -80,6 +80,133 @@
      #brake{bottom:178px}
      #referenceCard{bottom:165px;width:125px}
    }
+
+    /* Vehicle Lab v0.2.5 — 3D scene is the full viewport. Every inspector floats. */
+    html,body{height:100%;overflow:hidden}
+    :root{--ui-scale:1;--ui-font:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+      --pane:#152431ee;--pane-border:#537085;--panel-shadow:0 18px 50px #030a12a8}
+    body{font-family:var(--ui-font);font-size:calc(12px * var(--ui-scale));background:#15232f}
+    body[data-theme=light]{color-scheme:light;--pane:#e9f2f7f2;--pane-border:#8aa9b9;--text:#1e3746;--muted:#486375;--accent:#147ab3}
+    body[data-theme=graphite]{--pane:#25282eee;--pane-border:#6e7785;--accent:#dedcdf}
+    body[data-theme=amber]{--pane:#29241eef;--pane-border:#8f784e;--accent:#ffbf68}
+    #stage{position:fixed;inset:0;width:100vw;height:100dvh;padding:0;background:#172532;overflow:hidden}
+    #stage>canvas{position:absolute;inset:0;display:block;width:100%;height:100%;touch-action:none}
+    #hud{position:absolute;left:16px;top:14px;z-index:3;pointer-events:none}
+    #hud strong{font-size:14px;color:#eaf6f7}
+    #hud .stage-badge{padding:6px 10px;display:inline-flex;align-items:center;gap:8px;border:1px solid #547b87;
+      background:#122432cf;border-radius:10px;backdrop-filter:blur(10px)}
+    #hud .stage-badge small{font:10px ui-monospace,monospace;opacity:.65}
+    #hud>p{font-size:10px;margin:6px 0 0 5px}
+    #speedHud{margin-top:8px}
+    #physicsHud{max-width:235px;font-size:10px;margin-top:6px}
+    #status{bottom:14px;left:50%;transform:translateX(-50%);max-width:45vw;z-index:4;
+      text-align:center;font-size:calc(10px * var(--ui-scale));padding:7px 10px}
+    .float-window{position:absolute;z-index:12;display:flex;flex-direction:column;
+      min-width:190px;min-height:37px;max-width:95vw;max-height:90dvh;overflow:hidden;
+      border:1px solid var(--pane-border);border-radius:12px;background:var(--pane);
+      box-shadow:var(--panel-shadow);resize:both;backdrop-filter:blur(14px);color:var(--text)}
+    .float-window.is-minimized{height:36px!important;min-height:36px;resize:none}
+    .float-window{resize:none}
+    .resize-handle{position:absolute;right:1px;bottom:1px;z-index:2;width:23px;height:23px;
+      cursor:nwse-resize;touch-action:none;border:0;background:transparent;user-select:none}
+    .resize-handle::after{content:'';position:absolute;right:5px;bottom:5px;width:10px;height:10px;
+      border-right:2px solid var(--pane-border);border-bottom:2px solid var(--pane-border)}
+    .float-window.is-minimized .resize-handle{display:none}
+    .theme-colors{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:10px 0}
+    .theme-colors label{display:flex;align-items:center;flex-direction:row;gap:6px}
+    .theme-colors input[type=color]{width:42px;height:30px;padding:2px}
+    .float-window.is-minimized .window-body{display:none!important}
+    .window-head{min-height:35px;display:flex;align-items:center;gap:6px;padding:5px 9px;
+      background:#55758a27;border-bottom:1px solid #5b778447;cursor:grab;touch-action:none;user-select:none}
+    .window-head:active{cursor:grabbing}
+    .window-head strong{font-size:calc(10px * var(--ui-scale));text-transform:uppercase;letter-spacing:.08em;flex:1}
+    .window-head .mini-btn{width:24px;height:22px;padding:0;font-size:14px;line-height:1}
+    .window-body{min-height:0;overflow:auto;flex:1;padding:9px}
+    #toolbarWindow{left:16px;top:78px;width:248px;height:110px;min-height:80px}
+    #toolbarWindow .window-body{padding:7px}
+    #toolbarWindow .actions{display:flex;flex-wrap:wrap;gap:5px}
+    #toolbarWindow button{padding:6px 9px;font-size:calc(10px * var(--ui-scale))}
+    #toolsWindow{left:16px;top:205px;width:248px;height:96px;min-height:70px}
+    #toolsWindow #boarding{position:static;display:flex;flex-wrap:wrap;gap:5px}
+    #toolsWindow #boarding button{padding:6px 8px;font-size:calc(10px * var(--ui-scale))}
+    #catalogWindow{left:16px;top:324px;width:260px;height:395px}
+    #catalogWindow #search{width:100%;margin-bottom:7px;padding:7px}
+    #catalogWindow #presets{display:block}
+    #catalogWindow #presets .lil-gui{--width:100%;max-height:none;background:transparent}
+    #catalogWindow #presets .lil-gui .children{max-height:none}
+    #catalogWindow h3{margin:12px 0 6px}
+    #catalogWindow .hint{font-size:calc(10px * var(--ui-scale))}
+    #paramsWindow{right:16px;top:78px;width:300px;height:min(660px,82dvh)}
+    #editorGuiMount{position:static;max-height:none;overflow:visible;width:100%}
+    #editorGuiMount .lil-gui{--width:100%;max-width:none;font-size:calc(11px * var(--ui-scale))}
+    #logWindow{right:16px;bottom:18px;width:480px;height:260px;display:none}
+    #logWindow.is-visible{display:flex}
+    .logs-toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:5px}
+    .logs-toolbar select,.logs-toolbar input{max-width:125px;padding:4px}
+    #logLines{padding:8px 10px;background:#060f1be6;color:#bfcede;flex:1;overflow:auto;
+      white-space:pre-wrap;overflow-wrap:anywhere;font:11px/1.5 ui-monospace,monospace}
+    #logLines .log-error{color:#ff8585}#logLines .log-warn{color:#ffc479}#logLines .log-info{color:#a9dbfb}
+    #identityControls{position:fixed;right:18px;top:13px;z-index:60;display:flex;gap:8px}
+    .roundel{display:grid;place-items:center;width:42px;height:42px;border-radius:50%;padding:0;
+      border:1px solid #8fb2bd;background:#132736e8;box-shadow:0 7px 25px #0009;color:#effcf9;
+      font-size:19px;font-weight:700;overflow:hidden}
+    .roundel img{width:100%;height:100%;object-fit:cover}
+    #drawerScrim{position:fixed;inset:0;z-index:66;background:#03070b88}
+    #drawerScrim[hidden]{display:none}
+    .side-drawer{position:fixed;z-index:67;right:0;top:0;bottom:0;width:min(355px,94vw);
+      background:var(--pane);border-left:1px solid var(--pane-border);box-shadow:-20px 0 65px #0009;
+      transform:translateX(110%);transition:transform .18s ease;overflow:auto;padding:17px;color:var(--text)}
+    #configDrawer{right:auto;left:0;transform:translateX(-110%);border-left:0;border-right:1px solid var(--pane-border)}
+    .side-drawer.is-open{transform:translateX(0)}
+    .drawer-title{display:flex;align-items:center;justify-content:space-between;margin:5px 0 20px}
+    .drawer-title strong{font-size:16px}.drawer-title button{width:31px}
+    .side-drawer details{margin:8px 0;border:1px solid #68869d60;border-radius:9px;padding:9px}
+    .side-drawer summary{cursor:pointer;font-weight:700;font-size:12px}
+    .side-drawer form{display:grid;gap:9px;margin-top:12px}
+    .side-drawer label{display:grid;gap:4px;font-size:11px;color:var(--text)}
+    .side-drawer input,.side-drawer textarea,.side-drawer select{width:100%;font:inherit;padding:7px;border:1px solid var(--pane-border);
+      color:var(--text);background:#172938ad;border-radius:6px}
+    body[data-theme=light] .side-drawer input,body[data-theme=light] .side-drawer textarea{background:#fff}
+    .side-drawer textarea{min-height:60px;resize:vertical}
+    .side-drawer p,.side-drawer small{color:var(--muted);line-height:1.5}
+    .pill-row{display:flex;flex-wrap:wrap;gap:5px;margin:8px 0}
+    .pill-row button{border-radius:24px;padding:5px 10px;font-size:11px}
+    .pill-row button[aria-pressed=true]{background:var(--accent);color:#101e25;border-color:var(--accent)}
+    .drawer-actions{display:flex;flex-wrap:wrap;gap:5px;margin:8px 0}
+    .drawer-actions button{font-size:11px;padding:7px}
+    .inline-field{display:flex;align-items:center;gap:7px;margin:8px 0}
+    .inline-field input[type=checkbox]{width:auto}
+    #welcomeOverlay,#releaseOverlay{position:fixed;inset:0;z-index:90;background:#030811c7;
+      display:grid;place-items:center;padding:16px;overflow:auto}
+    #welcomeOverlay[hidden],#releaseOverlay[hidden]{display:none}
+    .modal-card{width:min(520px,95vw);max-height:85dvh;overflow:auto;padding:20px;
+      background:#152737;border:1px solid #6d93a7;border-radius:14px;color:#eef8fc;box-shadow:0 24px 70px #000c}
+    .modal-card h2{margin:0 0 7px;font-size:19px}
+    .modal-card form{display:grid;gap:12px;margin-top:15px}
+    .modal-card label{display:grid;gap:5px;font-size:12px}
+    .modal-card input{padding:10px;color:inherit;background:#0a1723;border:1px solid #648091;border-radius:7px}
+    .modal-card p,.modal-card small{color:#aabcc7;line-height:1.5}
+    #releaseHistory{max-height:53dvh;overflow:auto}
+    #releaseHistory article{border-bottom:1px solid #456274;padding:9px 0}
+    #releaseHistory h3{font-size:12px;color:#a8e7ca}
+    #releaseHistory li{margin:5px 0}
+    #welcomeAvatarPreview{width:62px;height:62px;border-radius:50%;object-fit:cover;border:2px solid #8eb6d1}
+    .window-reopen{display:inline-flex;flex-wrap:wrap;gap:5px}
+    @media(max-width:700px){
+      #hud{left:9px;top:10px}#hud .stage-badge{padding:5px 7px}
+      #identityControls{top:10px;right:9px}.roundel{width:36px;height:36px}
+      #toolbarWindow{left:8px;top:62px;width:210px;height:100px}
+      #toolsWindow{left:8px;top:175px;width:210px;height:84px}
+      #catalogWindow{left:8px;top:278px;width:220px;height:265px}
+      #paramsWindow{left:auto;right:7px;top:62px;width:min(265px,69vw);height:min(500px,70dvh)}
+      #logWindow{left:8px;right:auto;bottom:8px;width:min(420px,95vw);height:220px}
+      #status{bottom:5px;max-width:60vw;font-size:9px}
+      #joystick{position:absolute;bottom:48px;left:8px;width:104px;height:104px}
+      #knob{left:29px;top:29px}
+      #brake{position:absolute;bottom:50px;right:9px}
+      #referenceCard{bottom:70px}
+    }
+
  </style>
 
  <script type="importmap">
@@ -88,7 +215,7 @@
     "three":"https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js",
     "three/addons/":"https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/",
     "cannon-es":"https://cdn.jsdelivr.net/npm/cannon-es@0.20.0/dist/cannon-es.js",
-    "@dimforge/rapier3d-compat":"https://cdn.jsdelivr.net/npm/@dimforge/rapier3d-compat@0.19.3/rapier.es.js",
+    "@dimforge/rapier3d-compat":"https://esm.sh/@dimforge/rapier3d-compat@0.19.3?bundle",
     "lil-gui":"https://cdn.jsdelivr.net/npm/lil-gui@0.21.0/dist/lil-gui.esm.js"
   }
 }
@@ -96,71 +223,134 @@
 </head>
 <body>
 
-  <header>
-   <div class="brand">
-    META VEHICLE LAB
-    <small>v0.2.4 · Procedural assembly · Physics · AI · Blueprint v3</small>
-  </div>
-  <div class="actions">
-    <button id="buildBtn" class="active">BUILD</button>
-    <button id="driveBtn">DRIVE</button>
-    <button id="rotateBtn">Stop rotation</button>
-    <button id="lightsBtn">Lights on</button>
-    <button id="saveBtn">Local save</button>
-    <button id="serverSaveBtn">SQLite save</button>
-    <button id="exportBtn">Export JSON</button>
-  </div>
-</header>
-
-<main>
- <aside id="catalog">
-  <h3>Vehicles</h3>
-  <input id="search" placeholder="Search vehicles">
-  <div id="presets"></div>
-  <h3>Saved layouts</h3>
-  <div id="saved"></div>
-  <h3>SQLite layouts</h3>
-  <div id="serverSaved" class="hint">Enter a server access token in lil-gui → SQLite server, then Refresh.</div>
-  <div id="libraryInfo">IndexedDB saves locally. SQLite saves on the Flask server; imported GLBs are uploaded as separate assets. The server token and AI keys stay in volatile memory only.</div>
-</aside>
-
-<div id="stage">
-  <form id="credentialsForm" autocomplete="off" novalidate>
-    <div id="guiMount"></div>
-  </form>
-
+  <div id="stage">
   <div id="hud">
-   <strong id="vehicleName">City Car</strong>
-   <p id="vehicleInfo">Procedural vehicle</p>
-   <div id="speedHud"><strong id="speed">0</strong><div>km/h</div></div>
-   <div id="physicsHud"><strong id="engineName">Cannon-es</strong> · <span id="physicsMode">BUILD</span>
-     <div><span id="simFps">—</span> FPS · <span id="stepCost">—</span> ms/step · <span id="simSteps">0</span> steps/s</div>
-     <div class="minor" id="benchPanel">Run a 10 s drive test from Physics & camera for comparable results.</div>
-   </div>
- </div>
-
- <div id="status">Drag to orbit · Scroll to zoom · Select a vehicle type</div>
-
- <div id="referenceCard" hidden>
-   <button id="closeReference">×</button>
-   <img id="referenceImage" alt="AI model reference">
-   <span>AI / model reference</span>
- </div>
-
- <div id="joystick"><div id="knob"></div></div>
- <button id="brake">BRAKE</button>
-
- <div id="boarding">
-   <button id="exitBtn">Exit −</button>
-   <button id="boardBtn">Board +</button>
-   <button id="doorsBtn">Open doors</button>
- </div>
+    <div class="stage-badge"><strong>Vehicle Lab</strong><small>v0.2.5</small></div>
+    <p id="vehicleName">City Car</p><p id="vehicleInfo">Procedural vehicle</p>
+    <div id="speedHud"><strong id="speed">0</strong><div>km/h</div></div>
+    <div id="physicsHud"><strong id="engineName">Cannon-es</strong> · <span id="physicsMode">BUILD</span>
+      <div><span id="simFps">—</span> FPS · <span id="stepCost">—</span> ms/step · <span id="simSteps">0</span> steps/s</div>
+      <div class="minor" id="benchPanel">Physics comparison · 60 Hz</div>
+    </div>
+  </div>
+  <section id="toolbarWindow" class="float-window" aria-label="Vehicle actions">
+    <div class="window-head"><strong>01 / Actions</strong><button class="mini-btn minimize" title="Minimize">−</button></div>
+    <div class="window-body"><div class="actions">
+      <button id="buildBtn" class="active">BUILD</button><button id="driveBtn">DRIVE</button>
+      <button id="rotateBtn">Stop rotation</button><button id="lightsBtn">Lights on</button>
+      <button id="saveBtn">Local save</button><button id="serverSaveBtn">SQLite save</button>
+      <button id="exportBtn">Export JSON</button>
+    </div></div>
+  </section>
+  <section id="toolsWindow" class="float-window" aria-label="Vehicle tools">
+    <div class="window-head"><strong>02 / Vehicle tools</strong><button class="mini-btn minimize" title="Minimize">−</button></div>
+    <div class="window-body"><div id="boarding">
+      <button id="exitBtn">Exit −</button><button id="boardBtn">Board +</button><button id="doorsBtn">Open doors</button>
+    </div></div>
+  </section>
+  <section id="catalogWindow" class="float-window" aria-label="Vehicle library">
+    <div class="window-head"><strong>03 / Vehicle library</strong><button class="mini-btn minimize" title="Minimize">−</button></div>
+    <div class="window-body">
+      <input id="search" placeholder="Search 40 vehicle types" aria-label="Search vehicles">
+      <div id="presets"></div>
+      <h3>IndexedDB layouts</h3><div id="saved"></div>
+      <h3>My SQLite layouts</h3><div class="inline-field"><label><input type="checkbox" id="layoutPublic"> Publish to gallery</label></div>
+      <div id="serverSaved" class="hint">Create a guest profile to save on the server.</div>
+      <div class="drawer-actions"><button id="galleryRefreshBtn">Public gallery</button></div>
+      <div id="gallerySaved" class="hint"></div>
+      <div id="libraryInfo" class="hint">Local layouts stay in IndexedDB. Public layouts are published only when selected.</div>
+    </div>
+  </section>
+  <section id="paramsWindow" class="float-window" aria-label="Vehicle parameters">
+    <div class="window-head"><strong>04 / Parameters · lil-gui</strong><button class="mini-btn minimize" title="Minimize">−</button></div>
+    <div class="window-body"><div id="editorGuiMount"></div></div>
+  </section>
+  <form id="credentialsForm" hidden><div id="guiMount"></div></form>
+  <section id="logWindow" class="float-window" aria-label="Application logs">
+    <div class="window-head"><strong>05 / App logs</strong><button class="mini-btn minimize" title="Minimize">−</button></div>
+    <div class="window-body logs-toolbar">
+      <select id="logScope" aria-label="Log source"><option value="client">Browser</option><option value="backend">Flask server (admin)</option></select>
+      <select id="logLevel" aria-label="Log level"><option value="all">All</option><option value="error">Errors</option><option value="warn">Warnings + errors</option></select>
+      <label>Font <input id="logFont" aria-label="Log font size" type="range" min="9" max="18" value="11"></label>
+      <button id="refreshLogs">Refresh</button><button id="copyLogs">Copy</button><button id="closeLogs">Hide</button>
+    </div>
+    <div id="logLines" role="log" aria-live="off"></div>
+  </section>
+  <div id="status">Drag canvas to orbit · Zoom to change camera distance · Drag a window by its title</div>
+  <div id="referenceCard" hidden><button id="closeReference">×</button>
+    <img id="referenceImage" alt="AI model reference"><span>AI / model reference</span></div>
+  <div id="joystick"><div id="knob"></div></div><button id="brake">BRAKE</button>
 </div>
-</main>
-
+<div id="identityControls">
+  <button id="configRoundel" class="roundel" title="General configuration" aria-label="Open configuration">⚙</button>
+  <button id="profileRoundel" class="roundel" title="My profile" aria-label="Open profile">?</button>
+</div>
+<div id="drawerScrim" hidden></div>
+<aside id="configDrawer" class="side-drawer" aria-label="General configuration">
+  <div class="drawer-title"><strong>Vehicle Lab / Configuration</strong><button class="drawer-close" aria-label="Close">×</button></div>
+  <details open><summary>Windows & workspace</summary><p>Drag by the title bar, resize from the bottom-right corner, minimize with −.</p>
+    <div id="windowButtons" class="pill-row window-reopen"></div>
+    <div class="drawer-actions"><button id="resetWorkspace">Reset window positions</button><button id="openLogs">Application logs</button>
+      <button id="workspaceExport">Export workspace JSON</button><button id="workspaceImport">Import workspace JSON</button></div>
+  </details>
+  <details><summary>Theme & typography</summary><p>Changes affect the interface; exported separately from your profile.</p>
+    <div id="themeChoices" class="pill-row"></div><div id="fontChoices" class="pill-row"></div><div id="fontSizeChoices" class="pill-row"></div>
+    <div class="theme-colors"><label>Accent <input id="themeAccent" type="color" value="#a8f1c8"></label>
+    <label>Panel <input id="themePanel" type="color" value="#152431"></label></div>
+    <div class="drawer-actions"><button id="themeExport">Export theme JSON</button><button id="themeImport">Import theme JSON</button></div>
+  </details>
+  <details><summary>AI providers & API keys</summary><p>Keys remain in this browser tab only. Test checks documented model-list endpoints; it does not enable image generation.</p>
+    <form id="aiKeysForm" autocomplete="off"><label>Provider
+      <select id="providerChoice"><option value="openai">OpenAI</option><option value="xai">xAI</option><option value="meta">Meta</option><option value="tripo">Tripo (no model-list test)</option></select></label>
+      <label>API key<input id="providerKey" type="password" autocomplete="off" placeholder="Paste API key"></label>
+      <div class="drawer-actions"><button type="submit" id="saveProviderKey">Use in tab</button><button id="testProviderKey" type="button">Test + list models</button><button id="clearProviderKey" type="button">Forget key</button></div>
+    </form><pre id="providerResult" style="white-space:pre-wrap;overflow-wrap:anywhere;font-size:11px"></pre>
+  </details>
+  <details><summary>Server logs (administrator only)</summary>
+    <form id="adminTokenForm" autocomplete="off"><label>Administrator API token<input id="adminLogToken" type="password" autocomplete="off" placeholder="Required for server logs"></label>
+      <button type="submit">Open server logs</button></form>
+    <p>Normal guests only see browser logs. Server logs exclude credentials; service and Mac watcher logs stay on their respective hosts.</p>
+  </details>
+  <details><summary>Persistence & deployment</summary><p>Flask + SQLite: private/public vehicle blueprints and guest profiles. Email recovery, verified email/phone and passwords are not enabled.</p></details>
+</aside>
+<aside id="profileDrawer" class="side-drawer" aria-label="User profile">
+  <div class="drawer-title"><strong>My profile</strong><button class="drawer-close" aria-label="Close">×</button></div>
+  <p id="profileIdInfo">Guest identity</p>
+  <form id="profileEditForm" autocomplete="off">
+    <label>Avatar <input id="avatarUpload" type="file" accept="image/png,image/jpeg,image/webp"></label>
+    <label>Username<input id="profileName" maxlength="50" required></label>
+    <label>Bio<textarea id="profileBio" maxlength="600"></textarea></label>
+    <label>Social link (HTTPS)<input id="profileLink" type="url" maxlength="300" placeholder="https://..."></label>
+    <label>Email (unverified)<input id="profileEmail" type="email" maxlength="120" autocomplete="email"></label>
+    <label>Phone (unverified)<input id="profilePhone" type="tel" maxlength="40"></label>
+    <button type="submit">Save profile</button>
+  </form>
+  <details><summary>Identity backup & security</summary>
+    <p>Guest identity is protected by a random secret saved on this device, not by its UUID. Export the backup to transfer or recover access. Anyone with the backup can access this profile.</p>
+    <div class="drawer-actions"><button id="backupProfile">Export private profile backup</button><button id="restoreProfile">Import profile backup</button><button id="switchGuest">Switch guest</button></div>
+    <p>Password protection, email verification, phone verification and account recovery are planned, not active.</p>
+  </details>
+</aside>
+<div id="welcomeOverlay" hidden><div class="modal-card">
+  <h2>Welcome to Vehicle Lab</h2><p>Create a passwordless guest profile to save private vehicles and optionally publish them. No email or password required.</p>
+  <form id="welcomeForm" autocomplete="off">
+    <label>Username<input id="welcomeName" maxlength="50" required placeholder="Choose a username"></label>
+    <label>Optional profile image <img id="welcomeAvatarPreview" alt="Profile preview" hidden>
+      <input id="welcomeAvatar" type="file" accept="image/png,image/jpeg,image/webp"></label>
+    <button type="submit">Create guest profile</button>
+  </form><div class="drawer-actions"><button id="welcomeImport">Import existing profile JSON</button></div>
+  <small>Security: your profile recovery secret can be exported later. A UUID alone cannot restore access.</small>
+</div></div>
+<div id="releaseOverlay" hidden><div class="modal-card">
+  <h2>Vehicle Lab · release notes</h2><small>Latest update and previous changes</small>
+  <div id="releaseHistory"></div><button id="closeRelease">Continue to studio</button>
+</div></div>
 <input id="importJSON" type="file" accept=".json" hidden>
 <input id="importGLB" type="file" accept=".glb" hidden>
 <input id="importImage" type="file" accept="image/png,image/jpeg,image/webp" hidden>
+<input id="profileBackupFile" type="file" accept=".json,application/json" hidden>
+<input id="themeFile" type="file" accept=".json,application/json" hidden>
+<input id="workspaceFile" type="file" accept=".json,application/json" hidden>
 
 <script type="module">
   import * as THREE from 'three';
@@ -171,8 +361,6 @@
   import GUI from 'lil-gui';
 
   const $=id=>document.getElementById(id);
-  // lil-gui creates the password inputs inside this form (no DOM warning).
-  $('credentialsForm').addEventListener('submit', event=>event.preventDefault());
   const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
   const lerp=(a,b,t)=>a+(b-a)*t;
   const rad=v=>v*Math.PI/180;
@@ -250,10 +438,10 @@
  let wheels=[],doorHinges=[],partGroups={},passengerFigures=[];
  let headMaterials=[],brakeMaterials=[],headlights=[];
  let physics=null,previousYaw=null;
- const ENGINE_LABELS={cannon:'Cannon-es',rapier:'Rapier (WASM)',baseline:'Kinematic baseline (no physics)'};
+ const ENGINE_LABELS={cannon:'Cannon-es',rapier:'Rapier (WASM)',ammo:'Ammo.js / Bullet',baseline:'Kinematic baseline (no physics)'};
  const simulator={engine:'cannon',benchmarkSeconds:10};
  const telemetry={frames:0,frameTime:0,stepCount:0,stepMs:0,lastDisplay:0,history:[],active:null};
- let rapierModule=null,engineLoading=false,driveGeneration=0,stepAccumulator=0;
+ let rapierModule=null,ammoModule=null,engineLoading=false,driveGeneration=0,stepAccumulator=0;
  const FIXED_STEP=1/60;
  const catalogExpanded=new Set();
  let catalogGUI=null;
@@ -261,6 +449,9 @@
  let layoutId=null,gui=null,queued=false;
  let serverLayoutId=null,serverRevision=null,serverAssetId=null,serverAssetBlob=null;
  const serverAccess={token:''};
+ let activeProfile=null,guestToken='',serverVisibility='private',adminLogToken='';
+ const appEvents=[];
+ const VERSION='0.2.5';
  let imageReference=null,busyAI=false;
 
  // Keys remain in volatile memory. Never place credentials in a blueprint or IndexedDB.
@@ -274,7 +465,18 @@
  function note(text,error=false){
    $('status').textContent=text;
    $('status').style.color=error?'#ffb8b8':'#d0e4e5';
+   recordEvent(error?'ERROR':'INFO',text);
  }
+ function recordEvent(level,message){
+   // Only diagnostic messages: never log Authorization headers, AI keys or backup secrets.
+   const safe=String(message).replace(/(Bearer\s+)\S+/gi,'$1[redacted]').slice(0,800);
+   appEvents.push({level,time:new Date().toISOString(),message:safe});
+   if(appEvents.length>350)appEvents.shift();
+   if($('logScope')?.value==='client')renderLogs();
+ }
+ window.addEventListener('error',e=>recordEvent('ERROR',e.message||'Script error'));
+ window.addEventListener('unhandledrejection',e=>recordEvent('ERROR',e.reason?.message||'Uncaught promise rejection'));
+
 
  const scene=new THREE.Scene();
  scene.background=new THREE.Color('#172532');
@@ -862,9 +1064,15 @@ function makeCannonAdapter(){
 }
 async function getRapier(){
  if(!rapierModule){
-  const mod=await import('@dimforge/rapier3d-compat');
+  let mod,firstError;
+  try{mod=await import('@dimforge/rapier3d-compat')}
+  catch(error){
+   firstError=error;
+   try{mod=await import('https://cdn.jsdelivr.net/npm/@dimforge/rapier3d-compat@0.19.3/+esm')}
+   catch(backupError){throw Error('Rapier CDN unavailable; '+firstError.message+' / '+backupError.message)}
+  }
   const R=mod.default||mod;
-  await R.init();
+  if(typeof R.init==='function')await R.init();
   rapierModule=R;
  }
  return rapierModule;
@@ -947,6 +1155,128 @@ async function makeRapierAdapter(){
   return adapter;
  }catch(e){rw.free();throw e}
 }
+// Bullet/Ammo is a third real rigid-body solver, not a kinematic stand-in.
+// Import is isolated so a failed CDN or missing vehicle binding cannot break
+// Cannon-es driving, UI rendering, or the Flask editor.
+async function getAmmo(){
+ if(ammoModule)return ammoModule;
+ if(!window.Ammo){
+  await new Promise((resolve,reject)=>{
+   const script=document.createElement('script');
+   script.src='https://cdn.jsdelivr.net/npm/ammo.js@0.0.10/ammo.js';
+   script.crossOrigin='anonymous';
+   script.onload=resolve;
+   script.onerror=()=>reject(Error('Ammo.js CDN could not load'));
+   document.head.append(script);
+  });
+ }
+ const value=typeof window.Ammo==='function'?await window.Ammo():window.Ammo;
+ if(!value?.btDiscreteDynamicsWorld||!value?.btRaycastVehicle)
+  throw Error('Downloaded Ammo build lacks the Bullet raycast vehicle bindings');
+ ammoModule=value;
+ return value;
+}
+async function makeAmmoAdapter(){
+ const A=await getAmmo(),owned=[],own=x=>(owned.push(x),x);
+ let dynamics=null,chassis=null,ground=null,rayVehicle=null;
+ const v=(x,y,z)=>own(new A.btVector3(x,y,z));
+ try{
+  const cc=own(new A.btDefaultCollisionConfiguration());
+  const dispatcher=own(new A.btCollisionDispatcher(cc));
+  const broadphase=own(new A.btDbvtBroadphase());
+  const solver=own(new A.btSequentialImpulseConstraintSolver());
+  dynamics=own(new A.btDiscreteDynamicsWorld(dispatcher,broadphase,solver,cc));
+  dynamics.setGravity(v(0,-9.82,0));
+  // Triangles are generated from the same exact mesh rendered by Three.js.
+  const tri=own(new A.btTriangleMesh());
+  const geometry=terrain.geometry;
+  const verts=geometry.getAttribute('position');
+  const idx=geometry.index.array;
+  const a=v(0,0,0),b=v(0,0,0),c=v(0,0,0);
+  for(let i=0;i<idx.length;i+=3){
+   for(const [ref,vertex] of [[a,idx[i]],[b,idx[i+1]],[c,idx[i+2]]])
+    ref.setValue(verts.getX(vertex),verts.getY(vertex),verts.getZ(vertex));
+   tri.addTriangle(a,b,c,true);
+  }
+  const groundShape=own(new A.btBvhTriangleMeshShape(tri,true,true));
+  const groundTransform=own(new A.btTransform());groundTransform.setIdentity();
+  const gm=own(new A.btDefaultMotionState(groundTransform));
+  const zero=v(0,0,0);
+  ground=own(new A.btRigidBody(own(new A.btRigidBodyConstructionInfo(0,gm,groundShape,zero))));
+  dynamics.addRigidBody(ground);
+  const shape=own(new A.btBoxShape(v(cfg.W*.44,Math.max(.23,cfg.H*.24),cfg.L*.44)));
+  const transform=own(new A.btTransform());transform.setIdentity();
+  transform.setOrigin(v(0,heightAt(0,0)+cfg.radius+.85,0));
+  const motion=own(new A.btDefaultMotionState(transform));
+  const inertia=v(0,0,0);shape.calculateLocalInertia(vehicleMass(),inertia);
+  chassis=own(new A.btRigidBody(own(new A.btRigidBodyConstructionInfo(vehicleMass(),motion,shape,inertia))));
+  chassis.setActivationState(4);
+  dynamics.addRigidBody(chassis);
+  const tuning=own(new A.btVehicleTuning()),caster=own(new A.btDefaultVehicleRaycaster(dynamics));
+  rayVehicle=own(new A.btRaycastVehicle(tuning,chassis,caster));
+  rayVehicle.setCoordinateSystem(0,1,2);
+  dynamics.addAction(rayVehicle);
+  const down=v(0,-1,0),axleDir=v(-1,0,0);
+  for(let axle=0;axle<cfg.axles;axle++)for(const side of [-1,1]){
+   const info=rayVehicle.addWheel(v(side*cfg.W*.54,-.3,wheelZ(axle)),down,axleDir,.32,cfg.radius,tuning,axle===0);
+   info.set_m_suspensionStiffness(42);
+   info.set_m_wheelsDampingRelaxation(2.8);
+   info.set_m_wheelsDampingCompression(4.6);
+   info.set_m_frictionSlip(5.4);
+   info.set_m_rollInfluence(.045);
+  }
+  let latestMass=vehicleMass();
+  const origin=()=>chassis.getWorldTransform().getOrigin();
+  const rotation=()=>chassis.getWorldTransform().getRotation();
+  const velocity=()=>chassis.getLinearVelocity();
+  const speed=()=>Math.hypot(velocity().x(),velocity().z());
+  return {
+   kind:'ammo',chassis,
+   getSpeed:speed,
+   getForwardSpeed:()=>{
+    const q=rotation(),vel=velocity();
+    const forward=new THREE.Vector3(0,0,1).applyQuaternion(new THREE.Quaternion(q.x(),q.y(),q.z(),q.w()));
+    return forward.x*vel.x()+forward.y*vel.y()+forward.z*vel.z();
+   },
+   setMass:value=>{
+    if(Math.abs(value-latestMass)<1)return;
+    const newInertia=v(0,0,0);shape.calculateLocalInertia(value,newInertia);
+    chassis.setMassProps(value,newInertia);chassis.updateInertiaTensor();latestMass=value;
+   },
+   step:(dt,input)=>{
+    for(let i=0;i<rayVehicle.getNumWheels();i++){
+     rayVehicle.applyEngineForce(drivenWheel(i)?-input.throttle*input.power:0,i);
+     rayVehicle.setSteeringValue(wheelAxle(i)===0?-input.steer*.47:0,i);
+     rayVehicle.setBrake(input.brake?400:0,i);
+    }
+    dynamics.stepSimulation(dt,1,dt);
+   },
+   pose:()=>{
+    const p=origin(),q=rotation(),vel=velocity();
+    return pose({x:p.x(),y:p.y(),z:p.z()},{x:q.x(),y:q.y(),z:q.z(),w:q.w()},
+      {x:vel.x(),y:vel.y(),z:vel.z()});
+   },
+   syncWheels:()=>{
+    for(let i=0;i<wheels.length;i++){
+     rayVehicle.updateWheelTransform(i,true);
+     const t=rayVehicle.getWheelTransformWS(i),p=t.getOrigin(),q=t.getRotation();
+     wheels[i].position.set(p.x(),p.y(),p.z());
+     wheels[i].quaternion.set(q.x(),q.y(),q.z(),q.w());
+    }
+   },
+   destroy:()=>{
+    dynamics.removeAction(rayVehicle);dynamics.removeRigidBody(chassis);dynamics.removeRigidBody(ground);
+    for(const item of owned.reverse())try{A.destroy(item)}catch(e){console.warn('Ammo cleanup',e)}
+   }
+  };
+ }catch(error){
+  try{if(rayVehicle&&dynamics)dynamics.removeAction(rayVehicle);
+    if(chassis&&dynamics)dynamics.removeRigidBody(chassis);
+    if(ground&&dynamics)dynamics.removeRigidBody(ground)}catch(e){}
+  for(const item of owned.reverse())try{A.destroy(item)}catch(e){}
+  throw error;
+ }
+}
 function makeBaselineAdapter(){
  let x=0,z=0,yaw=0,speed=0;
  let y=heightAt(x,z)+cfg.radius+.65;
@@ -995,6 +1325,7 @@ async function enterDrive(){
  note('Initialising '+ENGINE_LABELS[simulator.engine]+'…');
  try{
   const adapter=simulator.engine==='rapier'?await makeRapierAdapter():
+    simulator.engine==='ammo'?await makeAmmoAdapter():
     simulator.engine==='baseline'?makeBaselineAdapter():makeCannonAdapter();
   // A stale asynchronous Rapier load must not reactivate a dismissed drive.
   if(generation!==driveGeneration){adapter.destroy();return}
@@ -1274,12 +1605,18 @@ note('Loaded layout: '+item.name);
 }
 // SQLite-backed Flask library. All credentials are kept in memory and sent
 // only in Authorization headers to same-origin /api endpoints.
+function guestServerMode(){return Boolean(guestToken&&activeProfile)}
+function resolvedServerPath(path){
+ return guestServerMode() && /^\/api\/(layouts|assets)(?:\/|$)/.test(path)?
+  path.replace(/^\/api\//,'/api/me/'):path;
+}
 async function serverRequest(method,path,payload=null){
- if(!serverAccess.token.trim())throw Error('Enter your SQLite server token in lil-gui → SQLite server.');
+ const token=guestServerMode()?guestToken:serverAccess.token.trim();
+ if(!token)throw Error('Create a guest profile to use SQLite layouts.');
  const form=payload instanceof FormData;
- const response=await fetch(path,{
+ const response=await fetch(resolvedServerPath(path),{
   method,credentials:'same-origin',cache:'no-store',
-  headers:{Authorization:'Bearer '+serverAccess.token.trim(),...(payload&&!form?{'Content-Type':'application/json'}:{})},
+  headers:{Authorization:'Bearer '+token,...(payload&&!form?{'Content-Type':'application/json'}:{})},
   ...(payload?{body:form?payload:JSON.stringify(payload)}:{})
  });
  if(response.status===204)return null;
@@ -1289,15 +1626,15 @@ async function serverRequest(method,path,payload=null){
 }
 async function refreshServer(){
  const root=$('serverSaved');root.replaceChildren();
- if(!serverAccess.token.trim()){
-  root.textContent='Enter the server token in lil-gui → SQLite server.';return;
+ if(!guestServerMode()&&!serverAccess.token.trim()){
+  root.textContent='Create a guest profile to save vehicles in SQLite.';return;
  }
  try{
   const data=await serverRequest('GET','/api/layouts');
   for(const item of data.layouts){
    const row=document.createElement('div');row.className='saved-item';
    const open=document.createElement('button');open.textContent=item.name;
-   open.title='SQLite revision '+item.revision+' · '+new Date(item.updated_at).toLocaleString();
+   open.title='SQLite '+(item.visibility||'private')+' · revision '+item.revision+' · '+new Date(item.updated_at).toLocaleString();
    open.onclick=()=>loadServer(item.id).catch(e=>note(e.message,true));
    const remove=document.createElement('button');remove.textContent='×';
    remove.title='Delete server layout';
@@ -1318,11 +1655,12 @@ async function loadServer(id){
  const data=await serverRequest('GET','/api/layouts/'+encodeURIComponent(id));
  const item=data.layout;
  await loadLayout({...item.blueprint,id:item.id,name:item.name});
+ serverVisibility=item.visibility||'private';$('layoutPublic').checked=serverVisibility==='public';
  layoutId=null;serverLayoutId=item.id;serverRevision=item.revision;
  serverAssetId=item.asset_id;serverAssetBlob=null;
  if(item.asset_id){
-  const blobResponse=await fetch('/api/assets/'+encodeURIComponent(item.asset_id),{
-   headers:{Authorization:'Bearer '+serverAccess.token.trim()},credentials:'same-origin',cache:'no-store'
+  const blobResponse=await fetch(resolvedServerPath('/api/assets/'+encodeURIComponent(item.asset_id)),{
+   headers:{Authorization:'Bearer '+(guestServerMode()?guestToken:serverAccess.token.trim())},credentials:'same-origin',cache:'no-store'
   });
   if(!blobResponse.ok)throw Error('Server GLB download failed: '+blobResponse.status);
   const blob=await blobResponse.blob();
@@ -1343,7 +1681,8 @@ async function saveServer(copy=false){
  }
  if(!modelBlob)assetId=null;
  const id=copy||!serverLayoutId?crypto.randomUUID():serverLayoutId;
- const body={id,name:name.trim()||candidate,blueprint:blueprint(),asset_id:assetId};
+ const body={id,name:name.trim()||candidate,blueprint:blueprint(),asset_id:assetId,
+  visibility:$('layoutPublic').checked?'public':'private'};
  const updating=!copy&&Boolean(serverLayoutId);
  if(updating)body.revision=serverRevision;
  const result=await serverRequest(updating?'PUT':'POST',
@@ -1351,7 +1690,8 @@ async function saveServer(copy=false){
  serverLayoutId=result.layout.id;serverRevision=result.layout.revision;
  serverAssetId=assetId;serverAssetBlob=modelBlob;
  await refreshServer();
- note('Saved to Flask / SQLite (revision '+serverRevision+').');
+ serverVisibility=body.visibility;
+ note('Saved '+serverVisibility+' vehicle to Flask / SQLite (revision '+serverRevision+').');
 }
 function download(data,name,type){
  const blob=data instanceof Blob?data:new Blob([data],{type});
@@ -1537,7 +1877,7 @@ finally{busyAI=false}
 function setupGUI(){
  gui?.destroy();
  gui=new GUI({
-  container:$('guiMount'),
+  container:$('editorGuiMount'),
   title:'VEHICLE PARAMETERS',
   width:290
 });
@@ -1599,6 +1939,7 @@ const driving=gui.addFolder('07 · Physics & camera');
  driving.add(simulator,'engine',{
    'Cannon-es · raycast vehicle':'cannon',
    'Rapier WASM · raycast vehicle':'rapier',
+   'Ammo.js / Bullet · raycast vehicle':'ammo',
    'Kinematic reference · no physics':'baseline'
  }).name('Solver').onChange(()=>{
    const wasDriving=mode==='drive';
@@ -1650,6 +1991,7 @@ aiFolder.add({generateImage},'generateImage').name('Generate AI image');
 aiFolder.add({generateTripo},'generateTripo').name('Create 3D via Tripo');
 aiFolder.close();
 
+/* API keys are edited in the dedicated configuration drawer.
 const secret=gui.addFolder('10 · AI / API Keys');
 for(const provider of ['meta','openai','xai','tripo']){
   const ctl=secret.add(keys,provider).name(provider.toUpperCase()+' key');
@@ -1665,7 +2007,7 @@ secret.add({clear:()=>{
     setupGUI();
   note('All in-memory API keys cleared.');
 }},'clear').name('Clear API keys');
-secret.close();
+secret.close(); */
 
 const library=gui.addFolder('11 · Layout library');
 library.add({save:()=>saveLayout(false).catch(e=>note(e.message,true))},'save').name('Save to IndexedDB');
@@ -1675,6 +2017,7 @@ library.add({importJSON},'importJSON').name('Import JSON');
 library.add({refresh:()=>refreshSaved().catch(e=>note(e.message,true))},'refresh').name('Refresh saved layouts');
 library.close();
 
+/* Admin/server-token compatibility settings remain accessible via the config drawer.
 const serverFolder=gui.addFolder('12 · SQLite server');
 const access=serverFolder.add(serverAccess,'token').name('Access token');
 const tokenInput=access.domElement.querySelector('input');
@@ -1683,7 +2026,7 @@ serverFolder.add({refresh:()=>refreshServer().catch(e=>note(e.message,true))},'r
 serverFolder.add({save:()=>saveServer().catch(e=>note(e.message,true))},'save').name('Save to server');
 serverFolder.add({copy:()=>saveServer(true).catch(e=>note(e.message,true))},'copy').name('Save copy to server');
 serverFolder.add({disconnect:()=>{serverAccess.token='';serverLayoutId=null;serverRevision=null;setupGUI();refreshServer();}},'disconnect').name('Forget token');
-serverFolder.close();
+serverFolder.close(); */
 
  // All module and settings folders start collapsed.
 }
@@ -1827,6 +2170,441 @@ renderer.render(scene,camera);
   telemetry.lastDisplay=performance.now();
  }
 }
+
+// Workspace windows: pointer dragging + native CSS resize + minimize.
+const WINDOW_IDS=['toolbarWindow','toolsWindow','catalogWindow','paramsWindow','logWindow'];
+const WINDOW_NAMES=['Actions','Tools','Library','Parameters','Logs'];
+let highestZ=18;
+const safeStore=(name,value)=>{try{localStorage.setItem(name,value)}catch(e){}};
+const safeRead=name=>{try{return localStorage.getItem(name)}catch(e){return null}};
+function snapshotWindow(win){
+ if(win.id==='logWindow'&&!win.classList.contains('is-visible'))return;
+ const old=JSON.parse(safeRead('vehiclelab.windows.v1')||'{}');
+ old[win.id]={left:win.style.left,top:win.style.top,width:win.style.width,
+  height:win.style.height,min:win.classList.contains('is-minimized')};
+ safeStore('vehiclelab.windows.v1',JSON.stringify(old));
+}
+function setWindowVisible(id,show){
+ const win=$(id);if(!win)return;
+ if(id==='logWindow')win.classList.toggle('is-visible',show);
+ else win.style.display=show?'flex':'none';
+ if(show){win.classList.remove('is-minimized');win.style.zIndex=String(++highestZ)}
+ refreshWindowButtons();
+}
+function refreshWindowButtons(){
+ const root=$('windowButtons');root.replaceChildren();
+ WINDOW_IDS.forEach((id,i)=>{
+  const w=$(id),button=document.createElement('button');
+  const visible=id==='logWindow'?w.classList.contains('is-visible'):w.style.display!=='none';
+  button.textContent=WINDOW_NAMES[i];button.setAttribute('aria-pressed',String(visible));
+  button.onclick=()=>setWindowVisible(id,!visible);root.append(button);
+ });
+}
+function resetWorkspace(){safeStore('vehiclelab.windows.v1','{}');location.reload()}
+function initWorkspace(){
+ let saved={};try{saved=JSON.parse(safeRead('vehiclelab.windows.v1')||'{}')}catch(e){}
+ WINDOW_IDS.forEach(id=>{
+  const win=$(id),head=win.querySelector('.window-head');
+  const data=saved[id];
+  // Window coordinates stay within the current viewport after monitor changes.
+  if(data){
+   const width=clamp(parseFloat(data.width)||win.offsetWidth,190,innerWidth-8);
+   const height=clamp(parseFloat(data.height)||win.offsetHeight,36,innerHeight-8);
+   win.style.width=width+'px';win.style.height=height+'px';
+   win.style.left=clamp(parseFloat(data.left)||0,0,Math.max(0,innerWidth-72))+'px';
+   win.style.top=clamp(parseFloat(data.top)||0,0,Math.max(0,innerHeight-36))+'px';
+   win.style.right='auto';win.style.bottom='auto';
+   if(data.min)win.classList.add('is-minimized');
+  }
+  win.addEventListener('pointerdown',()=>win.style.zIndex=String(++highestZ));
+  head.querySelector('.minimize').onclick=()=>{
+    win.classList.toggle('is-minimized');snapshotWindow(win);
+  };
+  // Explicit resize handle works with touch and mouse; browser-native
+  // CSS resize is unreliable on mobile and does not always persist dimensions.
+  const grip=document.createElement('div');grip.className='resize-handle';
+  grip.title='Resize window';grip.setAttribute('aria-label','Resize '+id);
+  win.append(grip);
+  let resize=null;
+  grip.addEventListener('pointerdown',e=>{
+    if(win.classList.contains('is-minimized'))return;
+    e.preventDefault();e.stopPropagation();
+    const r=win.getBoundingClientRect();
+    resize={pointer:e.pointerId,x:e.clientX,y:e.clientY,w:r.width,h:r.height,l:r.left,t:r.top};
+    grip.setPointerCapture(e.pointerId);win.style.zIndex=String(++highestZ);
+  });
+  grip.addEventListener('pointermove',e=>{
+    if(!resize||resize.pointer!==e.pointerId)return;
+    win.style.width=clamp(resize.w+e.clientX-resize.x,190,Math.max(190,innerWidth-resize.l-8))+'px';
+    win.style.height=clamp(resize.h+e.clientY-resize.y,50,Math.max(50,innerHeight-resize.t-8))+'px';
+  });
+  for(const event of ['pointerup','pointercancel','lostpointercapture'])
+    grip.addEventListener(event,()=>{if(resize){resize=null;snapshotWindow(win)}});
+  let drag=null;
+  head.addEventListener('pointerdown',e=>{
+    if(e.button!==0||e.target.closest('button'))return;
+    const rect=win.getBoundingClientRect();
+    drag={x:e.clientX,y:e.clientY,left:rect.left,top:rect.top};
+    head.setPointerCapture(e.pointerId);win.style.zIndex=String(++highestZ);
+  });
+  head.addEventListener('pointermove',e=>{
+    if(!drag)return;
+    const x=clamp(drag.left+e.clientX-drag.x,0,innerWidth-72);
+    const y=clamp(drag.top+e.clientY-drag.y,0,innerHeight-36);
+    win.style.left=x+'px';win.style.top=y+'px';win.style.right='auto';win.style.bottom='auto';
+  });
+  const end=()=>{if(drag){drag=null;snapshotWindow(win)}};
+  head.addEventListener('pointerup',end);head.addEventListener('pointercancel',end);
+  new ResizeObserver(()=>{if(!drag&&!win.classList.contains('is-minimized'))snapshotWindow(win)}).observe(win);
+ });
+ refreshWindowButtons();
+}
+
+const THEME_STORAGE='vehiclelab.theme.v1';
+const defaultsTheme={theme:'dark',font:'system',size:1,accent:null,panel:null};
+let themeSettings={...defaultsTheme};
+const themes=['dark','light','graphite','amber'];
+const fonts=['system','mono','rounded'];
+const scales=[.85,1,1.15,1.3];
+const fontNames={system:'System',mono:'Monospace',rounded:'Rounded'};
+function applyTheme(){
+ document.body.dataset.theme=themeSettings.theme;
+ const faces={system:'system-ui,-apple-system,sans-serif',mono:'ui-monospace,SFMono-Regular,monospace',rounded:'ui-rounded,system-ui,sans-serif'};
+ document.documentElement.style.setProperty('--ui-font',faces[themeSettings.font]);
+ document.documentElement.style.setProperty('--ui-scale',String(themeSettings.size));
+ const palette={dark:['#a8f1c8','#152431'],light:['#147ab3','#e9f2f7'],
+  graphite:['#dedcdf','#25282e'],amber:['#ffbf68','#29241e']};
+ const [accent,panel]=palette[themeSettings.theme];
+ document.body.style.setProperty('--accent',themeSettings.accent||accent);
+ document.body.style.setProperty('--pane',(themeSettings.panel||panel)+'ee');
+ $('themeAccent').value=themeSettings.accent||accent;
+ $('themePanel').value=themeSettings.panel||panel;
+ safeStore(THEME_STORAGE,JSON.stringify(themeSettings));
+ for(const [id,items,selected,handler] of [
+  ['themeChoices',themes,themeSettings.theme,x=>themeSettings.theme=x],
+  ['fontChoices',fonts,themeSettings.font,x=>themeSettings.font=x],
+  ['fontSizeChoices',scales.map(String),String(themeSettings.size),x=>themeSettings.size=Number(x)]
+ ]){
+  const root=$(id);root.replaceChildren();
+  for(const item of items){
+   const button=document.createElement('button');button.type='button';
+   button.textContent=id==='fontChoices'?fontNames[item]:id==='fontSizeChoices'?Math.round(Number(item)*100)+'%':item;
+   button.setAttribute('aria-pressed',String(item===selected));
+   button.onclick=()=>{handler(item);applyTheme()};root.append(button);
+  }
+ }
+}
+function initTheme(){
+ try{const imported=JSON.parse(safeRead(THEME_STORAGE)||'{}');
+  if(themes.includes(imported.theme))themeSettings.theme=imported.theme;
+  if(fonts.includes(imported.font))themeSettings.font=imported.font;
+  if(scales.includes(imported.size))themeSettings.size=imported.size;
+  if(/^#[0-9a-fA-F]{6}$/.test(imported.accent||''))themeSettings.accent=imported.accent;
+  if(/^#[0-9a-fA-F]{6}$/.test(imported.panel||''))themeSettings.panel=imported.panel;
+ }catch(e){}applyTheme();
+}
+$('themeExport').onclick=()=>download(JSON.stringify({schema:'vehiclelab-theme/v1',...themeSettings},null,2),
+ 'vehiclelab-theme.json','application/json');
+$('themeImport').onclick=()=>$('themeFile').click();
+$('themeFile').onchange=async e=>{
+ try{const file=e.target.files[0];if(!file)return;const value=JSON.parse(await file.text());
+  if(value.schema!=='vehiclelab-theme/v1'||!themes.includes(value.theme)||
+   !fonts.includes(value.font)||!scales.includes(value.size)||
+   (value.accent!=null&&!/^#[0-9a-fA-F]{6}$/.test(value.accent))||
+   (value.panel!=null&&!/^#[0-9a-fA-F]{6}$/.test(value.panel)))throw Error('Invalid theme JSON');
+  themeSettings={theme:value.theme,font:value.font,size:value.size,
+   accent:value.accent||null,panel:value.panel||null};applyTheme();note('Theme imported.');
+ }catch(e){note(e.message,true)}e.target.value='';
+};
+for(const [id,field] of [['themeAccent','accent'],['themePanel','panel']]){
+ $(id).addEventListener('input',e=>{
+  if(/^#[0-9a-fA-F]{6}$/.test(e.target.value)){themeSettings[field]=e.target.value;applyTheme()}
+ });
+}
+$('resetWorkspace').onclick=resetWorkspace;
+$('workspaceExport').onclick=()=>{
+ let windows={};try{windows=JSON.parse(safeRead('vehiclelab.windows.v1')||'{}')}catch(e){}
+ download(JSON.stringify({schema:'vehiclelab-workspace/v1',windows},null,2),
+  'vehiclelab-workspace.json','application/json');
+};
+$('workspaceImport').onclick=()=>$('workspaceFile').click();
+$('workspaceFile').onchange=async e=>{
+ try{
+  const file=e.target.files?.[0];if(!file)return;
+  if(file.size>16384)throw Error('Workspace JSON exceeds 16 KiB');
+  const record=JSON.parse(await file.text());
+  if(record.schema!=='vehiclelab-workspace/v1'||!record.windows||
+   typeof record.windows!=='object'||Array.isArray(record.windows)||
+   Object.keys(record.windows).some(id=>!WINDOW_IDS.includes(id)))throw Error('Invalid workspace backup');
+  for(const entry of Object.values(record.windows)){
+   if(!entry||typeof entry!=='object'||typeof entry.min!=='boolean'||
+    ['left','top','width','height'].some(key=>typeof entry[key]!=='string'||
+      (entry[key]&&!/^\d+(\.\d+)?px$/.test(entry[key]))))throw Error('Invalid window coordinates');
+  }
+  safeStore('vehiclelab.windows.v1',JSON.stringify(record.windows));
+  note('Workspace imported. Reloading to apply window positions.');location.reload();
+ }catch(error){note(error.message,true)}e.target.value='';
+};
+$('openLogs').onclick=()=>{setWindowVisible('logWindow',true);showDrawer(null)};
+$('closeLogs').onclick=()=>setWindowVisible('logWindow',false);
+
+let currentDrawer=null;
+function showDrawer(name){
+ currentDrawer=name;$('drawerScrim').hidden=!name;
+ $('configDrawer').classList.toggle('is-open',name==='config');
+ $('profileDrawer').classList.toggle('is-open',name==='profile');
+}
+$('configRoundel').onclick=()=>showDrawer(currentDrawer==='config'?null:'config');
+$('profileRoundel').onclick=()=>showDrawer(currentDrawer==='profile'?null:'profile');
+$('drawerScrim').onclick=()=>showDrawer(null);
+document.querySelectorAll('.drawer-close').forEach(button=>button.onclick=()=>showDrawer(null));
+
+let displayedServerLogs=[];
+function renderLogs(){
+ const source=$('logScope').value,level=$('logLevel').value,root=$('logLines');
+ root.replaceChildren();
+ const entries=source==='client'?
+  appEvents.map(v=>`[${v.time}] [${v.level}] ${v.message}`):displayedServerLogs;
+ for(const line of entries){
+  const upper=line.toUpperCase();
+  const severity=/\b(ERROR|FAIL|CRITICAL)\b/.test(upper)?'error':
+   /\b(WARN|WARNING)\b/.test(upper)?'warn':'info';
+  if(level==='error'&&severity!=='error')continue;
+  if(level==='warn'&&severity==='info')continue;
+  const span=document.createElement('div');span.className='log-'+severity;
+  span.textContent=line;root.append(span);
+ }
+ root.scrollTop=root.scrollHeight;
+}
+async function refreshLogs(){
+ if($('logScope').value==='backend'){
+  if(!adminLogToken){note('Server logs require an administrator token. Open Configuration → Server logs.',true);return}
+  const response=await fetch('/api/admin/logs?limit=250',{
+   headers:{Authorization:'Bearer '+adminLogToken},cache:'no-store'});
+  const data=await response.json().catch(()=>({}));
+  if(!response.ok)throw Error(data.error||'Server logs unavailable');
+  displayedServerLogs=data.lines||[];
+ }renderLogs();
+}
+$('refreshLogs').onclick=()=>refreshLogs().catch(e=>note(e.message,true));
+$('logScope').onchange=()=>refreshLogs().catch(e=>note(e.message,true));
+$('logLevel').onchange=renderLogs;
+$('logFont').oninput=()=>$('logLines').style.fontSize=$('logFont').value+'px';
+$('copyLogs').onclick=()=>navigator.clipboard?.writeText($('logLines').innerText)
+ .then(()=>note('Visible logs copied.')).catch(e=>note(e.message,true));
+$('adminTokenForm').onsubmit=e=>{
+ e.preventDefault();adminLogToken=$('adminLogToken').value.trim();
+ $('adminLogToken').value='';$('logScope').value='backend';
+ showDrawer(null);setWindowVisible('logWindow',true);
+ void refreshLogs().catch(e=>note(e.message,true));
+};
+
+function authHeaders(){return {'Authorization':'Bearer '+guestToken}}
+async function identityRequest(path,method='GET',payload=null){
+ const form=payload instanceof FormData;
+ const response=await fetch(path,{method,cache:'no-store',credentials:'same-origin',
+  headers:{...authHeaders(),...(payload&&!form?{'Content-Type':'application/json'}:{})},
+  ...(payload?{body:form?payload:JSON.stringify(payload)}:{})});
+ const data=await response.json().catch(()=>({}));
+ if(!response.ok)throw Error(data.error||'Identity HTTP '+response.status);
+ return data;
+}
+function displayProfile(){
+ if(!activeProfile)return;
+ $('profileRoundel').replaceChildren();
+ if(activeProfile.avatar_url){const img=document.createElement('img');img.src=activeProfile.avatar_url+'?t='+Date.now();
+  img.alt='Profile picture';$('profileRoundel').append(img)}
+ else $('profileRoundel').textContent=(activeProfile.name||'?').slice(0,1).toUpperCase();
+ $('profileIdInfo').textContent=activeProfile.name+' · '+activeProfile.id+' · guest session';
+ $('profileName').value=activeProfile.name||'';$('profileBio').value=activeProfile.bio||'';
+ $('profileLink').value=activeProfile.links?.website||'';
+ $('profileEmail').value=activeProfile.email||'';$('profilePhone').value=activeProfile.phone||'';
+ $('serverSaveBtn').textContent='Save cloud';
+}
+async function setIdentity(token){
+ guestToken=token;
+ const data=await identityRequest('/api/identity/me');
+ activeProfile=data.profile;safeStore('vehiclelab.guest.v1',token);
+ displayProfile();$('welcomeOverlay').hidden=true;
+ await refreshServer().catch(e=>recordEvent('WARN',e.message));
+}
+async function postAvatar(file){
+ if(!file)return;
+ if(file.size>2*1024*1024)throw Error('Avatar exceeds 2 MB');
+ const upload=new FormData();upload.append('file',file,file.name);
+ const data=await identityRequest('/api/identity/avatar','POST',upload);
+ activeProfile=data.profile;displayProfile();
+}
+$('welcomeForm').onsubmit=async e=>{
+ e.preventDefault();const button=e.submitter;if(button)button.disabled=true;
+ try{
+  const name=$('welcomeName').value.trim();if(!name)throw Error('Enter a username');
+  const response=await fetch('/api/identity/guest',{
+   method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name})});
+  const data=await response.json();if(!response.ok)throw Error(data.error||'Guest creation failed');
+  await setIdentity(data.token);
+  if($('welcomeAvatar').files?.[0])await postAvatar($('welcomeAvatar').files[0]);
+  note('Guest profile ready. Export a profile backup to preserve access.');
+ }catch(e){note(e.message,true)}finally{if(button)button.disabled=false}
+};
+$('welcomeAvatar').onchange=e=>{
+ const file=e.target.files?.[0];if(!file)return;
+ $('welcomeAvatarPreview').hidden=false;
+ const objectURL=URL.createObjectURL(file);$('welcomeAvatarPreview').src=objectURL;
+ $('welcomeAvatarPreview').onload=()=>URL.revokeObjectURL(objectURL);
+};
+$('profileEditForm').onsubmit=async e=>{
+ e.preventDefault();if(!activeProfile){note('Create a guest profile first.',true);return}
+ try{
+  const data=await identityRequest('/api/identity/me','PUT',{
+   name:$('profileName').value,bio:$('profileBio').value,
+   email:$('profileEmail').value,phone:$('profilePhone').value,
+   links:$('profileLink').value?{website:$('profileLink').value}:{}
+  });
+  activeProfile=data.profile;
+  if($('avatarUpload').files?.[0])await postAvatar($('avatarUpload').files[0]);
+  displayProfile();note('Profile saved to SQLite.');
+ }catch(e){note(e.message,true)}
+};
+$('backupProfile').onclick=()=>{
+ if(!guestToken||!activeProfile){note('Create a profile first.',true);return}
+ download(JSON.stringify({schema:'vehiclelab-guest-backup/v1',id:activeProfile.id,
+  secret:guestToken,exportedAt:new Date().toISOString()},null,2),
+  'vehiclelab-profile-backup-PRIVATE.json','application/json');
+ note('PRIVATE backup exported. Whoever holds this file can access the guest identity.');
+};
+async function restoreProfileFile(file){
+ const value=JSON.parse(await file.text());
+ if(value.schema!=='vehiclelab-guest-backup/v1'||typeof value.secret!=='string'||
+  value.secret.length<40||typeof value.id!=='string')throw Error('Invalid profile backup');
+ // Verify the backup against the server before replacing the current profile.
+ // A mismatched ID must never persist an unrelated valid bearer secret.
+ const verified=await fetch('/api/identity/me',{cache:'no-store',
+  headers:{Authorization:'Bearer '+value.secret}});
+ const response=await verified.json().catch(()=>({}));
+ if(!verified.ok||response.profile?.id!==value.id)
+  throw Error('Backup identity does not match the server');
+ await setIdentity(value.secret);
+ note('Guest identity restored; cloud layouts available.');
+}
+$('restoreProfile').onclick=()=>$('profileBackupFile').click();
+$('welcomeImport').onclick=()=>$('profileBackupFile').click();
+$('profileBackupFile').onchange=async e=>{
+ try{const file=e.target.files?.[0];if(file)await restoreProfileFile(file)}
+ catch(error){note('Backup restoration failed: '+error.message,true)}
+ e.target.value='';
+};
+$('switchGuest').onclick=()=>{
+ if(!confirm('Switch away from this guest? Export your backup first or this device may lose access.'))return;
+ guestToken='';activeProfile=null;safeStore('vehiclelab.guest.v1','');
+ $('profileRoundel').textContent='?';$('welcomeOverlay').hidden=false;showDrawer(null);
+};
+async function initIdentity(){
+ const token=safeRead('vehiclelab.guest.v1');
+ if(token){
+  try{await setIdentity(token);return}catch(e){recordEvent('WARN','Existing guest session unavailable: '+e.message)}
+ }
+ if($('releaseOverlay').hidden)$('welcomeOverlay').hidden=false;
+}
+
+async function refreshGallery(){
+ const root=$('gallerySaved');root.replaceChildren();
+ try{
+  const response=await fetch('/api/gallery',{cache:'no-store'});
+  if(!response.ok)throw Error('Gallery API unavailable');
+  const {layouts}=await response.json();
+  for(const entry of layouts){
+   const btn=document.createElement('button');btn.className='full';
+   btn.textContent=entry.name+' · '+entry.creator_name;
+   btn.title='Published vehicle · '+new Date(entry.updated_at).toLocaleString();
+   btn.onclick=async()=>{
+    try{
+     const reply=await fetch('/api/gallery/'+encodeURIComponent(entry.id),{cache:'no-store'});
+     const body=await reply.json();if(!reply.ok)throw Error(body.error||'Gallery item unavailable');
+     const record=body.layout;
+     await loadLayout({...record.blueprint,name:record.name});
+     serverLayoutId=null;serverRevision=null;serverAssetId=null;serverAssetBlob=null;
+     if(record.asset_id){
+      const glb=await fetch('/api/gallery/'+encodeURIComponent(entry.id)+'/asset');
+      if(glb.ok)await loadGLB(await glb.blob(),'Published model.glb');
+     }
+     note('Viewing public vehicle by '+entry.creator_name+'. Save a copy to own it.');
+    }catch(e){note(e.message,true)}
+   };root.append(btn);
+  }
+  if(!layouts.length)root.textContent='No published vehicles yet.';
+ }catch(e){root.textContent=e.message;recordEvent('WARN',e.message)}
+}
+$('galleryRefreshBtn').onclick=refreshGallery;
+$('layoutPublic').onchange=()=>{serverVisibility=$('layoutPublic').checked?'public':'private'};
+
+const RELEASE_NOTES=[
+ {v:'0.2.5',date:'2026-11-08',title:'Full-stage workspace, profiles & physics fixes',items:[
+  '3D canvas fills the viewport; draggable, resizable, minimizable action, tool, library, parameter and log windows.',
+  'Profile/configuration drawers, guest UUID + secret recovery backups, private layouts and opt-in public gallery.',
+  'Rapier module URL repaired with CDN fallback, third Bullet/Ammo raycast vehicle, physics comparisons retained.',
+  'Theme/font size pills, theme JSON import/export, role-limited logs, provider model-list key diagnostics.',
+  'Release history shown for each new version; optional mail prerequisites checked without unsafe auto-configuration.']},
+ {v:'0.2.4',date:'2026-11-08',title:'Physics comparison',items:[
+  'Cannon-es and Rapier adapters with fixed-step benchmark, plus non-physics kinematic reference.',
+  'Grouped collapsible vehicle library and CSV benchmark export.']},
+ {v:'0.2.3',date:'2026-11-07',title:'Watcher diagnostics',items:[
+  'Colorized watcher results, per-release START/END banners and persistent logs.']},
+ {v:'0.2.2',date:'2026-11-07',title:'Flask deployment fix',items:[
+  'Corrected missing deploy module in server-side test environment.']},
+ {v:'0.2.0',date:'2026-11-07',title:'Flask & SQLite',items:[
+  'Added server-side blueprints, assets, revisions and deployment service.']}
+];
+function initReleaseHistory(){
+ const root=$('releaseHistory');
+ for(const record of RELEASE_NOTES){
+  const article=document.createElement('article'),h=document.createElement('h3');
+  h.textContent='v'+record.v+' · '+record.date+' · '+record.title;
+  const list=document.createElement('ul');
+  for(const item of record.items){const li=document.createElement('li');li.textContent=item;list.append(li)}
+  article.append(h,list);root.append(article);
+ }
+ if(safeRead('vehiclelab.seen.version')!==VERSION)$('releaseOverlay').hidden=false;
+}
+$('closeRelease').onclick=()=>{
+ safeStore('vehiclelab.seen.version',VERSION);
+ $('releaseOverlay').hidden=true;
+ if(!activeProfile)$('welcomeOverlay').hidden=false;
+};
+
+$('aiKeysForm').onsubmit=e=>{
+ e.preventDefault();const provider=$('providerChoice').value;
+ keys[provider]=$('providerKey').value.trim();
+ $('providerResult').textContent=keys[provider]?'Key in memory (not saved).':'No key provided.';
+ $('providerKey').value='';
+};
+$('providerChoice').onchange=()=>{$('providerKey').value='';$('providerResult').textContent='';};
+$('clearProviderKey').onclick=()=>{
+ const provider=$('providerChoice').value;keys[provider]='';$('providerKey').value='';
+ $('providerResult').textContent='Key forgotten.';
+};
+$('testProviderKey').onclick=async()=>{
+ const provider=$('providerChoice').value;
+ if(provider==='tripo'){$('providerResult').textContent='Tripo model-list endpoint is not verified; no request made.';return}
+ const key=$('providerKey').value.trim()||keys[provider];
+ if(!key){$('providerResult').textContent='Paste an API key first.';return}
+ if(!guestToken){$('providerResult').textContent='Create a guest identity before testing providers.';return}
+ $('providerResult').textContent='Checking provider model list…';
+ try{
+  const response=await fetch('/api/providers/test',{method:'POST',cache:'no-store',
+   headers:{'Content-Type':'application/json',...authHeaders()},
+   body:JSON.stringify({provider,key})});
+  const result=await response.json();if(!response.ok)throw Error(result.error||'Provider failed');
+  keys[provider]=key;$('providerKey').value='';
+  $('providerResult').textContent=result.count+' accessible models:\\n'+result.models.join(', ')+
+    (result.truncated?'\\n(first 50 shown)':'');
+  note(provider+' key tested against the model-list endpoint.');
+ }catch(e){$('providerResult').textContent=e.message;note(e.message,true)}
+};
+
+initWorkspace();initTheme();initReleaseHistory();
+void initIdentity();void refreshGallery();
+recordEvent('INFO','Vehicle Lab v'+VERSION+' initialized. Guest profile and backend status pending.');
 
 renderPresets();
 setupGUI();

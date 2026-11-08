@@ -48,4 +48,35 @@ class StorageTests(unittest.TestCase):
         with self.assertRaises(InvalidLayout):
             self.store.save_layout(identifier=str(uuid.uuid4()),name='x',blueprint=blueprint(),asset_id=str(uuid.uuid4()))
 
+    def test_guest_profiles_and_private_public_gallery(self):
+        import uuid
+        store=self.store
+        profile,secret=store.create_guest('Build Tester')
+        self.assertNotIn(secret,str(profile))
+        self.assertEqual(store.identity(secret)['id'],profile['id'])
+        self.assertIsNone(store.identity(secret+'x'))
+        other,other_secret=store.create_guest('Another Visitor')
+        profile=store.update_profile(profile['id'],{'name':'Builder','bio':'3D work',
+            'links':{'website':'https://example.com'},'email':'someone@example.com','phone':''})
+        self.assertEqual(profile['name'],'Builder')
+        ident=str(uuid.uuid4())
+        payload={'schema':'procedural-vehicle/v3','vehicle':{'name':'City Car'},
+                 'modules':{'front':{}},'occupants':1}
+        entry=store.user_save_layout(profile['id'],ident,'Private car',payload)
+        self.assertEqual(entry['visibility'],'private')
+        self.assertFalse(store.gallery())
+        self.assertIsNone(store.own_layout(other['id'],ident))
+        with self.assertRaises(Exception):
+            store.user_save_layout(other['id'],ident,'Hijack',payload,revision=1)
+        public=store.user_save_layout(profile['id'],ident,'Public car',payload,
+                                      visibility='public',revision=1)
+        self.assertEqual(public['revision'],2)
+        self.assertEqual(store.gallery()[0]['creator_name'],'Builder')
+        self.assertNotIn('someone@example.com',str(store.gallery()))
+        self.assertTrue(store.gallery_layout(ident))
+        with self.assertRaises(StaleLayout):
+            store.user_save_layout(profile['id'],ident,'Stale',payload,revision=1)
+        self.assertTrue(store.user_delete_layout(profile['id'],ident,2))
+        self.assertFalse(store.gallery())
+
 if __name__=='__main__':unittest.main()
