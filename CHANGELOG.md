@@ -1,3 +1,21 @@
+# v0.2.4 — Switchable physics and grouped vehicle library (2026-11-08)
+
+- Add selectable Cannon-es and Rapier WASM raycast-wheel physics, plus an explicitly non-physics kinematic reference.
+- Use the same 60 Hz timestep, wheels, chassis dimensions and polygonal terrain for engine tests; lazy-load Rapier.
+- Report physics-only step timings and FPS; offer a controlled 5–30 second driving benchmark and CSV export.
+- Replace the left flat vehicle list with collapsed lil-gui category folders, searchable presets and active selection.
+- Persist the chosen solver separately from geometric vehicle parameters in blueprint JSON / SQLite / IndexedDB.
+- Preserve existing Flask/SQLite backend, authentication, AI integration contracts, and watcher deployment mechanics.
+
+# v0.2.4 — Switchable physics and grouped vehicle library (2026-11-08)
+
+- Add selectable Cannon-es and Rapier WASM raycast-wheel physics, plus an explicitly non-physics kinematic reference.
+- Use the same 60 Hz timestep, wheels, chassis dimensions and polygonal terrain for engine tests; lazy-load Rapier.
+- Report physics-only step timings and FPS; offer a controlled 5–30 second driving benchmark and CSV export.
+- Replace the left flat vehicle list with collapsed lil-gui category folders, searchable presets and active selection.
+- Persist the chosen solver separately from geometric vehicle parameters in blueprint JSON / SQLite / IndexedDB.
+- Preserve existing Flask/SQLite backend, authentication, AI integration contracts, and watcher deployment mechanics.
+
 # v0.2.3 — Watcher release visibility and durable diagnostics (2026-11-07)
 
 - High-contrast terminal status, with red failed releases, green verified releases, and yellow origin-only partial outcomes. Release START/END banners include version, full date/time, duration, source ZIP, installed watcher build and exact log pathname.

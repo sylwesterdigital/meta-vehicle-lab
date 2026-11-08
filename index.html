@@ -5,7 +5,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Meta Vehicle Lab — Procedural Studio</title>
-  <meta name="vehicle-lab-version" content="0.2.3">
+  <meta name="vehicle-lab-version" content="0.2.4">
   <style>
     :root {
       color-scheme:dark;
@@ -43,6 +43,12 @@
     #hud p{font-size:11px;color:#b0c5cd;margin:5px 0}
     #speedHud{display:none;margin-top:14px;padding:10px 13px;width:max-content;border:1px solid #456474;background:#0c1b27da;border-radius:8px}
     #speed{font-size:30px;font-weight:800}
+    #physicsHud{margin-top:8px;border:1px solid #446879;border-radius:8px;padding:9px 11px;
+      background:#0c1b27e8;line-height:1.6;font:11px ui-monospace,SFMono-Regular,monospace;
+      max-width:260px;pointer-events:none}
+    #physicsHud strong{color:#a8f1c8}
+    #physicsHud .minor{color:#a8bdca}
+    #benchPanel{margin-top:7px;white-space:pre-line;max-width:280px}
     #status{position:absolute;left:16px;bottom:15px;max-width:50%;background:#0b1a27dc;border:1px solid #405c6d;border-radius:7px;padding:9px 11px;color:#bcd5da;font-size:11px;line-height:1.5;pointer-events:none}
     #joystick{display:none;position:absolute;bottom:65px;left:20px;width:120px;height:120px;border:2px solid #a4d7cf;border-radius:50%;background:#244454aa;touch-action:none}
     #knob{position:absolute;left:38px;top:38px;width:40px;height:40px;border-radius:50%;background:var(--accent);border:3px solid white;pointer-events:none}
@@ -60,8 +66,10 @@
      main{height:calc(100dvh - 56px);display:block;position:relative}
      aside{position:absolute;z-index:9;bottom:0;left:0;right:0;max-height:90px;overflow:auto;border-right:0;border-top:1px solid var(--line);padding:8px}
      aside h3,aside #search,aside #libraryInfo,aside #saved,aside #serverSaved{display:none}
-     #presets{display:flex;overflow:auto;white-space:nowrap;margin:0}
-     #presets button{width:auto;flex-shrink:0}
+     #presets{margin:0;min-width:250px}
+     #presets .lil-gui{--width:100%}
+     #physicsHud{font-size:10px;max-width:190px}
+     #catalog{max-height:120px}
      #stage{height:100%;padding-bottom:90px}
      #guiMount{right:6px;top:6px;max-height:calc(100% - 105px)}
      #guiMount .lil-gui{--width:250px}
@@ -80,6 +88,7 @@
     "three":"https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js",
     "three/addons/":"https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/",
     "cannon-es":"https://cdn.jsdelivr.net/npm/cannon-es@0.20.0/dist/cannon-es.js",
+    "@dimforge/rapier3d-compat":"https://cdn.jsdelivr.net/npm/@dimforge/rapier3d-compat@0.19.3/rapier.es.js",
     "lil-gui":"https://cdn.jsdelivr.net/npm/lil-gui@0.21.0/dist/lil-gui.esm.js"
   }
 }
@@ -90,7 +99,7 @@
   <header>
    <div class="brand">
     META VEHICLE LAB
-    <small>v0.2.0 · Procedural assembly · Physics · AI · Blueprint v3</small>
+    <small>v0.2.4 · Procedural assembly · Physics · AI · Blueprint v3</small>
   </div>
   <div class="actions">
     <button id="buildBtn" class="active">BUILD</button>
@@ -104,7 +113,7 @@
 </header>
 
 <main>
- <aside>
+ <aside id="catalog">
   <h3>Vehicles</h3>
   <input id="search" placeholder="Search vehicles">
   <div id="presets"></div>
@@ -124,6 +133,10 @@
    <strong id="vehicleName">City Car</strong>
    <p id="vehicleInfo">Procedural vehicle</p>
    <div id="speedHud"><strong id="speed">0</strong><div>km/h</div></div>
+   <div id="physicsHud"><strong id="engineName">Cannon-es</strong> · <span id="physicsMode">BUILD</span>
+     <div><span id="simFps">—</span> FPS · <span id="stepCost">—</span> ms/step · <span id="simSteps">0</span> steps/s</div>
+     <div class="minor" id="benchPanel">Run a 10 s drive test from Physics & camera for comparable results.</div>
+   </div>
  </div>
 
  <div id="status">Drag to orbit · Scroll to zoom · Select a vehicle type</div>
@@ -237,6 +250,13 @@
  let wheels=[],doorHinges=[],partGroups={},passengerFigures=[];
  let headMaterials=[],brakeMaterials=[],headlights=[];
  let physics=null,previousYaw=null;
+ const ENGINE_LABELS={cannon:'Cannon-es',rapier:'Rapier (WASM)',baseline:'Kinematic baseline (no physics)'};
+ const simulator={engine:'cannon',benchmarkSeconds:10};
+ const telemetry={frames:0,frameTime:0,stepCount:0,stepMs:0,lastDisplay:0,history:[],active:null};
+ let rapierModule=null,engineLoading=false,driveGeneration=0,stepAccumulator=0;
+ const FIXED_STEP=1/60;
+ const catalogExpanded=new Set();
+ let catalogGUI=null;
  let modelSource=null,modelBlob=null,modelName=null;
  let layoutId=null,gui=null,queued=false;
  let serverLayoutId=null,serverRevision=null,serverAssetId=null,serverAssetBlob=null;
@@ -350,7 +370,7 @@ for(let i=0;i<=N;i++){
 }
 for(let i=0;i<N;i++)for(let j=0;j<N;j++){
   const a=i*(N+1)+j,b=(i+1)*(N+1)+j;
-  indices.push(a,a+1,b,a+1,b+1,b);
+  indices.push(a,b,a+1,a+1,b,b+1);
 }
 
 const g=new THREE.BufferGeometry();
@@ -777,56 +797,232 @@ camera.position.add(orbit.target.clone().sub(before));
 orbit.update();
 }
 
-// Physics and driving.
-function enterDrive(){
- if(mode==='drive')return;
- mode='drive';previousYaw=null;
- $('buildBtn').classList.remove('active');
- $('driveBtn').classList.add('active');
- $('speedHud').style.display='block';
- $('joystick').style.display='block';
- $('brake').style.display='block';
- orbit.autoRotate=false;
+// Engine-agnostic drive adapters. Physics engines use their own raycast
+// controllers and the identical procedural chassis, wheel spacing and terrain.
+// The baseline is NOT a rigid-body engine; it measures non-physics overhead.
+const vehicleMass=()=>Math.max(650,cfg.L*cfg.W*cfg.H*145+occupants*75);
+const motorPower=()=>({electric:4500,petrol:3600,diesel:4900,hybrid:4000,hydrogen:4400}[cfg.engine]||4000);
+const wheelAxle=i=>Math.floor(i/2);
+const drivenWheel=i=>cfg.drive==='AWD'||
+ (cfg.drive==='FWD'&&wheelAxle(i)===0)||
+ (cfg.drive==='RWD'&&wheelAxle(i)===cfg.axles-1);
+const wheelZ=axle=>cfg.L*.38-axle*cfg.L*.76/Math.max(1,cfg.axles-1);
+const pose=(p,q,v)=>({position:p,rotation:q,velocity:v});
 
- if(highlight){highlight.dispose();scene.remove(highlight);highlight=null}
-
- const chassis=new CANNON.Body({
-  mass:Math.max(650,cfg.L*cfg.W*cfg.H*145+occupants*75),
+function makeCannonAdapter(){
+ const chassis=new CANNON.Body({mass:vehicleMass(),
   position:new CANNON.Vec3(0,heightAt(0,0)+cfg.radius+.85,0),
-  linearDamping:.13,angularDamping:.55
-});
+  linearDamping:.13,angularDamping:.55});
  chassis.addShape(new CANNON.Box(new CANNON.Vec3(
-  cfg.W*.44,Math.max(.23,cfg.H*.24),cfg.L*.44
-)),new CANNON.Vec3(0,-.07,0));
-
- const vehiclePhysics=new CANNON.RaycastVehicle({
-  chassisBody:chassis,indexRightAxis:0,indexUpAxis:1,indexForwardAxis:2
-});
- for(let axle=0;axle<cfg.axles;axle++){
-  const z=cfg.L*.38-axle*cfg.L*.76/(cfg.axles-1);
-  for(const side of [-1,1]){
-   vehiclePhysics.addWheel({
-    radius:cfg.radius,
-    directionLocal:new CANNON.Vec3(0,-1,0),
-    axleLocal:new CANNON.Vec3(1,0,0),
-    chassisConnectionPointLocal:new CANNON.Vec3(side*cfg.W*.54,-.3,z),
-    suspensionRestLength:.32,
-    suspensionStiffness:42,
-    dampingCompression:4.6,dampingRelaxation:2.8,
-    frictionSlip:5.4,maxSuspensionForce:150000,
-    maxSuspensionTravel:.3,rollInfluence:.045
+  cfg.W*.44,Math.max(.23,cfg.H*.24),cfg.L*.44)),
+  new CANNON.Vec3(0,-.07,0));
+ const vehicle=new CANNON.RaycastVehicle({chassisBody:chassis,
+   indexRightAxis:0,indexUpAxis:1,indexForwardAxis:2});
+ for(let axle=0;axle<cfg.axles;axle++)for(const side of [-1,1]){
+  vehicle.addWheel({
+   radius:cfg.radius,directionLocal:new CANNON.Vec3(0,-1,0),
+   axleLocal:new CANNON.Vec3(1,0,0),
+   chassisConnectionPointLocal:new CANNON.Vec3(side*cfg.W*.54,-.3,wheelZ(axle)),
+   suspensionRestLength:.32,suspensionStiffness:42,
+   dampingCompression:4.6,dampingRelaxation:2.8,
+   frictionSlip:5.4,maxSuspensionForce:150000,
+   maxSuspensionTravel:.3,rollInfluence:.045
   });
  }
+ vehicle.addToWorld(world);
+ return {
+  kind:'cannon',chassis,
+  getSpeed:()=>Math.hypot(chassis.velocity.x,chassis.velocity.z),
+  getForwardSpeed:()=>{
+   const direction=new CANNON.Vec3();
+   chassis.vectorToWorldFrame(new CANNON.Vec3(0,0,1),direction);
+   return chassis.velocity.dot(direction);
+  },
+  setMass:value=>{chassis.mass=value;chassis.updateMassProperties()},
+  step:(dt,input)=>{
+   const power=input.throttle*input.power;
+   for(let i=0;i<vehicle.wheelInfos.length;i++){
+    vehicle.applyEngineForce(drivenWheel(i)?-power:0,i);
+    vehicle.setSteeringValue(wheelAxle(i)===0?-input.steer*.47:0,i);
+    vehicle.setBrake(input.brake?400:0,i);
+   }
+   world.step(dt);
+  },
+  pose:()=>pose(chassis.position,chassis.quaternion,chassis.velocity),
+  syncWheels:()=>{
+   for(let i=0;i<wheels.length;i++){
+    vehicle.updateWheelTransform(i);
+    const t=vehicle.wheelInfos[i].worldTransform;
+    wheels[i].position.copy(t.position);
+    wheels[i].quaternion.copy(t.quaternion);
+   }
+  },
+  destroy:()=>vehicle.removeFromWorld(world)
+ };
 }
-vehiclePhysics.addToWorld(world);
-physics={chassis,vehicle:vehiclePhysics};
-for(const w of wheels)scene.attach(w);
- note('Drive: arrows to move and steer · Space to brake · Drag to orbit · Scroll/pinch to zoom');
+async function getRapier(){
+ if(!rapierModule){
+  const mod=await import('@dimforge/rapier3d-compat');
+  const R=mod.default||mod;
+  await R.init();
+  rapierModule=R;
+ }
+ return rapierModule;
+}
+async function makeRapierAdapter(){
+ const R=await getRapier();
+ const rw=new R.World({x:0,y:-9.82,z:0});
+ try{
+  // Reuse exact visible terrain triangles; don't substitute a flat collider.
+  const attr=terrain.geometry.getAttribute('position');
+  const positions=new Float32Array(attr.array);
+  const indices=new Uint32Array(terrain.geometry.index.array);
+  rw.createCollider(R.ColliderDesc.trimesh(positions,indices).setFriction(.85));
+  rw.integrationParameters.dt=FIXED_STEP;
+  const desc=R.RigidBodyDesc.dynamic()
+   .setTranslation(0,heightAt(0,0)+cfg.radius+.85,0)
+   .setLinearDamping(.13).setAngularDamping(.55);
+  const chassis=rw.createRigidBody(desc);
+  const hx=cfg.W*.44,hy=Math.max(.23,cfg.H*.24),hz=cfg.L*.44;
+  const originalMass=vehicleMass();
+  const density=originalMass/(8*hx*hy*hz);
+  const chassisCollider=rw.createCollider(R.ColliderDesc.cuboid(hx,hy,hz)
+   .setTranslation(0,-.07,0).setDensity(density).setFriction(.85),chassis);
+  const vehicle=rw.createVehicleController(chassis);
+  vehicle.indexUpAxis=1;
+  vehicle.setIndexForwardAxis=2; // This is a documented JS setter name.
+  for(let axle=0;axle<cfg.axles;axle++)for(const side of [-1,1]){
+   const i=vehicle.numWheels();
+   vehicle.addWheel({x:side*cfg.W*.54,y:-.3,z:wheelZ(axle)},
+       {x:0,y:-1,z:0},{x:1,y:0,z:0},.32,cfg.radius);
+   vehicle.setWheelSuspensionStiffness(i,42);
+   vehicle.setWheelSuspensionCompression(i,4.6);
+   vehicle.setWheelSuspensionRelaxation(i,2.8);
+   vehicle.setWheelFrictionSlip(i,5.4);
+   vehicle.setWheelMaxSuspensionTravel(i,.3);
+   vehicle.setWheelMaxSuspensionForce(i,150000);
+  }
+  const adapter={
+   kind:'rapier',chassis,
+   getSpeed:()=>{const v=chassis.linvel();return Math.hypot(v.x,v.z)},
+   getForwardSpeed:()=>{
+    const q=chassis.rotation(),v=chassis.linvel();
+    const forward=new THREE.Vector3(0,0,1).applyQuaternion(
+      new THREE.Quaternion(q.x,q.y,q.z,q.w));
+    return forward.x*v.x+forward.y*v.y+forward.z*v.z;
+   },
+   setMass:value=>{
+    // Scale the same collider density, preserving geometry and center of mass.
+    chassisCollider.setDensity(density*value/originalMass);
+   },
+   step:(dt,input)=>{
+    rw.integrationParameters.dt=dt;
+    for(let i=0;i<vehicle.numWheels();i++){
+     vehicle.setWheelEngineForce(i,drivenWheel(i)?input.throttle*input.power:0);
+     vehicle.setWheelSteering(i,wheelAxle(i)===0?-input.steer*.47:0);
+     vehicle.setWheelBrake(i,input.brake?400:0);
+    }
+    vehicle.updateVehicle(dt,R.QueryFilterFlags.EXCLUDE_DYNAMIC);
+    rw.step();
+   },
+   pose:()=>pose(chassis.translation(),chassis.rotation(),chassis.linvel()),
+   syncWheels:()=>{
+    const q=chassis.rotation();
+    const quat=new THREE.Quaternion(q.x,q.y,q.z,q.w);
+    const downward=new THREE.Vector3(0,-1,0).applyQuaternion(quat);
+    for(let i=0;i<wheels.length;i++){
+     const t=vehicle.wheelHardPoint(i);
+     if(!t)continue;
+     wheels[i].position.set(t.x,t.y,t.z).addScaledVector(
+       downward,vehicle.wheelSuspensionLength(i)??.32);
+     const steering=wheelAxle(i)===0?vehicle.wheelSteering(i):0;
+     wheels[i].quaternion.copy(quat).multiply(
+      new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,1,0),steering))
+      .multiply(new THREE.Quaternion().setFromAxisAngle(
+        new THREE.Vector3(1,0,0),vehicle.wheelRotation(i)||0));
+    }
+   },
+   destroy:()=>{rw.removeVehicleController(vehicle);rw.free();}
+  };
+  return adapter;
+ }catch(e){rw.free();throw e}
+}
+function makeBaselineAdapter(){
+ let x=0,z=0,yaw=0,speed=0;
+ let y=heightAt(x,z)+cfg.radius+.65;
+ let wheelSpin=0;
+ const chassis={};
+ return {
+  kind:'baseline',chassis,
+  getSpeed:()=>Math.abs(speed),getForwardSpeed:()=>speed,
+  setMass:()=>{},
+  step:(dt,input)=>{
+   const target=input.throttle*cfg.maxSpeed/3.6;
+   speed+=(target-speed)*Math.min(1,dt*(input.brake?12:1.3));
+   if(input.brake)speed*=Math.max(0,1-dt*9);
+   yaw+=input.steer*speed*dt*.11;
+   x+=Math.sin(yaw)*speed*dt;
+   z+=Math.cos(yaw)*speed*dt;
+   x=clamp(x,-SIZE/2+1,SIZE/2-1);
+   z=clamp(z,-SIZE/2+1,SIZE/2-1);
+   y=heightAt(x,z)+cfg.radius+.65;
+   wheelSpin+=speed*dt/cfg.radius;
+  },
+  pose:()=>pose({x,y,z},{x:0,y:Math.sin(yaw/2),z:0,w:Math.cos(yaw/2)},
+      {x:Math.sin(yaw)*speed,y:0,z:Math.cos(yaw)*speed}),
+  syncWheels:()=>{
+   const q=new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,1,0),yaw);
+   for(let i=0;i<wheels.length;i++){
+    const p=new THREE.Vector3((i%2===0?-1:1)*cfg.W*.54,-.3,wheelZ(wheelAxle(i)))
+      .applyQuaternion(q);
+    wheels[i].position.set(x+p.x,y+p.y,z+p.z);
+    wheels[i].quaternion.copy(q).multiply(new THREE.Quaternion()
+      .setFromAxisAngle(new THREE.Vector3(1,0,0),wheelSpin));
+   }
+  },
+  destroy:()=>{}
+ };
+}
+function updatePhysicsHud(){
+ $('engineName').textContent=ENGINE_LABELS[simulator.engine];
+ $('physicsMode').textContent=mode==='drive'?'DRIVE':'BUILD';
+}
+async function enterDrive(){
+ if(mode==='drive'||engineLoading)return;
+ const generation=++driveGeneration;
+ engineLoading=true;
+ $('driveBtn').disabled=true;
+ note('Initialising '+ENGINE_LABELS[simulator.engine]+'…');
+ try{
+  const adapter=simulator.engine==='rapier'?await makeRapierAdapter():
+    simulator.engine==='baseline'?makeBaselineAdapter():makeCannonAdapter();
+  // A stale asynchronous Rapier load must not reactivate a dismissed drive.
+  if(generation!==driveGeneration){adapter.destroy();return}
+  physics=adapter;stepAccumulator=0;previousYaw=null;mode='drive';
+  $('buildBtn').classList.remove('active');
+  $('driveBtn').classList.add('active');
+  $('speedHud').style.display='block';
+  $('joystick').style.display='block';
+  $('brake').style.display='block';
+  orbit.autoRotate=false;
+  if(highlight){highlight.dispose();scene.remove(highlight);highlight=null}
+  for(const w of wheels)scene.attach(w);
+  telemetry.stepCount=0;telemetry.stepMs=0;
+  updatePhysicsHud();
+  note(ENGINE_LABELS[simulator.engine]+': arrows / joystick to drive · Space / touch to brake · Orbit / pinch to follow');
+ }catch(e){
+  physics=null;note('Physics backend failed: '+e.message+' — select Cannon-es or retry.',true);
+  console.error('Vehicle physics initialisation failed',e);
+ }finally{
+  engineLoading=false;$('driveBtn').disabled=false;
+ }
 }
 function leaveDrive(){
+ ++driveGeneration;
  if(mode!=='drive')return;
- physics?.vehicle.removeFromWorld(world);
- physics=null;mode='build';previousYaw=null;braking=false;
+ if(telemetry.active)finishBenchmark('stopped');
+ try{physics?.destroy()}catch(e){console.warn('Physics cleanup',e)}
+ physics=null;mode='build';stepAccumulator=0;previousYaw=null;braking=false;
  $('buildBtn').classList.add('active');
  $('driveBtn').classList.remove('active');
  $('speedHud').style.display='none';
@@ -834,7 +1030,7 @@ function leaveDrive(){
  $('brake').style.display='none';
  $('speed').textContent='0';
  orbit.autoRotate=autoRotate;
- buildVehicle();resetCamera();
+ buildVehicle();resetCamera();updatePhysicsHud();
 }
 const held=new Set();
 const joystick={x:0,y:0,active:false};
@@ -843,7 +1039,7 @@ window.addEventListener('keydown',e=>{
  if(['INPUT','TEXTAREA','SELECT'].includes(document.activeElement?.tagName))return;
  if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(e.code)){
   held.add(e.code);e.preventDefault();
-}
+ }
 });
 window.addEventListener('keyup',e=>held.delete(e.code));
 window.addEventListener('blur',()=>{
@@ -871,60 +1067,108 @@ stick.addEventListener('pointermove',e=>{
 });
 for(const event of ['pointerup','pointercancel','lostpointercapture'])
  stick.addEventListener(event,releaseStick);
-
 $('brake').addEventListener('pointerdown',e=>{
  touchBrake=true;$('brake').setPointerCapture(e.pointerId);
 });
 for(const event of ['pointerup','pointercancel','lostpointercapture'])
  $('brake').addEventListener(event,()=>touchBrake=false);
 
+function inputForStep(){
+ const active=telemetry.active;
+ if(active){
+  const t=active.simulated;
+  return {throttle:t<active.duration*.75?.85:0,
+   steer:t>active.duration*.25&&t<active.duration*.65?.25:0,
+   brake:t>=active.duration*.75};
+ }
+ return {throttle:clamp((held.has('ArrowUp')?1:0)-
+     (held.has('ArrowDown')?1:0)-joystick.y,-1,1),
+  steer:clamp((held.has('ArrowRight')?1:0)-
+     (held.has('ArrowLeft')?1:0)+joystick.x,-1,1),
+  brake:touchBrake||held.has('Space')};
+}
 function stepVehicle(dt){
  if(!physics)return;
- const {chassis,vehicle}=physics;
- const throttle=clamp(
-  (held.has('ArrowUp')?1:0)-(held.has('ArrowDown')?1:0)-joystick.y,-1,1
-);
- const steer=clamp(
-  (held.has('ArrowRight')?1:0)-(held.has('ArrowLeft')?1:0)+joystick.x,-1,1
-);
- const forward=new CANNON.Vec3();
- chassis.vectorToWorldFrame(new CANNON.Vec3(0,0,1),forward);
- const forwardSpeed=chassis.velocity.dot(forward);
- const speed=Math.hypot(chassis.velocity.x,chassis.velocity.z)*3.6;
-
- braking=touchBrake||held.has('Space')||
- (throttle>.2&&forwardSpeed<-.7)||
- (throttle<-.2&&forwardSpeed>.7);
-
- const powers={electric:4500,petrol:3600,diesel:4900,hybrid:4000,hydrogen:4400};
- const force=speed>cfg.maxSpeed&&throttle*forwardSpeed>=0?
- 0:-throttle*(powers[cfg.engine]||4000);
-
- for(let i=0;i<vehicle.wheelInfos.length;i++){
-  const axle=Math.floor(i/2);
-  const driven=cfg.drive==='AWD'||
-  (cfg.drive==='FWD'&&axle===0)||
-  (cfg.drive==='RWD'&&axle===cfg.axles-1);
-  vehicle.applyEngineForce(driven?force:0,i);
-  vehicle.setSteeringValue(axle===0?-steer*.47:0,i);
-  vehicle.setBrake(braking?400:0,i);
+ stepAccumulator=Math.min(stepAccumulator+dt,.18);
+ let steps=0;
+ while(stepAccumulator>=FIXED_STEP&&steps<5){
+  const input=inputForStep();
+  const forwardSpeed=physics.getForwardSpeed();
+  braking=input.brake||
+    (input.throttle>.2&&forwardSpeed<-.7)||
+    (input.throttle<-.2&&forwardSpeed>.7);
+  const kmh=physics.getSpeed()*3.6;
+  const power=kmh>cfg.maxSpeed&&input.throttle*forwardSpeed>=0?0:motorPower();
+  const begin=performance.now();
+  try{physics.step(FIXED_STEP,{...input,brake:braking,power})}
+  catch(e){note(ENGINE_LABELS[simulator.engine]+' failed: '+e.message,true);
+   console.error(e);leaveDrive();return}
+  const ms=performance.now()-begin;
+  telemetry.stepCount++;telemetry.stepMs+=ms;
+  if(telemetry.active){
+   telemetry.active.samples.push(ms);
+   telemetry.active.simulated+=FIXED_STEP;
+  }
+  stepAccumulator-=FIXED_STEP;steps++;
+  if(telemetry.active&&telemetry.active.simulated>=telemetry.active.duration){
+    finishBenchmark('completed');break;
+  }
+ }
+ if(!physics)return;
+ const p=physics.pose();
+ car.position.set(p.position.x,p.position.y,p.position.z);
+ car.quaternion.set(p.rotation.x,p.rotation.y,p.rotation.z,p.rotation.w);
+ physics.syncWheels();
+ updateLights();followCamera(dt);
+ $('speed').textContent=String(Math.round(physics.getSpeed()*3.6));
 }
-world.step(1/60,dt,5);
-car.position.set(chassis.position.x,chassis.position.y,chassis.position.z);
-car.quaternion.set(chassis.quaternion.x,chassis.quaternion.y,
-  chassis.quaternion.z,chassis.quaternion.w);
-
-for(let i=0;i<wheels.length;i++){
-  vehicle.updateWheelTransform(i);
-  const w=vehicle.wheelInfos[i].worldTransform;
-  wheels[i].position.set(w.position.x,w.position.y,w.position.z);
-  wheels[i].quaternion.set(w.quaternion.x,w.quaternion.y,
-   w.quaternion.z,w.quaternion.w);
+function startBenchmark(){
+ if(engineLoading)return;
+ const run=async()=>{
+  if(mode==='drive')leaveDrive();
+  await enterDrive();
+  if(!physics)return;
+  telemetry.active={engine:simulator.engine,vehicle:cfg.name,
+   duration:simulator.benchmarkSeconds,simulated:0,samples:[],
+   started:performance.now(),frameCount:telemetry.frames};
+  $('benchPanel').textContent='Controlled drive running: '+simulator.benchmarkSeconds+' simulation seconds…';
+  note('Benchmark: fixed 60 Hz, matching scripted throttle / steering / braking.');
+ };
+ run().catch(e=>note('Benchmark: '+e.message,true));
 }
-updateLights();followCamera(dt);
-$('speed').textContent=String(Math.round(speed));
+function finishBenchmark(result){
+ const t=telemetry.active;
+ if(!t)return;
+ telemetry.active=null;
+ if(result!=='completed'){
+  $('benchPanel').textContent='Benchmark stopped; no result recorded.';return;
+ }
+ const values=t.samples.slice().sort((a,b)=>a-b);
+ const mean=values.reduce((sum,n)=>sum+n,0)/Math.max(1,values.length);
+ const median=values[Math.floor((values.length-1)*.50)]||0;
+ const p95=values[Math.floor((values.length-1)*.95)]||0;
+ const measured=performance.now()-t.started;
+ const resultRow={date:new Date().toISOString(),vehicle:t.vehicle,
+  engine:t.engine,seconds:t.duration,steps:values.length,
+  meanMs:mean,p50Ms:median,p95Ms:p95,
+  wallMs:measured};
+ telemetry.history.push(resultRow);
+ $('benchPanel').textContent=
+  `Last test: ${ENGINE_LABELS[t.engine]} · ${values.length} steps
+`+
+  `step mean ${mean.toFixed(3)} ms | p95 ${p95.toFixed(3)} ms
+`+
+  `${telemetry.history.length} tests · Export CSV in Physics & camera`;
+ note('Benchmark complete: '+ENGINE_LABELS[t.engine]+' · '+values.length+
+  ' steps · physics p95 '+p95.toFixed(3)+' ms.');
 }
-
+function exportBenchmarks(){
+ if(!telemetry.history.length){note('Run a benchmark before exporting CSV.',true);return}
+ const fields=['date','vehicle','engine','seconds','steps','meanMs','p50Ms','p95Ms','wallMs'];
+ const csv=[fields.join(','),...telemetry.history.map(record=>fields.map(key=>
+  '"'+String(record[key]).replaceAll('"','""')+'"').join(','))].join('\n');
+ download(csv,'vehicle-physics-benchmarks.csv','text/csv');
+}
 // IndexedDB local layout library.
 const DB_NAME='procedural-vehicle-studio';
 const STORE='layouts';
@@ -961,6 +1205,7 @@ req.onerror=()=>reject(req.error);
     orientation:'Y up; +Z forward',
     vehicle:structuredClone(cfg),
     modules:structuredClone(mods),
+    simulation:{backend:simulator.engine,fixedStepHz:60},
     occupants,
     modelName,
     note:'Imported GLB binary is not embedded in JSON. IndexedDB layout saves retain it.'
@@ -1007,6 +1252,9 @@ async function loadLayout(item){
  serverLayoutId=null;serverRevision=null;serverAssetId=null;serverAssetBlob=null;
  if(mode==='drive')leaveDrive();
  cfg={...structuredClone(defaults),...item.vehicle};
+ if(item.simulation && ENGINE_LABELS[item.simulation.backend])
+  simulator.engine=item.simulation.backend;
+ updatePhysicsHud();
  cfg.axles=clamp(Math.round(Number(cfg.axles)||2),2,6);
  cfg.seats=clamp(Math.round(Number(cfg.seats)||1),1,48);
  cfg.windows=clamp(Math.round(Number(cfg.windows)||1),1,14);
@@ -1128,6 +1376,9 @@ $('importJSON').onchange=async e=>{
    throw Error('Unsupported blueprint schema');
  if(mode==='drive')leaveDrive();
  cfg={...structuredClone(defaults),...(data.vehicle||data.config||{})};
+ if(data.simulation&&ENGINE_LABELS[data.simulation.backend])
+   simulator.engine=data.simulation.backend;
+ updatePhysicsHud();
  if(!Number.isFinite(cfg.L)||!Number.isFinite(cfg.W)||!Number.isFinite(cfg.H)||!Number.isFinite(cfg.radius))throw Error('Invalid vehicle dimensions');
  cfg.L=clamp(cfg.L,2.5,18);cfg.W=clamp(cfg.W,1.2,5);cfg.H=clamp(cfg.H,1.1,7);cfg.radius=clamp(cfg.radius,.24,1.5);
  mods=defaultMods();
@@ -1345,6 +1596,20 @@ folder.close();
 }
 
 const driving=gui.addFolder('07 · Physics & camera');
+ driving.add(simulator,'engine',{
+   'Cannon-es · raycast vehicle':'cannon',
+   'Rapier WASM · raycast vehicle':'rapier',
+   'Kinematic reference · no physics':'baseline'
+ }).name('Solver').onChange(()=>{
+   const wasDriving=mode==='drive';
+   if(wasDriving)leaveDrive();
+   updatePhysicsHud();
+   note('Selected '+ENGINE_LABELS[simulator.engine]+'.');
+   if(wasDriving)void enterDrive();
+ });
+ driving.add(simulator,'benchmarkSeconds',5,30,5).name('Test length (s)');
+ driving.add({run:()=>startBenchmark()},'run').name('Run controlled drive test');
+ driving.add({csv:exportBenchmarks},'csv').name('Export benchmark CSV');
 driving.add(cfg,'maxSpeed',15,180,5).name('Max speed km/h');
 driving.add(cfg,'cameraDistance',3,65,.5).name('Camera distance')
 .onChange(value=>{
@@ -1423,40 +1688,49 @@ serverFolder.close();
  // All module and settings folders start collapsed.
 }
 
+// The left library is also lil-gui. Category visibility survives selection,
+// searching opens matching groups, and the active preset receives a clear mark.
 function renderPresets(){
- const root=$('presets');root.replaceChildren();
- const search=$('search').value.toLowerCase();
- let lastCategory='';
- for(const p of PRESETS){
-  if(!p.name.toLowerCase().includes(search))continue;
-  if(lastCategory!==p.category){
-   lastCategory=p.category;
-   const h=document.createElement('h3');
-   h.textContent=p.category;root.append(h);
+ const root=$('presets');
+ if(catalogGUI)catalogGUI.destroy();
+ root.replaceChildren();
+ catalogGUI=new GUI({container:root,title:'VEHICLE LIBRARY',width:175});
+ const search=$('search').value.trim().toLowerCase();
+ const categories=[...new Set(PRESETS.map(p=>p.category))];
+ let count=0;
+ for(const category of categories){
+   const matches=PRESETS.filter(p=>p.category===category &&
+       (!search || p.name.toLowerCase().includes(search) || category.toLowerCase().includes(search)));
+   if(!matches.length)continue;
+   count+=matches.length;
+   const folder=catalogGUI.addFolder(`${category} (${matches.length})`);
+   for(const preset of matches){
+     const title=preset.name;
+     const ctl=folder.add({open:()=>choosePreset(preset)},'open')
+       .name(`${title} · ${preset.axles*2}W`);
+     if(preset.name===cfg.name)ctl.domElement.classList.add('preset-selected');
+   }
+   if(search || catalogExpanded.has(category))folder.open();else folder.close();
+   folder.onOpenClose(()=>{
+     if(folder._closed)catalogExpanded.delete(category);else catalogExpanded.add(category);
+   });
  }
- const b=document.createElement('button');
- b.textContent=p.name;
- b.className=p.name===cfg.name?'active':'';
- const small=document.createElement('small');
- small.textContent=p.axles*2+'W';
- b.append(small);
- b.onclick=()=>{
-   if(mode==='drive')leaveDrive();
-   const appearance=Object.fromEntries(
-    ['paint','glass','roughness','metalness','glassOpacity',
-     'glassRoughness','pattern','seed','headlights',
-     'rearWindow','maxSpeed','cameraDistance','hills']
-     .map(key=>[key,cfg[key]])
-   );
-   cfg={...structuredClone(defaults),...p,...appearance};
-   mods=defaultMods();occupants=cfg.seats;
-   modelSource=null;modelBlob=null;modelName=null;
-   layoutId=null;doorsOpen=false;
-   serverLayoutId=null;serverRevision=null;serverAssetId=null;serverAssetBlob=null;
-   renderPresets();setupGUI();buildVehicle();resetCamera();
- };
- root.append(b);
+ if(!count)note('No vehicle types match this search.');
 }
+function choosePreset(p){
+ if(mode==='drive')leaveDrive();
+ const appearance=Object.fromEntries(
+  ['paint','glass','roughness','metalness','glassOpacity','glassRoughness',
+   'pattern','seed','headlights','rearWindow','maxSpeed','cameraDistance','hills']
+   .map(key=>[key,cfg[key]])
+ );
+ cfg={...structuredClone(defaults),...p,...appearance};
+ mods=defaultMods();occupants=cfg.seats;
+ modelSource=null;modelBlob=null;modelName=null;
+ layoutId=null;doorsOpen=false;
+ serverLayoutId=null;serverRevision=null;serverAssetId=null;serverAssetBlob=null;
+ catalogExpanded.add(p.category);
+ renderPresets();setupGUI();buildVehicle();resetCamera();
 }
 
 function updateLightsButton(){
@@ -1484,16 +1758,12 @@ $('doorsBtn').onclick=()=>{
 $('doorsBtn').textContent=doorsOpen?'Close doors':'Open doors';
 };
 function board(delta){
- if(mode==='drive'&&physics&&
-  Math.hypot(physics.chassis.velocity.x,physics.chassis.velocity.z)>.3){
+ if(mode==='drive'&&physics&&physics.getSpeed()>.3){
   note('Stop the vehicle before boarding or exiting.',true);return;
 }
 occupants=clamp(occupants+delta,0,cfg.seats);
 for(let i=0;i<passengerFigures.length;i++)passengerFigures[i].visible=i<occupants;
-if(physics){
- physics.chassis.mass=Math.max(650,cfg.L*cfg.W*cfg.H*145+occupants*75);
- physics.chassis.updateMassProperties();
-}
+if(physics)physics.setMass(vehicleMass());
 note(`${occupants}/${cfg.seats} passengers onboard`);
 }
 $('boardBtn').onclick=()=>board(1);
@@ -1535,7 +1805,10 @@ new ResizeObserver(()=>{
 const clock=new THREE.Clock();
 function animate(){
  requestAnimationFrame(animate);
- const dt=Math.min(clock.getDelta(),.05);
+ const frameDelta=clock.getDelta();
+ const dt=Math.min(frameDelta,.05);
+ telemetry.frames++;
+ telemetry.frameTime+=frameDelta;
  if(mode==='drive')stepVehicle(dt);
  else{
   orbit.autoRotate=autoRotate;
@@ -1543,6 +1816,16 @@ function animate(){
   highlight?.update();
 }
 renderer.render(scene,camera);
+ if(performance.now()-telemetry.lastDisplay>=1000){
+  const fps=telemetry.frameTime>0?telemetry.frames/telemetry.frameTime:0;
+  $('simFps').textContent=fps.toFixed(0);
+  $('stepCost').textContent=telemetry.stepCount?
+   (telemetry.stepMs/telemetry.stepCount).toFixed(3):'—';
+  $('simSteps').textContent=String(telemetry.stepCount);
+  telemetry.frames=0;telemetry.frameTime=0;
+  telemetry.stepCount=0;telemetry.stepMs=0;
+  telemetry.lastDisplay=performance.now();
+ }
 }
 
 renderPresets();

@@ -1,3 +1,31 @@
+# Meta Vehicle Lab — physics comparison v0.2.4
+
+**Vehicle library:** the left catalog is now nested lil-gui folders (Urban, Emergency, Municipal, Industrial, Micromobility, Robotics, Construction, Agriculture, Mining). Search automatically opens matching categories; selecting a preset preserves the current paint and chosen physics engine.
+
+**Physics & camera → Solver:** choose Cannon-es 0.20.0 or Rapier WASM 0.19.3 to use their respective 3D raycast vehicle controllers. The third mode, *Kinematic reference*, is a lightweight non-physics baseline, **not a third engine**. Physics modules share the same procedural chassis dimensions, number/placement of wheels, terrain mesh and 60 Hz fixed time step. Rapier is downloaded and initialized only when first selected for driving (requires internet for the pinned CDN). Switching solvers while driving restarts the physics test at the origin. Tire tuning and the solvers differ, so behavior is not meant to be physically identical.
+
+**Performance:** Physics & camera → Run controlled drive test runs the same throttle, steering and braking sequence for the configured 5–30 seconds of simulation time. The HUD shows frames/s, physics ms/step, and steps/s. A completed test records mean, p50 and p95 physics-step time and wall-clock duration. Use Export benchmark CSV to compare runs. Performance values are measured in the browser on the current hardware; not server benchmarks or proof of engine superiority. In particular, the non-physics reference is not directly comparable for simulation fidelity.
+
+**Blueprints:** the `procedural-vehicle/v3` blueprint retains module data and adds `simulation: {backend, fixedStepHz}`. Older exports without this field remain compatible. SQLite/IndexedDB saves and Git/SSH deployment remain unchanged; benchmark results live only in the active tab until CSV export.
+
+**Known limitations:** This is a single-vehicle visual/physics prototype. Imported GLBs remain visual replacements only, equipment articulation is mocked, and vehicle types with tracks or two wheels are simplified to wheel-based chassis. Live driving with Rapier needs browser acceptance testing after deployment.
+
+---
+
+# Meta Vehicle Lab — physics comparison v0.2.4
+
+**Vehicle library:** the left catalog is now nested lil-gui folders (Urban, Emergency, Municipal, Industrial, Micromobility, Robotics, Construction, Agriculture, Mining). Search automatically opens matching categories; selecting a preset preserves the current paint and chosen physics engine.
+
+**Physics & camera → Solver:** choose Cannon-es 0.20.0 or Rapier WASM 0.19.3 to use their respective 3D raycast vehicle controllers. The third mode, *Kinematic reference*, is a lightweight non-physics baseline, **not a third engine**. Physics modules share the same procedural chassis dimensions, number/placement of wheels, terrain mesh and 60 Hz fixed time step. Rapier is downloaded and initialized only when first selected for driving (requires internet for the pinned CDN). Switching solvers while driving restarts the physics test at the origin. Tire tuning and the solvers differ, so behavior is not meant to be physically identical.
+
+**Performance:** Physics & camera → Run controlled drive test runs the same throttle, steering and braking sequence for the configured 5–30 seconds of simulation time. The HUD shows frames/s, physics ms/step, and steps/s. A completed test records mean, p50 and p95 physics-step time and wall-clock duration. Use Export benchmark CSV to compare runs. Performance values are measured in the browser on the current hardware; not server benchmarks or proof of engine superiority. In particular, the non-physics reference is not directly comparable for simulation fidelity.
+
+**Blueprints:** the `procedural-vehicle/v3` blueprint retains module data and adds `simulation: {backend, fixedStepHz}`. Older exports without this field remain compatible. SQLite/IndexedDB saves and Git/SSH deployment remain unchanged; benchmark results live only in the active tab until CSV export.
+
+**Known limitations:** This is a single-vehicle visual/physics prototype. Imported GLBs remain visual replacements only, equipment articulation is mocked, and vehicle types with tracks or two wheels are simplified to wheel-based chassis. Live driving with Rapier needs browser acceptance testing after deployment.
+
+---
+
 > **v0.2.3 watcher:** Terminal displays high-contrast colored START/END release banners, version/date/time, detailed phase timings and an exact log file path. `./watcher-meta-vehicle.sh --logs` lists the newest complete logs, `--tail` shows the last 100 lines, `--verbose` prints commands and outputs, and `--color always` forces ANSI colors inside terminals/IDE wrappers. Flask/SQLite persistence is unchanged. A verified release and an earlier failed attempt are reported separately.
 
 > **v0.2.2 server test fix:** The installer now copies `deploy/` into the versioned backend release, together with `backend/` and `tests/`. This resolves the previously reproduced `ModuleNotFoundError: No module named 'deploy'` failure (five tests, one error). A relocation regression checks the staged test imports before any deployment. Flask imports are also checked explicitly after installation. Existing data and prior release safeguards remain intact.
