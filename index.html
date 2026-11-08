@@ -5,7 +5,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Vehicle Lab — Procedural Studio</title>
-  <meta name="vehicle-lab-version" content="0.2.5">
+  <meta name="vehicle-lab-version" content="0.2.6">
   <style>
     :root {
       color-scheme:dark;
@@ -156,8 +156,8 @@
     .side-drawer{position:fixed;z-index:67;right:0;top:0;bottom:0;width:min(355px,94vw);
       background:var(--pane);border-left:1px solid var(--pane-border);box-shadow:-20px 0 65px #0009;
       transform:translateX(110%);transition:transform .18s ease;overflow:auto;padding:17px;color:var(--text)}
-    #configDrawer{right:auto;left:0;transform:translateX(-110%);border-left:0;border-right:1px solid var(--pane-border)}
-    .side-drawer.is-open{transform:translateX(0)}
+    #configDrawer{right:0;left:auto;transform:translateX(110%);border-left:1px solid var(--pane-border);border-right:0}
+    .side-drawer.is-open,#configDrawer.is-open{transform:translateX(0)}
     .drawer-title{display:flex;align-items:center;justify-content:space-between;margin:5px 0 20px}
     .drawer-title strong{font-size:16px}.drawer-title button{width:31px}
     .side-drawer details{margin:8px 0;border:1px solid #68869d60;border-radius:9px;padding:9px}
@@ -207,6 +207,49 @@
       #referenceCard{bottom:70px}
     }
 
+    /* v0.2.6: mobile-first dialogs, circular avatar and gallery window */
+    .history-list{display:grid;gap:4px;max-height:260px;overflow:auto}.history-entry{text-align:left;padding:6px 8px;font-size:10px}
+    #galleryWindow{left:290px;top:340px;width:320px;height:320px}
+    .tool-symbol{font:16px ui-monospace,monospace;min-width:14px;display:inline-block;text-align:center}
+    #toolbarWindow .actions button,#toolsWindow button{display:inline-flex;align-items:center;justify-content:center;gap:5px}
+    .gallery-topline{display:flex;gap:6px;align-items:center;justify-content:space-between;margin-bottom:6px}
+    .gallery-topline input{flex:1;min-width:0;padding:8px;background:#112230;color:var(--text);border:1px solid var(--pane-border);border-radius:7px}
+    .gallery-topline select{max-width:105px;background:#112230;color:var(--text);border-radius:7px}
+    .gallery-topline .pill-row{margin:0;flex-wrap:nowrap}
+    .gallery-topline .pill-row button{font-size:10px;padding:5px 6px}
+    .gallery-topline button[aria-pressed=true]{background:var(--accent);color:#11252b}
+    .thumb-gallery{--thumb-width:150px;display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,var(--thumb-width)),1fr));gap:7px}
+    .thumb-gallery[data-size=xl]{--thumb-width:260px}
+    .thumb-gallery[data-size=m]{--thumb-width:150px}
+    .thumb-gallery[data-size=s]{--thumb-width:100px}
+    .thumb-card{min-width:0;border:1px solid var(--pane-border);border-radius:9px;padding:5px;background:#263b4a88;color:var(--text)}
+    .thumb-card .thumb-hero{width:100%;aspect-ratio:3/2;object-fit:cover;border-radius:5px;background:linear-gradient(140deg,#4c6b82,#172433);cursor:pointer}
+    .thumb-title{font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin:2px 1px 5px}
+    .thumb-category{color:var(--muted);font-size:10px;margin:4px 2px}
+    .thumb-actions{display:flex;gap:3px;flex-wrap:wrap}.thumb-actions button{font-size:10px;padding:4px 6px;flex:1;min-width:0}
+    .thumb-strip{display:flex;gap:3px;overflow-x:auto}.thumb-strip img{width:18%;aspect-ratio:3/2;object-fit:cover;cursor:pointer;border-radius:3px}
+    .float-window.docked{z-index:11!important;max-width:none;max-height:none;border-radius:7px}
+    #galleryWindow.dock-left{left:0!important;top:55px!important;width:min(340px,45vw)!important;height:calc(100dvh - 60px)!important}
+    #galleryWindow.dock-right{right:0!important;left:auto!important;top:55px!important;width:min(340px,45vw)!important;height:calc(100dvh - 60px)!important}
+    #galleryWindow.dock-bottom{left:10%!important;right:10%!important;top:auto!important;bottom:0!important;width:80%!important;height:min(270px,38dvh)!important}
+    .utility-overlay{position:fixed;inset:0;display:grid;place-items:center;z-index:95;padding:14px;background:#03101bcc}
+    .utility-overlay[hidden]{display:none}.compact-dialog{width:min(460px,96vw)}
+    .utility-overlay input,.utility-overlay textarea{width:100%;box-sizing:border-box;padding:11px;background:#0d1c27;color:#f0f6fc;border:1px solid #769eb4;border-radius:7px}
+    .utility-overlay textarea{resize:vertical}.utility-overlay .drawer-actions{justify-content:flex-end}
+    #cameraVideo{width:100%;aspect-ratio:4/3;object-fit:cover;background:#060e15;transform:scaleX(-1);border-radius:10px;margin-top:12px}
+    .avatar-preview-group{display:flex;align-items:center;gap:14px;margin:12px 0;color:#bad2df}
+    .avatar-large{width:78px;height:78px;flex-shrink:0;border-radius:50%;border:2px solid #9ebfce;background:#334b61;
+      display:grid;place-items:center;overflow:hidden;font-size:38px}
+    .avatar-large img{width:100%;height:100%;object-fit:cover}
+    #welcomeAvatarPreview{display:none!important}
+    #shortcutsList{max-height:50dvh;overflow:auto;margin-top:10px}
+    .shortcut-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:9px 3px;border-bottom:1px solid #52758a55}
+    .shortcut-row kbd{font:12px ui-monospace,monospace;white-space:nowrap;border:1px solid #627d8e;border-radius:5px;padding:3px 6px}
+    .dialog-title{display:flex;align-items:center;justify-content:space-between;gap:10px}
+    .dialog-title h2{margin:0}.dialog-title button{font-size:20px}
+    @media(max-width:700px){#galleryWindow{left:7px;top:305px;width:220px;height:250px}
+      #galleryWindow.dock-left,#galleryWindow.dock-right{width:min(280px,75vw)!important}}
+
  </style>
 
  <script type="importmap">
@@ -225,7 +268,7 @@
 
   <div id="stage">
   <div id="hud">
-    <div class="stage-badge"><strong>Vehicle Lab</strong><small>v0.2.5</small></div>
+    <div class="stage-badge"><strong>Vehicle Lab</strong><small>v0.2.6</small></div>
     <p id="vehicleName">City Car</p><p id="vehicleInfo">Procedural vehicle</p>
     <div id="speedHud"><strong id="speed">0</strong><div>km/h</div></div>
     <div id="physicsHud"><strong id="engineName">Cannon-es</strong> · <span id="physicsMode">BUILD</span>
@@ -236,10 +279,10 @@
   <section id="toolbarWindow" class="float-window" aria-label="Vehicle actions">
     <div class="window-head"><strong>01 / Actions</strong><button class="mini-btn minimize" title="Minimize">−</button></div>
     <div class="window-body"><div class="actions">
-      <button id="buildBtn" class="active">BUILD</button><button id="driveBtn">DRIVE</button>
-      <button id="rotateBtn">Stop rotation</button><button id="lightsBtn">Lights on</button>
-      <button id="saveBtn">Local save</button><button id="serverSaveBtn">SQLite save</button>
-      <button id="exportBtn">Export JSON</button>
+      <button id="buildBtn" class="active">BUILD</button><button id="driveBtn">DRIVE</button><button id="undoBtn" title="Undo (Cmd/Ctrl+Z)">Undo</button><button id="redoBtn" title="Redo (Cmd/Ctrl+Shift+Z)">Redo</button>
+      <button id="rotateBtn">Rotation</button><button id="lightsBtn">Lights on</button>
+      <button id="saveBtn">Save</button><button id="serverSaveBtn">Save cloud</button>
+      <button id="exportBtn">Export JSON</button><button id="importBtn">Import JSON</button><button id="shortcutsBtn" title="Keyboard shortcuts (⌘ /)">Shortcuts</button>
     </div></div>
   </section>
   <section id="toolsWindow" class="float-window" aria-label="Vehicle tools">
@@ -255,19 +298,29 @@
       <div id="presets"></div>
       <h3>IndexedDB layouts</h3><div id="saved"></div>
       <h3>My SQLite layouts</h3><div class="inline-field"><label><input type="checkbox" id="layoutPublic"> Publish to gallery</label></div>
-      <div id="serverSaved" class="hint">Create a guest profile to save on the server.</div>
+      <div id="serverSaved" class="hint">Create a profile to save on the server.</div>
       <div class="drawer-actions"><button id="galleryRefreshBtn">Public gallery</button></div>
       <div id="gallerySaved" class="hint"></div>
       <div id="libraryInfo" class="hint">Local layouts stay in IndexedDB. Public layouts are published only when selected.</div>
     </div>
   </section>
+  <section id="galleryWindow" class="float-window" aria-label="Vehicle screenshot gallery">
+    <div class="window-head"><strong>04 / Vehicle gallery</strong><button class="mini-btn minimize" title="Minimize">−</button></div>
+    <div class="window-body">
+      <div class="gallery-topline"><input id="gallerySearch" type="search" placeholder="Search vehicle, category, description" aria-label="Search gallery">
+        <div id="gallerySizes" class="pill-row"><button data-size="xl">XL</button><button data-size="m">M</button><button data-size="s">S</button></div></div>
+      <div class="gallery-topline"><div id="gallerySources" class="pill-row"><button data-source="local">Local</button><button data-source="cloud">My cloud</button><button data-source="public">Public</button></div>
+        <select id="galleryDock" aria-label="Dock gallery"><option value="float">Float</option><option value="left">Dock left</option><option value="right">Dock right</option><option value="bottom">Dock bottom</option></select></div>
+      <div id="vehicleGallery" class="thumb-gallery" role="list"></div>
+    </div>
+  </section>
   <section id="paramsWindow" class="float-window" aria-label="Vehicle parameters">
-    <div class="window-head"><strong>04 / Parameters · lil-gui</strong><button class="mini-btn minimize" title="Minimize">−</button></div>
+    <div class="window-head"><strong>05 / Parameters · lil-gui</strong><button class="mini-btn minimize" title="Minimize">−</button></div>
     <div class="window-body"><div id="editorGuiMount"></div></div>
   </section>
-  <form id="credentialsForm" hidden><div id="guiMount"></div></form>
+
   <section id="logWindow" class="float-window" aria-label="Application logs">
-    <div class="window-head"><strong>05 / App logs</strong><button class="mini-btn minimize" title="Minimize">−</button></div>
+    <div class="window-head"><strong>06 / App logs</strong><button class="mini-btn minimize" title="Minimize">−</button></div>
     <div class="window-body logs-toolbar">
       <select id="logScope" aria-label="Log source"><option value="client">Browser</option><option value="backend">Flask server (admin)</option></select>
       <select id="logLevel" aria-label="Log level"><option value="all">All</option><option value="error">Errors</option><option value="warn">Warnings + errors</option></select>
@@ -290,11 +343,12 @@
   <div class="drawer-title"><strong>Vehicle Lab / Configuration</strong><button class="drawer-close" aria-label="Close">×</button></div>
   <details open><summary>Windows & workspace</summary><p>Drag by the title bar, resize from the bottom-right corner, minimize with −.</p>
     <div id="windowButtons" class="pill-row window-reopen"></div>
+<details><summary>Vehicle edit history (Undo / Redo)</summary><div id="historyList" class="history-list"></div></details>
     <div class="drawer-actions"><button id="resetWorkspace">Reset window positions</button><button id="openLogs">Application logs</button>
       <button id="workspaceExport">Export workspace JSON</button><button id="workspaceImport">Import workspace JSON</button></div>
   </details>
   <details><summary>Theme & typography</summary><p>Changes affect the interface; exported separately from your profile.</p>
-    <div id="themeChoices" class="pill-row"></div><div id="fontChoices" class="pill-row"></div><div id="fontSizeChoices" class="pill-row"></div>
+    <div id="themeChoices" class="pill-row"></div><div id="fontChoices" class="pill-row"></div><div id="fontSizeChoices" class="pill-row"></div><p>Action button style</p><div id="actionModeChoices" class="pill-row"></div>
     <div class="theme-colors"><label>Accent <input id="themeAccent" type="color" value="#a8f1c8"></label>
     <label>Panel <input id="themePanel" type="color" value="#152431"></label></div>
     <div class="drawer-actions"><button id="themeExport">Export theme JSON</button><button id="themeImport">Import theme JSON</button></div>
@@ -309,15 +363,16 @@
   <details><summary>Server logs (administrator only)</summary>
     <form id="adminTokenForm" autocomplete="off"><label>Administrator API token<input id="adminLogToken" type="password" autocomplete="off" placeholder="Required for server logs"></label>
       <button type="submit">Open server logs</button></form>
-    <p>Normal guests only see browser logs. Server logs exclude credentials; service and Mac watcher logs stay on their respective hosts.</p>
+    <p>Profile members only see browser logs. Server logs exclude credentials; service and Mac watcher logs stay on their respective hosts.</p>
   </details>
-  <details><summary>Persistence & deployment</summary><p>Flask + SQLite: private/public vehicle blueprints and guest profiles. Email recovery, verified email/phone and passwords are not enabled.</p></details>
+  <details><summary>Persistence & deployment</summary><p>Flask + SQLite: private/public vehicle blueprints and passwordless profiles. Email recovery, verified email/phone and passwords are not enabled.</p></details>
 </aside>
 <aside id="profileDrawer" class="side-drawer" aria-label="User profile">
   <div class="drawer-title"><strong>My profile</strong><button class="drawer-close" aria-label="Close">×</button></div>
-  <p id="profileIdInfo">Guest identity</p>
+  <p id="profileIdInfo">Profile identity</p>
   <form id="profileEditForm" autocomplete="off">
-    <label>Avatar <input id="avatarUpload" type="file" accept="image/png,image/jpeg,image/webp"></label>
+    <div class="avatar-preview-group"><div id="profilePortrait" class="avatar-large">&#128100;</div></div><label>Avatar <input id="avatarUpload" type="file" accept="image/png,image/jpeg,image/webp"></label>
+    <button type="button" id="profileWebcam">Take profile photo</button>
     <label>Username<input id="profileName" maxlength="50" required></label>
     <label>Bio<textarea id="profileBio" maxlength="600"></textarea></label>
     <label>Social link (HTTPS)<input id="profileLink" type="url" maxlength="300" placeholder="https://..."></label>
@@ -326,20 +381,37 @@
     <button type="submit">Save profile</button>
   </form>
   <details><summary>Identity backup & security</summary>
-    <p>Guest identity is protected by a random secret saved on this device, not by its UUID. Export the backup to transfer or recover access. Anyone with the backup can access this profile.</p>
-    <div class="drawer-actions"><button id="backupProfile">Export private profile backup</button><button id="restoreProfile">Import profile backup</button><button id="switchGuest">Switch guest</button></div>
+    <p>Your profile is protected by a random secret saved on this device, not by its UUID. Export the backup to transfer or recover access. Anyone with the backup can access this profile.</p>
+    <div class="drawer-actions"><button id="backupProfile">Export private profile backup</button><button id="restoreProfile">Import profile backup</button><button id="switchGuest">Switch profile</button></div>
     <p>Password protection, email verification, phone verification and account recovery are planned, not active.</p>
   </details>
 </aside>
 <div id="welcomeOverlay" hidden><div class="modal-card">
-  <h2>Welcome to Vehicle Lab</h2><p>Create a passwordless guest profile to save private vehicles and optionally publish them. No email or password required.</p>
+  <h2>Welcome to Vehicle Lab</h2><p>Create your Vehicle Lab profile. Save private vehicles and publish them when ready. No password required.</p>
+  <div class="avatar-preview-group"><div id="welcomePortrait" class="avatar-large" aria-label="Profile picture">&#128100;</div><span>Choose a picture or take a photo</span></div>
   <form id="welcomeForm" autocomplete="off">
     <label>Username<input id="welcomeName" maxlength="50" required placeholder="Choose a username"></label>
-    <label>Optional profile image <img id="welcomeAvatarPreview" alt="Profile preview" hidden>
+    <label>Profile image <img id="welcomeAvatarPreview" alt="Profile preview" hidden>
       <input id="welcomeAvatar" type="file" accept="image/png,image/jpeg,image/webp"></label>
-    <button type="submit">Create guest profile</button>
+    <div class="drawer-actions"><button type="button" id="welcomeWebcam">Use webcam</button></div>
+    <button type="submit">Create profile</button>
   </form><div class="drawer-actions"><button id="welcomeImport">Import existing profile JSON</button></div>
   <small>Security: your profile recovery secret can be exported later. A UUID alone cannot restore access.</small>
+</div></div>
+<div id="cameraOverlay" class="utility-overlay" hidden><div class="modal-card compact-dialog"><h2>Profile camera</h2>
+  <video id="cameraVideo" autoplay playsinline muted></video><p id="cameraStatus">Camera access requires permission and HTTPS.</p>
+  <div class="drawer-actions"><button id="cameraCapture">Use photo</button><button id="cameraCancel">Cancel</button></div>
+</div></div>
+<div id="saveOverlay" class="utility-overlay" hidden><div class="modal-card compact-dialog"><h2>Save vehicle</h2>
+ <form id="saveForm"><label>Name<input id="saveName" maxlength="100" required></label>
+ <label>Category<input id="saveCategory" maxlength="50" required></label><label>Description<textarea id="saveDescription" maxlength="1200" rows="3"></textarea></label>
+ <div class="drawer-actions"><button id="saveConfirm" type="submit">Save with five views</button><button id="saveCancel" type="button">Cancel</button></div></form>
+ <small>Five screenshots: hero/front/back/side/top. Saves are private until you publish a cloud vehicle.</small>
+</div></div>
+<div id="shortcutOverlay" class="utility-overlay" hidden><div class="modal-card shortcuts-card">
+ <div class="dialog-title"><h2>Keyboard shortcuts</h2><button id="closeShortcuts">×</button></div>
+ <input id="shortcutSearch" type="search" placeholder="Search a shortcut or action" aria-label="Search shortcuts">
+ <div id="shortcutsList"></div>
 </div></div>
 <div id="releaseOverlay" hidden><div class="modal-card">
   <h2>Vehicle Lab · release notes</h2><small>Latest update and previous changes</small>
@@ -347,6 +419,7 @@
 </div></div>
 <input id="importJSON" type="file" accept=".json" hidden>
 <input id="importGLB" type="file" accept=".glb" hidden>
+<input id="importPassenger" type="file" accept=".glb,model/gltf-binary" hidden>
 <input id="importImage" type="file" accept="image/png,image/jpeg,image/webp" hidden>
 <input id="profileBackupFile" type="file" accept=".json,application/json" hidden>
 <input id="themeFile" type="file" accept=".json,application/json" hidden>
@@ -357,6 +430,7 @@
   import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
   import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
   import {GLTFExporter} from 'three/addons/exporters/GLTFExporter.js';
+  import {clone as cloneSkeleton} from 'three/addons/utils/SkeletonUtils.js';
   import * as CANNON from 'cannon-es';
   import GUI from 'lil-gui';
 
@@ -426,16 +500,18 @@
    glassRoughness:.12,pattern:'solid',seed:21,
    headlights:true,rearWindow:true,maxSpeed:90,
    modelScale:1,modelRotation:0,
-   hills:true,cameraDistance:12
+   hills:true,cameraDistance:12,terrainProfile:'hills',terrainSize:180,skyStyle:'gradient',
+   wheelWidth:.23,wheelOutset:0,axleFrontOffset:0,axleRearOffset:0
  };
 
  let cfg=structuredClone(defaults);
  let mods=defaultMods();
  let selectedPart='cabin'; // Always initialise before the first build/highlight.
  let occupants=cfg.seats;
- let mode='build',autoRotate=true,doorsOpen=false,braking=false;
+ let mode='build',autoRotate=(()=>{try{return localStorage.getItem('vehiclelab.rotation.v1')!=='off'}catch{return true}})(),doorsOpen=false,braking=false;
  let car=null,bodyRoot=null,highlight=null;
  let wheels=[],doorHinges=[],partGroups={},passengerFigures=[];
+ let passengerGLB=null,passengerSource=null,passengerName=null,passengerAnimations=[],passengerMixers=[];
  let headMaterials=[],brakeMaterials=[],headlights=[];
  let physics=null,previousYaw=null;
  const ENGINE_LABELS={cannon:'Cannon-es',rapier:'Rapier (WASM)',ammo:'Ammo.js / Bullet',baseline:'Kinematic baseline (no physics)'};
@@ -447,11 +523,12 @@
  let catalogGUI=null;
  let modelSource=null,modelBlob=null,modelName=null;
  let layoutId=null,gui=null,queued=false;
+ let vehicleDescription='',vehicleCategory='Urban',galleryImages=[];
  let serverLayoutId=null,serverRevision=null,serverAssetId=null,serverAssetBlob=null;
  const serverAccess={token:''};
  let activeProfile=null,guestToken='',serverVisibility='private',adminLogToken='';
  const appEvents=[];
- const VERSION='0.2.5';
+ const VERSION='0.2.6';
  let imageReference=null,busyAI=false;
 
  // Keys remain in volatile memory. Never place credentials in a blueprint or IndexedDB.
@@ -507,6 +584,7 @@
  orbit.autoRotateSpeed=1.2;
  orbit.addEventListener('end',()=>{
   if(car)cfg.cameraDistance=clamp(camera.position.distanceTo(orbit.target),3,130);
+  try{localStorage.setItem('vehiclelab.camera.v1',JSON.stringify({offset:camera.position.clone().sub(orbit.target).toArray()}))}catch(e){}
  });
 
  scene.add(new THREE.HemisphereLight(0xe5f3ff,0x35495a,1.6));
@@ -528,7 +606,7 @@
  world.defaultContactMaterial.friction=.85;
 
 // Shared terrain representation for rendering and collision.
- const SIZE=180,STEP=1.5,N=Math.round(SIZE/STEP);
+ let SIZE=180,STEP=1.5,N=Math.round(SIZE/STEP);
  const plateaus=[
    [12,14,10,9,2.4,.3],
    [-17,8,12,11,3.1,.24],
@@ -536,21 +614,38 @@
    [-23,-22,18,15,4.6,.2]
  ];
  function heightAt(x,z){
-   if(!cfg.hills)return 0;
+   const profile=cfg.terrainProfile||(cfg.hills?'hills':'flat');
+   if(profile==='flat')return 0;
+   if(profile==='beach'){
+     // Sloping shoreline: negative elevation towards positive world Z.
+     return .38- .042*z + .08*Math.sin(x*.17)*Math.cos(z*.11);
+   }
    let h=0;
+   const size=profile==='extreme'?1.95:profile==='bumps'?.23:profile==='moon'?1.35:1;
    for(const [cx,cz,rx,rz,amplitude,top] of plateaus){
-    const d=Math.max(Math.abs(x-cx)/rx,Math.abs(z-cz)/rz);
-    h=Math.max(h,amplitude*clamp((1-d)/(1-top),0,1));
-  }
-  for(const [cx,cz,s,a] of [[39,-28,19,8],[-43,33,23,9]]){
-    const dx=(x-cx)/s,dz=(z-cz)/s;
-    h+=a*Math.exp(-2.3*(dx*dx+dz*dz));
-  }
-  return h;
+     const d=Math.max(Math.abs(x-cx)/rx,Math.abs(z-cz)/rz);
+     h=Math.max(h,amplitude*clamp((1-d)/(1-top),0,1))*size;
+   }
+   for(const [cx,cz,s,a] of [[39,-28,19,8],[-43,33,23,9]]){
+     const dx=(x-cx)/s,dz=(z-cz)/s;
+     h+=a*Math.exp(-2.3*(dx*dx+dz*dz))*size;
+   }
+   if(profile==='moon'){
+     for(const [cx,cz,r,depth] of [[12,5,9,2.0],[-19,15,12,2.7],[2,-28,6,1.8]]){
+       const d=Math.hypot(x-cx,z-cz)/r;
+       h-=depth*Math.max(0,1-d*d);
+       h+=depth*.45*Math.exp(-Math.pow((d-1.08)/.18,2));
+     }
+   }
+   if(profile==='bumps')h+=.12*Math.sin(x*.38)*Math.cos(z*.35);
+   return h;
 }
 
 let terrain=null,terrainBody=null;
+let seaSurface=null,skyDome=null;
 function buildTerrain(){
+ SIZE=clamp(Number(cfg.terrainSize)||180,90,300);
+ N=Math.round(SIZE/STEP);
  if(terrain){
   terrain.geometry.dispose();
   terrain.material.dispose();
@@ -581,7 +676,9 @@ g.setIndex(indices);
 g.computeVertexNormals();
 
 terrain=new THREE.Mesh(g,new THREE.MeshStandardMaterial({
-  color:0x547065,roughness:.96,side:THREE.DoubleSide
+  color:({flat:0x5d7464,bumps:0x536e58,hills:0x547065,extreme:0x4c6753,
+    moon:0x818389,beach:0xd7bb81})[cfg.terrainProfile]||0x547065,
+  roughness:.96,side:THREE.DoubleSide
 }));
 terrain.receiveShadow=true;
 scene.add(terrain);
@@ -591,7 +688,43 @@ terrainBody=new CANNON.Body({mass:0});
 terrainBody.addShape(shape);
 terrainBody.quaternion.setFromEuler(-Math.PI/2,0,0);
 terrainBody.position.set(-SIZE/2,0,SIZE/2);
-world.addBody(terrainBody);
+  world.addBody(terrainBody);
+  updateEnvironment();
+}
+// This release provides visual water and shoreline only; no buoyancy/wave forces.
+function updateEnvironment(){
+  if(seaSurface){scene.remove(seaSurface);seaSurface.geometry.dispose();seaSurface.material.dispose();seaSurface=null}
+  if(skyDome){scene.remove(skyDome);skyDome.geometry.dispose();skyDome.material.dispose();skyDome=null}
+  const style=cfg.skyStyle||'gradient';
+  if(style==='solid'){
+   scene.background=new THREE.Color('#263a48');sunlight.intensity=2.5;
+  }else if(style==='night'){
+   scene.background=new THREE.Color('#020918');sunlight.intensity=.13;
+  }else{
+   scene.background=new THREE.Color('#58768f');sunlight.intensity=style==='clouds'?2.2:3;
+   const uniforms={top:{value:new THREE.Color('#254864')},bottom:{value:new THREE.Color('#9bc0c7')},clouds:{value:style==='clouds'?1:0}};
+   const material=new THREE.ShaderMaterial({uniforms,side:THREE.BackSide,depthWrite:false,depthTest:false,
+    vertexShader:'varying vec3 vSky; void main(){vSky=position;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
+    fragmentShader:`varying vec3 vSky;uniform vec3 top;uniform vec3 bottom;uniform float clouds;
+      float rand(vec2 p){return fract(sin(dot(p,vec2(12.9898,78.233)))*43758.5453);}
+      void main(){float t=clamp(normalize(vSky).y*.5+.5,0.,1.);
+        vec3 col=mix(bottom,top,pow(t,.7));
+        if(clouds>0.){vec2 uv=normalize(vSky).xz*12.;vec2 f=fract(uv);vec2 g=floor(uv);
+          float n=mix(mix(rand(g),rand(g+vec2(1.,0.)),smoothstep(0.,1.,f.x)),
+           mix(rand(g+vec2(0.,1.)),rand(g+1.),smoothstep(0.,1.,f.x)),smoothstep(0.,1.,f.y));
+          col=mix(col,vec3(.9,.94,.97),smoothstep(.57,.76,n)*.55*clamp(t*3.,0.,1.));}
+        gl_FragColor=vec4(col,1.);}`});
+   skyDome=new THREE.Mesh(new THREE.SphereGeometry(220,24,12),material);
+   skyDome.frustumCulled=false;skyDome.renderOrder=-100;scene.add(skyDome);
+  }
+  scene.fog=new THREE.Fog(scene.background?.isColor?scene.background:new THREE.Color('#658ba3'),90,Math.max(150,SIZE*.92));
+  if(cfg.terrainProfile==='beach'){
+    seaSurface=new THREE.Mesh(new THREE.PlaneGeometry(SIZE,SIZE),
+     new THREE.MeshPhysicalMaterial({color:0x2d95b0,roughness:.08,metalness:.06,
+      transparent:true,opacity:.7,side:THREE.DoubleSide,depthWrite:false}));
+    seaSurface.rotation.x=-Math.PI/2;seaSurface.position.y=0;
+    seaSurface.renderOrder=1;scene.add(seaSurface);
+  }
 }
 buildTerrain();
 
@@ -621,7 +754,7 @@ function box(parent,w,h,d,material,x=0,y=0,z=0){
 function disposeTree(node,seen=new Set()){
  if(!node)return;
  node.traverse(o=>{
-  if(o.userData?.externalModel)return;
+  if(o.userData?.externalModel||o.userData?.importedOccupant)return;
   if(o.geometry&&!seen.has(o.geometry)){
    seen.add(o.geometry);o.geometry.dispose();
  }
@@ -731,9 +864,9 @@ function human(parent,x,y,z){
 function makeWheel(parent,x,y,z,r){
  const root=new THREE.Group();
  root.position.set(x,y,z);parent.add(root);
- const tire=add(root,new THREE.CylinderGeometry(r,r,r*.28,28),mat('#131921',0,.9));
+ const tire=add(root,new THREE.CylinderGeometry(r,r,clamp(cfg.wheelWidth,.08,1.25),28),mat('#131921',0,.9));
  tire.rotation.z=Math.PI/2;
- const rim=add(root,new THREE.CylinderGeometry(r*.55,r*.55,r*.29,20),
+ const rim=add(root,new THREE.CylinderGeometry(r*.55,r*.55,clamp(cfg.wheelWidth*.84,.06,1.1),20),
   mat('#a9bac5',.85,.28));
  rim.rotation.z=Math.PI/2;
  return root;
@@ -819,6 +952,7 @@ function clearVehicle(){
    wheels=[];
  if(car)disposeTree(car);
  car=null;doorHinges=[];partGroups={};passengerFigures=[];
+ passengerMixers.forEach(m=>m.stopAllAction());passengerMixers=[];
  headMaterials=[];brakeMaterials=[];headlights=[];
 }
 function addLamp(parent,x,z,front){
@@ -920,9 +1054,9 @@ function updateLights(){
  equipment(eq,L,W,H,paint);
 
  for(let axle=0;axle<cfg.axles;axle++){
-  const z=L*.38-axle*L*.76/(cfg.axles-1);
+  const z=wheelZ(axle);
   for(const side of [-1,1]){
-   wheels.push(makeWheel(car,side*W*.54,-.3,z,cfg.radius));
+   wheels.push(makeWheel(car,side*(W*.54+cfg.wheelOutset),-.3,z,cfg.radius));
  }
 }
 const lamps=new THREE.Group();car.add(lamps);
@@ -940,7 +1074,25 @@ for(let i=0;i<cfg.seats;i++){
   const z=b*.36-(row+.5)*b*.72/rows+(L/2-a-b/2);
   box(passengers,.29,.10,.3,trim,x,-.22,z);
   box(passengers,.29,.32,.075,trim,x,-.01,z-.12);
-  const figure=human(passengers,x,-.14,z);
+  let figure;
+  if(passengerSource){
+    figure=new THREE.Group();figure.position.set(x,-.14,z);passengers.add(figure);
+    const clone=cloneSkeleton(passengerSource);
+    const bounds=new THREE.Box3().setFromObject(clone),size=bounds.getSize(new THREE.Vector3());
+    const center=bounds.getCenter(new THREE.Vector3());
+    const scale=Math.min(.69/Math.max(.01,size.y),.34/Math.max(.01,size.x),.36/Math.max(.01,size.z));
+    clone.scale.setScalar(scale);
+    clone.position.set(-center.x*scale,-bounds.min.y*scale,-center.z*scale);
+    clone.traverse(obj=>{if(obj.isMesh||obj.isSkinnedMesh)obj.userData.importedOccupant=true});
+    figure.add(clone);
+    if(passengerAnimations.length){
+      const mixer=new THREE.AnimationMixer(clone);
+      const pattern=i===0?/driv|steer/i:/sit|seat|idle/i;
+      const clip=passengerAnimations.find(c=>pattern.test(c.name))||passengerAnimations[0];
+      if(clip)mixer.clipAction(clip).play();
+      passengerMixers.push(mixer);
+    }
+  }else figure=human(passengers,x,-.14,z);
   figure.visible=i<occupants;passengerFigures.push(figure);
 }
 for(const {hinge,side} of doorHinges)
@@ -951,7 +1103,8 @@ updateLights();
 $('vehicleName').textContent=cfg.name;
 $('vehicleInfo').textContent=
 `${L.toFixed(1)} m · ${cfg.axles*2} wheels · ${cfg.seats} seats · ${cfg.engine}`;
-$('doorsBtn').textContent=doorsOpen?'Close doors':'Open doors';
+$('doorsBtn').dataset.actionLabel=doorsOpen?'Close doors':'Open doors';
+ applyButtonMode();
 updateHighlight();
 }
 
@@ -973,6 +1126,12 @@ function scheduleBuild(){
 
 // Orbit camera follows both vehicle position and heading while
 // preserving the user's current orbit angle and zoom.
+function preserveCameraOrbit(){
+ const offset=camera.position.clone().sub(orbit.target);
+ const target=car?.position.clone().add(new THREE.Vector3(0,cfg.H*.3,0))||new THREE.Vector3(0,1,0);
+ if(offset.lengthSq()<1)offset.set(8,5,8);
+ orbit.target.copy(target);camera.position.copy(target).add(offset);orbit.update();
+}
 function resetCamera(){
  const target=car?.position.clone().add(new THREE.Vector3(0,cfg.H*.3,0))||
  new THREE.Vector3(0,1,0);
@@ -1008,7 +1167,10 @@ const wheelAxle=i=>Math.floor(i/2);
 const drivenWheel=i=>cfg.drive==='AWD'||
  (cfg.drive==='FWD'&&wheelAxle(i)===0)||
  (cfg.drive==='RWD'&&wheelAxle(i)===cfg.axles-1);
-const wheelZ=axle=>cfg.L*.38-axle*cfg.L*.76/Math.max(1,cfg.axles-1);
+const wheelZ=axle=>{
+ const t=axle/Math.max(1,cfg.axles-1);
+ return (cfg.L*.38+(cfg.axleFrontOffset||0))*(1-t)+(-cfg.L*.38+(cfg.axleRearOffset||0))*t;
+};
 const pose=(p,q,v)=>({position:p,rotation:q,velocity:v});
 
 function makeCannonAdapter(){
@@ -1024,7 +1186,7 @@ function makeCannonAdapter(){
   vehicle.addWheel({
    radius:cfg.radius,directionLocal:new CANNON.Vec3(0,-1,0),
    axleLocal:new CANNON.Vec3(1,0,0),
-   chassisConnectionPointLocal:new CANNON.Vec3(side*cfg.W*.54,-.3,wheelZ(axle)),
+   chassisConnectionPointLocal:new CANNON.Vec3(side*(cfg.W*.54+(cfg.wheelOutset||0)),-.3,wheelZ(axle)),
    suspensionRestLength:.32,suspensionStiffness:42,
    dampingCompression:4.6,dampingRelaxation:2.8,
    frictionSlip:5.4,maxSuspensionForce:150000,
@@ -1218,7 +1380,7 @@ async function makeAmmoAdapter(){
   dynamics.addAction(rayVehicle);
   const down=v(0,-1,0),axleDir=v(-1,0,0);
   for(let axle=0;axle<cfg.axles;axle++)for(const side of [-1,1]){
-   const info=rayVehicle.addWheel(v(side*cfg.W*.54,-.3,wheelZ(axle)),down,axleDir,.32,cfg.radius,tuning,axle===0);
+   const info=rayVehicle.addWheel(v(side*(cfg.W*.54+(cfg.wheelOutset||0)),-.3,wheelZ(axle)),down,axleDir,.32,cfg.radius,tuning,axle===0);
    info.set_m_suspensionStiffness(42);
    info.set_m_wheelsDampingRelaxation(2.8);
    info.set_m_wheelsDampingCompression(4.6);
@@ -1303,7 +1465,7 @@ function makeBaselineAdapter(){
   syncWheels:()=>{
    const q=new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,1,0),yaw);
    for(let i=0;i<wheels.length;i++){
-    const p=new THREE.Vector3((i%2===0?-1:1)*cfg.W*.54,-.3,wheelZ(wheelAxle(i)))
+    const p=new THREE.Vector3((i%2===0?-1:1)*(cfg.W*.54+(cfg.wheelOutset||0)),-.3,wheelZ(wheelAxle(i)))
       .applyQuaternion(q);
     wheels[i].position.set(x+p.x,y+p.y,z+p.z);
     wheels[i].quaternion.copy(q).multiply(new THREE.Quaternion()
@@ -1361,7 +1523,7 @@ function leaveDrive(){
  $('brake').style.display='none';
  $('speed').textContent='0';
  orbit.autoRotate=autoRotate;
- buildVehicle();resetCamera();updatePhysicsHud();
+ buildVehicle();preserveCameraOrbit();updatePhysicsHud();
 }
 const held=new Set();
 const joystick={x:0,y:0,active:false};
@@ -1538,27 +1700,99 @@ req.onerror=()=>reject(req.error);
     modules:structuredClone(mods),
     simulation:{backend:simulator.engine,fixedStepHz:60},
     occupants,
-    modelName,
+    modelName,passengerModelName:passengerName,passengerAnimationNames:passengerAnimations.map(c=>c.name),
+    metadata:{description:vehicleDescription,category:vehicleCategory,images:galleryImages},
     note:'Imported GLB binary is not embedded in JSON. IndexedDB layout saves retain it.'
   };
 }
-async function saveLayout(copy=false){
- if(copy)layoutId=null;
- const id=layoutId||crypto.randomUUID();
- const previousName=cfg.name+(modelName?' · GLB':'');
- const name=prompt('Layout name',previousName);
- if(name===null)return;
- const record={
-  id,name:name.trim().slice(0,100)||previousName,
-  modified:Date.now(),
-  ...blueprint(),
-  glbBlob:modelBlob||null
-};
-await transaction('readwrite','put',record);
-layoutId=id;
-await refreshSaved();
-note('Layout saved to IndexedDB. Credentials were not included.');
+// Five deterministic camera viewpoints, rendered without moving the editor camera.
+// Small JPEG previews remain inside the portable blueprint (max payload 256 KiB).
+const PREVIEW_ANGLES=[
+ ['Hero · front-left',[1,.76,1.05]],['Front',[0,.24,1]],['Rear',[0,.24,-1]],
+ ['Left',[1,.28,0]],['Top',[0,1,.001]]
+];
+function captureVehicleGallery(){
+ if(mode==='drive')leaveDrive();
+ if(!car)throw Error('No vehicle to capture');
+ const width=288,height=192;
+ const rt=new THREE.WebGLRenderTarget(width,height,{depthBuffer:true});
+ const shot=new THREE.PerspectiveCamera(48,width/height,.05,240);
+ const center=car.position.clone().add(new THREE.Vector3(0,cfg.H*.28,0));
+ const distance=Math.max(cfg.L*1.35,cfg.W*2.8,cfg.H*2.7,5.5);
+ const pixels=new Uint8Array(width*height*4),canvas=document.createElement('canvas');
+ canvas.width=width;canvas.height=height;
+ const ctx=canvas.getContext('2d'),image=ctx.createImageData(width,height);
+ const hidden=[terrain,grid,highlight,skyDome,seaSurface].filter(Boolean);
+ const oldVisibility=hidden.map(x=>x.visible),oldBackground=scene.background;
+ const oldTarget=renderer.getRenderTarget(),images=[];
+ try{
+  hidden.forEach(x=>x.visible=false);scene.background=new THREE.Color('#304456');
+  for(const [label,coord] of PREVIEW_ANGLES){
+   const v=new THREE.Vector3(...coord).normalize();
+   shot.position.copy(center).addScaledVector(v,distance);
+   shot.up.set(0,1,0);
+   if(label==='Top')shot.up.set(0,0,-1);
+   shot.lookAt(center);
+   renderer.setRenderTarget(rt);renderer.setViewport(0,0,width,height);
+   renderer.clear();renderer.render(scene,shot);
+   renderer.readRenderTargetPixels(rt,0,0,width,height,pixels);
+   for(let y=0;y<height;y++){
+    const from=(height-y-1)*width*4,to=y*width*4;
+    image.data.set(pixels.subarray(from,from+width*4),to);
+   }
+   ctx.putImageData(image,0,0);
+   images.push({label,data:canvas.toDataURL('image/jpeg',.66)});
+  }
+ }finally{
+  hidden.forEach((obj,i)=>obj.visible=oldVisibility[i]);
+  scene.background=oldBackground;renderer.setRenderTarget(oldTarget);
+  // setRenderTarget(null) restores the renderer viewport automatically.
+  rt.dispose();
+ }
+ return images;
 }
+let pendingSaveDialog=null;
+function askVehicleDetails(initialName){
+ if(pendingSaveDialog)throw Error('Save dialog is already open');
+ $('saveName').value=initialName.slice(0,100);
+ $('saveCategory').value=(vehicleCategory||cfg.category||'Urban').slice(0,50);
+ $('saveDescription').value=vehicleDescription||'';
+ $('saveOverlay').hidden=false;$('saveName').focus();$('saveName').select();
+ return new Promise(resolve=>{
+  const finish=value=>{
+   $('saveOverlay').hidden=true;$('saveForm').onsubmit=null;
+   $('saveCancel').onclick=null;pendingSaveDialog=null;resolve(value);
+  };
+  pendingSaveDialog=finish;
+  $('saveCancel').onclick=()=>finish(null);
+  $('saveForm').onsubmit=e=>{
+   e.preventDefault();
+   const name=$('saveName').value.trim(),category=$('saveCategory').value.trim();
+   if(!name||!category)return;
+   finish({name:name.slice(0,100),category:category.slice(0,50),
+    description:$('saveDescription').value.trim().slice(0,1200)});
+  };
+ });
+}
+function applyVehicleDetails(data){
+ vehicleDescription=data.description;vehicleCategory=data.category;
+ cfg.name=data.name;cfg.category=data.category;
+}
+
+async function saveLayout(copy=false){
+ const previousName=cfg.name+(modelName?' · GLB':'');
+ const details=await askVehicleDetails(previousName);if(!details)return;
+ applyVehicleDetails(details);
+ note('Capturing five gallery views…');galleryImages=captureVehicleGallery();
+ const id=copy||!layoutId?crypto.randomUUID():layoutId;
+ const record={id,name:details.name,modified:Date.now(),
+  ...blueprint(),glbBlob:modelBlob||null,passengerBlob:passengerGLB||null};
+ await transaction('readwrite','put',record);
+ layoutId=id;commitHistory('Saved layout: '+details.name);
+ await refreshSaved();await refreshVehicleGallery();
+ note('Saved '+details.name+' with five camera views to IndexedDB.');
+}
+
 async function refreshSaved(){
  const root=$('saved');root.replaceChildren();
  for(const item of await allLayouts()){
@@ -1578,6 +1812,7 @@ async function refreshSaved(){
  row.append(open,remove);root.append(row);
 }
 if(!root.children.length)root.textContent='No saved layouts';
+ if(gallerySource==='local')void refreshVehicleGallery();
 }
 async function loadLayout(item){
  serverLayoutId=null;serverRevision=null;serverAssetId=null;serverAssetBlob=null;
@@ -1594,14 +1829,20 @@ async function loadLayout(item){
  for(const name of Object.keys(mods))
   mods[name]={...defaultModule(),...(item.modules?.[name]||{})};
 occupants=clamp(item.occupants??cfg.seats,0,cfg.seats);
+ vehicleDescription=item.metadata?.description||'';vehicleCategory=item.metadata?.category||cfg.category||'Urban';galleryImages=item.metadata?.images||item.previews||[];
 modelSource=null;modelBlob=null;modelName=null;
+passengerSource=null;passengerAnimations=[];passengerGLB=null;passengerName=null;
 layoutId=item.id;
 if(item.glbBlob){
   try{await loadGLB(item.glbBlob,item.modelName||'Saved model',false)}
   catch(e){note('Layout loaded, but GLB failed: '+e.message,true)}
 }
-renderPresets();setupGUI();buildVehicle();resetCamera();
-note('Loaded layout: '+item.name);
+if(item.passengerBlob){
+ try{await loadPassengerGLB(item.passengerBlob,item.passengerModelName||'Occupant GLB',false)}
+ catch(e){note('Occupant GLB unavailable: '+e.message,true)}
+}
+renderPresets();setupGUI();buildVehicle();preserveCameraOrbit();
+scheduleHistory('Loaded layout: '+item.name);note('Loaded layout: '+item.name);
 }
 // SQLite-backed Flask library. All credentials are kept in memory and sent
 // only in Authorization headers to same-origin /api endpoints.
@@ -1612,7 +1853,7 @@ function resolvedServerPath(path){
 }
 async function serverRequest(method,path,payload=null){
  const token=guestServerMode()?guestToken:serverAccess.token.trim();
- if(!token)throw Error('Create a guest profile to use SQLite layouts.');
+ if(!token)throw Error('Create a profile to use SQLite layouts.');
  const form=payload instanceof FormData;
  const response=await fetch(resolvedServerPath(path),{
   method,credentials:'same-origin',cache:'no-store',
@@ -1627,7 +1868,7 @@ async function serverRequest(method,path,payload=null){
 async function refreshServer(){
  const root=$('serverSaved');root.replaceChildren();
  if(!guestServerMode()&&!serverAccess.token.trim()){
-  root.textContent='Create a guest profile to save vehicles in SQLite.';return;
+  root.textContent='Create a profile to save vehicles in SQLite.';return;
  }
  try{
   const data=await serverRequest('GET','/api/layouts');
@@ -1667,12 +1908,13 @@ async function loadServer(id){
   await loadGLB(blob,item.blueprint.modelName||'Server model.glb');
   serverAssetBlob=blob;
  }
- note('Loaded from Flask / SQLite: '+item.name);
+ scheduleHistory('Loaded cloud layout: '+item.name);note('Loaded from Flask / SQLite: '+item.name);
 }
 async function saveServer(copy=false){
  const candidate=cfg.name+(modelName?' · GLB':'');
- const name=prompt('SQLite layout name',candidate);
- if(name===null)return;
+ const details=await askVehicleDetails(candidate);if(!details)return;
+ applyVehicleDetails(details);
+ note('Capturing five gallery views…');galleryImages=captureVehicleGallery();
  let assetId=serverAssetId;
  if(modelBlob && (serverAssetBlob!==modelBlob || !assetId)){
   const upload=new FormData();upload.append('file',modelBlob,modelName||'vehicle.glb');
@@ -1681,18 +1923,22 @@ async function saveServer(copy=false){
  }
  if(!modelBlob)assetId=null;
  const id=copy||!serverLayoutId?crypto.randomUUID():serverLayoutId;
- const body={id,name:name.trim()||candidate,blueprint:blueprint(),asset_id:assetId,
+ const body={id,name:details.name,blueprint:blueprint(),asset_id:assetId,
   visibility:$('layoutPublic').checked?'public':'private'};
+ if(JSON.stringify(body.blueprint).length>240000)
+  throw Error('Preview image payload too large; reduce screenshot size before saving');
  const updating=!copy&&Boolean(serverLayoutId);
  if(updating)body.revision=serverRevision;
  const result=await serverRequest(updating?'PUT':'POST',
   '/api/layouts'+(updating?'/'+encodeURIComponent(id):''),body);
  serverLayoutId=result.layout.id;serverRevision=result.layout.revision;
  serverAssetId=assetId;serverAssetBlob=modelBlob;
- await refreshServer();
  serverVisibility=body.visibility;
- note('Saved '+serverVisibility+' vehicle to Flask / SQLite (revision '+serverRevision+').');
+ commitHistory('Cloud save: '+details.name);
+ await refreshServer();await refreshVehicleGallery();
+ note('Saved '+serverVisibility+' vehicle in SQLite with five previews (revision '+serverRevision+').');
 }
+
 function download(data,name,type){
  const blob=data instanceof Blob?data:new Blob([data],{type});
  const url=URL.createObjectURL(blob);
@@ -1701,8 +1947,14 @@ function download(data,name,type){
  document.body.append(a);a.click();a.remove();
  setTimeout(()=>URL.revokeObjectURL(url),1500);
 }
+function exportFileName(ext){
+ const user=(activeProfile?.name||'profile').normalize('NFKD').replace(/[^a-zA-Z0-9-]+/g,'-').slice(0,36);
+ const carName=(cfg.name||'vehicle').normalize('NFKD').replace(/[^a-zA-Z0-9-]+/g,'-').slice(0,50);
+ const timestamp=new Date().toISOString().replace(/[:.]/g,'-');
+ return `${user}-${carName}-${timestamp}-v${VERSION}.${ext}`;
+}
 function exportJSON(){
- download(JSON.stringify(blueprint(),null,2),'vehicle-layout.json','application/json');
+ download(JSON.stringify(blueprint(),null,2),exportFileName('json'),'application/json');
  note('JSON exported. Imported GLB binary is saved in IndexedDB, not inside JSON.');
 }
 function importJSON(){
@@ -1729,9 +1981,11 @@ $('importJSON').onchange=async e=>{
  cfg.windows=clamp(Math.round(cfg.windows),1,14);
  cfg.seats=clamp(Math.round(cfg.seats),1,48);
  occupants=clamp(data.occupants??cfg.seats,0,cfg.seats);
+ vehicleDescription=data.metadata?.description||'';vehicleCategory=data.metadata?.category||cfg.category||'Urban';galleryImages=data.metadata?.images||[];
  layoutId=null;modelSource=null;modelBlob=null;modelName=null;
- renderPresets();setupGUI();buildVehicle();resetCamera();
- note('JSON blueprint imported.');
+ passengerSource=null;passengerGLB=null;passengerAnimations=[];passengerName=null;
+ renderPresets();setupGUI();buildVehicle();preserveCameraOrbit();
+ scheduleHistory('Imported JSON blueprint');note('JSON blueprint imported.');
 }catch(error){note(error.message,true)}
 e.target.value='';
 };
@@ -1751,10 +2005,33 @@ async function loadGLB(blob,name='Imported GLB',rebuild=true){
   modelSource=result.scene;modelBlob=blob;modelName=name;
   if(rebuild){
    if(mode==='drive')leaveDrive();
-   buildVehicle();
+   buildVehicle();scheduleHistory('Imported vehicle model');
  }
 }finally{URL.revokeObjectURL(url)}
 }
+// Uploaded GLB humanoids are visual occupants. Missing animation names use first clip.
+// Server upload for occupant model assets will be a separately scoped feature.
+async function loadPassengerGLB(blob,name='Occupants.glb',rebuild=true){
+ if(blob.size>80*1024*1024||blob.size<12)throw Error('Occupant GLB must be smaller than 80MB');
+ const bytes=new Uint8Array(await blob.slice(0,12).arrayBuffer());
+ if(String.fromCharCode(...bytes.slice(0,4))!=='glTF')throw Error('Expected binary GLB');
+ const url=URL.createObjectURL(blob);
+ try{
+  const result=await loader.loadAsync(url);
+  if(!result.scene)throw Error('GLB has no scene');
+  const bounds=new THREE.Box3().setFromObject(result.scene);
+  if(bounds.isEmpty())throw Error('GLB has no visible occupant geometry');
+  passengerSource=result.scene;passengerGLB=blob;passengerName=name;
+  passengerAnimations=result.animations||[];
+  if(rebuild){if(mode==='drive')leaveDrive();buildVehicle();scheduleHistory('Imported occupant model');}
+  note('Occupant model imported. Clips: '+(passengerAnimations.map(c=>c.name).join(', ')||'none'));
+ }finally{URL.revokeObjectURL(url)}
+}
+$('importPassenger').onchange=async e=>{
+ const file=e.target.files?.[0];if(!file)return;
+ try{await loadPassengerGLB(file,file.name)}catch(error){note(error.message,true)}e.target.value='';
+};
+
 $('importGLB').onchange=async e=>{
  const file=e.target.files?.[0];if(!file)return;
  try{
@@ -1767,7 +2044,7 @@ function exportGLB(){
  if(mode==='drive')leaveDrive();
  const exporter=new GLTFExporter();
  exporter.parse(car,result=>{
-  download(new Blob([result],{type:'model/gltf-binary'}),'vehicle.glb');
+  download(new Blob([result],{type:'model/gltf-binary'}),exportFileName('glb'));
   note('Vehicle GLB exported.');
 },error=>note(error.message,true),{binary:true,onlyVisible:true});
 }
@@ -1873,6 +2150,86 @@ throw Error('Task polling timed out');
 finally{busyAI=false}
 }
 
+// Vehicle edit history. Geometry/config edits are grouped after 300 ms of idle.
+// No account secrets, API keys or GLB bytes are included in persisted snapshots.
+const HISTORY_KEY='vehiclelab.history.v1';
+let editHistory=[],editCursor=-1,historyReady=false,historyTimer=null,replayingHistory=false;
+function stateSnapshot(){
+ return {cfg:structuredClone(cfg),mods:structuredClone(mods),occupants,
+  vehicleDescription,vehicleCategory,doorsOpen,selectedPart,autoRotate,
+  modelSource,modelBlob,modelName,passengerSource,passengerGLB,passengerName,passengerAnimations};
+}
+function persistedSnapshot(snap){
+ const {modelSource,modelBlob,passengerSource,passengerGLB,passengerAnimations,...portable}=snap;return portable;
+}
+function historySignature(snap){return JSON.stringify(persistedSnapshot(snap))}
+function historyPersist(){
+ try{localStorage.setItem(HISTORY_KEY,JSON.stringify({cursor:editCursor,
+  records:editHistory.map(e=>({label:e.label,time:e.time,state:persistedSnapshot(e.state)}))}))}catch(e){}
+}
+function commitHistory(label='Edit'){
+ if(!historyReady||replayingHistory)return;
+ clearTimeout(historyTimer);historyTimer=null;
+ const state=stateSnapshot(),signature=historySignature(state);
+ if(editHistory[editCursor]?.signature===signature)return;
+ editHistory=editHistory.slice(0,editCursor+1);
+ editHistory.push({label,time:new Date().toISOString(),state,signature});
+ if(editHistory.length>160)editHistory.shift();
+ editCursor=editHistory.length-1;historyPersist();refreshHistoryUI();
+}
+function scheduleHistory(label='Edit'){
+ if(!historyReady||replayingHistory)return;
+ clearTimeout(historyTimer);historyTimer=setTimeout(()=>commitHistory(label),300);
+}
+function restoreEditState(entry){
+ replayingHistory=true;
+ try{
+  if(mode==='drive')leaveDrive();
+  cfg=structuredClone(entry.state.cfg);mods=structuredClone(entry.state.mods);
+  occupants=entry.state.occupants;vehicleDescription=entry.state.vehicleDescription||'';
+  vehicleCategory=entry.state.vehicleCategory||cfg.category||'Urban';
+  doorsOpen=Boolean(entry.state.doorsOpen);selectedPart=entry.state.selectedPart||'cabin';
+  autoRotate=entry.state.autoRotate!==false;
+  if('modelSource' in entry.state){modelSource=entry.state.modelSource;modelBlob=entry.state.modelBlob;modelName=entry.state.modelName;}
+  if('passengerSource' in entry.state){passengerSource=entry.state.passengerSource;passengerGLB=entry.state.passengerGLB;passengerName=entry.state.passengerName;passengerAnimations=entry.state.passengerAnimations||[];}
+  buildTerrain();renderPresets();setupGUI();buildVehicle();preserveCameraOrbit();
+  updateRotationButton();updateLightsButton();refreshHistoryUI();
+ }finally{replayingHistory=false}
+}
+function undo(){
+ if(historyTimer)commitHistory('Latest edit');
+ if(editCursor<=0){note('No earlier edit to undo');return}
+ editCursor--;restoreEditState(editHistory[editCursor]);historyPersist();note('Undo: '+editHistory[editCursor].label);
+}
+function redo(){
+ if(historyTimer)commitHistory('Latest edit');
+ if(editCursor>=editHistory.length-1){note('Nothing to redo');return}
+ editCursor++;restoreEditState(editHistory[editCursor]);historyPersist();note('Redo: '+editHistory[editCursor].label);
+}
+function refreshHistoryUI(){
+ $('undoBtn').disabled=editCursor<=0;$('redoBtn').disabled=editCursor>=editHistory.length-1;
+ const root=$('historyList');if(!root)return;root.replaceChildren();
+ for(let i=editHistory.length-1;i>=Math.max(0,editHistory.length-35);i--){
+  const item=editHistory[i],btn=document.createElement('button');
+  btn.textContent=`${i===editCursor?'●':'○'} ${new Date(item.time).toLocaleTimeString()} · ${item.label}`;
+  btn.className='history-entry';btn.onclick=()=>{if(historyTimer)commitHistory();editCursor=i;restoreEditState(item);historyPersist()};
+  root.append(btn);
+ }
+}
+function initializeHistory(){
+ try{
+  const persisted=JSON.parse(safeRead(HISTORY_KEY)||'null');
+  if(Array.isArray(persisted?.records)&&persisted.records.length&&persisted.records.length<=160){
+   editHistory=persisted.records.filter(e=>e?.state?.cfg&&e?.state?.mods).map(e=>({
+    ...e,signature:historySignature(e.state)}));
+   editCursor=clamp(Number(persisted.cursor)||0,0,editHistory.length-1);
+   historyReady=true;restoreEditState(editHistory[editCursor]);
+   return;
+  }
+ }catch(error){recordEvent('WARN','History restore: '+error.message)}
+ historyReady=true;commitHistory('Initial vehicle');
+}
+
 // Compact lil-gui interface. Module folders remain collapsed.
 function setupGUI(){
  gui?.destroy();
@@ -1882,7 +2239,7 @@ function setupGUI(){
   width:290
 });
 
- const changed=()=>scheduleBuild();
+ const changed=()=>{scheduleBuild();scheduleHistory('Vehicle parameter');};
  const vehicleFolder=gui.addFolder('01 · Vehicle');
  vehicleFolder.add(cfg,'L',2.5,18,.1).name('Length').onChange(changed);
  vehicleFolder.add(cfg,'W',1.2,5,.05).name('Width').onChange(changed);
@@ -1935,6 +2292,14 @@ folder.add({select:()=>{
 folder.close();
 }
 
+const wheelsFolder=gui.addFolder('07 · Wheel geometry');
+ wheelsFolder.add(cfg,'radius',.24,1.5,.01).name('Radius (m)').onChange(changed);
+ wheelsFolder.add(cfg,'wheelWidth',.08,1.25,.01).name('Tyre width (m)').onChange(changed);
+ wheelsFolder.add(cfg,'wheelOutset',-.25,.65,.01).name('Lateral offset').onChange(changed);
+ wheelsFolder.add(cfg,'axleFrontOffset',-1.6,1.6,.01).name('Front axle Z').onChange(changed);
+ wheelsFolder.add(cfg,'axleRearOffset',-1.6,1.6,.01).name('Rear axle Z').onChange(changed);
+ wheelsFolder.close();
+
 const driving=gui.addFolder('07 · Physics & camera');
  driving.add(simulator,'engine',{
    'Cannon-es · raycast vehicle':'cannon',
@@ -1961,12 +2326,23 @@ driving.add(cfg,'cameraDistance',3,65,.5).name('Camera distance')
 driving.add(cfg,'headlights').name('Headlights').onChange(()=>{
   updateLights();updateLightsButton();
 });
-driving.add(cfg,'hills').name('Terrain hills').onChange(()=>{
-  if(mode==='drive')leaveDrive();
-  buildTerrain();buildVehicle();
-});
+const environment=gui.addFolder('08 · Terrain & sky');
+ environment.add(cfg,'terrainProfile',['flat','bumps','hills','extreme','moon','beach']).name('Terrain').onChange(()=>{if(mode==='drive')leaveDrive();buildTerrain();buildVehicle();scheduleHistory('Terrain')});
+ environment.add(cfg,'terrainSize',90,300,30).name('Terrain width').onFinishChange(()=>{if(mode==='drive')leaveDrive();buildTerrain();scheduleHistory('Terrain size')});
+ environment.add(cfg,'skyStyle',['solid','gradient','clouds','night']).name('Sky').onChange(()=>{updateEnvironment();scheduleHistory('Sky')});
+ environment.add({reset:()=>{cfg.terrainProfile='hills';cfg.skyStyle='gradient';cfg.terrainSize=180;buildTerrain();updateEnvironment();setupGUI();scheduleHistory('Terrain reset')}},'reset').name('Reset terrain');
+ environment.close();
 driving.add({resetCamera},'resetCamera').name('Reset camera');
 driving.close();
+
+const passengerFolder=gui.addFolder('09 · Occupants');
+passengerFolder.add({upload:()=>$('importPassenger').click()},'upload').name('Import occupant GLB');
+passengerFolder.add({clear:()=>{
+ passengerSource=null;passengerGLB=null;passengerAnimations=[];passengerName=null;
+ buildVehicle();scheduleHistory('Removed occupant model');
+}},'clear').name('Use procedural occupants');
+passengerFolder.add({clips:()=>note('Occupant clips: '+(passengerAnimations.map(c=>c.name).join(', ')||'None'))},'clips').name('List animation clips');
+passengerFolder.close();
 
 const asset=gui.addFolder('08 · GLB & blueprint');
 asset.add(cfg,'modelScale',.25,2.5,.01).name('GLB scale').onChange(changed);
@@ -2068,34 +2444,46 @@ function choosePreset(p){
    .map(key=>[key,cfg[key]])
  );
  cfg={...structuredClone(defaults),...p,...appearance};
- mods=defaultMods();occupants=cfg.seats;
+ mods=defaultMods();occupants=cfg.seats;vehicleDescription='';vehicleCategory=p.category;galleryImages=[];
  modelSource=null;modelBlob=null;modelName=null;
+ passengerSource=null;passengerGLB=null;passengerAnimations=[];passengerName=null;
  layoutId=null;doorsOpen=false;
  serverLayoutId=null;serverRevision=null;serverAssetId=null;serverAssetBlob=null;
  catalogExpanded.add(p.category);
- renderPresets();setupGUI();buildVehicle();resetCamera();
+ renderPresets();setupGUI();buildVehicle();preserveCameraOrbit();
+ scheduleHistory('Selected preset: '+p.name);
 }
 
 function updateLightsButton(){
- $('lightsBtn').textContent=cfg.headlights?'Lights on':'Lights off';
+ $('lightsBtn').dataset.actionLabel=cfg.headlights?'Lights on':'Lights off';
+ applyButtonMode();
 }
 $('search').oninput=renderPresets;
 $('buildBtn').onclick=leaveDrive;
 $('driveBtn').onclick=enterDrive;
+$('undoBtn').onclick=undo;$('redoBtn').onclick=redo;
+$('shortcutsBtn').onclick=()=>toggleShortcuts(true);
+$('importBtn').onclick=importJSON;
 $('rotateBtn').onclick=()=>{
  autoRotate=!autoRotate;
  orbit.autoRotate=autoRotate&&mode==='build';
- $('rotateBtn').textContent=autoRotate?'Stop rotation':'Start rotation';
+ safeStore('vehiclelab.rotation.v1',autoRotate?'on':'off');
+ updateRotationButton();commitHistory('Rotation');
 };
+function updateRotationButton(){
+ $('rotateBtn').dataset.actionLabel='Rotation';$('rotateBtn').classList.toggle('active',autoRotate);
+ applyButtonMode();
+}
 $('lightsBtn').onclick=()=>{
  cfg.headlights=!cfg.headlights;updateLights();
- updateLightsButton();
+ updateLightsButton();scheduleHistory('Lights');
 };
 $('saveBtn').onclick=()=>saveLayout(false).catch(e=>note(e.message,true));
 $('serverSaveBtn').onclick=()=>saveServer(false).catch(e=>note(e.message,true));
 $('exportBtn').onclick=exportJSON;
 $('doorsBtn').onclick=()=>{
  doorsOpen=!doorsOpen;
+ scheduleHistory('Doors');
  for(const {hinge,side} of doorHinges)
   hinge.rotation.y=doorsOpen?side*.8:0;
 $('doorsBtn').textContent=doorsOpen?'Close doors':'Open doors';
@@ -2107,7 +2495,7 @@ function board(delta){
 occupants=clamp(occupants+delta,0,cfg.seats);
 for(let i=0;i<passengerFigures.length;i++)passengerFigures[i].visible=i<occupants;
 if(physics)physics.setMass(vehicleMass());
-note(`${occupants}/${cfg.seats} passengers onboard`);
+note(`${occupants}/${cfg.seats} passengers onboard`);scheduleHistory('Passengers');
 }
 $('boardBtn').onclick=()=>board(1);
 $('exitBtn').onclick=()=>board(-1);
@@ -2132,7 +2520,7 @@ renderer.domElement.addEventListener('pointerup',e=>{
   let obj=hit.object;
   while(obj&&!obj.userData.part)obj=obj.parent;
   if(obj?.userData.part){
-   selectedPart=obj.userData.part;updateHighlight();break;
+   selectedPart=obj.userData.part;updateHighlight();scheduleHistory('Selected module');break;
  }
 }
 });
@@ -2150,6 +2538,7 @@ function animate(){
  requestAnimationFrame(animate);
  const frameDelta=clock.getDelta();
  const dt=Math.min(frameDelta,.05);
+ for(const mixer of passengerMixers)mixer.update(dt);
  telemetry.frames++;
  telemetry.frameTime+=frameDelta;
  if(mode==='drive')stepVehicle(dt);
@@ -2158,7 +2547,8 @@ function animate(){
   orbit.update();
   highlight?.update();
 }
-renderer.render(scene,camera);
+  if(skyDome)skyDome.position.copy(camera.position);
+  renderer.render(scene,camera);
  if(performance.now()-telemetry.lastDisplay>=1000){
   const fps=telemetry.frameTime>0?telemetry.frames/telemetry.frameTime:0;
   $('simFps').textContent=fps.toFixed(0);
@@ -2172,8 +2562,8 @@ renderer.render(scene,camera);
 }
 
 // Workspace windows: pointer dragging + native CSS resize + minimize.
-const WINDOW_IDS=['toolbarWindow','toolsWindow','catalogWindow','paramsWindow','logWindow'];
-const WINDOW_NAMES=['Actions','Tools','Library','Parameters','Logs'];
+const WINDOW_IDS=['toolbarWindow','toolsWindow','catalogWindow','galleryWindow','paramsWindow','logWindow'];
+const WINDOW_NAMES=['Actions','Tools','Library','Gallery','Parameters','Logs'];
 let highestZ=18;
 const safeStore=(name,value)=>{try{localStorage.setItem(name,value)}catch(e){}};
 const safeRead=name=>{try{return localStorage.getItem(name)}catch(e){return null}};
@@ -2261,16 +2651,42 @@ function initWorkspace(){
 }
 
 const THEME_STORAGE='vehiclelab.theme.v1';
-const defaultsTheme={theme:'dark',font:'system',size:1,accent:null,panel:null};
+const defaultsTheme={theme:'dark',font:'system',size:1,accent:null,panel:null,actionMode:'icon-text'};
 let themeSettings={...defaultsTheme};
 const themes=['dark','light','graphite','amber'];
 const fonts=['system','mono','rounded'];
 const scales=[.85,1,1.15,1.3];
+const actionModes=['text','icon-text','icon'];
 const fontNames={system:'System',mono:'Monospace',rounded:'Rounded'};
+// Purely presentational buttons: icons do not alter action semantics.
+const ACTION_ICONS={
+ buildBtn:'▣',driveBtn:'▶',undoBtn:'↶',redoBtn:'↷',rotateBtn:'⟳',lightsBtn:'☀',
+ saveBtn:'▾',serverSaveBtn:'☁',exportBtn:'⇩',importBtn:'⇧',shortcutsBtn:'⌘',
+ exitBtn:'⇤',boardBtn:'⇥',doorsBtn:'◧'
+};
+function applyButtonMode(){
+ const setting=themeSettings.actionMode||'icon-text';
+ for(const [id,icon] of Object.entries(ACTION_ICONS)){
+  const button=$(id);if(!button)continue;
+  let label=button.dataset.actionLabel;
+  if(!label){label=button.textContent.trim();button.dataset.actionLabel=label}
+  // Labels with live state are updated by their respective button handlers.
+  button.replaceChildren();
+  button.setAttribute('aria-label',label);button.title=label;
+  if(setting!=='text'){
+   const span=document.createElement('span');span.className='tool-symbol';span.setAttribute('aria-hidden','true');
+   span.textContent=icon;button.append(span);
+  }
+  if(setting!=='icon'){
+   const text=document.createElement('span');text.textContent=label;button.append(text);
+  }
+ }
+}
 function applyTheme(){
  document.body.dataset.theme=themeSettings.theme;
  const faces={system:'system-ui,-apple-system,sans-serif',mono:'ui-monospace,SFMono-Regular,monospace',rounded:'ui-rounded,system-ui,sans-serif'};
  document.documentElement.style.setProperty('--ui-font',faces[themeSettings.font]);
+ applyButtonMode();
  document.documentElement.style.setProperty('--ui-scale',String(themeSettings.size));
  const palette={dark:['#a8f1c8','#152431'],light:['#147ab3','#e9f2f7'],
   graphite:['#dedcdf','#25282e'],amber:['#ffbf68','#29241e']};
@@ -2283,7 +2699,8 @@ function applyTheme(){
  for(const [id,items,selected,handler] of [
   ['themeChoices',themes,themeSettings.theme,x=>themeSettings.theme=x],
   ['fontChoices',fonts,themeSettings.font,x=>themeSettings.font=x],
-  ['fontSizeChoices',scales.map(String),String(themeSettings.size),x=>themeSettings.size=Number(x)]
+  ['fontSizeChoices',scales.map(String),String(themeSettings.size),x=>themeSettings.size=Number(x)],
+  ['actionModeChoices',actionModes,themeSettings.actionMode,x=>themeSettings.actionMode=x]
  ]){
   const root=$(id);root.replaceChildren();
   for(const item of items){
@@ -2299,6 +2716,7 @@ function initTheme(){
   if(themes.includes(imported.theme))themeSettings.theme=imported.theme;
   if(fonts.includes(imported.font))themeSettings.font=imported.font;
   if(scales.includes(imported.size))themeSettings.size=imported.size;
+ if(actionModes.includes(imported.actionMode))themeSettings.actionMode=imported.actionMode;
   if(/^#[0-9a-fA-F]{6}$/.test(imported.accent||''))themeSettings.accent=imported.accent;
   if(/^#[0-9a-fA-F]{6}$/.test(imported.panel||''))themeSettings.panel=imported.panel;
  }catch(e){}applyTheme();
@@ -2310,10 +2728,11 @@ $('themeFile').onchange=async e=>{
  try{const file=e.target.files[0];if(!file)return;const value=JSON.parse(await file.text());
   if(value.schema!=='vehiclelab-theme/v1'||!themes.includes(value.theme)||
    !fonts.includes(value.font)||!scales.includes(value.size)||
+   (value.actionMode!=null&&!actionModes.includes(value.actionMode))||
    (value.accent!=null&&!/^#[0-9a-fA-F]{6}$/.test(value.accent))||
    (value.panel!=null&&!/^#[0-9a-fA-F]{6}$/.test(value.panel)))throw Error('Invalid theme JSON');
   themeSettings={theme:value.theme,font:value.font,size:value.size,
-   accent:value.accent||null,panel:value.panel||null};applyTheme();note('Theme imported.');
+   accent:value.accent||null,panel:value.panel||null,actionMode:value.actionMode||'icon-text'};applyTheme();note('Theme imported.');
  }catch(e){note(e.message,true)}e.target.value='';
 };
 for(const [id,field] of [['themeAccent','accent'],['themePanel','panel']]){
@@ -2410,12 +2829,16 @@ async function identityRequest(path,method='GET',payload=null){
  return data;
 }
 function displayProfile(){
+ const portrait=$('profilePortrait');portrait.replaceChildren();
+ if(activeProfile?.avatar_url){const img=document.createElement('img');img.alt='My profile picture';
+ img.src=activeProfile.avatar_url+'?v='+encodeURIComponent(activeProfile.updated_at||Date.now());portrait.append(img)}
+ else portrait.textContent=(activeProfile?.name||'?').slice(0,1).toUpperCase();
  if(!activeProfile)return;
  $('profileRoundel').replaceChildren();
  if(activeProfile.avatar_url){const img=document.createElement('img');img.src=activeProfile.avatar_url+'?t='+Date.now();
   img.alt='Profile picture';$('profileRoundel').append(img)}
  else $('profileRoundel').textContent=(activeProfile.name||'?').slice(0,1).toUpperCase();
- $('profileIdInfo').textContent=activeProfile.name+' · '+activeProfile.id+' · guest session';
+ $('profileIdInfo').textContent=activeProfile.name+' · '+activeProfile.id+' · passwordless session';
  $('profileName').value=activeProfile.name||'';$('profileBio').value=activeProfile.bio||'';
  $('profileLink').value=activeProfile.links?.website||'';
  $('profileEmail').value=activeProfile.email||'';$('profilePhone').value=activeProfile.phone||'';
@@ -2435,16 +2858,69 @@ async function postAvatar(file){
  const data=await identityRequest('/api/identity/avatar','POST',upload);
  activeProfile=data.profile;displayProfile();
 }
+// Profile photos: explicitly requested camera only, no stream at startup.
+let avatarStream=null,avatarCameraTarget='welcome',capturedWelcomeAvatar=null;
+function paintAvatarPreview(container,file){
+ const root=$(container);root.replaceChildren();
+ if(!file){root.textContent='●';return}
+ const img=document.createElement('img');img.alt='Selected profile photo';
+ const url=URL.createObjectURL(file);img.src=url;
+ img.onload=()=>URL.revokeObjectURL(url);root.append(img);
+}
+function stopAvatarCamera(){
+ if(avatarStream){avatarStream.getTracks().forEach(track=>track.stop());avatarStream=null}
+ $('cameraVideo').srcObject=null;$('cameraOverlay').hidden=true;
+}
+async function openAvatarCamera(target){
+ avatarCameraTarget=target;
+ if(!navigator.mediaDevices?.getUserMedia)throw Error('Camera unavailable. Use HTTPS and a supported device.');
+ stopAvatarCamera();
+ try{
+  avatarStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user',width:{ideal:960},height:{ideal:960}},audio:false});
+  $('cameraVideo').srcObject=avatarStream;
+  $('cameraOverlay').hidden=false;
+  await $('cameraVideo').play();
+ }catch(error){stopAvatarCamera();throw Error('Camera permission or device error: '+error.message)}
+}
+$('welcomeWebcam').onclick=()=>void openAvatarCamera('welcome').catch(error=>note(error.message,true));
+$('profileWebcam').onclick=()=>void openAvatarCamera('profile').catch(error=>note(error.message,true));
+$('cameraCancel').onclick=stopAvatarCamera;
+$('cameraCapture').onclick=async()=>{
+ try{
+  const video=$('cameraVideo');if(!video.videoWidth)throw Error('Camera has no video frame yet');
+  const size=Math.min(video.videoWidth,video.videoHeight),canvas=document.createElement('canvas');
+  canvas.width=canvas.height=512;
+  const ctx=canvas.getContext('2d');
+  ctx.translate(512,0);ctx.scale(-1,1); // match mirrored preview
+  ctx.drawImage(video,(video.videoWidth-size)/2,(video.videoHeight-size)/2,size,size,0,0,512,512);
+  const blob=await new Promise(resolve=>canvas.toBlob(resolve,'image/png'));
+  if(!blob)throw Error('Photo capture unavailable');
+  const file=new File([blob],'profile-camera.png',{type:'image/png'});
+  const target=avatarCameraTarget;
+  stopAvatarCamera();
+  if(target==='welcome'){capturedWelcomeAvatar=file;paintAvatarPreview('welcomePortrait',file)}
+  else {await postAvatar(file);note('Webcam profile photo saved.');}
+ }catch(error){stopAvatarCamera();note(error.message,true)}
+};
+window.addEventListener('pagehide',stopAvatarCamera);
+$('avatarUpload').onchange=async e=>{
+ const file=e.target.files?.[0];if(!file)return;
+ try{if(!activeProfile)throw Error('Create a profile first');await postAvatar(file);note('Profile image updated.')}
+ catch(error){note(error.message,true)}e.target.value='';
+};
+
 $('welcomeForm').onsubmit=async e=>{
  e.preventDefault();const button=e.submitter;if(button)button.disabled=true;
  try{
   const name=$('welcomeName').value.trim();if(!name)throw Error('Enter a username');
   const response=await fetch('/api/identity/guest',{
    method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name})});
-  const data=await response.json();if(!response.ok)throw Error(data.error||'Guest creation failed');
+  const data=await response.json();if(!response.ok)throw Error(data.error||'Profile creation failed');
   await setIdentity(data.token);
-  if($('welcomeAvatar').files?.[0])await postAvatar($('welcomeAvatar').files[0]);
-  note('Guest profile ready. Export a profile backup to preserve access.');
+  if(capturedWelcomeAvatar||$('welcomeAvatar').files?.[0])
+   await postAvatar(capturedWelcomeAvatar||$('welcomeAvatar').files[0]);
+  capturedWelcomeAvatar=null;
+  note('Profile ready. Export a profile backup to preserve access.');
  }catch(e){note(e.message,true)}finally{if(button)button.disabled=false}
 };
 $('welcomeAvatar').onchange=e=>{
@@ -2452,9 +2928,10 @@ $('welcomeAvatar').onchange=e=>{
  $('welcomeAvatarPreview').hidden=false;
  const objectURL=URL.createObjectURL(file);$('welcomeAvatarPreview').src=objectURL;
  $('welcomeAvatarPreview').onload=()=>URL.revokeObjectURL(objectURL);
+ capturedWelcomeAvatar=null;paintAvatarPreview('welcomePortrait',file);
 };
 $('profileEditForm').onsubmit=async e=>{
- e.preventDefault();if(!activeProfile){note('Create a guest profile first.',true);return}
+ e.preventDefault();if(!activeProfile){note('Create a profile first.',true);return}
  try{
   const data=await identityRequest('/api/identity/me','PUT',{
    name:$('profileName').value,bio:$('profileBio').value,
@@ -2471,7 +2948,7 @@ $('backupProfile').onclick=()=>{
  download(JSON.stringify({schema:'vehiclelab-guest-backup/v1',id:activeProfile.id,
   secret:guestToken,exportedAt:new Date().toISOString()},null,2),
   'vehiclelab-profile-backup-PRIVATE.json','application/json');
- note('PRIVATE backup exported. Whoever holds this file can access the guest identity.');
+ note('PRIVATE backup exported. Whoever holds this file can access the profile identity.');
 };
 async function restoreProfileFile(file){
  const value=JSON.parse(await file.text());
@@ -2485,7 +2962,7 @@ async function restoreProfileFile(file){
  if(!verified.ok||response.profile?.id!==value.id)
   throw Error('Backup identity does not match the server');
  await setIdentity(value.secret);
- note('Guest identity restored; cloud layouts available.');
+ note('Profile identity restored; cloud layouts available.');
 }
 $('restoreProfile').onclick=()=>$('profileBackupFile').click();
 $('welcomeImport').onclick=()=>$('profileBackupFile').click();
@@ -2495,14 +2972,14 @@ $('profileBackupFile').onchange=async e=>{
  e.target.value='';
 };
 $('switchGuest').onclick=()=>{
- if(!confirm('Switch away from this guest? Export your backup first or this device may lose access.'))return;
+ if(!confirm('Switch away from this profile? Export your backup first or this device may lose access.'))return;
  guestToken='';activeProfile=null;safeStore('vehiclelab.guest.v1','');
  $('profileRoundel').textContent='?';$('welcomeOverlay').hidden=false;showDrawer(null);
 };
 async function initIdentity(){
  const token=safeRead('vehiclelab.guest.v1');
  if(token){
-  try{await setIdentity(token);return}catch(e){recordEvent('WARN','Existing guest session unavailable: '+e.message)}
+  try{await setIdentity(token);return}catch(e){recordEvent('WARN','Existing profile session unavailable: '+e.message)}
  }
  if($('releaseOverlay').hidden)$('welcomeOverlay').hidden=false;
 }
@@ -2535,13 +3012,149 @@ async function refreshGallery(){
   if(!layouts.length)root.textContent='No published vehicles yet.';
  }catch(e){root.textContent=e.message;recordEvent('WARN',e.message)}
 }
+// Screenshot gallery: float or dock; stable per-user browser preferences.
+let gallerySource='local',gallerySize='m';
+function gallerySelection(){
+ for(const btn of document.querySelectorAll('#gallerySizes button'))
+  btn.setAttribute('aria-pressed',String(btn.dataset.size===gallerySize));
+ for(const btn of document.querySelectorAll('#gallerySources button'))
+  btn.setAttribute('aria-pressed',String(btn.dataset.source===gallerySource));
+ $('vehicleGallery').dataset.size=gallerySize;
+}
+function galleryImage(images,index=0){
+ const image=images?.[index];
+ return image&&typeof image.data==='string'&&/^data:image\/jpeg;base64,/.test(image.data)?image.data:null;
+}
+function makeGalleryCard(item){
+ const card=document.createElement('div');card.className='thumb-card';card.setAttribute('role','listitem');
+ const title=document.createElement('div');title.className='thumb-title';title.textContent=item.name||'Unnamed';
+ title.title=item.name||'';card.append(title);
+ const hero=document.createElement('img');hero.className='thumb-hero';hero.alt=(item.name||'Vehicle')+' preview';
+ if(galleryImage(item.images))hero.src=galleryImage(item.images);
+ hero.onclick=()=>void openGalleryItem(item);card.append(hero);
+ if(item.images?.length){
+  const strip=document.createElement('div');strip.className='thumb-strip';
+  item.images.forEach((data,i)=>{
+   const t=document.createElement('img');t.src=galleryImage(item.images,i)||'';
+   t.alt=data.label||('View '+(i+1));t.title=t.alt;
+   t.onclick=()=>{hero.src=t.src;hero.alt=t.alt};strip.append(t);
+  });card.append(strip);
+ }
+ const category=document.createElement('div');category.className='thumb-category';
+ category.textContent=item.category||'Vehicle';card.append(category);
+ const buttons=document.createElement('div');buttons.className='thumb-actions';
+ const appendBtn=(label,fn)=>{
+  const b=document.createElement('button');b.textContent=label;b.onclick=()=>void Promise.resolve(fn()).catch(e=>note(e.message,true));
+  buttons.append(b);
+ };
+ appendBtn('Open',()=>openGalleryItem(item));
+ if(item.source==='local'){
+  appendBtn('Edit',()=>editLocalMetadata(item));
+  appendBtn('Copy',()=>duplicateLocal(item));
+  appendBtn('Delete',()=>deleteLocal(item));
+ }else if(item.source==='public')appendBtn('Save copy',async()=>{
+  await openGalleryItem(item);await saveLayout(true);
+ });
+ else appendBtn('Copy',async()=>{await openGalleryItem(item);await saveServer(true)});
+ card.append(buttons);return card;
+}
+async function openGalleryItem(item){
+ if(item.source==='local')return loadLayout(item.original);
+ if(item.source==='cloud')return loadServer(item.id);
+ const response=await fetch('/api/gallery/'+encodeURIComponent(item.id),{cache:'no-store'});
+ const data=await response.json();if(!response.ok)throw Error(data.error||'Public layout not found');
+ const record=data.layout;await loadLayout({...record.blueprint,name:record.name});
+ serverLayoutId=null;layoutId=null;
+ if(record.asset_id){
+  const asset=await fetch('/api/gallery/'+encodeURIComponent(item.id)+'/asset');
+  if(asset.ok)await loadGLB(await asset.blob(),'Gallery model.glb');
+ }
+ note('Loaded public vehicle by '+record.creator_name);
+}
+async function editLocalMetadata(item){
+ const details=await askVehicleDetails(item.name);if(!details)return;
+ const original=item.original;
+ original.name=details.name;original.modified=Date.now();
+ original.metadata={...(original.metadata||{}),category:details.category,description:details.description};
+ original.vehicle={...original.vehicle,name:details.name,category:details.category};
+ await transaction('readwrite','put',original);await refreshSaved();
+}
+async function duplicateLocal(item){
+ const record=structuredClone(item.original);record.id=crypto.randomUUID();
+ record.name=(record.name+' Copy').slice(0,100);record.modified=Date.now();
+ await transaction('readwrite','put',record);await refreshSaved();
+ note('Duplicated '+record.name);
+}
+async function deleteLocal(item){
+ if(!confirm('Delete local vehicle "'+item.name+'"?'))return;
+ await transaction('readwrite','delete',item.id);
+ if(layoutId===item.id)layoutId=null;await refreshSaved();
+}
+let galleryRefreshSerial=0;
+async function refreshVehicleGallery(){
+ const serial=++galleryRefreshSerial,root=$('vehicleGallery');root.replaceChildren();
+ const term=$('gallerySearch').value.trim().toLowerCase();gallerySelection();
+ let items=[];
+ try{
+  if(gallerySource==='local'){
+   items=(await allLayouts()).map(e=>({id:e.id,name:e.name,source:'local',original:e,
+    category:e.metadata?.category||e.vehicle?.category||'Vehicle',
+    description:e.metadata?.description||'',images:e.metadata?.images||e.previews||[]}));
+  }else if(gallerySource==='public'){
+   const res=await fetch('/api/gallery',{cache:'no-store'});if(!res.ok)throw Error('Public gallery unavailable');
+   const data=await res.json();
+   items=(data.layouts||[]).map(e=>({...e,source:'public',category:e.category||'Public vehicle',
+    images:e.preview?[{label:'Hero',data:e.preview}]:[]}));
+  }else{
+   if(!guestServerMode())throw Error('Create a profile to use cloud layouts');
+   const data=await serverRequest('GET','/api/layouts');
+   items=await Promise.all((data.layouts||[]).slice(0,40).map(async e=>{
+    try{
+     const full=await serverRequest('GET','/api/layouts/'+encodeURIComponent(e.id));
+     return {...e,source:'cloud',category:full.layout.blueprint.metadata?.category||'Vehicle',
+      description:full.layout.blueprint.metadata?.description||'',
+      images:full.layout.blueprint.metadata?.images||[]};
+    }catch{return {...e,source:'cloud',category:'Vehicle',images:[]}}
+   }));
+  }
+ }catch(e){if(serial===galleryRefreshSerial){root.textContent=e.message;recordEvent('WARN',e.message)}return}
+ if(serial!==galleryRefreshSerial)return;
+ items=items.filter(e=>`${e.name} ${e.category} ${e.description} ${e.creator_name||''}`.toLowerCase().includes(term));
+ for(const item of items)root.append(makeGalleryCard(item));
+ if(!root.children.length)root.textContent='No matching vehicles.';
+}
+function setGalleryDock(mode){
+ const win=$('galleryWindow');win.classList.remove('docked','dock-left','dock-right','dock-bottom');
+ if(mode!=='float'){win.classList.add('docked','dock-'+mode)}
+ $('galleryDock').value=mode;
+ safeStore('vehiclelab.gallery.dock',mode);
+}
+for(const button of document.querySelectorAll('#gallerySizes button'))button.onclick=()=>{
+ gallerySize=button.dataset.size;safeStore('vehiclelab.gallery.size',gallerySize);gallerySelection();
+};
+for(const button of document.querySelectorAll('#gallerySources button'))button.onclick=()=>{
+ gallerySource=button.dataset.source;gallerySelection();void refreshVehicleGallery();
+};
+$('gallerySearch').oninput=()=>void refreshVehicleGallery();
+$('galleryDock').onchange=e=>setGalleryDock(e.target.value);
+if(['xl','m','s'].includes(safeRead('vehiclelab.gallery.size')))gallerySize=safeRead('vehiclelab.gallery.size');
+const previousDock=safeRead('vehiclelab.gallery.dock');
+setGalleryDock(['left','right','bottom'].includes(previousDock)?previousDock:'float');
+gallerySelection();
+
 $('galleryRefreshBtn').onclick=refreshGallery;
 $('layoutPublic').onchange=()=>{serverVisibility=$('layoutPublic').checked?'public':'private'};
 
 const RELEASE_NOTES=[
+ {v:'0.2.6',date:'2026-11-08',title:'Photo profiles, editor history, cameras and gallery',items:[
+ 'Webcam or uploaded circular profile picture; profile wording and dedicated right-side settings drawer.',
+ 'Camera orbit and zoom survive drive-to-build; undo/redo actions and searchable shortcuts.',
+ 'Five-view vehicle preview capture, mobile save form, searchable gallery with sizes and docking.',
+ 'Extended wheel width/offset controls and selectable terrain and sky appearances.',
+ 'LLM implementation handover, architecture/roadmap and documented staged XR/occupant/soft-surface plans.']},
  {v:'0.2.5',date:'2026-11-08',title:'Full-stage workspace, profiles & physics fixes',items:[
   '3D canvas fills the viewport; draggable, resizable, minimizable action, tool, library, parameter and log windows.',
-  'Profile/configuration drawers, guest UUID + secret recovery backups, private layouts and opt-in public gallery.',
+  'Profile/configuration drawers, private access recovery backups, private layouts and opt-in public gallery.',
   'Rapier module URL repaired with CDN fallback, third Bullet/Ammo raycast vehicle, physics comparisons retained.',
   'Theme/font size pills, theme JSON import/export, role-limited logs, provider model-list key diagnostics.',
   'Release history shown for each new version; optional mail prerequisites checked without unsafe auto-configuration.']},
@@ -2588,7 +3201,7 @@ $('testProviderKey').onclick=async()=>{
  if(provider==='tripo'){$('providerResult').textContent='Tripo model-list endpoint is not verified; no request made.';return}
  const key=$('providerKey').value.trim()||keys[provider];
  if(!key){$('providerResult').textContent='Paste an API key first.';return}
- if(!guestToken){$('providerResult').textContent='Create a guest identity before testing providers.';return}
+ if(!guestToken){$('providerResult').textContent='Create a profile before testing providers.';return}
  $('providerResult').textContent='Checking provider model list…';
  try{
   const response=await fetch('/api/providers/test',{method:'POST',cache:'no-store',
@@ -2602,14 +3215,66 @@ $('testProviderKey').onclick=async()=>{
  }catch(e){$('providerResult').textContent=e.message;note(e.message,true)}
 };
 
+const SHORTCUTS=[
+ ['Undo last edit','⌘/Ctrl + Z','undo'],['Redo edit','⌘/Ctrl + Shift + Z','redo'],
+ ['Redo (alternate)','Ctrl + Y','redo'],['Keyboard shortcuts','⌘/Ctrl + /','help'],
+ ['Close dialog','Escape','close'],['Drive or exit drive','D','drive'],
+ ['Reset camera to default','R','reset'],['Save locally','⌘/Ctrl + S','save'],
+ ['Accelerate / reverse','↑ / ↓','drive'],['Steer','← / →','drive'],
+ ['Brake','Space','drive'],['Orbit camera','Drag canvas','camera'],
+ ['Zoom camera','Mouse wheel / pinch','camera'],['Open settings','Top-right cog','configuration'],
+ ['Open profile','Top-right avatar','profile'],['Minimize window','− in title bar','workspace'],
+ ['Resize window','Bottom-right grip','workspace']
+];
+function renderShortcuts(){
+ const root=$('shortcutsList'),term=$('shortcutSearch').value.toLowerCase().trim();root.replaceChildren();
+ for(const [name,combo,category] of SHORTCUTS){
+  if(!(`${name} ${combo} ${category}`.toLowerCase().includes(term)))continue;
+  const row=document.createElement('div');row.className='shortcut-row';
+  const title=document.createElement('span');title.textContent=name;
+  const k=document.createElement('kbd');k.textContent=combo;row.append(title,k);root.append(row);
+ }
+ if(!root.children.length)root.textContent='No matching shortcuts.';
+}
+function toggleShortcuts(show){
+ $('shortcutOverlay').hidden=!show;if(show){$('shortcutSearch').value='';renderShortcuts();$('shortcutSearch').focus()}
+}
+$('shortcutSearch').addEventListener('input',renderShortcuts);
+$('closeShortcuts').onclick=()=>toggleShortcuts(false);
+$('shortcutOverlay').addEventListener('click',e=>{if(e.target===$('shortcutOverlay'))toggleShortcuts(false)});
+window.addEventListener('keydown',e=>{
+ const modifier=e.metaKey||e.ctrlKey;
+ if(modifier&&e.code==='Slash'){e.preventDefault();toggleShortcuts($('shortcutOverlay').hidden);return}
+ if(e.code==='Escape'){
+  if(!$('shortcutOverlay').hidden)toggleShortcuts(false);
+  if(!$('saveOverlay').hidden)$('saveCancel').click();
+  if(!$('cameraOverlay').hidden)$('cameraCancel').click();return;
+ }
+ if(['INPUT','TEXTAREA','SELECT'].includes(document.activeElement?.tagName)||
+  !$('welcomeOverlay').hidden||!$('releaseOverlay').hidden)return;
+ if(modifier&&e.code==='KeyZ'){e.preventDefault();if(e.shiftKey)redo();else undo();return}
+ if(modifier&&e.code==='KeyY'){e.preventDefault();redo();return}
+ if(modifier&&e.code==='KeyS'){e.preventDefault();void saveLayout(false).catch(err=>note(err.message,true));return}
+ if(!modifier&&!e.altKey&&!e.shiftKey){
+  if(e.code==='KeyD'){e.preventDefault();if(mode==='drive')leaveDrive();else void enterDrive()}
+  if(e.code==='KeyR'){e.preventDefault();resetCamera()}
+ }
+});
+
 initWorkspace();initTheme();initReleaseHistory();
-void initIdentity();void refreshGallery();
-recordEvent('INFO','Vehicle Lab v'+VERSION+' initialized. Guest profile and backend status pending.');
+void initIdentity();void refreshGallery();void refreshVehicleGallery();
+recordEvent('INFO','Vehicle Lab v'+VERSION+' initialized. Profile and backend status pending.');
 
 renderPresets();
 setupGUI();
 buildVehicle();
 resetCamera();
+try{const view=JSON.parse(safeRead('vehiclelab.camera.v1')||'null');
+ if(Array.isArray(view?.offset)&&view.offset.length===3&&view.offset.every(Number.isFinite)){
+  const v=new THREE.Vector3(...view.offset);if(v.length()>2&&v.length()<130){camera.position.copy(orbit.target).add(v);orbit.update()}}}
+catch(e){}
+initializeHistory();
+updateRotationButton();
 updateLightsButton();
 refreshSaved().catch(e=>note('IndexedDB: '+e.message,true));
 animate();

@@ -1,196 +1,86 @@
-# Vehicle Lab v0.2.5 — full-screen 3D studio and guest collaboration
+# Vehicle Lab — procedural 3D vehicle studio
 
-## Layout and controls
+**Version 0.2.6 (2026-11-08)**. Browser-native modular vehicle editor built with Three.js, lil-gui, three alternative physics engines, optional GLB imports, Flask and SQLite. Project: https://github.com/sylwesterdigital/meta-vehicle-lab. Website: https://vehiclelab.xyz/.
 
-The 3D stage now fills the entire viewport; Actions, Vehicle Tools, Vehicle Library, Parameters (lil-gui), and Application Logs are independent movable, resizable, minimizable windows. Drag the title bar; resize using the bottom-right handle, including touch; minimize with **−**; reopen closed windows in **Configuration → Windows & workspace**. Window locations persist locally and can be backed up independently using workspace JSON. Theme colors are editable and exported separately. Top-right roundels open the Configuration and Profile drawers. The vehicle badge says **Vehicle Lab v0.2.5**. A scrolling release-history overlay appears once per installed version.
+This README deliberately contains the **About, Install, Roadmap, Ideas and LLM Handover** sections in a single allowed release file. The current watcher validates an exact 15-file manifest, so adding standalone documentation to a watcher release without first migrating its manifest schema would reject the ZIP. A separate optional documentation archive contains those sections as individual Markdown files.
 
-## Physics comparison
+## About / product scope
 
-The physics selector offers **Cannon-es**, **Rapier WASM**, **Ammo.js/Bullet** and a clearly labelled **Kinematic reference (non-physics)**. All three physics modes use an independently implemented raycast vehicle, the procedural chassis/wheels and the same 60 Hz simulation test. Rapier is imported from a pinned ESM endpoint (with fallback) to fix the original 404 `rapier.es.js` request; Ammo loads lazily. A failed optional backend reports an error and leaves Cannon available. Compare solver step durations, FPS and benchmark CSV. Native/physics fidelity and hardware make results inherently non-identical.
+Vehicle Lab is a prototype for procedurally assembling visually plausible city cars, buses, municipal vehicles, heavy trucks, construction equipment, agricultural machinery and warehouse vehicles from parameterized hull modules and equipment. Parameters cover width/height/depth/scale/rotation/offset, body materials, wheels, axles, doors/windows, passenger slots, engines and driving physics. Modules can later be transferred into a shared 3D world as an independent blueprint generator. This is **not** an engineering-grade physics simulator.
 
-**Browser acceptance remains necessary** for Rapier/Ammo on target machines, especially since CDN modules cannot be exercised in the offline local validation runtime. No GPU- or solver-performance scores are fabricated.
+## Features in v0.2.6
 
-## Flask + SQLite, identity and collaboration
+- Full-size Three.js canvas. Draggable, resizable, minimizable actions/tools/catalog/gallery/parameters/log windows. Right-side configuration and profile drawers, custom theme/typography and text/icon button modes.
+- Circular uploaded/webcam profile picture, optional passwordless identity, bearer-secret JSON backup. Credentials must remain private. Public gallery is **opt-in**; private layouts remain owner-scoped.
+- 40 presets, three hull modules plus equipment, procedural materials, number of doors/windows/seats, wheel radius/tyre width/outset/front and rear axle offsets, imported GLB visual body/occupants.
+- Three independent driving solvers: Cannon-es, Rapier WASM and Ammo.js/Bullet raycast vehicles. Non-physics baseline mode. Orbit-follow camera, 60Hz benchmark, CSV.
+- BUILD ↔ DRIVE preserves camera direction/zoom, with explicit camera reset. Rotation toggle highlights active state and persists. Preset/parameter edit history supports Undo/Redo (Cmd/Ctrl+Z, Shift+Z), searchable Cmd/Ctrl+/ shortcut dialog.
+- Mobile-friendly Save modal with metadata and five deterministic JPEG camera views. Local/cloud/public gallery with search, XL/M/S, edit/copy/delete and dock left/right/bottom. JSON/GLB exports include profile/vehicle/time/version in filenames.
+- Terrain profiles flat, bumps, hills, extreme, moon, beach, adjustable terrain extent and solid/gradient/simple-cloud/night sky. Beach water visual only — not fluid physics or buoyancy.
+- Local IndexedDB and private/public Flask/SQLite persistence, versioned release watcher, health endpoint and scoped logs.
 
-New guest users provide only username and optional avatar. SQLite profiles have UUID identifiers and **random bearer secrets**, stored hashed server-side; UUID alone never authenticates. Secrets are stored in the active browser's local storage and can be explicitly exported as a **PRIVATE JSON identity backup**. Possession of that backup is equivalent to account access: do not publish or commit it. Import restores a session after server-side credential verification. Profile fields include name, bio, HTTPS social link, and **unverified** phone/email. Password account protection and recovery are not implemented.
+## Run / install
 
-Each guest can create/read/change/delete their own SQLite layouts with revision checks. New layouts default **private**; explicitly selecting Publish to gallery exposes a vehicle in the public gallery. Public listings include creator name, vehicle metadata, and the published blueprint/asset, **not** creator email/phone, session secret or unpublished layouts. The legacy administrator layout API remains supported but guest sessions do not authorize it.
+Place exactly **`META_VEHICLE_LAB_UPDATE_v0.2.6.zip`** in:
 
-## Logs, provider keys and mail
+`/Users/smielniczuk/Documents/works/meta-vehicle-lab/updates/META_VEHICLE_LAB_UPDATE_v0.2.6.zip`
 
-Browser errors/events are accessible via the floating Logs window. Authenticated administrator application log tail is accessible separately via Config → Server logs, requiring `VEHICLELAB_API_TOKEN` (never a guest token). The log endpoint does not expose full systemd/Gunicorn/watcher logs; those remain on the server/local host. API keys for OpenAI, xAI and Meta can be tested against **their model-list endpoints** from the Flask backend; passwords are never persisted in blueprints or theme exports. The Tripo model-list test is intentionally disabled. AI image generation and image-to-3D endpoints remain integration contracts.
-
-The installer performs a **read-only** Postfix prerequisite check and reports the result in the deployment log. It does **not** configure SMTP, claim verified email delivery, enable password recovery or modify other hosted domains. To enable outgoing `no-reply@vehiclelab.xyz` mail in a future release, the administrator must first configure DNS SPF/DKIM/DMARC/PTR, SMTP transport and rate limits.
-
-## Production release
-
-Use only the single versioned update ZIP in `meta-vehicle-lab/updates/`; the existing watcher checks SHA-256, updates itself to v2.3.1, runs regressions, publishes reviewed source to GitHub and deploys versioned Flask/SQLite code to Ubuntu. It preserves `/var/lib/vehiclelab` across deployments.
-
-## Limitations
-
-3D models are visual chassis replacements; machinery is not fully articulated and passengers are visual. Some ultra-light vehicles are represented on a four-wheel chassis. No verified browser end-to-end test or live deployment occurred in this packaging session. Password recovery, SMTP delivery and image-generation backend adapters are not yet active.
-
----
-
-# Meta Vehicle Lab — physics comparison v0.2.4
-
-**Vehicle library:** the left catalog is now nested lil-gui folders (Urban, Emergency, Municipal, Industrial, Micromobility, Robotics, Construction, Agriculture, Mining). Search automatically opens matching categories; selecting a preset preserves the current paint and chosen physics engine.
-
-**Physics & camera → Solver:** choose Cannon-es 0.20.0 or Rapier WASM 0.19.3 to use their respective 3D raycast vehicle controllers. The third mode, *Kinematic reference*, is a lightweight non-physics baseline, **not a third engine**. Physics modules share the same procedural chassis dimensions, number/placement of wheels, terrain mesh and 60 Hz fixed time step. Rapier is downloaded and initialized only when first selected for driving (requires internet for the pinned CDN). Switching solvers while driving restarts the physics test at the origin. Tire tuning and the solvers differ, so behavior is not meant to be physically identical.
-
-**Performance:** Physics & camera → Run controlled drive test runs the same throttle, steering and braking sequence for the configured 5–30 seconds of simulation time. The HUD shows frames/s, physics ms/step, and steps/s. A completed test records mean, p50 and p95 physics-step time and wall-clock duration. Use Export benchmark CSV to compare runs. Performance values are measured in the browser on the current hardware; not server benchmarks or proof of engine superiority. In particular, the non-physics reference is not directly comparable for simulation fidelity.
-
-**Blueprints:** the `procedural-vehicle/v3` blueprint retains module data and adds `simulation: {backend, fixedStepHz}`. Older exports without this field remain compatible. SQLite/IndexedDB saves and Git/SSH deployment remain unchanged; benchmark results live only in the active tab until CSV export.
-
-**Known limitations:** This is a single-vehicle visual/physics prototype. Imported GLBs remain visual replacements only, equipment articulation is mocked, and vehicle types with tracks or two wheels are simplified to wheel-based chassis. Live driving with Rapier needs browser acceptance testing after deployment.
-
----
-
-# Meta Vehicle Lab — physics comparison v0.2.4
-
-**Vehicle library:** the left catalog is now nested lil-gui folders (Urban, Emergency, Municipal, Industrial, Micromobility, Robotics, Construction, Agriculture, Mining). Search automatically opens matching categories; selecting a preset preserves the current paint and chosen physics engine.
-
-**Physics & camera → Solver:** choose Cannon-es 0.20.0 or Rapier WASM 0.19.3 to use their respective 3D raycast vehicle controllers. The third mode, *Kinematic reference*, is a lightweight non-physics baseline, **not a third engine**. Physics modules share the same procedural chassis dimensions, number/placement of wheels, terrain mesh and 60 Hz fixed time step. Rapier is downloaded and initialized only when first selected for driving (requires internet for the pinned CDN). Switching solvers while driving restarts the physics test at the origin. Tire tuning and the solvers differ, so behavior is not meant to be physically identical.
-
-**Performance:** Physics & camera → Run controlled drive test runs the same throttle, steering and braking sequence for the configured 5–30 seconds of simulation time. The HUD shows frames/s, physics ms/step, and steps/s. A completed test records mean, p50 and p95 physics-step time and wall-clock duration. Use Export benchmark CSV to compare runs. Performance values are measured in the browser on the current hardware; not server benchmarks or proof of engine superiority. In particular, the non-physics reference is not directly comparable for simulation fidelity.
-
-**Blueprints:** the `procedural-vehicle/v3` blueprint retains module data and adds `simulation: {backend, fixedStepHz}`. Older exports without this field remain compatible. SQLite/IndexedDB saves and Git/SSH deployment remain unchanged; benchmark results live only in the active tab until CSV export.
-
-**Known limitations:** This is a single-vehicle visual/physics prototype. Imported GLBs remain visual replacements only, equipment articulation is mocked, and vehicle types with tracks or two wheels are simplified to wheel-based chassis. Live driving with Rapier needs browser acceptance testing after deployment.
-
----
-
-> **v0.2.3 watcher:** Terminal displays high-contrast colored START/END release banners, version/date/time, detailed phase timings and an exact log file path. `./watcher-meta-vehicle.sh --logs` lists the newest complete logs, `--tail` shows the last 100 lines, `--verbose` prints commands and outputs, and `--color always` forces ANSI colors inside terminals/IDE wrappers. Flask/SQLite persistence is unchanged. A verified release and an earlier failed attempt are reported separately.
-
-> **v0.2.2 server test fix:** The installer now copies `deploy/` into the versioned backend release, together with `backend/` and `tests/`. This resolves the previously reproduced `ModuleNotFoundError: No module named 'deploy'` failure (five tests, one error). A relocation regression checks the staged test imports before any deployment. Flask imports are also checked explicitly after installation. Existing data and prior release safeguards remain intact.
-
-> **v0.2.1:** The watcher logs a dated START/END banner, elapsed seconds and colored terminal statuses. Failed remote Python tests now include their real unittest traceback in the release log. The first v0.2.0 server-side test failure could not be reproduced without its server traceback; deployment still aborts safely if tests fail.
-
-# Meta Vehicle Lab — Flask + SQLite v0.2.3
-
-The 3D procedural studio remains one `index.html` using pinned Three.js, cannon-es and lil-gui. A Flask 3.1 API and SQLite database now provide persistent server layout storage, revision-controlled updates and GLB asset uploads. IndexedDB local saves and JSON/GLB export are unchanged.
-
-## Architecture
-
-- **Frontend:** `index.html` (served by Nginx in production; Flask can also serve it in local development), procedural vehicles, terrain, lights, physics and orbit camera.
-- **Backend:** `backend/app.py` (Flask routes), `backend/storage.py` (stdlib SQLite transactions), `backend/wsgi.py` (Gunicorn entrypoint).
-- **SQLite:** `/var/lib/vehiclelab/vehiclelab.sqlite3` on the server; local default `.data/vehiclelab.sqlite3`. Model assets stored separately under `assets/` with SHA-256 metadata in SQLite. This directory is not in the webroot and never copied into Git.
-- **Server:** versioned `/opt/vehiclelab/releases/v0.2.2`, symlink `/opt/vehiclelab/current`, `vehiclelab-flask.service` bound to `127.0.0.1:8766`; Nginx proxies only `/api/` to Flask and continues serving the frontend directly.
-- **Authentication:** Bearer token required for all layout, asset and placeholder AI endpoints. It is generated on first install in `/etc/vehiclelab/vehiclelab.env` (root-owned, www-data readable). Enter it in lil-gui → **12 · SQLite server → Access token**, then choose **Refresh SQLite**. The token is never persisted in the browser, the JSON blueprint or SQLite.
-
-## API
-
-| Route | Action |
-| --- | --- |
-| `GET /api/health` | Public JSON readiness and release version; checks SQLite |
-| `GET /api/layouts` | Authenticated recent layout list |
-| `POST /api/layouts` | Create a blueprint record |
-| `GET /api/layouts/<uuid>` | Retrieve blueprint, revisions and asset ID |
-| `PUT /api/layouts/<uuid>` | Update only with matching `revision`; conflicts return 409 |
-| `DELETE /api/layouts/<uuid>` | Delete only with matching `revision` |
-| `POST /api/assets` | Upload validated GLB (up to 80 MiB) |
-| `GET /api/assets/<uuid>` | Download GLB |
-
-AI image/Tripo endpoints deliberately return `501 Not Implemented` until provider adapters and policy/rate limiting are implemented. A working Flask/SQLite backend is not equivalent to a configured AI image-generation service.
-
-## Local development
-
-```bash
-cd /Users/smielniczuk/Documents/works/meta-vehicle-lab
-python3 -m venv .venv
-.venv/bin/python -m pip install -r backend/requirements.txt
-export VEHICLELAB_API_TOKEN="$(python3 -c 'import secrets;print(secrets.token_urlsafe(48))')"
-.venv/bin/python -m backend.app
-```
-
-Open `http://127.0.0.1:8766/`. The separate UI/server access-token entry must match the exported value. Avoid binding the development process to a public interface.
-
-Check the SQLite/core installer tests before deployment:
-
-```bash
-python3 -m unittest discover -s tests -v
-```
-
-Flask route tests require Flask to be installed; without it they are explicitly skipped. Production installs exact versions of Flask and Gunicorn through a release-specific virtualenv and checks its `/api/health` endpoint before switching Nginx.
-
-## Deployment: two automatic ZIP phases
-
-The *existing* watcher v2.0.x allows only five frontend application files. It cannot verify the new backend source in a ZIP until it has self-updated. Accordingly, drop **both** versioned ZIPs directly into `updates/` while the watcher is running continuously:
-
-1. `META_VEHICLE_LAB_UPDATE_v0.1.3.zip`: compatibility release, upgrades watcher from v2.0.x to v2.1.0, deploying the existing frontend.
-2. `META_VEHICLE_LAB_UPDATE_v0.2.0.zip`: the Flask + SQLite application, tests and systemd/Nginx installer.
-
-The first update runs, the continuous watcher restarts into its new version, and the second update is then validated and deployed. **Do not run the old watcher with `--once` against both ZIPs**: it cannot understand the second archive until it restarts. If you use `--once`, run it separately for each version.
-
-Requirements: Mac Git/SSH/Node/Python, remote Ubuntu Python 3 + `python3-venv`, network access to PyPI for pinned packages, Nginx with an existing `vehiclelab.xyz` HTTPS site and SSL certificate, and systemd. The watcher logs failures and retains valid ZIPs for retry. It will not install an entire Python runtime or alter any other virtual host. It never places API secrets or database files in Git.
-
-Inspect the generated access token after successful deployment on **your own terminal**:
-
-```bash
-ssh -p 333 root@vehiclelab.xyz 'grep ^VEHICLELAB_API_TOKEN= /etc/vehiclelab/vehiclelab.env'
-```
-
-Keep it private. Enter only the value after `=` in lil-gui. Do not post the output to GitHub or chats.
-
-Useful checks:
-
-```bash
-ssh -p 333 root@vehiclelab.xyz 'systemctl status vehiclelab-flask --no-pager; ls -lh /var/lib/vehiclelab/vehiclelab.sqlite3'
-curl --noproxy '*' -fsS https://vehiclelab.xyz/api/health
-```
-
-## Security / limits
-
-- SQLite uses parameterized SQL and WAL journaling. Revision numbers protect against unintended overwrites. A server API token gates reads as well as writes; there is **no user account separation** in this prototype.
-- Browser keys and token remain in memory and are never included in blueprint exports or server saves. Server rejects credential-like property names inside blueprint objects.
-- Uploaded GLBs are checked for a valid GLB version-2 header and advertised byte length. They are stored by random UUID outside the website directory.
-- Assets are not automatically garbage-collected when a layout is deleted. There is no account-level ownership, billing, audit logging, rate limiting or AI provider implementation yet.
-- Nginx install patches **only** the HTTPS `vehiclelab.xyz` server block, retains a backup, and refuses ambiguous/conflicting configurations. Only application, own service, own API block and own release symlink are rollback targets. Existing SQLite data is intentionally never rolled back.
-
-The automated tests performed for this release cover local JavaScript syntax, manifest/checksum validation, Python syntax, SQLite persistence/concurrency, and safe Nginx vhost insertion. Live browser integration and actual Ubuntu/GitHub deployment must be verified after deployment. See `CHANGELOG.md`.
-
----
-
-## Existing procedural editor reference
-
-# Meta Vehicle Lab
-
-A single-page procedural Three.js + cannon-es vehicle editor. Includes an editable
-front/cabin/rear/equipment assembly, lil-gui controls, PBR paint + noise finishes,
-RaycastVehicle driving, orbit-follow camera, elevated terrain, vehicle lights,
-procedural occupants, IndexedDB layout saves, JSON/GLB export and GLB visual replacement.
-
-## Local use
-
-Start a static web server in the repository root:
+From repository root:
 
 ```sh
-python3 -m http.server 8080
+./watcher-meta-vehicle.sh --dry-run
+./watcher-meta-vehicle.sh --once
+# Continuous: ./watcher-meta-vehicle.sh --interval 3
+# Diagnostics: ./watcher-meta-vehicle.sh --tail
 ```
 
-Open http://localhost:8080/ in Chrome, Safari or another recent WebGL browser.
-An internet connection is required for the **pinned** Three.js v0.180.0,
-cannon-es v0.20.0, and lil-gui v0.21.0 dependencies from jsDelivr.
+Mac watcher checks versioned ZIP hashes/tests, verified GitHub main, SSH `-p 333 root@vehiclelab.xyz`, public `/var/www/vehiclelab.xyz` plus versioned Flask service. SQLite and binary assets persist under `/var/lib/vehiclelab`, outside code releases. Flask/Gunicorn at `127.0.0.1:8766` behind Nginx `/api/` proxy. Python deps: Flask 3.1.1, Gunicorn 23.0.0, Pillow 11.3.0. Browser needs Internet for pinned Three/physics imports and HTTPS for webcam permission.
 
-Use the vehicle list at left. Select BUILD/DRIVE from the header. Drag or touch
-orbit controls to rotate around the vehicle in both modes, scroll or pinch to
-zoom. Arrow Up/Down accelerate/reverse, Left/Right steer, Space brakes. The
-on-screen joystick and brake button work with touch. Auto-rotation is only
-active in BUILD and can be toggled from the header. Folders start closed.
+## Controls
 
-Use Save layout for browser IndexedDB. Export JSON for the portable procedural
-blueprint (the imported GLB binary is *not* embedded in the JSON). Export an
-assembled GLB using the GLB folder. Imported GLBs replace the **visual body**
-while physics, wheels, doors and occupants remain controlled by the procedural
-blueprint. Vehicle classes beyond cars are intentionally conceptual: machinery
-attachments are not articulated or simulated with dedicated colliders, and
-two-wheel/track-specific physics are simplified with raycast-wheel chassis.
+- Rotate camera with canvas drag, zoom with scroll/pinch; driving camera follows from chosen orbit.
+- Drive with arrow keys or touch joystick, Space/touch brake.
+- Cmd/Ctrl+Z undo; Cmd/Ctrl+Shift+Z redo; Cmd/Ctrl+/ searchable shortcut dialog; Cmd/Ctrl+S opens custom Save; D toggles Drive; R explicitly resets camera.
+- Config/Profile roundels are always top-right; gallery can dock or float; editor windows remember their position on refresh.
 
-The AI/Tripo controls are integration hooks, not a working AI service. Configure
-an authenticated, appropriately rate-limited same-origin backend implementing:
-`POST /api/vehicle/generate-image`, `POST /api/vehicle/tripo/start`, and
-`GET /api/vehicle/tripo/status/{task_id}`. The backend must proxy GLB downloads
-on the same origin. API keys entered in the UI are kept in memory and sent to
-that backend per request; they are not saved in JSON or IndexedDB. Do not enter
-private keys on a host that is not fully under your control.
+## Data and security
 
+v3 blueprint uses Three.js Y-up +Z-forward geometry, `vehicle` and independent `modules`, `simulation`, `occupants`, `metadata` (category/description/five preview JPEGs). Each parameter is bounded by GUI and backed by collision/visual geometry as appropriate. Imported GLB binary is **not** embedded in JSON; local IndexedDB preserves body/occupant file(s). User-owned body GLB can be uploaded to SQLite; occupant GLB server asset storage is a future milestone.
+
+Profile identity is a random bearer secret (not UUID-based login). JSON profile backups include credentials and must not be shared. No verified password/email recovery, SMTP activation or Postfix configuration. AI generator endpoints remain contracts, while API-key model-list diagnostics are separate. Admin logs require a legacy administrator token; guests cannot access them.
+
+## Roadmap — staged priorities
+
+**P0 acceptance:** independently test v0.2.6 browser startup, Rapier/Ammo loading, photo capture/stream stop, screenshot capture, gallery privacy, camera invariant, undo/redo, mobile interactions and server deployment.
+
+**P1 blueprint v4:** split components into modules; stable IDs and hard-point anchors for wheels, doors, seats, windows and lights; wheel tread/suspension/dual wheel sets; real door/window cutouts; independent collider/visual shapes. Replace bounded snapshot history with a semantic persistent operation log.
+
+**P2 driving worlds:** terrain-material friction, wheel tracks, loose sand, potholes/obstacles, water volume drag/buoyancy, wave/splash effects, night lighting and repeatable identical benchmark courses with recorded solver timings.
+
+**P3 occupants/interiors:** owner-scoped occupant GLB assets, bones/rig maps, Sitting/Driving/Enter/Exit/DoorOpen/DoorClose state machine, physical door hinges, steering wheel, seating and dashboards.
+
+**P4 immersive WebXR:** device feature detection, spectator/XR mode, controller floor raycast for safe teleportation, vehicle portal, sit/exit, interactive interior displays, mirrors and in-cab cameras; maintain desktop fallback.
+
+**P5 services:** optional password/WebAuthn accounts, verified email/phone, recovery tokens with rate limits, real mail delivery, image-generation job workers, controlled provider spend and gallery moderation.
+
+## Ideas
+
+Procedural body profiles; advanced suspension families and 2/4/6/12+ wheel platforms; diverse tires/treads/track systems; camera-based interiors and AR tabletop scale; animated boarding; vehicle-to-vehicle comparison; immutable gallery media, tags/collections/remix lineage; LOD/culling and offline dependency vendoring; semantic LLM edits with approval, diff and rollback.
+
+## LLM handover / engineering invariants
+
+- **Source of truth:** `index.html`, `backend/app.py`, `backend/storage.py`, `deploy/install.py`, `watcher-meta-vehicle.sh` and tests. Begin by reading them; don't rely on this summary when source contradicts it.
+- **Portable JSON:** `procedural-vehicle/v3`, meters, Y up, +Z forward. `cfg` is mutable configuration, `mods` transforms by `front/cabin/rear/equipment`, separate GLB replacement mesh, `occupants`, `simulation` backend and metadata. Secret keys/credentials never enter blueprints. New schema must retain legacy import paths.
+- **Server trust boundary:** passwordless user profile UUID is not a credential. Bearer secret is hashed server-side; guest routes `/api/identity/*`, `/api/me/*` own resources, `/api/gallery` publicly published only, `/api/admin/logs` administrator token only. Preserve SQLite data and user assets during deploy/rollback.
+- **Physics architecture:** Cannon/Rapier/Ammo use raycast-wheel controllers with different tuning; the non-physics kinematic reference is not comparable for physical fidelity. Terrain uses matching sampled collider mesh, though night/sky/water are visual. Never claim true buoyancy or full wheel/door articulation before implemented.
+- **UI invariants:** 3D stage fills viewport; top-right roundels open right-side drawers; no blocking forms nested; windows float, minimize, drag, resize, persist. Editor camera angle/zoom stays unchanged across build-drive toggles unless explicit Reset Camera. Rotation persists separately. Save dialog is custom and captures five fixed views without rotating main camera.
+- **Undo:** bounded 160-entry local snapshots grouped after idle, not a durable multiplayer transaction log; GLB references are memory-only in history and IndexedDB stores binaries. Future plan is semantic operation log and server media assets.
+- **Docs/watch compatibility:** current watcher accepts the original exact 15 app files; to add deployable docs, first update watcher manifest support. Never put documentation-only ZIP into `updates/`.
+- **Deployment:** user downloads a *single release ZIP* to `updates/`; avoid separate `.sh` downloads. GitHub `main`; SSH port 333; versioned `/opt/vehiclelab` service; logs `.vehiclelab/logs/`. Provide exact download destination, preserve unrelated Nginx sites, do not silently modify Postfix.
+- **Validation:** Python storage/Nginx tests run offline; Flask API tests require pinned venv. JavaScript syntax is checked with Node after extracting inline module. Live target-browser acceptance and public deployment **not verified here**; obtain actual test evidence, don't invent it.
+
+For a deeper handoff with detailed contracts, checkpoints, dependencies and test matrices see the optional standalone `LLM_HANDOVER.md`, `ROADMAP.md`, `IDEAS.md`, `INSTALL.md` and `ABOUT.md` documentation ZIP.
+
+## Changelog
+
+See `CHANGELOG.md`. Current packaged version is **0.2.6** and must not be described as publicly deployed until the watcher reports successful GitHub/server/health verification.

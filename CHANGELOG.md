@@ -1,3 +1,20 @@
+# v0.2.6 — Profile photo, camera continuity, history, vehicle gallery and terrain (2026-11-08)
+
+- Profile creation offers a circular image upload or opt-in webcam capture, with explicit camera teardown; UI copy uses **profile** rather than **guest profile**. API route names remain backward compatible.
+- Settings roundel opens the right drawer using corrected CSS specificity. Action toolbar supports text, icon + text or icon only. Rotation is a highlighted, persistent toggle.
+- BUILD/DRIVE preserves chosen orbit direction and zoom. Reset Camera remains explicit; previous automatic return-to-build resets were removed.
+- Toolbar Undo/Redo, Cmd/Ctrl+Z/Shift+Z/Y and a searchable Cmd/Ctrl+/ shortcuts overlay. Bounded coalesced edit snapshots persist in local browser storage; this is not an engine-independent event-sourced history.
+- Custom mobile save dialog for name/category/description, five fixed-perspective JPEG previews per save, local/cloud/public gallery with search, XL/M/S and float/left/right/bottom docking, metadata edits and local copy/delete.
+- JSON/GLB export name includes creator, vehicle, ISO timestamp and release version; blueprint metadata includes screenshots where within strict server size cap.
+- Wheel tire width, lateral offset and fore/aft axle anchors added to rendering and raycast controllers; terrain flat/bumps/hills/extreme/moon/beach and configurable size, solid/gradient/cloud/night sky. Beach water is **visual only**, not buoyancy or hydrodynamics.
+- Optional local occupant GLB replacement for procedural passenger figures; named Driving/Sitting animations attempted when present. Occupant model binaries are retained in IndexedDB and not yet uploaded as server assets.
+- Public SQLite gallery thumbnail and category added to public listing while keeping all private/profile/contact information protected. New storage tests cover public previews and 256 KiB blueprint limits.
+- README includes About, Install, Roadmap, Ideas and LLM engineering handover sections. Standalone documentation is additionally packaged separately because the installed watcher only accepts exact application file paths.
+
+**Verification:** local JavaScript syntax, storage/Nginx tests and watcher dry-run required. Browser camera/physics, server-side Flask tests, and live deployment have not been exercised in the authoring environment. Future: actual floor-teleport WebXR, physically animated doors/boarding, terrain tracks/splash/drag/buoyancy, mail recovery, provider AI generation.
+
+---
+
 # v0.2.5 — Full-stage workspace, guest profiles and three physics backends (2026-11-08)
 
 - Full-browser 3D stage, with independently draggable, touch-resizable and minimizable action, tools, library, parameters and diagnostic windows.

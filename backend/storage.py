@@ -314,10 +314,20 @@ class Storage:
 
     def gallery(self,limit=40):
         with self.connect() as db:
-            rows=db.execute('SELECT l.id,l.name,l.revision,l.created_at,l.updated_at,l.asset_id,p.name AS creator_name,p.id AS creator_id '
+            rows=db.execute('SELECT l.id,l.name,l.revision,l.created_at,l.updated_at,l.asset_id,l.blueprint,p.name AS creator_name,p.id AS creator_id '
                             'FROM user_layouts l JOIN profiles p ON l.profile_id=p.id '
                             "WHERE l.visibility='public' ORDER BY l.updated_at DESC LIMIT ?",(min(80,max(1,int(limit))),)).fetchall()
-            return [dict(row) for row in rows]
+            results=[]
+            for row in rows:
+                value=dict(row)
+                blueprint=json.loads(value.pop('blueprint'))
+                metadata=blueprint.get('metadata') or {}
+                images=metadata.get('images') or []
+                hero=images[0].get('data') if images and isinstance(images[0],dict) else None
+                value['preview']=hero if isinstance(hero,str) and len(hero)<65000 and hero.startswith('data:image/jpeg;base64,') else None
+                value['category']=metadata.get('category') or (blueprint.get('vehicle') or {}).get('category') or 'Vehicle'
+                results.append(value)
+            return results
 
     def gallery_layout(self,identifier):
         with self.connect() as db:

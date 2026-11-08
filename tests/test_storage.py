@@ -44,6 +44,26 @@ class StorageTests(unittest.TestCase):
         with self.assertRaises(InvalidLayout):
             self.store.save_layout(identifier='../oops',name='x',blueprint=blueprint())
 
+    def test_preview_gallery_privacy_and_size_limits(self):
+        profile,secret=self.store.create_guest('Preview Maker')
+        image='data:image/jpeg;base64,'+'QQAA'*150
+        data=blueprint()
+        data['metadata']={'category':'Urban','description':'One-of-a-kind electric car',
+                          'images':[{'label':'Hero','data':image}]}
+        ident=str(uuid.uuid4())
+        self.store.user_save_layout(profile['id'],ident,'Hidden',data,visibility='private')
+        self.assertEqual(self.store.gallery(),[])
+        self.store.user_save_layout(profile['id'],ident,'Shared',data,visibility='public',revision=1)
+        item=self.store.gallery()[0]
+        self.assertEqual(item['preview'],image)
+        self.assertEqual(item['category'],'Urban')
+        self.assertNotIn('blueprint',item)
+        self.assertNotIn('profile_id',item)
+        self.assertNotIn(secret,str(item))
+        invalid=blueprint();invalid['metadata']={'images':[{'data':'a'*280000}]}
+        with self.assertRaises(InvalidLayout):
+            self.store.save_layout(identifier=str(uuid.uuid4()),name='Oversize',blueprint=invalid)
+
     def test_no_asset_outside_store(self):
         with self.assertRaises(InvalidLayout):
             self.store.save_layout(identifier=str(uuid.uuid4()),name='x',blueprint=blueprint(),asset_id=str(uuid.uuid4()))
