@@ -1,3 +1,14 @@
+# v0.3.5 — wheel GLB previews, alignment and physics API correction (2026-11-09)
+
+- Fix Rapier initialization crash: use the documented `setIndexForwardAxis` setter rather than a getter-only property.
+- Align Ammo engine-force direction with blueprint forward (+Z); reduce brake impulse. Physics behavior still needs live driving checks.
+- Detect wheel GLB axle from model bounds, orient it to X, then fit wheel diameter/width in normalized local space.
+- Replace raw filename wheel buttons with a preview-thumbnail library. Provide explicit 90° X/Y/Z corrections and auto-align; persist asset metadata in IndexedDB.
+- Make wheel AI generation a first-tile action when a key is ready, with an inline image preview; keep potentially billable 3D generation opt-in.
+- Clarify the administrator token location and separate it from creator profiles and AI provider credentials.
+
+---
+
 # v0.3.4 — Compact map UI, responsive edits, scene vehicles, sound presets (2026-11-09)
 
 - Preserve each floating window's minimized state while entering and leaving DRIVE. Reduce header/tool rail sizes, compress map controls to icons, and dock editable map settings above the bottom edge with collapsible panel.

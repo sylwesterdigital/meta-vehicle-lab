@@ -8,7 +8,7 @@ This README deliberately contains the **About, Install, Roadmap, Ideas and LLM H
 
 Vehicle Lab is a prototype for procedurally assembling visually plausible city cars, buses, municipal vehicles, heavy trucks, construction equipment, agricultural machinery and warehouse vehicles from parameterized hull modules and equipment. Parameters cover width/height/depth/scale/rotation/offset, body materials, wheels, axles, doors/windows, passenger slots, engines and driving physics. Modules can later be transferred into a shared 3D world as an independent blueprint generator. This is **not** an engineering-grade physics simulator.
 
-## Features through v0.3.4
+## Features through v0.3.5
 
 - Full-size Three.js canvas. Draggable, resizable, minimizable actions/tools/catalog/gallery/parameters/log windows. Right-side configuration and profile drawers, custom theme/typography and text/icon button modes.
 - Circular uploaded/webcam profile picture, optional passwordless identity, bearer-secret JSON backup. Credentials must remain private. Public gallery is **opt-in**; private layouts remain owner-scoped.
@@ -19,7 +19,7 @@ Vehicle Lab is a prototype for procedurally assembling visually plausible city c
 - Terrain profiles flat, bumps, hills, extreme, moon and beach, selectable tiled procedural ground maps (asphalt/grass/dirt/gravel/sand/snow/moon), FBM animated cloud/night shader, water shader, puddles, wheel marks, splashes, and **approximate water drag/buoyancy**. Water is not a fluid solver.
 - Local IndexedDB and private/public Flask/SQLite persistence, versioned release watcher, health endpoint and scoped logs.
 
-## v0.3.4 interaction and scope notes
+## v0.3.5 interaction and scope notes
 
 - Windows keep their own minimized state across BUILD and DRIVE. The test map uses compact icon controls, a bottom-overlay settings dock and constant map-scale projection when resizing its window; mouse wheel/pinch or +/- changes zoom explicitly.
 - Shift+A opens a small pointer-positioned searchable object palette. Selected scene objects support Shift+D duplicate, X remove, G move, R rotate and E scale; static object Y may be below ground elevation. Static obstacle edits avoid expensive terrain and vegetation rebuilds. Hills/dunes still require rebuilding terrain colliders, and Rapier/Ammo may briefly reconstruct the active physics adapter.
@@ -39,9 +39,9 @@ Vehicle Lab is a prototype for procedurally assembling visually plausible city c
 
 ## Run / install
 
-Place exactly **`META_VEHICLE_LAB_UPDATE_v0.3.4.zip`** in:
+Place exactly **`META_VEHICLE_LAB_UPDATE_v0.3.5.zip`** in:
 
-`/Users/smielniczuk/Documents/works/meta-vehicle-lab/updates/META_VEHICLE_LAB_UPDATE_v0.3.4.zip`
+`/Users/smielniczuk/Documents/works/meta-vehicle-lab/updates/META_VEHICLE_LAB_UPDATE_v0.3.5.zip`
 
 From repository root:
 
@@ -184,3 +184,34 @@ Test on actual HTTPS/WebGL hardware before deploying as a verified feature: whee
 - Improve higher-zoom map contours and preserve fixed map pixel resolution when resizing the window. Map edits are attached to the existing Undo/Redo history.
 - The wheel workshop offers in-place AI prompts, tab-only provider keys, and Lux3D auto-import of finished wheel GLBs. OpenAI (`gpt-image-2.5-flare`) and xAI (`grok-imagine-image-2.0`) reference-image generation and edit routes use owner-scoped credentials and explicit calls; these routes are not free, and no real paid task is tested.
 - Tripo image-to-3D remains a disabled backend contract, and the physics realism of roof impacts/door joints is not engineering-certified. The release has static/code/test validation, not a full WebGL interactive acceptance pass.
+
+
+## v0.3.5 — wheel model library and diagnostics
+
+**Administrator access (on your own Ubuntu host only):** the protected Flask token is in
+`/etc/vehiclelab/vehiclelab.env`, named `VEHICLELAB_API_TOKEN`. View it in your own shell
+with `ssh -t -p 333 root@vehiclelab.xyz "sudo grep '^VEHICLELAB_API_TOKEN=' /etc/vehiclelab/vehiclelab.env"`.
+The value after `=` authorizes administrator-only server logs and legacy admin APIs.
+Never export this token in profiles, commits, screenshots or public support requests.
+Provider API keys and profile credentials are unrelated.
+
+**Imported wheel models:** wheel GLBs are now shown as shaded 192px thumbnails inside
+Wheel workshop, produced in an isolated browser WebGL renderer without changing the
+main stage. A new GLB is saved into the existing IndexedDB 3D asset library and can be
+assigned to front or rear wheels. Axis auto-detection chooses the shortest model dimension
+as the axle and rotates that axis onto Vehicle Lab's X-axis wheel spindle. Use the selected
+wheel's `X ↻ 90°`, `Y ↻ 90°`, or `Z ↻ 90°` controls to correct unusual asset axes.
+Each imported asset's orientation and thumbnail are persisted in IndexedDB. The vehicle's
+wheel radius/width and raycast collider remain independently procedural. This does not
+produce a precise physical tyre collider from arbitrary GLB geometry.
+
+**Production image generation:** the optional Blender CLI described above remains a
+separate administrator tool; a secure public rendering queue is not yet installed.
+The workshop uses local GLB thumbnail rendering immediately. No Blender installation is
+triggered automatically during deployment or when users import models.
+
+**Rapier:** the controller now uses the documented setter property `setIndexForwardAxis`
+instead of writing the getter-only `indexForwardAxis` field. **Ammo:** corrected the
+engine-force convention to positive forward (+Z) and moderated braking impulse. Browser
+road-test calibration of the three engines is still required; a successful syntax test
+is not a proof of driving parity.

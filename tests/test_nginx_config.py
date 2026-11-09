@@ -1,3 +1,4 @@
+import re
 import subprocess
 import sys
 import tempfile
@@ -226,3 +227,35 @@ class VehicleLab034RegressionTests(unittest.TestCase):
                         'function activateFleetVehicle(', 'function parkedFleetSpecs()',
                         'function addGalleryVehicle(', "appendBtn('＋',"):
             self.assertIn(snippet,self.source)
+
+
+class WheelUIContractTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.page=(Path(__file__).resolve().parents[1]/'index.html').read_text()
+
+    def test_rapier_forward_axis_uses_setter_not_getter(self):
+        self.assertIn('vehicle.setIndexForwardAxis=2;',self.page)
+        self.assertNotIn('vehicle.indexForwardAxis=2;',self.page)
+        self.assertIn("const vehicle=rw.createVehicleController(chassis)",self.page)
+
+    def test_wheel_glb_has_asset_preview_and_orientation_fallback(self):
+        for text in ['function wheelAssetAxis(asset)', 'function wheelVisualFromAsset(asset,r,width)',
+                     'function previewWheelAsset(asset)', 'previewWheelAsset(record)',
+                     'id="wheelAssetList"', 'id="wheelModelTune"',
+                     'data-wheel-rotate="x"','data-wheel-rotate="y"','data-wheel-rotate="z"',
+                     'await avatarStore(\'readwrite\',\'put\',saved)']:
+            with self.subTest(text=text): self.assertIn(text,self.page)
+        self.assertNotIn("button.textContent=`${item.kind==='cap'?'CAP':'WHEEL'} · ${item.name}`",self.page)
+
+    def test_preview_does_not_resize_main_renderer(self):
+        section=self.page.split('async function previewWheelAsset(asset){',1)[1].split('\n}',1)[0]
+        self.assertIn('new THREE.WebGLRenderer',section)
+        self.assertIn('preview.setPixelRatio(1)',section)
+        self.assertNotIn('renderer.setSize(',section)
+
+    def test_wheel_gallery_ui_ids_are_unique(self):
+        names=['wheelAssetList','wheelModelTune','wheelAutoAlign','wheelTuneName','wheelAlignStatus',
+               'wheelGeneratedPreview','wheelStyles','wheelAISection']
+        for name in names:
+            self.assertEqual(len(re.findall(r'id="'+re.escape(name)+r'"',self.page)),1,name)

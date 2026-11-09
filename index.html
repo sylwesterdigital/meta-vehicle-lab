@@ -5,7 +5,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Vehicle Lab — Procedural Studio</title>
-  <meta name="vehicle-lab-version" content="0.3.4">
+  <meta name="vehicle-lab-version" content="0.3.5">
   <style>
     :root {
       color-scheme:dark;
@@ -387,7 +387,7 @@
     #wheelAIStatus{margin:10px 0;padding:9px;border:1px solid var(--pane-border);border-radius:6px;overflow-wrap:anywhere}
 
 
-/* v0.3.4: compact, pointer-first workspace with guaranteed panel-state persistence. */
+/* v0.3.5: compact, pointer-first workspace with guaranteed panel-state persistence. */
 .window-head{min-height:26px;height:26px;padding:2px 7px;gap:4px}
 .window-head .mini-btn{width:22px;height:21px;min-height:21px;padding:0;border-radius:5px}
 .float-window.is-minimized{height:26px!important;min-height:26px!important}
@@ -466,6 +466,33 @@
 #mapSaveDialog input{padding:8px;background:#142637;color:#eef8fa;border:1px solid #7194a6;border-radius:6px}
 #mapSaveDialog .mini-save-form>div{display:flex;gap:5px;justify-content:flex-end}
 #mapSaveDialog button{padding:6px 12px}
+
+/* v0.3.5: dense wheel workshop, real GLB previews and explicit orientation */
+#wheelWindow{width:370px;min-width:285px}
+#wheelWindow .wheel-grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:4px}
+#wheelWindow .wheel-style-card img{max-width:78px}
+#wheelWindow .wheel-style-card{font-size:10px;min-height:78px}
+#wheelWindow .wheel-fields{grid-template-columns:repeat(3,minmax(0,1fr));gap:4px}
+#wheelWindow .wheel-fields label{font-size:10px}
+#wheelWindow .wheel-fields input{min-width:0;width:100%;height:28px}
+.wheel-quick-actions,.wheel-tune-actions{display:flex;gap:4px;flex-wrap:wrap;margin:4px 0}
+.wheel-quick-actions button,.wheel-tune-actions button{font-size:10px;min-height:28px;padding:4px 7px}
+.wheel-library-heading{display:flex;justify-content:space-between;align-items:center;gap:5px;margin:7px 0 4px}
+.wheel-library-heading small{opacity:.74;font-size:9px}
+#wheelWindow .wheel-asset-list{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;margin:0}
+#wheelWindow .wheel-asset-card{display:grid;grid-template-rows:1fr auto;min-width:0;align-items:center;justify-items:center;padding:2px;min-height:86px;overflow:hidden}
+#wheelWindow .wheel-asset-card img{width:100%;aspect-ratio:1;object-fit:contain;border-radius:3px}
+#wheelWindow .wheel-asset-card small{max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:9px}
+#wheelWindow .wheel-asset-card[aria-pressed=true]{outline:2px solid var(--accent)}
+.wheel-tune{border:1px solid var(--pane-border);border-radius:7px;padding:5px;margin-top:5px}
+.wheel-tune[hidden]{display:none}
+.wheel-tune-head{display:flex;align-items:center;justify-content:space-between;gap:5px;font-size:11px}
+#wheelAlignStatus{display:block;font-size:10px;color:var(--text);opacity:.82}
+#wheelWindow details{border:1px solid var(--pane-border);margin-top:5px;border-radius:6px;padding:4px}
+#wheelWindow details>summary{cursor:pointer;font-size:11px;font-weight:600}
+#wheelWindow .window-body{overflow-y:auto}
+#wheelGeneratedPreview{max-width:100%;height:160px;object-fit:contain;border-radius:6px;background:#dde8f0;margin:5px auto;display:block}
+#wheelGeneratedPreview[hidden]{display:none}
 </style>
 
  <script type="importmap">
@@ -484,7 +511,7 @@
 
   <div id="stage">
   <div id="hud">
-    <div class="stage-badge"><strong>Vehicle Lab</strong><small>v0.3.4</small></div>
+    <div class="stage-badge"><strong>Vehicle Lab</strong><small>v0.3.5</small></div>
     <p id="vehicleName">City Car</p><p id="vehicleInfo">Procedural vehicle</p>
     <div id="speedHud"><strong id="speed">0</strong><div>km/h</div></div>
     <div id="physicsHud"><strong id="engineName">Cannon-es</strong> · <span id="physicsMode">BUILD</span>
@@ -618,18 +645,25 @@
         <label>Spoke count<input id="wheelSpokesEdit" type="number" min="3" max="32" step="1"></label>
         <label>Sidewall<input id="wheelSidewallEdit" type="color"></label>
         <label>Alloy<input id="wheelAlloyEdit" type="color"></label></div>
-      <div class="drawer-actions"><button type="button" id="wheelUpload">Import wheel GLB</button><button type="button" id="wheelCapUpload">Import optional cap GLB</button><button type="button" id="wheelRemove">Use procedural wheel</button></div>
+      <div class="wheel-quick-actions"><button type="button" id="wheelUpload" title="Import wheel GLB" aria-label="Import wheel model">＋ GLB</button><button type="button" id="wheelCapUpload" title="Import hubcap GLB" aria-label="Import optional hubcap">＋ Cap</button><button type="button" id="wheelRemove" title="Switch to procedural wheel">↺ Primitive</button></div>
+      <div class="wheel-library-heading"><strong>3D wheel library</strong><small>Choose a thumbnail to fit the selected axle</small></div>
       <div id="wheelAssetList" class="wheel-asset-list"></div>
-      <details id="wheelAISection"><summary>AI wheel workshop · provider, image & 3D</summary>
+      <div id="wheelModelTune" class="wheel-tune" hidden>
+        <div class="wheel-tune-head"><strong id="wheelTuneName">Imported wheel</strong><button type="button" id="wheelAutoAlign" title="Auto-detect wheel axle and refit">Auto align</button></div>
+        <div class="wheel-tune-actions"><button type="button" data-wheel-rotate="x" title="Rotate model 90° on X">X ↻ 90°</button><button type="button" data-wheel-rotate="y" title="Rotate model 90° on Y">Y ↻ 90°</button><button type="button" data-wheel-rotate="z" title="Rotate model 90° on Z">Z ↻ 90°</button></div>
+        <small id="wheelAlignStatus">The GLB is fitted to the axle width and radius without changing its physics collider.</small>
+      </div>
+      <details id="wheelAISection"><summary>AI generation · optional</summary>
         <form id="wheelAiCredentials" class="wheel-ai-keys" autocomplete="off"><label>Image model<select id="wheelAIProvider"><option value="openai">OpenAI</option><option value="xai">xAI</option></select></label>
           <label>Image API key<input type="password" id="wheelImageKey" autocomplete="off" placeholder="Paste key (tab only)"></label>
           <button type="button" id="wheelUseImageKey">Use key</button>
           <label>Lux3D key<input type="password" id="wheelLuxKey" autocomplete="off" placeholder="Optional Lux3D key"></label>
           <button type="button" id="wheelTestLuxKey">Test Lux3D key</button>
           <label><input type="checkbox" id="wheelSpendAck"> Authorize potentially billable 3D generation</label></form>
-        <div id="wheelAIStatus" role="status">AI generation and key testing run in this workshop. Lux3D wheel results auto-import when complete.</div>
-        <p>Text/image → image provider → optional refinement → Lux3D or Tripo 3D. Paid generation requires confirmation in provider controls.</p>
-        <textarea id="wheelPrompt" rows="3" placeholder="Forged 10-spoke alloy rim, isolated wheel assembly, no vehicle"></textarea>
+        <div id="wheelAIStatus" role="status">Text → image → review → optional 3D. Paid jobs require permission.</div>
+
+        <textarea id="wheelPrompt" rows="2" placeholder="Describe your wheel or hubcap"></textarea>
+        <img id="wheelGeneratedPreview" alt="Generated wheel concept for review" hidden>
         <div class="drawer-actions"><button type="button" id="wheelTextImage">Text → image</button><button type="button" id="wheelEditImage">Reference → refined image</button><button type="button" id="wheelImage3D" disabled title="Tripo server adapter has not been installed">Tripo (unavailable)</button><button type="button" id="wheelLux3D">Lux3D generation</button></div>
         <button type="button" id="wheelReferenceFile">Upload reference image</button>
       </details>
@@ -963,7 +997,7 @@ let ghostObject=null,ghostSamples=[],ghostElapsed=0,ghostTick=0;
  const serverAccess={token:''};
  let activeProfile=null,guestToken='',serverVisibility='private',adminLogToken='';
  const appEvents=[];
- const VERSION='0.3.4';
+ const VERSION='0.3.5';
  let imageReference=null,busyAI=false;
 
  // Keys remain in volatile memory. Never place credentials in a blueprint or IndexedDB.
@@ -1804,16 +1838,60 @@ function human(parent,x,y,z){
  return root;
 }
 function widthSafe(v){return clamp(Number(v)||.23,.08,1.5)}
+// Imported assets can arrive with the spindle along X, Y or Z. Normalize their
+// radial plane to YZ (wheel axle X), and expose manual 90-degree corrections.
+function wheelAssetAxis(asset){
+ if(['x','y','z'].includes(asset.axis)&&asset.axis!=='auto')return asset.axis;
+ const box=new THREE.Box3().setFromObject(asset.source),size=box.getSize(new THREE.Vector3());
+ const axes=[['x',size.x],['y',size.y],['z',size.z]];
+ axes.sort((a,b)=>a[1]-b[1]);return axes[0][0];
+}
+function wheelVisualFromAsset(asset,r,width){
+ const outer=new THREE.Group();
+ const model=cloneSkeleton(asset.source);
+ model.traverse(o=>o.userData.externalModel=true);
+ const axis=wheelAssetAxis(asset);
+ if(axis==='y')model.rotation.z=-Math.PI/2;
+ else if(axis==='z')model.rotation.y=Math.PI/2;
+ model.rotateX((Number(asset.rx)||0)*Math.PI/180);
+ model.rotateY((Number(asset.ry??asset.rotation)||0)*Math.PI/180);
+ model.rotateZ((Number(asset.rz)||0)*Math.PI/180);
+ // AABB is recomputed AFTER applying orientation: previous non-uniform scaling
+ // before remapping axes caused the 90-degree flattened/incorrect wheel effect.
+ model.updateMatrixWorld(true);
+ const bounds=new THREE.Box3().setFromObject(model),size=bounds.getSize(new THREE.Vector3()),center=bounds.getCenter(new THREE.Vector3());
+ if(Math.min(size.x,size.y,size.z)<1e-5)throw Error('Wheel model has degenerate geometry');
+ const normalized=new THREE.Group();normalized.add(model);
+ normalized.scale.set(width/size.x,(r*2)/size.y,(r*2)/size.z);
+ model.position.set(-center.x,-center.y,-center.z);
+ outer.add(normalized);
+ return outer;
+}
 function addWheelCapVisual(root,prefix,r,width){
  const model=wheelAssets.get(cfg[prefix+'CapModel']);if(!model?.source)return;
  for(const sign of [-1,1]){
-  const clone=cloneSkeleton(model.source);clone.traverse(o=>o.userData.externalModel=true);
-  const bounds=new THREE.Box3().setFromObject(clone),d=bounds.getSize(new THREE.Vector3()),center=bounds.getCenter(new THREE.Vector3());
-  const s=Math.min(r*.96/Math.max(.001,d.y),r*.96/Math.max(.001,d.z));
-  clone.scale.set(.03/Math.max(.001,d.x),s,s);
-  clone.position.set(sign*(width*.52)-center.x*clone.scale.x,-center.y*s,-center.z*s);
-  root.add(clone);
+  const clone=wheelVisualFromAsset(model,r*.93,.035);
+  clone.position.x=sign*(width*.54);root.add(clone);
  }
+}
+// Small isolated studio, never resized or attached to the main WebGL stage.
+// It captures actual imported GLB geometry, not a placeholder or file-name button.
+async function previewWheelAsset(asset){
+ let preview=null;
+ try{
+  const previewScene=new THREE.Scene();previewScene.background=new THREE.Color('#dfecf3');
+  const h=new THREE.HemisphereLight(0xffffff,0x55667b,2.3);previewScene.add(h);
+  const k=new THREE.DirectionalLight(0xffffff,3);k.position.set(2,4,5);previewScene.add(k);
+  const model=wheelVisualFromAsset(asset,.62,.32);previewScene.add(model);
+  model.rotation.set(.16,-.45,.12);
+  const cam=new THREE.PerspectiveCamera(35,1,.05,30);
+  cam.position.set(2.2,1.4,2.8);cam.lookAt(0,0,0);
+  preview=new THREE.WebGLRenderer({antialias:true,preserveDrawingBuffer:true,alpha:false});
+  preview.setPixelRatio(1);preview.setSize(192,192,false);preview.outputColorSpace=THREE.SRGBColorSpace;
+  preview.render(previewScene,cam);
+  return preview.domElement.toDataURL('image/jpeg',.84);
+ }catch(error){console.warn('Wheel preview render:',error.message);return null}
+ finally{if(preview){preview.dispose();preview.forceContextLoss()}}
 }
 // Wheel mesh is a reusable independent component. Cylindrical tire, sidewall,
 // spoke / disk / turbine rim and instanced 3-D tread all follow axle settings.
@@ -1823,12 +1901,7 @@ function makeWheel(parent,x,y,z,r,axle=0){
  const which=axle===0?'front':'rear';
  const asset=wheelAssets.get(cfg[which+'WheelModel']);
  if(asset?.source){
-  const visual=cloneSkeleton(asset.source);
-  visual.traverse(o=>o.userData.externalModel=true);
-  visual.rotation.y=(asset.rotation||0)*Math.PI/180;
-  const bounds=new THREE.Box3().setFromObject(visual),d=bounds.getSize(new THREE.Vector3()),c=bounds.getCenter(new THREE.Vector3());
-  visual.scale.set(widthSafe(cfg[which+'WheelWidth'])/Math.max(.001,d.x),2*r/Math.max(.001,d.y),2*r/Math.max(.001,d.z));
-  visual.position.set(-c.x*visual.scale.x,-c.y*visual.scale.y,-c.z*visual.scale.z);
+  const visual=wheelVisualFromAsset(asset,r,widthSafe(cfg[which+'WheelWidth']));
   root.add(visual);
   addWheelCapVisual(root,which,r,cfg[which+'WheelWidth']);
   return root;
@@ -2532,7 +2605,7 @@ async function makeRapierAdapter(){
   rapierStage='vehicle controller';
   const vehicle=rw.createVehicleController(chassis);
   vehicle.indexUpAxis=1;
-  vehicle.indexForwardAxis=2;
+  vehicle.setIndexForwardAxis=2;
   for(let axle=0;axle<cfg.axles;axle++)for(const side of [-1,1]){
    const i=vehicle.numWheels();
    vehicle.addWheel({x:side*(cfg.W*.54+wheelOutsetFor(axle)),y:-.3,z:wheelZ(axle)},
@@ -2725,9 +2798,10 @@ async function makeAmmoAdapter(){
     for(let i=0;i<rayVehicle.getNumWheels();i++){
      const grip=surfaceGrip(origin().x(),origin().z());
      rayVehicle.getWheelInfo(i).set_m_frictionSlip(5.4*grip);
-     rayVehicle.applyEngineForce(drivenWheel(i)?-input.throttle*input.power*grip:0,i);
+     // Bullet's raycast forward impulse sign differs from Cannon's negative-force convention.
+     rayVehicle.applyEngineForce(drivenWheel(i)?input.throttle*input.power*.6*grip:0,i);
      rayVehicle.setSteeringValue(wheelAxle(i)===0?-input.steer*.47:0,i);
-     rayVehicle.setBrake(input.brake?400:0,i);
+     rayVehicle.setBrake(input.brake?Math.min(80,Math.max(12,Math.abs(input.power)*.012)):0,i);
     }
     if(cfg.terrainProfile==='beach'){
       const o=origin(),vel=velocity(),submerged=clamp((cfg.waterLevel+cfg.H*.4-o.y())/(cfg.H*.7),0,1);
@@ -3120,17 +3194,20 @@ async function parseWheelAsset(data){
  const url=URL.createObjectURL(data.blob);
  try{const result=await decodeGLB(url);
   if(!result.scene||new THREE.Box3().setFromObject(result.scene).isEmpty())throw Error('Wheel GLB has no geometry');
-  wheelAssets.set(data.id,{...data,source:result.scene});
+  const record={...data,source:result.scene};
+  wheelAssets.set(data.id,record);
+  if(!record.preview)record.preview=await previewWheelAsset(record);
+  data.preview=record.preview;
  }finally{URL.revokeObjectURL(url)}
 }
 async function storeWheelAsset(file,kind){
  if(!file||file.size>35*1024*1024||file.size<12)throw Error('Wheel GLB must be 12 bytes to 35 MB');
  const magic=new TextDecoder().decode(new Uint8Array(await file.slice(0,4).arrayBuffer()));
  if(magic!=='glTF')throw Error('Wheel asset must be a valid binary GLB');
- const data={id:crypto.randomUUID(),name:file.name.slice(0,110),kind,blob:file,created:Date.now(),rotation:0};
+ const data={id:crypto.randomUUID(),name:file.name.slice(0,110),kind,blob:file,created:Date.now(),axis:'auto',rx:0,ry:0,rz:0};
  await parseWheelAsset(data);await avatarStore('readwrite','put',data);
  cfg[selectedWheelAxle+(kind==='cap'?'CapModel':'WheelModel')]=data.id;
- if(mode==='drive')leaveDrive();buildVehicle();renderWheelStudio();scheduleHistory('Wheel model imported');
+ rebuildWheelVisuals();renderWheelStudio();scheduleHistory('Wheel model imported');
  note('Imported '+kind+' GLB. Geometry fits selected axle radius and width.');
 }
 async function loadAvatarLibrary(){
@@ -3703,7 +3780,7 @@ async function api(path,method='GET',payload=null,key=''){
 }
 return data;
 }
-let imageEditMode=false;
+let imageEditMode=false,pendingWheelImage=false;
 async function generateImage(){
  if(busyAI)return;
  const key=keys[ai.provider];
@@ -3719,10 +3796,13 @@ async function generateImage(){
  },key);
   if(!data.image)throw Error('Backend returned no image');
   imageReference=data.image;
+  if(pendingWheelImage){$('wheelGeneratedPreview').src=imageReference;$('wheelGeneratedPreview').hidden=false;pendingWheelImage=false;
+   $('wheelAISection').open=true;$('wheelAIStatus').textContent='Image concept generated. Review it, then authorize 3D generation if desired.';}
   $('referenceImage').src=imageReference;
   $('referenceCard').hidden=false;
-  note('AI image generated. Ready for Tripo.');
-}catch(error){note(error.message,true)}
+  note('AI image generated. Ready for 3D conversion.');
+  return imageReference;
+}catch(error){pendingWheelImage=false;note(error.message,true);return null}
 finally{busyAI=false}
 }
 let pendingTripoComponent='chassis';
@@ -4469,9 +4549,9 @@ function renderWheelStudio(){
  createCard.innerHTML='<span aria-hidden="true" class="wheel-brain">✦</span><small>AI · Create</small>';
  createCard.onclick=()=>{
   const provider=keys[$('wheelAIProvider').value]?$('wheelAIProvider').value:keys.openai?'openai':keys.xai?'xai':null;
-  if(provider){wheelAiPrompt();imageEditMode=false;ai.provider=provider;
+  if(provider){wheelAiPrompt();imageEditMode=false;pendingWheelImage=true;ai.provider=provider;
    $('wheelAIStatus').textContent='Generating image for '+selectedWheelAxle+' wheel…';
-   void generateImage().then(()=>{$('wheelAIStatus').textContent='Image ready · preview available for 3D generation.'})
+   void generateImage().then(result=>{if(result)$('wheelAIStatus').textContent='Image ready · preview available for 3D generation.';else $('wheelAIStatus').textContent='Image generation failed or canceled.'})
     .catch(e=>{$('wheelAIStatus').textContent=e.message;});
   }else{
    const p=$('wheelAISection');p.open=true;
@@ -4498,16 +4578,46 @@ function renderWheelStudio(){
    setupGUI();scheduleHistory('Wheel geometry')};
  }
  const assets=$('wheelAssetList');assets.replaceChildren();
- for(const [id,item] of wheelAssets){const button=document.createElement('button');
-  button.textContent=`${item.kind==='cap'?'CAP':'WHEEL'} · ${item.name}`;
+ for(const [id,item] of wheelAssets){
+  const button=document.createElement('button');button.className='wheel-asset-card';
+  button.title=item.name+' · '+(item.kind==='cap'?'hubcap':'wheel');
+  const image=document.createElement('img');image.alt='Preview of '+item.name;
+  image.src=item.preview||wheelStyleSVG('mesh');
+  const label=document.createElement('small');label.textContent=item.name.replace(/\.glb$/i,'').replace(/^Lux3D-/i,'AI #');
+  button.append(image,label);
   button.setAttribute('aria-pressed',String(cfg[prefix+(item.kind==='cap'?'CapModel':'WheelModel')]===id));
   button.onclick=()=>{cfg[prefix+(item.kind==='cap'?'CapModel':'WheelModel')]=id;
-   rebuildWheelVisuals();renderWheelStudio();scheduleHistory('Selected wheel asset')};assets.append(button)}
+   rebuildWheelVisuals();renderWheelStudio();scheduleHistory('Selected wheel asset')};assets.append(button);
+ }
+ const id=cfg[prefix+'WheelModel']||cfg[prefix+'CapModel'],selected=wheelAssets.get(id);
+ const tune=$('wheelModelTune');tune.hidden=!selected;
+ if(selected){$('wheelTuneName').textContent=(selected.kind==='cap'?'Hubcap':'Wheel')+' · '+selected.name.replace(/\.glb$/i,'');
+  $('wheelAlignStatus').textContent='Axle '+wheelAssetAxis(selected).toUpperCase()+' · corrections X '+(selected.rx||0)+'° / Y '+(selected.ry||0)+'° / Z '+(selected.rz||0)+'°';}
 }
 for(const button of $('wheelAxleSwitch').querySelectorAll('button'))button.onclick=()=>{selectedWheelAxle=button.dataset.axle;renderWheelStudio()};
 $('wheelUpload').onclick=()=>$('wheelGLBFile').click();$('wheelCapUpload').onclick=()=>$('wheelCapFile').click();
 for(const [id,kind] of [['wheelGLBFile','wheel'],['wheelCapFile','cap']])$(id).onchange=async e=>{
  try{await storeWheelAsset(e.target.files?.[0],kind)}catch(err){note(err.message,true)}finally{e.target.value=''}
+};
+// A repeatable user correction for models authored with different axes.
+async function persistWheelOrientation(asset){
+ if(!asset)return;
+ asset.preview=await previewWheelAsset(asset);
+ const {source,...saved}=asset;
+ await avatarStore('readwrite','put',saved);
+ rebuildWheelVisuals();renderWheelStudio();scheduleHistory('Wheel model orientation');
+}
+$('wheelAutoAlign').onclick=()=>{
+ const asset=wheelAssets.get(cfg[selectedWheelAxle+'WheelModel']||cfg[selectedWheelAxle+'CapModel']);
+ if(!asset)return;asset.axis='auto';asset.rx=asset.ry=asset.rz=0;
+ void persistWheelOrientation(asset).catch(e=>note(e.message,true));
+};
+for(const button of document.querySelectorAll('[data-wheel-rotate]'))button.onclick=()=>{
+ const asset=wheelAssets.get(cfg[selectedWheelAxle+'WheelModel']||cfg[selectedWheelAxle+'CapModel']);
+ if(!asset)return;
+ const key='r'+button.dataset.wheelRotate;
+ asset[key]=((Number(asset[key])||0)+90)%360;
+ void persistWheelOrientation(asset).catch(e=>note(e.message,true));
 };
 $('wheelRemove').onclick=()=>{cfg[selectedWheelAxle+'WheelModel']=null;cfg[selectedWheelAxle+'CapModel']=null;
  rebuildWheelVisuals();renderWheelStudio();scheduleHistory('Restored procedural wheels')};
@@ -4528,9 +4638,9 @@ $('wheelTestLuxKey').onclick=()=>{const k=$('wheelLuxKey').value.trim();if(k)key
  $('wheelAIStatus').textContent='Testing Lux3D key without generation. Results are mirrored below.';};
 new MutationObserver(()=>{$('wheelAIStatus').textContent=$('lux3dTaskStatus').textContent+' · '+$('lux3dDiagnostics').textContent;})
  .observe($('lux3dTaskStatus'),{childList:true,characterData:true,subtree:true});
-$('wheelTextImage').onclick=()=>{wheelAiPrompt();imageEditMode=false;ai.provider=$('wheelAIProvider').value;void generateImage()};
+$('wheelTextImage').onclick=()=>{wheelAiPrompt();pendingWheelImage=true;imageEditMode=false;ai.provider=$('wheelAIProvider').value;void generateImage()};
 $('wheelEditImage').onclick=()=>{if(!imageReference){$('importImage').click();note('Select an image first; then run the refinement with a prompt.');return}
- wheelAiPrompt();imageEditMode=true;ai.provider=$('wheelAIProvider').value;void generateImage()};
+ wheelAiPrompt();pendingWheelImage=true;imageEditMode=true;ai.provider=$('wheelAIProvider').value;void generateImage()};
 $('wheelImage3D').onclick=()=>{wheelAiPrompt();pendingTripoComponent='wheel';void generateTripo()};
 $('wheelLux3D').onclick=()=>{
  if(!$('wheelSpendAck').checked){$('wheelAIStatus').textContent='Check authorization before starting a potentially billable Lux3D task.';return}
@@ -5906,6 +6016,12 @@ $('galleryRefreshBtn').onclick=refreshGallery;
 $('layoutPublic').onchange=()=>{serverVisibility=$('layoutPublic').checked?'public':'private'};
 
 const RELEASE_NOTES=[
+ {v:'0.3.5',date:'2026-11-09',title:'Wheel asset library and physics adapter corrections',items:[
+  'Imported GLB wheel assets appear as real shaded previews; axle orientation is auto-detected and adjustable by 90-degree X/Y/Z corrections.',
+  'Rapier uses the documented forward-axis setter instead of writing a getter-only property.',
+  'Ammo motor and steering sign were adjusted for the +Z blueprint; physics road-test validation remains required.',
+  'Wheel controls are grouped into a compact model gallery and fit controls; separate server-admin token instructions remain in README.'
+ ]},
  {v:'0.3.4',date:'2026-11-09',title:'Workspace performance, scene vehicles, map and audio',items:[
   'Preserve minimized windows after DRIVE and BUILD; compact map controls, tool rail, floating Shift+A palette and responsive viewport.',
   'Faster map/object edits: cached 256px terrain relief, frame-limited redraws, no terrain/vegetation rebuild for plain obstacles, Cannon live collider updates.',
