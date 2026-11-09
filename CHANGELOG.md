@@ -1,3 +1,11 @@
+## v0.3.17 — November 9, 2026
+- Font/theme changes now reach all lil-gui controllers. Searchable non-modal font gallery previews editable sample text in a grid and optionally enumerates installed local fonts with user permission.
+- Map/object-specific undo/redo prevents accidental vehicle undo and BUILD-mode switching. Terrain/map changes refresh the physics adapter while retaining DRIVE layout and current car pose/velocity.
+- G/R/E choose transform gizmo modes only; Shift+D clones the selection without cursor-follow grabbing or rotating the original. A gizmo-release guard prevents erroneous source re-selection.
+- Strong physical rear-wheel parking brake in each engine, toggled by Shift+B or the Actions button; chassis can still slip on steep surfaces and is never immobilized kinematically.
+- Editable, validated/persisted keyboard shortcuts with defaults recovery, duplicate/red errors, and import/export JSON. Default camera reset changes from R to Shift+R to eliminate conflict with object rotation.
+- No backend API, database schema, AI provider, profile, model asset, server dependency or watcher changes. Browser/physics/device acceptance must still be performed on HTTPS deployment.
+
 ## v0.3.16 — November 9, 2026
 - Configuration → Windows & workspace: BUILD and DRIVE selector pills, 14 named window visibility controls, and mode-specific visible/minimized state.
 - Apply saved BUILD layout on startup; apply DRIVE/BUILD layouts consistently when switching modes, no longer bypassed by the old hide-editor switch.

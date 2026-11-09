@@ -69,7 +69,7 @@ class VehicleStudioRegressionTests(unittest.TestCase):
         self.assertIn('makeAmmoAdapter()',self.source)
         self.assertNotIn('makeBaselineAdapter()',self.source)
         self.assertIn("{x:-1,y:0,z:0},.32,wheelRadiusFor(axle)",self.source)
-        self.assertIn('const finishedVehiclePose=physics?.pose?.()||null;',self.source)
+        self.assertIn('const finishedVehiclePose=physics?.pose?.()||resumeDrivePose||null;',self.source)
         self.assertIn('buildVehicle();',self.source)
         self.assertIn('preserveCameraOrbit();updatePhysicsHud();',self.source)
         self.assertIn('if(finishedVehiclePose){const p=finishedVehiclePose;',self.source)
@@ -132,7 +132,7 @@ class PrecisionMap032Tests(unittest.TestCase):
             self.assertIn(code,self.source,code)
 
     def test_shift_a_scene_objects_have_live_transform_and_physics(self):
-        for code in ('id="addObjectOverlay"',"e.code==='KeyA'",'new TransformControls(',
+        for code in ('id="addObjectOverlay"',"shortcutMatches('addObject',e)",'new TransformControls(',
                      "objectGizmo.addEventListener('objectChange'",'function placeObjectInScene(',
                      'function courseSpecs()', 'syncCourse:', "solid.physics==='dynamic'",
                      "solid.physics==='none'", 'objectMass','objectFriction','objectBounce',
@@ -205,16 +205,16 @@ class VehicleLab034RegressionTests(unittest.TestCase):
             self.assertIn(snippet,self.source)
 
     def test_context_palette_and_editor_shortcuts(self):
-        for snippet in ("e.code==='KeyA'", 'function openAddPalette(',
+        for snippet in ("shortcutMatches('addObject',e)", 'function openAddPalette(',
                         'function placeObjectInScene(', 'duplicateSelectedCourse()',
-                        'deleteSelectedCourse()', "e.code==='KeyD'",
-                        "KeyG:'translate'", "KeyE:'scale'", "KeyR:'rotate'"):
+                        'deleteSelectedCourse()', "shortcutMatches('duplicateObject',e)",
+                        "activateCourseGizmo(action)", "objectGizmo.setMode(kind)", "lastGizmoPointerUp"):
             self.assertIn(snippet,self.source)
 
     def test_map_and_lightweight_collider_updates(self):
         for snippet in ('function mapCanvasDpr()', 'function requestMinimapPaint()',
-                        'function heightfieldSignature()', 'const fastColliderSync=',
-                        'if(requiresTerrain){buildTerrain();buildVegetation();',
+                        'function heightfieldSignature()', 'const restart=driving',
+                        'if(terrainChanged){buildTerrain();buildVegetation();',
                         'const mapDock=document.createElement'):
             # mapCanvasDpr is a constant arrow function; check equivalent below.
             if snippet=='function mapCanvasDpr()':
@@ -286,8 +286,8 @@ class VehicleLab036RegressionTests(unittest.TestCase):
         for snippet in ('id="chassisWindow"', 'id="chassisAssets"',
                         "data.kind==='chassis'", 'function createChassisPreview(',
                         "for(const folder of gui.folders)folder.close()",
-                        'function syncCannonObstacle(o)', 'keepPanels.includes',
-                        "'objectWindow'", 'coursePointerTransform',
+                        'function syncCannonObstacle(o)', "if(restart&&mode==='drive')",
+                        "'objectWindow'", 'function activateCourseGizmo(',
                         'function updateNearGrass('):
             self.assertIn(snippet,self.source)
         self.assertIn('const height=Number.isFinite(o.y)?',self.source)
@@ -355,6 +355,48 @@ class ChassisImageTests(unittest.TestCase):
         self.assertIn("payload['images']=[{'image_url':reference}]",self.backend)
         self.assertIn("keys={meta:''",self.html)
         self.assertIn("id=\"wheelAIProvider\"",self.html)
+
+
+class WorkspaceTools017Tests(unittest.TestCase):
+    """Static release contracts; separate Chromium tests check live UI interactions."""
+    @classmethod
+    def setUpClass(cls):
+        cls.html=(Path(__file__).resolve().parents[1]/'index.html').read_text()
+
+    def test_typeface_gallery_is_nonmodal_and_lil_gui_uses_theme_font(self):
+        for part in ('#fontBrowser[hidden]', 'id="fontPreviewText"',
+                     'id="fontBrowserGrid"', 'function renderFontBrowser()',
+                     '.lil-gui,.lil-gui *{font-family:var(--ui-font)!important}',
+                     "$('drawerScrim').style.visibility=show?'hidden':''"):
+            self.assertIn(part,self.html)
+
+    def test_shortcut_edit_validation_persistence_and_fallback(self):
+        for part in ('vehiclelab-shortcuts/v1', 'function validateShortcutDraft()',
+                     'function shortcutProblems(bindings)', 'id="shortcutValidate"',
+                     'id="shortcutImport"', 'id="shortcutExport"',
+                     "if(!shortcutDraft[id]){shortcutDraft[id]=SHORTCUT_DEFAULTS[id]", 
+                     'button.classList.add(validateCombo(combo)'):
+            self.assertIn(part,self.html)
+
+    def test_map_undo_does_not_call_vehicle_restore(self):
+        self.assertIn("$('mapUndo').onclick=()=>void stepMapHistory(-1)",self.html)
+        self.assertIn("$('mapRedo').onclick=()=>void stepMapHistory(1)",self.html)
+        self.assertIn("if(activeUndoDomain==='map')void stepMapHistory(-1)",self.html)
+        self.assertIn("if(restart&&mode==='drive')",self.html)
+        self.assertNotIn('coursePointerTransform',self.html)
+
+    def test_parking_brake_is_wheel_based_for_each_physics_engine(self):
+        self.assertIn("['handbrake','Toggle parking handbrake','Shift+KeyB'",self.html)
+        self.assertIn('id="parkingBrakeBtn"',self.html)
+        self.assertGreaterEqual(self.html.count('input.handbrake&&wheelAxle(i)===cfg.axles-1'),3)
+        self.assertIn('if(input.handbrake)input.throttle=0;',self.html)
+        self.assertNotIn('chassis.velocity.set(0,0,0)',self.html)
+
+    def test_gizmo_does_not_enable_free_pointer_transform(self):
+        self.assertIn('function activateCourseGizmo(kind)',self.html)
+        self.assertIn('if(objectGizmo.object!==mesh)objectGizmo.attach(mesh)',self.html)
+        self.assertIn('lastGizmoPointerUp=performance.now()',self.html)
+        self.assertNotIn('coursePointerTransform',self.html)
 
 
 class VersionAndAvatarLimitsTests(unittest.TestCase):

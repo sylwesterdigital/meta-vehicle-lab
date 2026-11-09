@@ -5,7 +5,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Vehicle Lab — Procedural Studio</title>
-  <meta name="vehicle-lab-version" content="0.3.16">
+  <meta name="vehicle-lab-version" content="0.3.17">
   <style>
     :root {
       color-scheme:dark;
@@ -139,6 +139,8 @@
     #paramsWindow{right:16px;top:78px;width:300px;height:min(660px,82dvh)}
     #editorGuiMount{position:static;max-height:none;overflow:visible;width:100%}
     #editorGuiMount .lil-gui{--width:100%;max-width:none;font-size:calc(11px * var(--ui-scale))}
+    /* lil-gui ships its own font stack. Follow the global typography selection. */
+    .lil-gui,.lil-gui *{font-family:var(--ui-font)!important}
     #logWindow{right:16px;bottom:18px;width:480px;height:260px;display:none}
     #logWindow.is-visible{display:flex}
     .logs-toolbar{display:flex;flex:0 0 auto!important;flex-wrap:wrap;align-items:center;gap:5px;padding:6px 7px!important;min-height:34px!important}
@@ -640,6 +642,42 @@
 #lux3dBatchQueue{display:grid;gap:3px;background:#1b3345;border:1px solid #5285a4;border-radius:7px;padding:7px;margin:6px 0;color:#eef9ff;font:11px ui-monospace,monospace}
 #lux3dBatchQueue[hidden]{display:none}
 #lux3dBatchQueue .lux-queued-item{padding:4px 6px;border-bottom:1px solid #55718666}
+
+/* Non-modal, draggable typeface gallery; leave all editor windows interactive. */
+#fontBrowser[hidden]{display:none}
+#fontBrowser{position:fixed;z-index:85;top:9vh;left:max(12px,calc(50vw - 380px));
+ width:min(730px,calc(100vw - 24px));height:min(670px,82dvh);min-width:min(325px,calc(100vw - 24px));
+ min-height:220px;max-width:calc(100vw - 16px);max-height:94dvh;display:flex;flex-direction:column;
+ overflow:hidden;border:1px solid var(--pane-border);border-radius:12px;background:var(--pane);
+ color:var(--text);box-shadow:0 18px 65px #000a;backdrop-filter:blur(18px);resize:both}
+#fontBrowser .window-head{flex:0 0 auto}#fontBrowser .font-browser-controls{padding:12px;display:grid;grid-template-columns:1fr 1fr;gap:8px}
+#fontBrowser label{display:grid;gap:4px;font-size:11px;color:var(--text)}
+#fontBrowser input{width:100%;min-width:0;border:1px solid var(--pane-border);border-radius:7px;
+ background:#152d3bec;color:#f3fbff;padding:9px;font-size:13px}
+#fontBrowser .font-browser-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));
+ gap:9px;padding:10px 12px 16px;overflow:auto;align-content:start;flex:1;min-height:0}
+#fontBrowser .font-card{display:flex;flex-direction:column;gap:8px;text-align:left;min-height:100px;
+ border:1px solid var(--pane-border);background:#223847aa;color:var(--text);padding:11px;border-radius:9px}
+#fontBrowser .font-card[aria-pressed="true"]{outline:2px solid var(--accent);outline-offset:-2px}
+#fontBrowser .font-card-name{font:600 11px var(--ui-font);opacity:.85;overflow-wrap:anywhere}
+#fontBrowser .font-card-sample{font-size:23px;line-height:1.15;overflow-wrap:anywhere;word-break:break-word}
+#fontBrowser .font-browser-foot{padding:8px 12px;border-top:1px solid var(--pane-border);display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+#fontBrowser .font-browser-foot small{flex:1;color:var(--muted)}
+#fontBrowser .font-browser-foot button{padding:5px 9px}
+#shortcutOverlay .shortcuts-card{width:min(730px,96vw);max-height:88dvh;display:flex;flex-direction:column;overflow:hidden}
+#shortcutsList{max-height:none;min-height:0;overflow:auto;flex:1}
+#shortcutOverlay .shortcut-controls{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:8px 0}
+#shortcutOverlay .shortcut-controls button{padding:6px 9px}
+#shortcutStatus{min-height:17px;font-size:11px;color:#c4dbea;white-space:pre-wrap}
+#shortcutStatus.is-error{color:#ffb7b7}
+.shortcut-row .shortcut-label{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.shortcut-row .shortcut-label small{opacity:.65;font-size:10px}
+.shortcut-row .shortcut-key{width:170px;text-align:center;padding:7px 5px;min-height:32px;border-radius:6px}
+.shortcut-row .shortcut-key.is-duplicate,.shortcut-row .shortcut-key.is-invalid{background:#772932;color:#fff;border:2px solid #ff7777}
+.shortcut-row .shortcut-key.is-recording{outline:2px solid var(--accent)}
+.shortcut-row .shortcut-clear{min-width:27px;padding:5px}
+@media(max-width:520px){#fontBrowser .font-browser-controls{grid-template-columns:1fr}#fontBrowser .font-browser-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+ #shortcutOverlay .shortcut-row{gap:5px}.shortcut-row .shortcut-key{width:110px}}
 </style>
 
  <script type="importmap">
@@ -660,7 +698,7 @@
 
   <div id="stage">
   <div id="hud">
-    <div class="stage-badge"><strong>Vehicle Lab</strong><small id="appVersionBadge">v0.3.16</small></div>
+    <div class="stage-badge"><strong>Vehicle Lab</strong><small id="appVersionBadge">v0.3.17</small></div>
     <p id="vehicleName">City Car</p><p id="vehicleInfo">Procedural vehicle</p>
     <div id="speedHud"><strong id="speed">0</strong><div>km/h</div></div>
     <div id="cameraModeReadout" style="padding:3px 6px;margin-top:4px;width:max-content;max-width:260px;border-radius:5px;background:#132d3cc0;color:#e9f5fc;font:10px ui-monospace,monospace">Camera · Orbit follow</div>
@@ -673,7 +711,7 @@
     <div class="window-head"><strong>01 / Actions</strong><button class="mini-btn minimize" title="Minimize">−</button></div>
     <div class="window-body"><div class="actions">
       <button id="buildBtn" class="active">BUILD</button><button id="driveBtn">DRIVE</button><button id="undoBtn" title="Undo (Cmd/Ctrl+Z)">Undo</button><button id="redoBtn" title="Redo (Cmd/Ctrl+Shift+Z)">Redo</button>
-      <button id="cameraBtn" title="Cycle driving cameras (C)">Camera</button><button id="uprightBtn" title="Recover flipped car (U)">Upright</button><button id="resetOriginBtn" title="Return the vehicle to the test world's origin">Reset 0,0,0</button><button id="rotateBtn">Rotation</button><button id="autopilotBtn" title="Toggle autopilot (P)" aria-pressed="false">○ Auto</button><button id="lightsBtn">Lights on</button>
+      <button id="parkingBrakeBtn" type="button" aria-pressed="false" title="Toggle parking brake (Shift+B)">Handbrake off</button><button id="cameraBtn" title="Cycle driving cameras (C)">Camera</button><button id="uprightBtn" title="Recover flipped car (U)">Upright</button><button id="resetOriginBtn" title="Return the vehicle to the test world's origin">Reset 0,0,0</button><button id="rotateBtn">Rotation</button><button id="autopilotBtn" title="Toggle autopilot (P)" aria-pressed="false">○ Auto</button><button id="lightsBtn">Lights on</button>
       <button id="paletteBtn" title="Material palette">Materials</button><button id="saveBtn">Save</button><button id="serverSaveBtn">Save cloud</button>
       <button id="exportBtn">Export JSON</button><button id="importBtn">Import JSON</button><button id="shortcutsBtn" title="Keyboard shortcuts (⌘ /)">Shortcuts</button>
     </div></div>
@@ -976,6 +1014,7 @@
     <label>Theme preset<select id="themeChoice" aria-label="Theme preset"></select></label>
     <div class="theme-generator"><button type="button" id="generateTheme" title="Generate an accessible theme" aria-label="Generate accessible theme">✦ Generate accessible variant</button><small id="themeContrast" role="status">WCAG AA</small></div>
     <label>Font family<select id="fontChoice" aria-label="Font family"></select></label>
+    <button type="button" id="openFontBrowser">Browse typefaces · visual previews</button>
     <button type="button" id="localFonts">Find installed fonts</button>
     <small id="fontInfo">Installed fonts require Chrome/Edge permission and HTTPS.</small>
     <div id="fontSizeChoices" class="pill-row"></div><p>Action button style</p><div id="actionModeChoices" class="pill-row"></div>
@@ -1071,8 +1110,17 @@
  <div class="drawer-actions"><button id="saveConfirm" type="submit">Save with five views</button><button id="saveCancel" type="button">Cancel</button></div></form>
  <small>Five screenshots: hero/front/back/side/top. Saves are private until you publish a cloud vehicle.</small>
 </div></div>
+<div id="fontBrowser" hidden role="region" aria-label="Typeface preview browser">
+ <div class="window-head" id="fontBrowserHead"><strong>Typeface gallery · live previews</strong><button type="button" id="closeFontBrowser" class="mini-btn" aria-label="Close typeface gallery">×</button></div>
+ <div class="font-browser-controls"><label>Sample text<input id="fontPreviewText" type="text" maxlength="150" placeholder="The quick brown fox jumps…" value="The quick brown fox 0123456789"></label>
+ <label>Find typeface<input id="fontBrowserSearch" type="search" placeholder="Search by font family"></label></div>
+ <div id="fontBrowserGrid" class="font-browser-grid" role="group" aria-label="Available typeface previews"></div>
+ <div class="font-browser-foot"><small id="fontBrowserCount">Fonts installed in your browser are shown as previews; discover other local families using Find installed fonts.</small><button id="fontBrowserMore" type="button" hidden>Show more</button><button id="fontBrowserLocal" type="button">Find installed fonts</button></div>
+</div>
 <div id="shortcutOverlay" class="utility-overlay" hidden><div class="modal-card shortcuts-card">
  <div class="dialog-title"><h2>Keyboard shortcuts</h2><button id="closeShortcuts">×</button></div>
+ <div class="shortcut-controls"><button id="shortcutEdit" type="button" aria-pressed="false">Edit shortcuts</button><button id="shortcutValidate" type="button">Validate & apply</button><button id="shortcutDefaults" type="button">Reset defaults</button><button id="shortcutExport" type="button">Export JSON</button><button id="shortcutImport" type="button">Import JSON</button></div>
+ <div id="shortcutStatus" role="status">Click Edit shortcuts to record new keys. Validation restores missing bindings and marks duplicates in red.</div>
  <input id="shortcutSearch" type="search" placeholder="Search a shortcut or action" aria-label="Search shortcuts">
  <div id="shortcutsList"></div>
 </div></div>
@@ -1090,6 +1138,7 @@
 <input id="profileBackupFile" type="file" accept=".json,application/json" hidden>
 <input id="themeFile" type="file" accept=".json,application/json" hidden>
 <input id="workspaceFile" type="file" accept=".json,application/json" hidden>
+<input id="shortcutFile" type="file" accept=".json,application/json" hidden>
 
 <div id="addObjectOverlay" hidden role="dialog" aria-modal="true" aria-label="Add object">
  <div class="add-palette"><header><strong>Add object · Shift+A</strong><button type="button" id="closeAddObject" aria-label="Close">×</button></header>
@@ -1303,7 +1352,7 @@ let ghostObject=null,ghostSamples=[],ghostElapsed=0,ghostTick=0;
     if(result&&typeof result.catch==='function')result.catch(()=>{});}}
   catch{/* analytics must never affect the app */}
  }
- const VERSION='0.3.16';
+ const VERSION='0.3.17';
  document.getElementById('appVersionBadge').textContent='v'+VERSION;
  let imageReference=null,busyAI=false;
 
@@ -1341,6 +1390,22 @@ let ghostObject=null,ghostSamples=[],ghostElapsed=0,ghostTick=0;
 let xrActive=false,xrSession=null,xrSeated=false,xrOutside=false;
 const xrRig=new THREE.Group(),xrButtons=new Map();
 const xrDriving={throttle:0,steer:0,brake:false,handbrake:false};
+let parkingBrake=false;
+function updateParkingBrake(){
+ const button=$('parkingBrakeBtn');button.setAttribute('aria-pressed',String(parkingBrake));
+ button.classList.toggle('active',parkingBrake);
+ button.dataset.actionLabel=parkingBrake?'Handbrake ON':'Handbrake off';
+ button.textContent=button.dataset.actionLabel;
+ button.title='Toggle physical rear-wheel parking brake (Shift+B)';
+ button.setAttribute('aria-label',button.dataset.actionLabel);
+}
+function toggleParkingBrake(){
+ if(mode!=='drive'){note('Handbrake is available in DRIVE mode.');return;}
+ parkingBrake=!parkingBrake;
+ if(parkingBrake){cfg.autopilot=false;autopilotState.anchor=null;updateAutopilotButton();}
+ updateParkingBrake();note(parkingBrake?'Parking brake engaged · rear wheels braked, gravity remains active.':'Parking brake released.');
+}
+$('parkingBrakeBtn').onclick=toggleParkingBrake;
 let xrResetHold=0,xrRightLook=0;
 function xrEdge(name,pressed){
  const was=xrButtons.get(name)||false;xrButtons.set(name,!!pressed);
@@ -1953,35 +2018,78 @@ const terrainAffectingKinds=new Set(['hill','dune']);
 function heightfieldSignature(){return JSON.stringify([cfg.worldEdgeMode,cfg.worldCells,cfg.terrainSize,cfg.terrainProfile,
  (cfg.courseObjects||[]).filter(o=>terrainAffectingKinds.has(o.kind)).map(o=>[o.id,o.x,o.z,o.h,o.w,o.d,o.shape,o.points])]);}
 let previousHeightfieldSignature=null;
+// Map undo is independent of vehicle history. It is intentionally not persisted
+// across reloads: a map snapshot contains only editable world data, never physics
+// bodies, credentials, GLB blobs, or browser identity.
+const MAP_HISTORY_KEYS=['courseObjects','courseName','terrainProfile','groundSurface','worldEdgeMode','worldBounce','worldCells','terrainSize'];
+const mapHistory=[],MAP_HISTORY_LIMIT=64;
+let mapHistoryIndex=-1,replayingMapHistory=false,activeUndoDomain='vehicle';
+function mapState(){return Object.fromEntries(MAP_HISTORY_KEYS.map(key=>[key,structuredClone(cfg[key])]));}
+function rememberMapEdit(label='Map edit'){
+ if(replayingMapHistory)return;
+ const state=mapState(),signature=JSON.stringify(state);
+ if(mapHistory[mapHistoryIndex]?.signature===signature){activeUndoDomain='map';return;}
+ mapHistory.splice(mapHistoryIndex+1);
+ mapHistory.push({label,state,signature});
+ if(mapHistory.length>MAP_HISTORY_LIMIT)mapHistory.shift();
+ mapHistoryIndex=mapHistory.length-1;activeUndoDomain='map';
+}
+async function stepMapHistory(direction){
+ if(replayingMapHistory)return;
+ const next=mapHistoryIndex+direction;
+ if(next<0||next>=mapHistory.length){note(direction<0?'No earlier map edit.':'Nothing to redo in map.');return;}
+ replayingMapHistory=true;mapHistoryIndex=next;activeUndoDomain='map';
+ try{
+  const entry=mapHistory[mapHistoryIndex];
+  for(const key of MAP_HISTORY_KEYS)cfg[key]=structuredClone(entry.state[key]);
+  normalizeCourseObjects();
+  if(selectedCourseId&&!cfg.courseObjects.some(o=>o.id===selectedCourseId))selectCourseObject(null);
+  $('mapName').value=cfg.courseName||'';showWorldCells();
+  await refreshEnvironmentForMap();
+  note((direction<0?'Map undo: ':'Map redo: ')+entry.label);
+ }finally{replayingMapHistory=false;}
+}
+function undoContext(){if(activeUndoDomain==='map')void stepMapHistory(-1);else undo();}
+function redoContext(){if(activeUndoDomain==='map')void stepMapHistory(1);else redo();}
+// A changed terrain mesh requires replacing the *adapter*, not switching BUILD/DRIVE.
+// Keep the vehicle pose and velocity and leave drive-specific windows untouched.
 async function refreshEnvironmentForMap(){
  if(mapUpdating){mapRefreshQueued=true;return;}
  mapUpdating=true;
- const driving=mode==='drive';
+ const driving=mode==='drive',prior=physics;
  try{
   const signature=heightfieldSignature();
-  const fastColliderSync=driving&&simulator.engine==='cannon'&&signature===previousHeightfieldSignature;
-  const keepPanels=['mapWindow','objectWindow'].filter(id=>$(id).style.display!=='none');
-  if(driving&&!fastColliderSync){resumeDrivePose=physics?.pose?.()||null;leaveDrive();}
-  const requiresTerrain=signature!==previousHeightfieldSignature;
-  if(requiresTerrain){buildTerrain();buildVegetation();clearTracks();previousHeightfieldSignature=signature;}
+  const terrainChanged=signature!==previousHeightfieldSignature;
+  const restart=driving&&(simulator.engine!=='cannon'||terrainChanged);
+  if(restart){
+   resumeDrivePose=prior?.pose?.()||resumeDrivePose;
+   // Course records are already synchronized every animation frame. Re-syncing
+   // the *old* solver here could overwrite a freshly edited dynamic object.
+   prior?.destroy?.();physics=null;
+  }
+  if(terrainChanged){buildTerrain();buildVegetation();clearTracks();previousHeightfieldSignature=signature;}
   buildCourse();
-  // Static map objects are updated without regenerating terrain, procedural textures or vegetation.
-  // Preserve passenger rigs and their active clips during ordinary map/object edits.
-  // Reconstructing the vehicle here used to make the driver jump back to idle.
   if(!car)buildVehicle();
-  if(driving&&!fastColliderSync&&resumeDrivePose){
-   // Engine initialization uses the saved world pose, including heading and velocity.
-   await enterDrive();
-   for(const id of keepPanels)setWindowVisible(id,true,true);
+  if(restart&&mode==='drive'){
+   // Avoid releasing the handbrake or switching keyboard/workspace state.
+   const adapter=simulator.engine==='rapier'?await makeRapierAdapter():
+     simulator.engine==='ammo'?await makeAmmoAdapter():makeCannonAdapter();
+   if(mode!=='drive'){adapter.destroy();return;}
+   physics=adapter;resumeDrivePose=null;stepAccumulator=0;previousYaw=null;
+   resetPhysicsInterpolation();
   }
   if(selectedCourseId&&cfg.courseObjects.some(o=>o.id===selectedCourseId))
-   selectCourseObject(selectedCourseId,keepPanels.includes('objectWindow'));
-  scheduleHistory('Test map edit');
+   selectCourseObject(selectedCourseId,$('objectWindow').style.display!=='none');
   drawMinimap();
-  $('mapStatus').textContent=(driving?'DRIVE restored at previous position · ':'')+
-    (cfg.courseObjects||[]).length+' test-map objects.';
- }catch(error){note('Map rebuild: '+error.message,true)}
- finally{mapUpdating=false;if(mapRefreshQueued){mapRefreshQueued=false;queueMicrotask(refreshEnvironmentForMap);}}
+  $('mapStatus').textContent=(driving?'DRIVE · ':'')+(cfg.courseObjects||[]).length+' test-map objects.';
+ }catch(error){
+  note('Map rebuild: '+error.message,true);
+  // On an unrecoverable engine error, do not pretend physics is still running.
+  if(driving&&!physics)leaveDrive();
+ }finally{
+  mapUpdating=false;
+  if(mapRefreshQueued){mapRefreshQueued=false;queueMicrotask(refreshEnvironmentForMap);}
+ }
 }
 
 const grid=new THREE.GridHelper(180,90,0x61757f,0x314a57);
@@ -3281,9 +3389,9 @@ function makeCannonAdapter(){
    const power=input.throttle*input.power*surfaceGrip(chassis.position.x,chassis.position.z);
    for(let i=0;i<vehicle.wheelInfos.length;i++){
     vehicle.wheelInfos[i].frictionSlip=5.4*surfaceGrip(chassis.position.x,chassis.position.z);
-    vehicle.applyEngineForce(drivenWheel(i)?-power:0,i);
+    vehicle.applyEngineForce(input.handbrake?0:(drivenWheel(i)?-power:0),i);
     vehicle.setSteeringValue(wheelAxle(i)===0?-input.steer*.47:0,i);
-    vehicle.setBrake(input.brake?400:0,i);
+    vehicle.setBrake(input.handbrake&&wheelAxle(i)===cfg.axles-1?1800:(input.brake?400:0),i);
    }
    if(cfg.terrainProfile==='beach'){
     const submerged=clamp((cfg.waterLevel+cfg.H*.4-chassis.position.y)/(cfg.H*.7),0,1);
@@ -3400,9 +3508,9 @@ async function makeRapierAdapter(){
      const here=chassis.translation();
      const grip=surfaceGrip(here.x,here.z);
      vehicle.setWheelFrictionSlip(i,1000*grip);
-     vehicle.setWheelEngineForce(i,drivenWheel(i)?-input.throttle*input.power*.55*grip:0);
+     vehicle.setWheelEngineForce(i,input.handbrake?0:(drivenWheel(i)?-input.throttle*input.power*.55*grip:0));
      vehicle.setWheelSteering(i,wheelAxle(i)===0?-input.steer*.47:0);
-     vehicle.setWheelBrake(i,input.brake?400:0);
+     vehicle.setWheelBrake(i,input.handbrake&&wheelAxle(i)===cfg.axles-1?1800:(input.brake?400:0));
     }
     if(cfg.terrainProfile==='beach'){
       const here=chassis.translation(),vel=chassis.linvel();
@@ -3560,9 +3668,9 @@ async function makeAmmoAdapter(){
      const grip=surfaceGrip(origin().x(),origin().z());
      rayVehicle.getWheelInfo(i).set_m_frictionSlip(5.4*grip);
      // Bullet's raycast forward impulse sign differs from Cannon's negative-force convention.
-     rayVehicle.applyEngineForce(drivenWheel(i)?input.throttle*input.power*.6*grip:0,i);
+     rayVehicle.applyEngineForce(input.handbrake?0:(drivenWheel(i)?input.throttle*input.power*.6*grip:0),i);
      rayVehicle.setSteeringValue(wheelAxle(i)===0?-input.steer*.47:0,i);
-     rayVehicle.setBrake(input.brake?Math.min(80,Math.max(12,Math.abs(input.power)*.012)):0,i);
+     rayVehicle.setBrake(input.handbrake&&wheelAxle(i)===cfg.axles-1?450:(input.brake?Math.min(80,Math.max(12,Math.abs(input.power)*.012)):0),i);
     }
     if(cfg.terrainProfile==='beach'){
       const o=origin(),vel=velocity(),submerged=clamp((cfg.waterLevel+cfg.H*.4-o.y())/(cfg.H*.7),0,1);
@@ -3616,7 +3724,7 @@ async function enterDrive(){
     makeCannonAdapter();
   // A stale asynchronous Rapier load must not reactivate a dismissed drive.
   if(generation!==driveGeneration){adapter.destroy();return}
-  physics=adapter;stepAccumulator=0;previousYaw=null;mode='drive';
+  physics=adapter;stepAccumulator=0;previousYaw=null;mode='drive';parkingBrake=false;updateParkingBrake();
   resetPhysicsInterpolation();clearFollowLift();followRig.initialized=false;followRig.mode=null;followRig.yaw=null;
   if(resumeDrivePose){car.position.set(resumeDrivePose.position.x,resumeDrivePose.position.y,resumeDrivePose.position.z);
    car.quaternion.set(resumeDrivePose.rotation.x,resumeDrivePose.rotation.y,resumeDrivePose.rotation.z,resumeDrivePose.rotation.w);
@@ -3646,14 +3754,14 @@ function leaveDrive(){
  ++driveGeneration;
  if(mode!=='drive')return;
  if(telemetry.active)finishBenchmark('stopped');
- const finishedVehiclePose=physics?.pose?.()||null;
+ const finishedVehiclePose=physics?.pose?.()||resumeDrivePose||null;
  if(physics?.syncCourse){physics.syncCourse();for(const spec of courseSolidSpecs){
   if(spec.physics!=='dynamic'||!spec.id)continue;
   const m=courseMeshes.get(spec.id),o=cfg.courseObjects.find(o=>o.id===spec.id);
   if(m&&o){o.x=m.position.x;o.z=m.position.z;o.y=m.position.y;o.angle=m.rotation.y*180/Math.PI;}
  }}
  try{physics?.destroy()}catch(e){console.warn('Physics cleanup',e)}
- trackUsage('drive_ended');vehicleAudio.stop();physics=null;mode='build';stepAccumulator=0;previousYaw=null;braking=false;
+ trackUsage('drive_ended');vehicleAudio.stop();physics=null;mode='build';parkingBrake=false;updateParkingBrake();stepAccumulator=0;previousYaw=null;braking=false;
  physicsVisual.previous=physicsVisual.current=null;clearFollowLift();orbit.enabled=!xrActive;
  $('buildBtn').classList.add('active');
  $('driveBtn').classList.remove('active');
@@ -3677,13 +3785,18 @@ const held=new Set();
 const joystick={x:0,y:0,active:false};
 let touchBrake=false;
 window.addEventListener('keydown',e=>{
- if(['INPUT','TEXTAREA','SELECT'].includes(document.activeElement?.tagName))return;
- if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(e.code)){
-  if(cfg.autopilot){cfg.autopilot=false;autopilotState.anchor=null;updateAutopilotButton()}
-  held.add(e.code);e.preventDefault();
+ if(mode!=='drive'||isEditingText(e.target)||!keyboardContextReady())return;
+ for(const id of ['accelerate','reverse','steerLeft','steerRight','brake']){
+  if(shortcutMatches(id,e)){
+   if(cfg.autopilot){cfg.autopilot=false;autopilotState.anchor=null;updateAutopilotButton()}
+   held.add(id);e.preventDefault();break;
+  }
  }
 });
-window.addEventListener('keyup',e=>held.delete(e.code));
+window.addEventListener('keyup',e=>{
+ // Release by physical key code even when a modifier changed while it was held.
+ for(const id of [...held])if(shortcutBindings[id]?.split('+').at(-1)===e.code)held.delete(id);
+});
 window.addEventListener('blur',()=>{
  held.clear();joystick.x=joystick.y=0;touchBrake=false;
 });
@@ -3805,17 +3918,17 @@ function inputForStep(){
   const t=active.simulated;
   return {throttle:t<active.duration*.75?.85:0,
    steer:t>active.duration*.25&&t<active.duration*.65?.25:0,
-   brake:t>=active.duration*.75};
+   brake:t>=active.duration*.75,handbrake:false};
  }
  if(xrActive&&xrSeated&&mode==='drive')return {
   throttle:xrDriving.throttle,steer:xrDriving.steer,
-  brake:xrDriving.brake||xrDriving.handbrake};
+  brake:xrDriving.brake,handbrake:parkingBrake||xrDriving.handbrake};
  if(cfg.autopilot&&mode==='drive')return autopilotInput();
- return {throttle:clamp((held.has('ArrowUp')?1:0)-
-     (held.has('ArrowDown')?1:0)-joystick.y,-1,1),
-  steer:clamp((held.has('ArrowRight')?1:0)-
-     (held.has('ArrowLeft')?1:0)+joystick.x,-1,1),
-  brake:touchBrake||held.has('Space')};
+ return {throttle:clamp((held.has('accelerate')?1:0)-
+     (held.has('reverse')?1:0)-joystick.y,-1,1),
+  steer:clamp((held.has('steerRight')?1:0)-
+     (held.has('steerLeft')?1:0)+joystick.x,-1,1),
+  brake:touchBrake||held.has('brake'),handbrake:parkingBrake};
 }
 function stepVehicle(dt){
  if(!physics)return;
@@ -3823,6 +3936,8 @@ function stepVehicle(dt){
  let steps=0;
  while(stepAccumulator>=FIXED_STEP&&steps<5){
   const input=inputForStep();
+  input.handbrake=!!(parkingBrake||input.handbrake);
+  if(input.handbrake)input.throttle=0;
   const forwardSpeed=physics.getForwardSpeed();
   braking=input.brake||
     (input.throttle>.2&&forwardSpeed<-.7)||
@@ -4829,7 +4944,7 @@ function commitHistory(label='Edit'){
  editCursor=editHistory.length-1;historyPersist();refreshHistoryUI();
 }
 function scheduleHistory(label='Edit'){
- if(!historyReady||replayingHistory)return;
+ if(!historyReady||replayingHistory)return;activeUndoDomain='vehicle';
  clearTimeout(historyTimer);historyTimer=setTimeout(()=>commitHistory(label),300);
 }
 function restoreEditState(entry){
@@ -4862,7 +4977,7 @@ function redo(){
  editCursor++;restoreEditState(editHistory[editCursor]);historyPersist();note('Redo: '+editHistory[editCursor].label);
 }
 function refreshHistoryUI(){
- $('undoBtn').disabled=editCursor<=0;$('redoBtn').disabled=editCursor>=editHistory.length-1;
+ $('undoBtn').disabled=false;$('redoBtn').disabled=false;
  const root=$('historyList');if(!root)return;root.replaceChildren();
  for(let i=editHistory.length-1;i>=Math.max(0,editHistory.length-35);i--){
   const item=editHistory[i],btn=document.createElement('button');
@@ -5067,8 +5182,8 @@ $('audioPresetImport').onchange=async event=>{try{
   setupGUI();scheduleHistory('Imported sound preset');note('Sound preset imported.');
  }catch(error){note(error.message,true)}finally{event.target.value=''}};
 const environment=gui.addFolder('09 · Terrain & sky');
- environment.add(cfg,'terrainProfile',['flat','bumps','hills','extreme','moon','beach']).name('Terrain').onChange(()=>{if(mode==='drive')leaveDrive();if(cfg.terrainProfile==='beach')cfg.groundSurface='sand';if(cfg.terrainProfile==='moon')cfg.groundSurface='moon';buildTerrain();buildCourse();buildVegetation();clearTracks();buildVehicle();scheduleHistory('Terrain')});
- environment.add(cfg,'terrainSize',90,300,30).name('Terrain width').onFinishChange(()=>{if(mode==='drive')leaveDrive();buildTerrain();buildCourse();buildVegetation();clearTracks();scheduleHistory('Terrain size')});
+ environment.add(cfg,'terrainProfile',['flat','bumps','hills','extreme','moon','beach']).name('Terrain').onChange(()=>{if(cfg.terrainProfile==='beach')cfg.groundSurface='sand';if(cfg.terrainProfile==='moon')cfg.groundSurface='moon';rememberMapEdit('Terrain profile');void refreshEnvironmentForMap()});
+ environment.add(cfg,'terrainSize',90,300,30).name('Terrain width').onFinishChange(()=>{rememberMapEdit('Terrain size');void refreshEnvironmentForMap()});
  const edges=environment.addFolder('World boundaries / connected cells');
  edges.add(cfg,'worldEdgeMode',{
   'Open edge (legacy cliff)':'cliff',
@@ -5076,19 +5191,16 @@ const environment=gui.addFolder('09 · Terrain & sky');
   'Steep uphill boundary':'ramp',
   'Reappear on opposite edge':'wrap',
   'Editable 3 × 3 cells':'cells'
- }).name('World border').onChange(async()=>{
-  if(mode==='drive'){resumeDrivePose=physics?.pose?.()||null;leaveDrive();}
+ }).name('World border').onChange(()=>{
   if(cfg.worldEdgeMode==='cells')cfg.terrainSize=300;
-  buildTerrain();buildCourse();buildVegetation();clearTracks();
-  await refreshEnvironmentForMap();
-  if(resumeDrivePose)await enterDrive();
-  trackUsage('map_boundary_changed');scheduleHistory('World boundary mode');
+  rememberMapEdit('World boundary mode');void refreshEnvironmentForMap();showWorldCells();
+  trackUsage('map_boundary_changed');
  });
- edges.add(cfg,'worldBounce',0,.95,.05).name('Barrier bounce').onFinishChange(()=>{buildCourse();scheduleHistory('Barrier bounce')});
+ edges.add(cfg,'worldBounce',0,.95,.05).name('Barrier bounce').onFinishChange(()=>{rememberMapEdit('Barrier bounce');void refreshEnvironmentForMap()});
  edges.add({edit:()=>setWindowVisible('mapWindow',true)},'edit').name('Edit / save connected cells');
  edges.close();
  environment.add(cfg,'skyStyle',['solid','gradient','clouds','night']).name('Sky').onChange(()=>{updateEnvironment();scheduleHistory('Sky')});
- environment.add(cfg,'groundSurface',['asphalt','grass','dirt','gravel','sand','snow','moon']).name('Ground material').onChange(()=>{buildTerrain();buildCourse();buildVegetation();clearTracks();scheduleHistory('Terrain texture')});
+ environment.add(cfg,'groundSurface',['asphalt','grass','dirt','gravel','sand','snow','moon']).name('Ground material').onChange(()=>{rememberMapEdit('Ground material');previousHeightfieldSignature=null;void refreshEnvironmentForMap()});
  environment.add(cfg,'groundRoughness',.08,1,.01).name('Ground PBR roughness').onChange(value=>{if(terrain?.material){terrain.material.roughness=value;terrain.material.needsUpdate=true}}).onFinishChange(()=>scheduleHistory('Ground roughness'));
  environment.add(cfg,'puddles').name('Puddles').onChange(()=>{updateEnvironment();scheduleHistory('Puddles')});
  environment.add(cfg,'waterLevel',-.9,1.2,.05).name('Sea level (m)').onChange(()=>{updateEnvironment();scheduleHistory('Sea level')});
@@ -5309,7 +5421,7 @@ function updateLightsButton(){
 $('search').oninput=renderPresets;
 $('buildBtn').onclick=leaveDrive;
 $('driveBtn').onclick=enterDrive;
-$('undoBtn').onclick=undo;$('redoBtn').onclick=redo;
+$('undoBtn').onclick=undoContext;$('redoBtn').onclick=redoContext;
 $('shortcutsBtn').onclick=()=>toggleShortcuts(true);
 $('importBtn').onclick=importJSON;
 $('rotateBtn').onclick=()=>{
@@ -5720,11 +5832,9 @@ mapDockToggle.type='button';mapDockToggle.textContent='⌄';mapDockToggle.title=
 mapDock.prepend(mapDockToggle);mapDockToggle.onclick=()=>{mapDock.classList.toggle('is-collapsed');mapDockToggle.textContent=mapDock.classList.contains('is-collapsed')?'⌃':'⌄'};
 $('mapEdgeMode').onchange=async()=>{
  const requested=$('mapEdgeMode').value;if(!['cliff','barrier','ramp','wrap','cells'].includes(requested))return;
- if(mode==='drive'){resumeDrivePose=physics?.pose?.()||null;leaveDrive()}
  cfg.worldEdgeMode=requested;if(requested==='cells')cfg.terrainSize=300;
- await refreshEnvironmentForMap();showWorldCells();
- if(resumeDrivePose)await enterDrive();
- trackUsage('map_boundary_changed');scheduleHistory('World boundary mode');
+ rememberMapEdit('World boundary mode');await refreshEnvironmentForMap();showWorldCells();
+ trackUsage('map_boundary_changed');
  note('World edge: '+$('mapEdgeMode').selectedOptions[0].textContent);
 };
 $('mapViewCycle').onclick=()=>{$('mapView').value=$('mapView').value==='diagram'?'terrain':'diagram';updateMinimapBackground();drawMinimap()};
@@ -5954,7 +6064,7 @@ function mapObjectForDrag(a,b,kind){
 function addCourseObject(o,label='Added object'){
  if(cfg.courseObjects.length>=220){note('Map has reached 220 objects.',true);return}
  if(!o.id)o.id=crypto.randomUUID();cfg.courseObjects.push(o);void refreshEnvironmentForMap();
- scheduleHistory(label);drawMinimap();$('mapStatus').textContent=label+': '+o.kind+' ('+o.x.toFixed(1)+', '+o.z.toFixed(1)+')';
+ rememberMapEdit(label);drawMinimap();$('mapStatus').textContent=label+': '+o.kind+' ('+o.x.toFixed(1)+', '+o.z.toFixed(1)+')';
 }
 function findMapObject(pt){
  for(const o of [...cfg.courseObjects].reverse()){
@@ -6021,14 +6131,14 @@ const finishMapPointer=e=>{
  if(drag.mode==='draw'){
   const o=drag.points?.length>=3?objectFromFreehand(drag.points,drag.kind):mapObjectForDrag(drag.start,drag.end,drag.kind);
   addCourseObject(o,'Draw terrain/obstacle');
- }else if(drag.mode==='move'){void refreshEnvironmentForMap();scheduleHistory('Move test-map object')}
+ }else if(drag.mode==='move'){rememberMapEdit('Move test-map object');void refreshEnvironmentForMap()}
  drawMinimap();
 };
 for(const type of ['pointerup','pointercancel','lostpointercapture'])courseCanvas.addEventListener(type,finishMapPointer);
 $('mapHeight').oninput=e=>$('mapHeightValue').textContent=Number(e.target.value).toFixed(1)+'m';
-$('mapUndo').onclick=()=>undo();
-$('mapRedo').onclick=()=>redo();
-$('mapClear').onclick=()=>{cfg.courseObjects=[];selectCourseObject(null);void refreshEnvironmentForMap()};
+$('mapUndo').onclick=()=>void stepMapHistory(-1);
+$('mapRedo').onclick=()=>void stepMapHistory(1);
+$('mapClear').onclick=()=>{cfg.courseObjects=[];selectCourseObject(null);rememberMapEdit('Clear map objects');void refreshEnvironmentForMap()};
 function syncCannonObstacle(o){
  if(o.kind==='bridge'){void refreshEnvironmentForMap();return;}
  const mesh=courseMeshes.get(o.id);if(!mesh)return;
@@ -6057,7 +6167,7 @@ function duplicateSelectedCourse(){const o=cfg.courseObjects.find(o=>o.id===sele
  if(other.points)other.points=other.points.map(p=>({x:p.x+2,z:p.z+2}));
  addCourseObject(other,'Duplicated course object');selectCourseObject(other.id,true)}
 function deleteSelectedCourse(){const ix=cfg.courseObjects.findIndex(o=>o.id===selectedCourseId);
- if(ix<0)return;cfg.courseObjects.splice(ix,1);selectCourseObject(null);void refreshEnvironmentForMap();setWindowVisible('objectWindow',false)}
+ if(ix<0)return;cfg.courseObjects.splice(ix,1);selectCourseObject(null);rememberMapEdit('Delete map object');void refreshEnvironmentForMap();setWindowVisible('objectWindow',false)}
 const OBJECT_SLIDER_BOUNDS={objectX:[-200,200,.05],objectY:[-40,100,.05],objectZ:[-200,200,.05],
  objectW:[.1,80,.05],objectH:[.1,40,.05],objectD:[.1,80,.05],
  objectAngle:[-180,180,1],objectMass:[.1,10000,1],objectFriction:[0,2,.01],objectBounce:[0,1,.01]};
@@ -6094,58 +6204,32 @@ function focusSelectedCourse(direction){
  orbit.target.copy(t);camera.position.copy(t).add(new THREE.Vector3(...d).normalize().multiplyScalar(r));
  camera.lookAt(t);orbit.update();
 }
-let coursePointerTransform=null,lastPointerX=innerWidth*.5,lastPointerY=innerHeight*.5;
-window.addEventListener('pointermove',e=>{lastPointerX=e.clientX;lastPointerY=e.clientY},false);
-function endCoursePointerTransform(cancel=false){
- if(!coursePointerTransform)return;
- const state=coursePointerTransform;coursePointerTransform=null;
- if(cancel){const o=cfg.courseObjects.find(x=>x.id===state.id);
-  if(o)Object.assign(o,state.original);}
- void refreshEnvironmentForMap();scheduleHistory(cancel?'Cancel pointer transform':'Pointer transform');
+// G/R/E change the transform gizmo *mode*, never initiate a free-pointer
+// move/rotate. The user must drag a visible axis/plane handle on the selection.
+function activateCourseGizmo(kind){
+ const mesh=courseMeshes.get(selectedCourseId);if(!mesh||!objectGizmo)return;
+ if(objectGizmo.object!==mesh)objectGizmo.attach(mesh);
+ objectGizmo.setMode(kind);renderCourseInspector();
+ note('Gizmo '+kind+' · drag its handles to edit the selected object.');
 }
-window.addEventListener('pointermove',e=>{
- const t=coursePointerTransform;if(!t)return;
- const o=cfg.courseObjects.find(v=>v.id===t.id);if(!o)return;
- const dx=e.clientX-t.startX,dy=e.clientY-t.startY;
- if(t.kind==='translate'){
-  const metres=Math.max(.015,(camera.position.distanceTo(orbit.target))*.002);
-  o.x=t.original.x+dx*metres;
-  o.z=t.original.z+dy*metres;
- }else if(t.kind==='rotate')o.angle=(t.original.angle||0)+dx*.45;
- else{
-  const scale=Math.exp((dx-dy)*.005);
-  o.w=clamp(t.original.w*scale,.1,80);
-  o.d=clamp(t.original.d*scale,.1,80);
-  o.h=clamp(t.original.h*scale,.1,40);
- }
- const mesh=courseMeshes.get(o.id);
- if(mesh){mesh.position.x=o.x;mesh.position.z=o.z;mesh.rotation.y=(o.angle||0)*Math.PI/180;
-  if(t.kind==='scale')mesh.scale.set(o.w/t.original.w,o.h/t.original.h,o.d/t.original.d);}
- requestMinimapPaint();
-},true);
-window.addEventListener('pointerdown',e=>{
- if(!coursePointerTransform)return;
- if(e.button===0||e.button===2){e.preventDefault();e.stopImmediatePropagation();endCoursePointerTransform(e.button===2)}
-},true);
 window.addEventListener('keydown',e=>{
- if(!selectedCourseId||['INPUT','TEXTAREA','SELECT'].includes(document.activeElement?.tagName)||e.metaKey||e.ctrlKey||e.altKey)return;
- if(coursePointerTransform){if(e.code==='Escape'){e.preventDefault();endCoursePointerTransform(true)}return;}
- if(e.shiftKey&&e.code==='KeyD'){
-  e.preventDefault();e.stopImmediatePropagation();duplicateSelectedCourse();return;
+ if(!selectedCourseId||isEditingText(e.target)||!keyboardContextReady()||e.metaKey||e.ctrlKey||e.altKey)return;
+ if(shortcutMatches('duplicateObject',e)){e.preventDefault();e.stopImmediatePropagation();duplicateSelectedCourse();return;}
+ for(const [id,action] of [['moveObject','translate'],['rotateObject','rotate'],['scaleObject','scale']]){
+  if(shortcutMatches(id,e)){
+   e.preventDefault();e.stopImmediatePropagation();activateCourseGizmo(action);return;
+  }
  }
- if(!e.shiftKey){
-  const action={KeyG:'translate',KeyR:'rotate',KeyE:'scale'}[e.code];
-  if(action){e.preventDefault();e.stopImmediatePropagation();
-   const o=cfg.courseObjects.find(x=>x.id===selectedCourseId);
-   if(o){coursePointerTransform={id:o.id,kind:action,startX:lastPointerX,startY:lastPointerY,original:structuredClone(o)};
-    objectGizmo?.setMode(action);note('Pointer '+action+' · move cursor, click to confirm, Esc to cancel');}
-   return;}
-  if(e.code==='KeyX'||e.code==='Delete'){e.preventDefault();e.stopImmediatePropagation();deleteSelectedCourse();return;}
+ if(shortcutMatches('deleteObject',e)||shortcutMatches('deleteObjectAlt',e)){
+  e.preventDefault();e.stopImmediatePropagation();deleteSelectedCourse();return;
  }
- const n=Number(e.key);if(n>=1&&n<=7){focusSelectedCourse(n);e.preventDefault();return;}
- if(['+','=','-','_'].includes(e.key)){
-  const offset=camera.position.clone().sub(orbit.target).multiplyScalar(['+','='].includes(e.key)?.83:1.2);
-  camera.position.copy(orbit.target).add(offset);orbit.update();e.preventDefault();
+ for(let n=1;n<=7;n++)if(shortcutMatches('view'+n,e)){
+  focusSelectedCourse(n);e.preventDefault();e.stopImmediatePropagation();return;
+ }
+ if(shortcutMatches('zoomObjectIn',e)||shortcutMatches('zoomObjectOut',e)){
+  const near=shortcutMatches('zoomObjectIn',e);
+  const offset=camera.position.clone().sub(orbit.target).multiplyScalar(near?.83:1.2);
+  camera.position.copy(orbit.target).add(offset);orbit.update();e.preventDefault();e.stopImmediatePropagation();
  }
 });
 function renderCourseInspector(){const o=cfg.courseObjects.find(item=>item.id===selectedCourseId);
@@ -6170,33 +6254,34 @@ function renderCourseInspector(){const o=cfg.courseObjects.find(item=>item.id===
    }
    if(['x','z','angle','y'].includes(prop)&&simulator.engine==='cannon')syncCannonObstacle(o);
    else void refreshEnvironmentForMap();
-   scheduleHistory('Edit course object '+prop);};
+   rememberMapEdit('Edit course object '+prop);};
  }
  const y=$('objectY');y.value=Number.isFinite(o.y)?o.y:(heightAt(o.x,o.z)+o.h/2);
  y.onchange=()=>{o.y=Number(y.value);
   const mesh=courseMeshes.get(o.id);if(mesh)mesh.position.y=o.y;
   if(simulator.engine==='cannon')syncCannonObstacle(o);
-  else void refreshEnvironmentForMap();scheduleHistory('Course object Y')};
+  else void refreshEnvironmentForMap();rememberMapEdit('Course object Y')};
  bindObjectSlider(selectedObjectSlider);
- $('objectPhysics').value=o.physics||'static';$('objectPhysics').onchange=e=>{o.physics=e.target.value;void refreshEnvironmentForMap()};
+ $('objectPhysics').value=o.physics||'static';$('objectPhysics').onchange=e=>{o.physics=e.target.value;rememberMapEdit('Object physics');void refreshEnvironmentForMap()};
  for(const button of $('objectGizmoModes').querySelectorAll('button'))
   button.setAttribute('aria-pressed',String(objectGizmo?.getMode?.()===button.dataset.gizmo));
 }
 for(const b of $('objectGizmoModes').querySelectorAll('button'))b.onclick=()=>{
  objectGizmo?.setMode(b.dataset.gizmo);renderCourseInspector()};
 // Three.js transform handles edit the very same geometry records used by the map and physics engines.
-let objectScaleStart=null;
+let objectScaleStart=null,lastGizmoPointerUp=-Infinity;
 objectGizmo=new TransformControls(camera,renderer.domElement);
 scene.add(objectGizmo.getHelper());objectGizmo.setSize(.85);
 objectGizmo.addEventListener('dragging-changed',e=>{
- transformDragging=!!e.value;orbit.enabled=!e.value;
+ transformDragging=!!e.value;orbit.enabled=!e.value&&(mode!=='drive'||cfg.cameraMode!=='driver')&&!xrActive;
+ if(!e.value)lastGizmoPointerUp=performance.now();
  if(e.value){const o=cfg.courseObjects.find(x=>x.id===selectedCourseId);objectScaleStart=o?{w:o.w,h:o.h,d:o.d}:null;}
  if(!e.value&&selectedCourseId){
   const obj=cfg.courseObjects.find(o=>o.id===selectedCourseId);
   if(obj&&simulator.engine==='cannon'&&objectGizmo.getMode()!=='scale'){
    syncCannonObstacle(obj);
   }else void refreshEnvironmentForMap();
-  scheduleHistory('3D gizmo transform')
+  rememberMapEdit('3D gizmo transform')
  }
 });
 objectGizmo.addEventListener('objectChange',()=>{
@@ -6210,7 +6295,7 @@ objectGizmo.addEventListener('objectChange',()=>{
  drawMinimap();
 });
 renderer.domElement.addEventListener('pointerup',e=>{
- if(transformDragging||e.button!==0)return;
+ if(transformDragging||performance.now()-lastGizmoPointerUp<190||e.button!==0)return;
  const r=renderer.domElement.getBoundingClientRect(),p=new THREE.Vector2((e.clientX-r.left)/r.width*2-1,1-(e.clientY-r.top)/r.height*2);
  const rc=new THREE.Raycaster();rc.setFromCamera(p,camera);
  const hits=rc.intersectObject(courseRoot,true);
@@ -6253,9 +6338,8 @@ $('addObjectSearch').oninput=renderAddPalette;
 $('addObjectSearch').onkeydown=e=>{if(e.key==='Enter'){$('addObjectResults').querySelector('button')?.click();e.preventDefault()}}
 window.addEventListener('keydown',e=>{
  if(e.key==='Escape'&&!$('addObjectOverlay').hidden){closeAddPalette();return}
- if(e.shiftKey&&e.code==='KeyA'&&!e.repeat&&!e.ctrlKey&&!e.metaKey&&!e.altKey&&
-  !['INPUT','TEXTAREA','SELECT'].includes(document.activeElement?.tagName)&&
-  $('welcomeOverlay').hidden&&$('releaseOverlay').hidden){e.preventDefault();openAddPalette()}
+ if(shortcutMatches('addObject',e)&&!e.repeat&&!isEditingText(e.target)&&keyboardContextReady()){
+  e.preventDefault();e.stopImmediatePropagation();openAddPalette()}
 },true);
 function placeObjectInScene(kind,label){
  const environment=['hill','dune','grass','sand','trees','hedge','puddle'].includes(kind);
@@ -6342,9 +6426,7 @@ cellSelector.onchange=showWorldCells;
 $('worldCellApply').onclick=async()=>{
  const elevation=clamp(Number($('worldCellElevation').value)||0,-8,15);
  cfg.worldCells[cellSelector.value]={elevation};
- const driving=mode==='drive';if(driving){resumeDrivePose=physics?.pose?.()||null;leaveDrive();}
- buildTerrain();buildCourse();buildVegetation();previousHeightfieldSignature=heightfieldSignature();
- if(driving)await enterDrive();drawMinimap();scheduleHistory('Cell elevation');
+ rememberMapEdit('Cell elevation');await refreshEnvironmentForMap();drawMinimap();
  note('Updated cell '+cellSelector.value+' · elevation '+elevation+' m');
 };
 showWorldCells();
@@ -6370,7 +6452,7 @@ async function applySavedTestMap(data){
  if(cells&&typeof cells==='object'&&!Array.isArray(cells))cfg.worldCells=structuredClone(cells);
  const size=Number(data.terrainSize??data.size);
  if(Number.isFinite(size)&&size>=90)cfg.terrainSize=clamp(size,90,300);showWorldCells();
- $('mapName').value=cfg.courseName;await refreshEnvironmentForMap();trackUsage('map_loaded');note('Loaded test map: '+data.name)}
+ $('mapName').value=cfg.courseName;rememberMapEdit('Loaded test map');await refreshEnvironmentForMap();trackUsage('map_loaded');note('Loaded test map: '+data.name)}
 $('mapLoad').onclick=async()=>{const id=$('mapSaved').value;
  const data=id.startsWith('preset:')?{name:id.slice(7),objects:testMapPresets[id.slice(7)]}:await mapTransaction('readonly','get',id);
  await applySavedTestMap(data)};
@@ -6389,7 +6471,7 @@ $('mapImportFile').onchange=async e=>{try{const file=e.target.files?.[0];if(!fil
  if(['cliff','barrier','ramp','wrap','cells'].includes(data.edge))cfg.worldEdgeMode=data.edge;
  const cells=data.worldCells||data.cells;if(cells&&typeof cells==='object'&&!Array.isArray(cells))cfg.worldCells=structuredClone(cells);
  const size=Number(data.terrainSize??data.size);if(Number.isFinite(size)&&size>=90)cfg.terrainSize=clamp(size,90,300);
- showWorldCells();$('mapName').value=cfg.courseName;selectCourseObject(null);await refreshEnvironmentForMap();note('Imported test map')
+ showWorldCells();$('mapName').value=cfg.courseName;selectCourseObject(null);rememberMapEdit('Imported test map');await refreshEnvironmentForMap();note('Imported test map')
  }catch(error){note(error.message,true)}finally{e.target.value=''}};
 // The freehand input can create closed area patches or smoothed open paths.
 const patchSettings=document.createElement('div');patchSettings.className='map-top';
@@ -6534,7 +6616,7 @@ const fontNames={system:'System UI',mono:'Monospace',rounded:'Rounded'};
 const themeLabels={dark:'Midnight',light:'Studio light',graphite:'Graphite',amber:'Amber'};
 // Purely presentational buttons: icons do not alter action semantics.
 const ACTION_ICONS={
- cameraBtn:'◉',uprightBtn:'↥',resetOriginBtn:'◎',autopilotBtn:'◉',buildBtn:'▣',driveBtn:'▶',undoBtn:'↶',redoBtn:'↷',rotateBtn:'⟳',lightsBtn:'☀',
+ parkingBrakeBtn:'▣',cameraBtn:'◉',uprightBtn:'↥',resetOriginBtn:'◎',autopilotBtn:'◉',buildBtn:'▣',driveBtn:'▶',undoBtn:'↶',redoBtn:'↷',rotateBtn:'⟳',lightsBtn:'☀',
  paletteBtn:'◈',saveBtn:'▾',serverSaveBtn:'☁',exportBtn:'⇩',importBtn:'⇧',shortcutsBtn:'⌘',
  exitBtn:'⇤',boardBtn:'⇥',doorsBtn:'◧',xrBtn:'⌁',xrSeatBtn:'⌂'
 };
@@ -6595,7 +6677,7 @@ function applyTheme(){
  ]){
   const select=$(id);select.replaceChildren();
   for(const val of options){const opt=new Option(id==='themeChoice'?themeLabels[val]:fontNames[val]||val,val);select.add(opt)}
-  select.value=selected;select.onchange=()=>{handler(select.value);if(id==='themeChoice'){themeSettings.accent=null;themeSettings.panel=null}applyTheme()};
+  select.value=selected;select.onchange=()=>{handler(select.value);if(id==='themeChoice'){themeSettings.accent=null;themeSettings.panel=null}applyTheme();if(id==='fontChoice'&&!$('fontBrowser').hidden)renderFontBrowser()};
  }
 }
 
@@ -6613,13 +6695,58 @@ $('generateTheme').onclick=()=>{
  themeSettings.theme=dark?'dark':'light';themeSettings.panel=panel;themeSettings.accent=accent;
  applyTheme();note('Generated theme · contrast '+contrastRatio(panel,contrastColor(panel)).toFixed(1)+':1.');
 };
+// Browse the selected font in context, without a full-screen scrim.
+let fontBrowserLimit=60;
+function browserFace(name){return ({system:'system-ui,-apple-system,sans-serif',
+ mono:'ui-monospace,SFMono-Regular,monospace',rounded:'ui-rounded,system-ui,sans-serif'})[name]||
+ JSON.stringify(name)+',system-ui,sans-serif';}
+function renderFontBrowser(){
+ const root=$('fontBrowserGrid'),query=$('fontBrowserSearch').value.trim().toLocaleLowerCase();
+ const sample=$('fontPreviewText').value||'The quick brown fox 0123456789';
+ const matches=fonts.filter(name=>(fontNames[name]||name).toLocaleLowerCase().includes(query));
+ root.replaceChildren();
+ for(const name of matches.slice(0,fontBrowserLimit)){
+  const item=document.createElement('button');item.type='button';item.className='font-card';
+  item.setAttribute('aria-pressed',String(themeSettings.font===name));
+  item.setAttribute('aria-label','Use '+(fontNames[name]||name));
+  const title=document.createElement('span');title.className='font-card-name';title.textContent=fontNames[name]||name;
+  const specimen=document.createElement('span');specimen.className='font-card-sample';
+  specimen.style.fontFamily=browserFace(name);specimen.textContent=sample;
+  item.append(title,specimen);item.onclick=()=>{themeSettings.font=name;applyTheme();renderFontBrowser();};root.append(item);
+ }
+ $('fontBrowserCount').textContent=matches.length+' typefaces · '+Math.min(matches.length,fontBrowserLimit)+
+  ' shown · previews use locally available fonts; missing faces fall back to system UI.';
+ $('fontBrowserMore').hidden=matches.length<=fontBrowserLimit;
+}
+function showFontBrowser(show){
+ $('fontBrowser').hidden=!show;
+ // The configuration drawer may stay open; the gallery never dims the scene.
+ $('drawerScrim').style.visibility=show?'hidden':'';
+ if(show){fontBrowserLimit=60;renderFontBrowser();$('fontBrowserSearch').focus();}
+}
+$('openFontBrowser').onclick=()=>showFontBrowser(true);
+$('closeFontBrowser').onclick=()=>showFontBrowser(false);
+$('fontBrowserSearch').oninput=()=>{fontBrowserLimit=60;renderFontBrowser()};
+$('fontPreviewText').oninput=renderFontBrowser;
+$('fontBrowserMore').onclick=()=>{fontBrowserLimit+=60;renderFontBrowser()};
+$('fontBrowserLocal').onclick=()=>$('localFonts').click();
+// A separate movable window, with no modal focus trap.
+(()=>{let drag=null;const panel=$('fontBrowser'),handle=$('fontBrowserHead');
+ handle.addEventListener('pointerdown',e=>{if(e.button!==0||e.target.closest('button'))return;
+  const rect=panel.getBoundingClientRect();drag={x:e.clientX,y:e.clientY,l:rect.left,t:rect.top};
+  handle.setPointerCapture(e.pointerId);e.preventDefault();});
+ handle.addEventListener('pointermove',e=>{if(!drag)return;
+  panel.style.left=clamp(drag.l+e.clientX-drag.x,0,innerWidth-95)+'px';
+  panel.style.top=clamp(drag.t+e.clientY-drag.y,0,innerHeight-45)+'px';});
+ for(const type of ['pointerup','pointercancel','lostpointercapture'])handle.addEventListener(type,()=>drag=null);
+})();
 $('localFonts').onclick=async()=>{
  if(!('queryLocalFonts' in window)){$('fontInfo').textContent='Local Font Access API is not available in this browser.';return}
  try{
   const data=await window.queryLocalFonts();
   const families=[...new Set(data.map(f=>f.family).filter(isValidFontName))].sort();
   for(const family of families)if(!fonts.includes(family))fonts.push(family);
-  applyTheme();$('fontInfo').textContent=families.length+' installed font families available.';
+  applyTheme();if(!$('fontBrowser').hidden)renderFontBrowser();$('fontInfo').textContent=families.length+' installed font families available.';
  }catch(e){$('fontInfo').textContent='Font permission: '+e.message}
 };
 const materialPalettes={
@@ -6657,7 +6784,7 @@ function applyMaterialColor(hex){
   obj.color=hex;$('materialPicker').value=hex;
   const mesh=courseMeshes.get(obj.id);
   mesh?.traverse(o=>{if(o.isMesh){for(const m of Array.isArray(o.material)?o.material:[o.material])if(m?.color)m.color.set(hex)}});
-  scheduleHistory('Object color');return;
+  rememberMapEdit('Object color');return;
  }
  cfg[key]=hex;$('materialPicker').value=hex;
  if(mode==='drive')leaveDrive();scheduleBuild();scheduleHistory('Material '+key);
@@ -6668,14 +6795,14 @@ $('materialPicker').oninput=e=>applyMaterialColor(e.target.value);
 $('materialPattern').onchange=e=>{
  if($('materialTarget').value==='selectedObject'){
   const obj=cfg.courseObjects.find(x=>x.id===selectedCourseId);
-  if(obj){obj.texture=e.target.value;void refreshEnvironmentForMap();scheduleHistory('Object texture')}
+  if(obj){obj.texture=e.target.value;rememberMapEdit('Object texture');void refreshEnvironmentForMap()}
   return;
  }
  cfg[patternForTarget[$('materialTarget').value]]=e.target.value;scheduleBuild();scheduleHistory('Texture finish')};
 $('materialSeed').onchange=e=>{
  if($('materialTarget').value==='selectedObject'){
   const obj=cfg.courseObjects.find(x=>x.id===selectedCourseId);
-  if(obj){obj.seed=clamp(Number(e.target.value)||0,0,99999);void refreshEnvironmentForMap();scheduleHistory('Object texture seed')}
+  if(obj){obj.seed=clamp(Number(e.target.value)||0,0,99999);rememberMapEdit('Object texture seed');void refreshEnvironmentForMap()}
   return;
  }
  cfg.seed=clamp(Number(e.target.value)||0,0,99999);scheduleBuild();scheduleHistory('Texture seed')};
@@ -7265,6 +7392,14 @@ $('galleryRefreshBtn').onclick=()=>{gallerySource='public';setWindowVisible('gal
 $('layoutPublic').onchange=()=>{serverVisibility=$('layoutPublic').checked?'public':'private'};
 
 const RELEASE_NOTES=[
+ {v:'0.3.17',date:'2026-11-09',title:'Typeface previews, context undo, configurable keys and parking brake',items:[
+  'Selected typography now applies to both interface panels and lil-gui controls.',
+  'Non-modal, movable font gallery shows editable specimen text, searchable font cards and installed fonts with browser permission.',
+  'Map and object edits have independent undo/redo; live world editing rebuilds physics without switching the workspace out of DRIVE.',
+  'Shift+B toggles a physical rear-wheel parking brake; it does not anchor the chassis against gravity.',
+  'Keyboard shortcuts can be recorded, validated, reset, imported and exported. Duplicate keys are shown in red; missing keys restore defaults.',
+  'G/R/E select the object transform gizmo only; pointer-follow free transforms are disabled, and gizmo release avoids accidental source reselection.'
+ ]},
  {v:'0.3.16',date:'2026-11-09',title:'BUILD and DRIVE window visibility controls',items:[
   'Two rounded BUILD and DRIVE buttons choose which workspace layout to configure.',
   'All 14 windows can be shown or hidden independently; the active mode updates immediately.',
@@ -7606,54 +7741,203 @@ async function importLux3dResult(){
  }finally{button.disabled=false}
 }
 $('lux3dImportResult').onclick=()=>void importLux3dResult().catch(error=>note('Lux3D import failed: '+error.message,true));
-const SHORTCUTS=[
- ['Object camera views','1–7 (selected)','camera'],['Object zoom','+ / − (selected)','camera'],['Add object to test world','Shift + A','map'],['Map pan','Hand tool / right drag','map'],['Map zoom','Scroll / pinch / + or −','map'],['Select map object','Click / drag','map'],['Object transform gizmo','G / R / E, pointer then click','map'],['Undo last edit','⌘/Ctrl + Z','undo'],['Redo edit','⌘/Ctrl + Shift + Z','redo'],
- ['Redo (alternate)','Ctrl + Y','redo'],['Keyboard shortcuts','⌘/Ctrl + /','help'],
- ['Close dialog','Escape','close'],['Drive or exit drive','D','drive'],
- ['Reset camera to default','R','reset'],['Save locally','⌘/Ctrl + S','save'],
- ['Accelerate / reverse','↑ / ↓','drive'],['Steer','← / →','drive'],
- ['Cycle drive cameras','C','camera'],['Terrain-aware camera','Choose Smart / orbit','camera'],['Autopilot on/off','P','drive'],['Reset position to origin','O (DRIVE)','drive'],['Upright recovery','U','drive'],['Brake','Space','drive'],['Orbit camera','Drag canvas','camera'],
- ['Zoom camera','Mouse wheel / pinch','camera'],['Open settings','Top-right cog','configuration'],
- ['Open profile','Top-right avatar','profile'],['Minimize window','− in title bar','workspace'],
- ['Resize window','Bottom-right grip','workspace'],['WebXR VR session','Enter XR in Tools','XR'],['XR teleport','Point controller and select','XR']
+// Configurable keyboard registry. Each active shortcut is a physical KeyboardEvent.code
+// with optional Mod (Ctrl on Windows/Linux, Cmd on macOS), Shift and Alt.
+// The registry is separate from mouse, touch and XR bindings.
+const SHORTCUT_STORAGE='vehiclelab.shortcuts.v1';
+const SHORTCUT_DEFS=[
+ ['undo','Undo most recent map/vehicle edit','Mod+KeyZ','Editing'],
+ ['redo','Redo most recent edit','Mod+Shift+KeyZ','Editing'],
+ ['redoAlt','Redo (alternate)','Mod+KeyY','Editing'],
+ ['shortcutHelp','Keyboard shortcut editor','Mod+Slash','General'],
+ ['save','Save vehicle locally','Mod+KeyS','General'],
+ ['toggleDrive','Switch BUILD / DRIVE','KeyD','General'],
+ ['handbrake','Toggle parking handbrake','Shift+KeyB','Driving'],
+ ['resetCamera','Reset camera','Shift+KeyR','Camera'],
+ ['cycleCamera','Cycle driving camera','KeyC','Camera'],
+ ['upright','Recover vehicle upright','KeyU','Driving'],
+ ['autopilot','Toggle autopilot','KeyP','Driving'],
+ ['resetOrigin','Reset car to origin (DRIVE)','KeyO','Driving'],
+ ['accelerate','Accelerate','ArrowUp','Driving'],
+ ['reverse','Reverse','ArrowDown','Driving'],
+ ['steerLeft','Steer left','ArrowLeft','Driving'],
+ ['steerRight','Steer right','ArrowRight','Driving'],
+ ['brake','Hold service brake','Space','Driving'],
+ ['addObject','Add 3D/map object palette','Shift+KeyA','World editor'],
+ ['duplicateObject','Duplicate selected object','Shift+KeyD','World editor'],
+ ['moveObject','Translation gizmo (G)','KeyG','World editor'],
+ ['rotateObject','Rotation gizmo (R)','KeyR','World editor'],
+ ['scaleObject','Scale gizmo (E)','KeyE','World editor'],
+ ['deleteObject','Delete selected object','KeyX','World editor'],
+ ['deleteObjectAlt','Delete selected object (alternate)','Delete','World editor'],
+ ['zoomObjectIn','Zoom toward selected object','Equal','World editor'],
+ ['zoomObjectOut','Zoom away from selected object','Minus','World editor'],
+ ...Array.from({length:7},(_,i)=>['view'+(i+1),'Selected object camera view '+(i+1),'Digit'+(i+1),'World editor'])
 ];
-function renderShortcuts(){
- const root=$('shortcutsList'),term=$('shortcutSearch').value.toLowerCase().trim();root.replaceChildren();
- for(const [name,combo,category] of SHORTCUTS){
-  if(!(`${name} ${combo} ${category}`.toLowerCase().includes(term)))continue;
+const SHORTCUT_DEFAULTS=Object.fromEntries(SHORTCUT_DEFS.map(([id,,combo])=>[id,combo]));
+let shortcutBindings={...SHORTCUT_DEFAULTS},shortcutDraft={...SHORTCUT_DEFAULTS},shortcutEditMode=false,recordingShortcutId=null;
+const VALID_CODE=/^(?:Key[A-Z]|Digit[0-9]|Numpad[0-9]|Arrow(?:Up|Down|Left|Right)|F(?:[1-9]|1[0-2])|Space|Slash|Equal|Minus|Delete|Backspace|BracketLeft|BracketRight|Comma|Period|Semicolon|Quote|Backquote|Enter|Tab)$/;
+function shortcutForEvent(e){
+ return [e.ctrlKey||e.metaKey?'Mod':null,e.shiftKey?'Shift':null,e.altKey?'Alt':null,e.code].filter(Boolean).join('+');
+}
+function shortcutMatches(id,e){return !!shortcutBindings[id]&&shortcutBindings[id]===shortcutForEvent(e);}
+function isEditingText(target){return !!target?.closest?.('input,textarea,select,[contenteditable=""],[contenteditable="true"]');}
+function keyboardContextReady(){return $('welcomeOverlay').hidden&&$('releaseOverlay').hidden&&
+ $('shortcutOverlay').hidden&&$('saveOverlay').hidden&&$('cameraOverlay').hidden&&$('addObjectOverlay').hidden&&
+ $('fontBrowser').hidden;}
+function validateCombo(combo){
+ if(typeof combo!=='string'||combo.length>70)return false;
+ const tokens=combo.split('+'),code=tokens.at(-1),mod=tokens.slice(0,-1);
+ if(!VALID_CODE.test(code)||new Set(mod).size!==mod.length||mod.some(x=>!['Mod','Shift','Alt'].includes(x)))return false;
+ if(mod.join('+')!==['Mod','Shift','Alt'].filter(x=>mod.includes(x)).join('+'))return false;
+ // The browser/OS owns these actions; don't steal reload, new tabs, address bar or close.
+ if(['Mod+KeyW','Mod+KeyR','Mod+KeyT','Mod+KeyL','Mod+KeyN','F5','F11'].includes(combo))return false;
+ return true;
+}
+function shortcutProblems(bindings){
+ const errors=new Map(),seen=new Map();
+ for(const [id] of SHORTCUT_DEFS){
+  const combo=bindings[id];
+  if(!validateCombo(combo)){errors.set(id,'Invalid or missing key');continue;}
+  if(seen.has(combo)){
+   const other=seen.get(combo);errors.set(id,'Duplicate with '+other);
+   errors.set(other,'Duplicate with '+id);
+  }else seen.set(combo,id);
+ }
+ return errors;
+}
+function loadShortcuts(){
+ try{
+  const value=JSON.parse(safeRead(SHORTCUT_STORAGE)||'null');
+  if(value?.schema!=='vehiclelab-shortcuts/v1'||!value.bindings||typeof value.bindings!=='object')return;
+  const next={...SHORTCUT_DEFAULTS};
+  for(const [id] of SHORTCUT_DEFS)if(Object.hasOwn(value.bindings,id))next[id]=value.bindings[id];
+  if(shortcutProblems(next).size===0)shortcutBindings=next;
+  else recordEvent('WARN','Stored shortcut bindings failed validation; safe defaults were restored.');
+ }catch(e){recordEvent('WARN','Shortcut configuration: '+e.message)}
+ shortcutDraft={...shortcutBindings};
+}
+loadShortcuts();
+function validateShortcutDraft(){
+ // Empty/missing keys are restored to defaults. Duplicate/conflicting keys remain
+ // visible in red and never overwrite the last valid active configuration.
+ let restored=0;
+ for(const [id] of SHORTCUT_DEFS)if(!shortcutDraft[id]){shortcutDraft[id]=SHORTCUT_DEFAULTS[id];restored++;}
+ const errors=shortcutProblems(shortcutDraft);
+ if(errors.size){
+  $('shortcutStatus').classList.add('is-error');
+  $('shortcutStatus').textContent=errors.size+' conflicting/invalid assignments marked red. Resolve them before applying.'+
+   (restored?' '+restored+' missing assignment(s) restored to defaults.':'');
+ }else{
+  shortcutBindings={...shortcutDraft};held.clear();
+  safeStore(SHORTCUT_STORAGE,JSON.stringify({schema:'vehiclelab-shortcuts/v1',bindings:shortcutBindings}));
+  $('shortcutStatus').classList.remove('is-error');
+  $('shortcutStatus').textContent='Validated and applied '+SHORTCUT_DEFS.length+' shortcuts.'+
+   (restored?' '+restored+' missing binding(s) reset to defaults.':'')+
+   ' Escape is reserved for closing dialogs and cancelling capture.';
+ }
+ renderShortcuts(errors);return errors.size===0;
+}
+function renderShortcuts(errors=shortcutProblems(shortcutDraft)){
+ const root=$('shortcutsList'),term=$('shortcutSearch').value.toLocaleLowerCase().trim();root.replaceChildren();
+ for(const [id,name,,category] of SHORTCUT_DEFS){
+  const combo=(shortcutEditMode?shortcutDraft:shortcutBindings)[id]||'';
+  if(!(`${name} ${combo} ${category}`.toLocaleLowerCase().includes(term)))continue;
   const row=document.createElement('div');row.className='shortcut-row';
+  const label=document.createElement('span');label.className='shortcut-label';
   const title=document.createElement('span');title.textContent=name;
-  const k=document.createElement('kbd');k.textContent=combo;row.append(title,k);root.append(row);
+  const subtitle=document.createElement('small');subtitle.textContent=category;label.append(title,subtitle);
+  const button=document.createElement('button');button.type='button';button.className='shortcut-key';
+  button.textContent=recordingShortcutId===id?'Press a key…':combo||'Unassigned';
+  button.disabled=!shortcutEditMode;
+  if(errors.has(id)){
+   button.classList.add(validateCombo(combo)?'is-duplicate':'is-invalid');
+   button.title=errors.get(id);
+  }
+  if(recordingShortcutId===id)button.classList.add('is-recording');
+  button.onclick=()=>{recordingShortcutId=id;renderShortcuts();};
+  row.append(label,button);
+  if(shortcutEditMode){const clear=document.createElement('button');clear.type='button';
+   clear.className='shortcut-clear';clear.textContent='×';clear.title='Clear key; Validate will restore its default';
+   clear.setAttribute('aria-label','Clear '+name);
+   clear.onclick=()=>{shortcutDraft[id]='';recordingShortcutId=null;renderShortcuts()};row.append(clear)}
+  root.append(row);
  }
  if(!root.children.length)root.textContent='No matching shortcuts.';
 }
 function toggleShortcuts(show){
- $('shortcutOverlay').hidden=!show;if(show){$('shortcutSearch').value='';renderShortcuts();$('shortcutSearch').focus()}
+ $('shortcutOverlay').hidden=!show;
+ if(show){$('shortcutSearch').value='';recordingShortcutId=null;renderShortcuts();$('shortcutSearch').focus();}
+ else{recordingShortcutId=null;}
 }
-$('shortcutSearch').addEventListener('input',renderShortcuts);
+$('shortcutEdit').onclick=()=>{
+ shortcutEditMode=!shortcutEditMode;recordingShortcutId=null;shortcutDraft={...shortcutBindings};
+ $('shortcutEdit').setAttribute('aria-pressed',String(shortcutEditMode));
+ $('shortcutEdit').textContent=shortcutEditMode?'Cancel editing':'Edit shortcuts';
+ $('shortcutStatus').classList.remove('is-error');
+ $('shortcutStatus').textContent=shortcutEditMode?'Select an assignment, then press the new key combination. Validate & apply when finished.':'Read-only shortcuts. Click Edit shortcuts to customize.';
+ renderShortcuts();
+};
+$('shortcutValidate').onclick=()=>{
+ if(!shortcutEditMode){shortcutEditMode=true;$('shortcutEdit').setAttribute('aria-pressed','true');$('shortcutEdit').textContent='Cancel editing';}
+ validateShortcutDraft();
+};
+$('shortcutDefaults').onclick=()=>{
+ shortcutDraft={...SHORTCUT_DEFAULTS};recordingShortcutId=null;
+ shortcutEditMode=true;$('shortcutEdit').setAttribute('aria-pressed','true');$('shortcutEdit').textContent='Cancel editing';
+ validateShortcutDraft();
+};
+$('shortcutExport').onclick=()=>download(JSON.stringify({schema:'vehiclelab-shortcuts/v1',bindings:shortcutBindings},null,2),
+ 'vehiclelab-shortcuts.json','application/json');
+$('shortcutImport').onclick=()=>$('shortcutFile').click();
+$('shortcutFile').onchange=async e=>{
+ try{
+  const file=e.target.files?.[0];if(!file)return;
+  if(file.size>20000)throw Error('Shortcut JSON is too large (20 KB max).');
+  const data=JSON.parse(await file.text());
+  if(data?.schema!=='vehiclelab-shortcuts/v1'||!data.bindings||typeof data.bindings!=='object'||Array.isArray(data.bindings))
+   throw Error('Unsupported shortcut JSON schema.');
+  if(Object.keys(data.bindings).some(key=>!Object.hasOwn(SHORTCUT_DEFAULTS,key)))throw Error('Shortcut JSON contains unknown actions.');
+  if(Object.values(data.bindings).some(value=>typeof value!=='string'||value.length>70))throw Error('Shortcut JSON has invalid keys.');
+  shortcutDraft={...SHORTCUT_DEFAULTS,...data.bindings};
+  shortcutEditMode=true;$('shortcutEdit').setAttribute('aria-pressed','true');$('shortcutEdit').textContent='Cancel editing';
+  validateShortcutDraft();
+ }catch(error){$('shortcutStatus').classList.add('is-error');$('shortcutStatus').textContent='Import rejected: '+error.message;}
+ finally{e.target.value='';}
+};
+$('shortcutSearch').addEventListener('input',()=>renderShortcuts());
 $('closeShortcuts').onclick=()=>toggleShortcuts(false);
 $('shortcutOverlay').addEventListener('click',e=>{if(e.target===$('shortcutOverlay'))toggleShortcuts(false)});
+// Key capture must run ahead of normal world/drive handlers; Escape cancels capture.
 window.addEventListener('keydown',e=>{
- const modifier=e.metaKey||e.ctrlKey;
- if(modifier&&e.code==='Slash'){e.preventDefault();toggleShortcuts($('shortcutOverlay').hidden);return}
+ if(!recordingShortcutId||$('shortcutOverlay').hidden)return;
+ e.preventDefault();e.stopImmediatePropagation();
+ if(e.code==='Escape'){recordingShortcutId=null;renderShortcuts();return;}
+ if(['ShiftLeft','ShiftRight','ControlLeft','ControlRight','MetaLeft','MetaRight','AltLeft','AltRight'].includes(e.code))return;
+ const combo=shortcutForEvent(e),id=recordingShortcutId;recordingShortcutId=null;
+ shortcutDraft[id]=combo;renderShortcuts();
+},{capture:true});
+window.addEventListener('keydown',e=>{
+ if(shortcutMatches('shortcutHelp',e)){
+  e.preventDefault();toggleShortcuts($('shortcutOverlay').hidden);return;
+ }
  if(e.code==='Escape'){
   if(!$('shortcutOverlay').hidden)toggleShortcuts(false);
+  if(!$('fontBrowser').hidden)showFontBrowser(false);
   if(!$('saveOverlay').hidden)$('saveCancel').click();
   if(!$('cameraOverlay').hidden)$('cameraCancel').click();return;
  }
- if(['INPUT','TEXTAREA','SELECT'].includes(document.activeElement?.tagName)||
-  !$('welcomeOverlay').hidden||!$('releaseOverlay').hidden)return;
- if(modifier&&e.code==='KeyZ'){e.preventDefault();if(e.shiftKey)redo();else undo();return}
- if(modifier&&e.code==='KeyY'){e.preventDefault();redo();return}
- if(modifier&&e.code==='KeyS'){e.preventDefault();void saveLayout(false).catch(err=>note(err.message,true));return}
- if(!modifier&&!e.altKey&&!e.shiftKey){
-  if(e.code==='KeyD'){e.preventDefault();if(mode==='drive')leaveDrive();else void enterDrive()}
-  if(e.code==='KeyR'){e.preventDefault();resetCamera()}
-  if(e.code==='KeyC'){e.preventDefault();cycleCamera()}
-  if(e.code==='KeyU'){e.preventDefault();resetUpright()}
-  if(e.code==='KeyP'){e.preventDefault();cfg.autopilot=!cfg.autopilot;autopilotState.anchor=null;autopilotState.time=0;updateAutopilotButton()}
-  if(e.code==='KeyO'&&mode==='drive'){e.preventDefault();void resetDriveOrigin()}
- }
+ if(isEditingText(e.target)||!keyboardContextReady())return;
+ if(shortcutMatches('undo',e)){e.preventDefault();undoContext();return;}
+ if(shortcutMatches('redo',e)||shortcutMatches('redoAlt',e)){e.preventDefault();redoContext();return;}
+ if(shortcutMatches('save',e)){e.preventDefault();void saveLayout(false).catch(err=>note(err.message,true));return;}
+ for(const [id,run] of [
+  ['toggleDrive',()=>{if(mode==='drive')leaveDrive();else void enterDrive()}],
+  ['handbrake',toggleParkingBrake],['resetCamera',resetCamera],['cycleCamera',cycleCamera],
+  ['upright',resetUpright],
+  ['autopilot',()=>{cfg.autopilot=!cfg.autopilot;autopilotState.anchor=null;autopilotState.time=0;updateAutopilotButton()}],
+  ['resetOrigin',()=>{if(mode==='drive')void resetDriveOrigin()}]
+ ])if(shortcutMatches(id,e)){e.preventDefault();run();return;}
 });
 
 $('wheelEditorBtn').onclick=()=>{renderWheelStudio();setWindowVisible('wheelWindow',true)};
@@ -8115,6 +8399,7 @@ try{const view=JSON.parse(safeRead('vehiclelab.camera.v1')||'null');
   const v=new THREE.Vector3(...view.offset);if(v.length()>2&&v.length()<130){camera.position.copy(orbit.target).add(v);orbit.update()}}}
 catch(e){}
 initializeHistory();
+rememberMapEdit('Initial map');activeUndoDomain='vehicle';
 ensureFleet();
 updateRotationButton();
 updateLightsButton();updateCameraLabel();updateAutopilotButton();
