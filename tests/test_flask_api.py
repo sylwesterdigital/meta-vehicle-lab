@@ -76,7 +76,7 @@ class FlaskAPITests(unittest.TestCase):
         request_data={'provider':'openai','prompt':'Clean isolated wheel hub assembly in studio lighting'}
         self.assertEqual(self.client.post('/api/vehicle/generate-image',json=request_data).status_code,401)
         self.assertEqual(self.client.post('/api/vehicle/generate-image',headers=headers,
-            json={**request_data,'provider':'meta'}).status_code,422)
+            json={**request_data,'provider':'other'}).status_code,422)
         class Upstream(io.BytesIO):
             headers={}
             def __enter__(self):return self
@@ -90,6 +90,38 @@ class FlaskAPITests(unittest.TestCase):
             result=self.client.post('/api/vehicle/generate-image',headers=headers,json=request_data)
             self.assertEqual(result.status_code,200,result.json)
             self.assertTrue(result.json['image'].startswith('data:image/png;base64,'))
+
+    def test_meta_muse_image_generation_and_edit_route(self):
+        import base64, io, json
+        from unittest.mock import patch
+        identity=self.client.post('/api/identity/guest',json={'name':'Muse Creator'}).json
+        headers={'Authorization':'Bearer '+identity['token'],'X-Provider-Key':'meta-test-1234567890'}
+        png=base64.b64encode(b'\x89PNG\r\n\x1a\n'+b'fake-png-payload').decode()
+        calls=[]
+        class Upstream(io.BytesIO):
+            headers={}
+            def __enter__(self):return self
+            def __exit__(self,*args):self.close()
+        def upstream(req,timeout=0):
+            data=json.loads(req.data)
+            calls.append((req.full_url,data))
+            self.assertEqual(data['model'],'muse-image-1.0')
+            self.assertEqual(req.get_header('Authorization'),'Bearer meta-test-1234567890')
+            return Upstream(json.dumps({'data':[{'b64_json':png}]}).encode())
+        with patch('backend.app.urllib.request.urlopen',upstream):
+            first=self.client.post('/api/vehicle/generate-image',json={'provider':'meta',
+                'prompt':'Isolated automotive chassis body shell in studio'},headers=headers)
+            self.assertEqual(first.status_code,200,first.json)
+            self.assertTrue(first.json['image'].startswith('data:image/png;base64,'))
+            # Bypass rate limit only for the deliberately isolated second call.
+            with patch('backend.app.time.monotonic',return_value=1e10):
+                second=self.client.post('/api/vehicle/generate-image',json={'provider':'meta',
+                    'prompt':'Give the body a lower front windscreen',
+                    'reference_image':'data:image/png;base64,'+png},headers=headers)
+            self.assertEqual(second.status_code,200,second.json)
+        self.assertEqual(calls[0][0],'https://api.meta.ai/v1/images/generations')
+        self.assertEqual(calls[1][0],'https://api.meta.ai/v1/images/edits')
+        self.assertTrue(calls[1][1]['images'][0]['image_url'].startswith('data:image/png;base64,'))
 
 if __name__=='__main__':unittest.main()
 

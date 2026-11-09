@@ -1,6 +1,6 @@
 # Vehicle Lab — procedural 3D vehicle studio
 
-**Version 0.3.6 (2026-11-09)**. Browser-native modular vehicle editor built with Three.js, lil-gui, three alternative physics engines, optional GLB imports, Flask and SQLite. Project: https://github.com/sylwesterdigital/meta-vehicle-lab. Website: https://vehiclelab.xyz/.
+**Version 0.3.8 (2026-11-09)**. Browser-native modular vehicle editor built with Three.js, lil-gui, three alternative physics engines, optional GLB imports, Flask and SQLite. Project: https://github.com/sylwesterdigital/meta-vehicle-lab. Website: https://vehiclelab.xyz/.
 
 This README deliberately contains the **About, Install, Roadmap, Ideas and LLM Handover** sections in a single allowed release file. The current watcher validates an exact 15-file manifest, so adding standalone documentation to a watcher release without first migrating its manifest schema would reject the ZIP. A separate optional documentation archive contains those sections as individual Markdown files.
 
@@ -18,6 +18,20 @@ Vehicle Lab is a prototype for procedurally assembling visually plausible city c
 - Mobile-friendly Save modal with metadata and five deterministic JPEG camera views. Local/cloud/public gallery with search, XL/M/S, edit/copy/delete and dock left/right/bottom. JSON/GLB exports include profile/vehicle/time/version in filenames.
 - Terrain profiles flat, bumps, hills, extreme, moon and beach, selectable tiled procedural ground maps (asphalt/grass/dirt/gravel/sand/snow/moon), FBM animated cloud/night shader, water shader, puddles, wheel marks, splashes, and **approximate water drag/buoyancy**. Water is not a fluid solver.
 - Local IndexedDB and private/public Flask/SQLite persistence, versioned release watcher, health endpoint and scoped logs.
+
+## v0.3.8 — chassis AI pipeline and Meta Muse Image
+
+- Chassis Workshop → **Design body with AI**: edit a real design brief or choose an editable City/Sport/Utility/Retro starter. Use Meta Muse Image, OpenAI, or xAI for a wheel-free design concept, optionally guided by an uploaded or studio-captured body reference. Inspect the actual preview before requesting 3D conversion.
+- The same workshop has Lux3D G1/G1-Turbo, photoreal/cartoon/etc style and region, read-only API-key test, **explicit billable-generation consent**, status updates, and automatic secure GLB import while keeping procedural wheels, chassis colliders and suspension. Open global Config → Lux3D for advanced diagnostics if needed.
+- Meta Muse Image uses `POST https://api.meta.ai/v1/images/generations` and `POST https://api.meta.ai/v1/images/edits`, `model=muse-image-1.0`. Key authentication is separate from access to a particular image model, and image generation may incur provider charges. Keys are never persisted to SQLite, blueprints, or browser storage.
+- Tests: JavaScript syntax, offline chassis UI contracts, SQLite, Nginx, deployment checks, plus a Flask mock API test for Meta generation and editing that runs when Flask is installed. Real Meta/xAI/Lux3D calls cannot be verified without credentials.
+
+## v0.3.7 — camera follow and deterministic grass
+
+- `Orbit follow` tracks the car's world position while keeping user-controlled mouse/touch orbit angle and distance. `Terrain-aware orbit` adds smoothly damped hill clearance. `Free` remains stationary; `Driver` stays with the cabin.
+- Physics is still fixed-step at 60 Hz, but chassis and wheel display positions are interpolated each render frame. Separate horizontal, vertical and clearance response controls are under Physics & camera → Orbit follow · smoothness.
+- Near-field instanced grass is seeded by stable world tiles instead of moving/reseeding the entire distribution every 5 metres.
+- Production/browser checks with each physics engine are required; release validation is not a claim of verified live motion.
 
 ## v0.3.6 — camera, fleet collisions, chassis and spatial editing
 
@@ -52,9 +66,9 @@ Vehicle Lab is a prototype for procedurally assembling visually plausible city c
 
 ## Run / install
 
-Place exactly **`META_VEHICLE_LAB_UPDATE_v0.3.5.zip`** in:
+Place exactly **`META_VEHICLE_LAB_UPDATE_v0.3.7.zip`** in:
 
-`/Users/smielniczuk/Documents/works/meta-vehicle-lab/updates/META_VEHICLE_LAB_UPDATE_v0.3.5.zip`
+`/Users/smielniczuk/Documents/works/meta-vehicle-lab/updates/META_VEHICLE_LAB_UPDATE_v0.3.7.zip`
 
 From repository root:
 

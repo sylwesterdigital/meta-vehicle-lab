@@ -656,7 +656,7 @@ def create_app(config=None):
         return jsonify(ok=True,provider=provider,count=len(models),models=models[:50],truncated=len(models)>50)
 
     # User-initiated image creation is scoped to a profile, not the admin API.
-    # Only two fixed HTTPS endpoints are permitted. Keys are forwarded in
+    # Only fixed HTTPS endpoints are permitted. Keys are forwarded in
     # memory only, never put in a database, source control or runtime log.
     image_generation_last = {}
 
@@ -669,8 +669,8 @@ def create_app(config=None):
         provider=obj.get('provider')
         key=request.headers.get('X-Provider-Key','')
         prompt=obj.get('prompt','')
-        if provider not in ('openai','xai'):
-            return jsonify(error='Image-generation adapter is available for OpenAI or xAI; Meta image generation is not configured.'),422
+        if provider not in ('openai','xai','meta'):
+            return jsonify(error='Supported image providers: Meta Muse Image, OpenAI, xAI'),422
         if not isinstance(key,str) or not 12<=len(key)<=512 or '\n' in key or '\r' in key:
             return jsonify(error='Invalid provider credential'),400
         if not isinstance(prompt,str) or not 8<=len(prompt.strip())<=2500:
@@ -690,10 +690,19 @@ def create_app(config=None):
             payload={'model':'gpt-image-2.5-flare','prompt':prompt.strip(),'n':1,
                      'size':'1024x1024','quality':'medium','output_format':'png'}
             if reference:payload['images']=[{'image_url':reference}]
+        elif provider=='meta':
+            # Official Meta Muse Image one-shot JSON API, not the text model
+            # Responses endpoint. Text-to-image and guided image edit share
+            # the same model key from the read-only /models authentication test.
+            endpoint='https://api.meta.ai/v1/images/edits' if reference else 'https://api.meta.ai/v1/images/generations'
+            payload={'model':'muse-image-1.0','prompt':prompt.strip(),
+                     'n':1,'response_format':'b64_json','output_format':'png',
+                     'reasoning_strength':'low'}
+            if reference:payload['images']=[{'image_url':reference}]
         else:
             endpoint='https://api.x.ai/v1/images/edits' if reference else 'https://api.x.ai/v1/images/generations'
             payload={'model':'grok-imagine-image-2.0','prompt':prompt.strip(),
-                     'n':1,'response_format':'b64_json','aspect_ratio':'1:1','quality':'medium'}
+                     'n':1,'response_format':'b64_json','aspect_ratio':'1:1'}
             if reference:payload['image']={'url':reference,'type':'image_url'}
         upstream=urllib.request.Request(endpoint,
             data=json.dumps(payload,separators=(',',':')).encode('utf-8'),method='POST',
@@ -713,6 +722,28 @@ def create_app(config=None):
             return jsonify(error='Image generation response unavailable'),502
         item=(result.get('data') or [{}])[0] if isinstance(result,dict) else {}
         encoded=item.get('b64_json') if isinstance(item,dict) else None
+        # xAI may return a short-lived hosted image URL rather than b64_json.
+        # Restrict retrieval to the provider-controlled image domain to avoid
+        # letting an untrusted API response turn this server into an SSRF relay.
+        if not encoded and provider=='xai' and isinstance(item,dict) and item.get('url'):
+            from urllib.parse import urlsplit
+            image_url=item['url'];parsed=urlsplit(image_url)
+            if parsed.scheme!='https' or parsed.hostname!='imgen.x.ai' or parsed.port not in (None,443):
+                return jsonify(error='Image provider returned an unexpected download host'),502
+            try:
+                with urllib.request.urlopen(urllib.request.Request(image_url,headers={'Accept':'image/png,image/jpeg,image/webp'}),timeout=20) as image_response:
+                    # Guard possible redirects, not just the original URL.
+                    final=urlsplit(image_response.geturl())
+                    if final.scheme!='https' or final.hostname!='imgen.x.ai':
+                        return jsonify(error='Image download redirected outside trusted provider'),502
+                    image_bytes=image_response.read(14*1024*1024+1)
+                    if len(image_bytes)>14*1024*1024:
+                        return jsonify(error='Image provider response too large'),502
+                import base64
+                encoded=base64.b64encode(image_bytes).decode('ascii')
+            except (urllib.error.URLError,TimeoutError,OSError) as exc:
+                app.logger.warning('provider image retrieval failed (%s)',type(exc).__name__)
+                return jsonify(error='Image provider download failed'),502
         if not isinstance(encoded,str) or not encoded or len(encoded)>19*1024*1024:
             return jsonify(error='Image provider returned no embedded image'),502
         # Validate base64 and image magic before returning to the browser.

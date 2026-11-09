@@ -313,3 +313,44 @@ assert.strictEqual(specs[3].y,-2,'static object may sink below terrain');
 '''
         process=subprocess.run(['node','-e',script,str(self.path)],capture_output=True,text=True,timeout=20)
         self.assertEqual(process.returncode,0,process.stdout+process.stderr)
+
+
+ROOT=Path(__file__).resolve().parents[1]
+from html.parser import HTMLParser
+
+class Ids(HTMLParser):
+    def __init__(self):
+        super().__init__();self.ids=[];self.forms=0;self.bad_nested=[]
+    def handle_starttag(self,tag,attrs):
+        d=dict(attrs)
+        if 'id' in d:self.ids.append(d['id'])
+        if tag=='form':
+            if self.forms:self.bad_nested.append(d.get('id',''))
+            self.forms+=1
+    def handle_endtag(self,tag):
+        if tag=='form':self.forms-=1
+class ChassisImageTests(unittest.TestCase):
+    def setUp(self):
+        self.html=(ROOT/'index.html').read_text()
+        self.backend=(ROOT/'backend/app.py').read_text()
+    def test_chassis_prompt_provider_and_direct_3d_wiring(self):
+        parser=Ids();parser.feed(self.html)
+        for element in ('chassisPrompt','chassisImageProvider','chassisImageKey',
+                        'chassisImagePreview','chassisGenerateImage','chassis3DReference',
+                        'chassisLuxKey','chassisLuxTest','chassisLuxModel',
+                        'chassisLuxStyle','chassisSpendAck','chassisGenerate3D',
+                        'chassisImageStatus','chassis3DStatus'):
+            self.assertEqual(parser.ids.count(element),1,element)
+        self.assertFalse(parser.bad_nested)
+        self.assertEqual(len(parser.ids),len(set(parser.ids)),'duplicate DOM IDs')
+        self.assertIn("$('chassisPrompt').value.trim()",self.html)
+        self.assertIn("$('lux3dCreateForm').requestSubmit()",self.html)
+        self.assertIn("$('chassisCreative').hidden",self.html)
+    def test_meta_muse_generative_endpoint_and_key_scoping(self):
+        self.assertIn("if provider not in ('openai','xai','meta')",self.backend)
+        self.assertIn("'model':'muse-image-1.0'",self.backend)
+        self.assertIn("https://api.meta.ai/v1/images/edits",self.backend)
+        self.assertIn("https://api.meta.ai/v1/images/generations",self.backend)
+        self.assertIn("payload['images']=[{'image_url':reference}]",self.backend)
+        self.assertIn("keys={meta:''",self.html)
+        self.assertIn("id=\"wheelAIProvider\"",self.html)

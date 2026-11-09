@@ -5,7 +5,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Vehicle Lab — Procedural Studio</title>
-  <meta name="vehicle-lab-version" content="0.3.6">
+  <meta name="vehicle-lab-version" content="0.3.8">
   <style>
     :root {
       color-scheme:dark;
@@ -524,6 +524,34 @@
 #wheelWindow .window-body{overflow-y:auto}
 #wheelGeneratedPreview{max-width:100%;height:160px;object-fit:contain;border-radius:6px;background:#dde8f0;margin:5px auto;display:block}
 #wheelGeneratedPreview[hidden]{display:none}
+
+/* Chassis AI workflow — deliberately independent of the global API drawer. */
+#chassisWindow .chassis-creative{margin:12px 0 7px;border:1px solid #698ea4;border-radius:10px;padding:10px;background:#162b3bdc;color:#edf7fc}
+#chassisWindow .chassis-creative[hidden]{display:none!important}
+#chassisWindow .chassis-creative-title{display:flex;align-items:baseline;gap:12px;justify-content:space-between;margin-bottom:8px}
+#chassisWindow .chassis-creative-title small{color:#b8d4e0}
+#chassisWindow .chassis-creative textarea{width:100%;resize:vertical;min-height:86px;max-height:170px;background:#10212f;color:#fff;border:1px solid #6a94aa;border-radius:7px;padding:8px}
+#chassisWindow .chassis-creative label{font-size:11px;color:#e7f3fa}
+#chassisWindow .chassis-creative button{font-size:11px;min-height:32px;background:#23455d;color:#f5fbff;border:1px solid #719ab0;border-radius:7px;cursor:pointer}
+#chassisWindow .chassis-creative button:hover{background:#38647a}
+#chassisWindow .chassis-creative .chassis-quick,#chassisWindow .chassis-reference-panel{display:flex;flex-wrap:wrap;gap:5px;margin:7px 0}
+#chassisWindow .chassis-creative .chassis-quick button{min-height:26px;padding:3px 9px}
+#chassisWindow .chassis-compact-row{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1.3fr) auto;align-items:end;gap:5px;margin:8px 0}
+#chassisWindow .chassis-3d-options{grid-template-columns:repeat(3,minmax(0,1fr))}
+#chassisWindow .chassis-compact-row label{display:grid;gap:3px;min-width:0}
+#chassisWindow .chassis-compact-row input,#chassisWindow .chassis-compact-row select{width:100%;min-width:0;background:#0c1d2b;color:#fff;border:1px solid #6a92a8;border-radius:6px;padding:7px 5px;font-size:11px}
+#chassisWindow .chassis-check{display:flex;align-items:center;gap:7px;margin:8px 0;line-height:1.35}
+#chassisWindow .chassis-check input{width:16px;height:16px;flex:none}
+#chassisWindow .chassis-preview-row{display:flex;gap:8px;align-items:stretch;margin:9px 0}
+#chassisWindow #chassisImagePreviewButton{width:125px;height:108px;flex:none;display:grid;place-items:center;overflow:hidden;padding:3px;background:#0d1d2b}
+#chassisWindow #chassisImagePreview{width:100%;height:100%;object-fit:contain}
+#chassisWindow #chassisImageEmpty{color:#a9c6d2;font-size:10px}
+#chassisWindow .chassis-preview-actions{flex:1;min-width:0;display:flex;flex-direction:column;gap:6px}
+#chassisWindow .chassis-preview-actions small{font-size:10px;color:#b5cfdd}
+#chassisWindow #chassisImageStatus,#chassisWindow #chassis3DStatus{display:block;white-space:pre-wrap;overflow-wrap:anywhere;font-size:11px;color:#d5eaf7;line-height:1.45}
+#chassisWindow .chassis-3d-title{border-top:1px solid #526e83;margin:12px 0 7px;padding-top:10px;font-weight:700}
+#chassisWindow .chassis-main-action{width:100%;font-weight:700!important;background:#265b78!important}
+@media(max-width:540px){#chassisWindow .chassis-compact-row{grid-template-columns:1fr 1fr}#chassisWindow .chassis-compact-row button{min-width:0}#chassisWindow .chassis-3d-options{grid-template-columns:repeat(3,minmax(0,1fr))}}
 </style>
 
  <script type="importmap">
@@ -542,7 +570,7 @@
 
   <div id="stage">
   <div id="hud">
-    <div class="stage-badge"><strong>Vehicle Lab</strong><small>v0.3.6</small></div>
+    <div class="stage-badge"><strong>Vehicle Lab</strong><small>v0.3.7</small></div>
     <p id="vehicleName">City Car</p><p id="vehicleInfo">Procedural vehicle</p>
     <div id="speedHud"><strong id="speed">0</strong><div>km/h</div></div>
     <div id="cameraModeReadout" style="padding:3px 6px;margin-top:4px;width:max-content;max-width:260px;border-radius:5px;background:#132d3cc0;color:#e9f5fc;font:10px ui-monospace,monospace">Camera · Orbit follow</div>
@@ -686,7 +714,7 @@
         <small id="wheelAlignStatus">The GLB is fitted to the axle width and radius without changing its physics collider.</small>
       </div>
       <details id="wheelAISection"><summary>AI generation · optional</summary>
-        <form id="wheelAiCredentials" class="wheel-ai-keys" autocomplete="off"><label>Image model<select id="wheelAIProvider"><option value="openai">OpenAI</option><option value="xai">xAI</option></select></label>
+        <form id="wheelAiCredentials" class="wheel-ai-keys" autocomplete="off"><label>Image model<select id="wheelAIProvider"><option value="openai">OpenAI</option><option value="meta">Meta Muse</option><option value="xai">xAI</option></select></label>
           <label>Image API key<input type="password" id="wheelImageKey" autocomplete="off" placeholder="Paste key (tab only)"></label>
           <button type="button" id="wheelUseImageKey">Use key</button>
           <label>Lux3D key<input type="password" id="wheelLuxKey" autocomplete="off" placeholder="Optional Lux3D key"></label>
@@ -705,7 +733,42 @@
     <div class="window-head"><strong>12 / Chassis workshop</strong><button class="mini-btn minimize" title="Minimize">−</button></div>
     <div class="window-body"><strong>Vehicle shell · without wheels</strong>
       <div class="body-library" id="chassisAssets" role="list" aria-label="Imported 3D body shells"></div>
-      <div class="drawer-actions"><button type="button" id="chassisImport">＋ Import GLB</button><button type="button" id="chassisReset">↺ Procedural body</button><button type="button" id="chassisAI">✦ Lux3D body</button></div>
+      <div class="drawer-actions"><button type="button" id="chassisImport">＋ Import GLB</button><button type="button" id="chassisReset">↺ Procedural body</button><button type="button" id="chassisAI">✦ Design body with AI</button></div>
+      <section class="chassis-creative" id="chassisCreative" hidden aria-label="AI chassis creation workflow">
+        <div class="chassis-creative-title"><strong>AI body studio</strong><small>Design → reference image → Lux3D → GLB</small></div>
+        <label for="chassisPrompt">Body design brief — this text controls the generated shell</label>
+        <textarea id="chassisPrompt" rows="4" maxlength="600" spellcheck="true">Compact aerodynamic hatchback with a gently sloped nose, smooth roofline, wide windscreen, rear hatch, defined wheel arches and realistic door seams. Isolated exterior body shell, without wheels, tyres, chassis rails, occupants or background.</textarea>
+        <div class="chassis-quick" role="group" aria-label="Design suggestions">
+          <button type="button" data-body-style="city">City</button><button type="button" data-body-style="sport">Sport</button><button type="button" data-body-style="utility">Utility</button><button type="button" data-body-style="retro">Retro</button>
+        </div>
+        <form id="chassisImageKeysForm" class="chassis-compact-row" autocomplete="off">
+          <label>Image AI<select id="chassisImageProvider"><option value="meta">Meta Muse Image</option><option value="openai">OpenAI</option><option value="xai">xAI Grok Imagine</option></select></label>
+          <label>Image key<input id="chassisImageKey" type="password" autocomplete="off" placeholder="Paste if needed"></label>
+          <button type="button" id="chassisSaveImageKey" title="Keep image API key in this tab only">Use key</button>
+        </form>
+        <div class="chassis-reference-panel">
+          <button type="button" id="chassisCapture">Capture body only</button><button type="button" id="chassisUpload">Upload reference</button>
+          <button type="button" id="chassisReferenceClear">Clear</button>
+          <label class="chassis-check"><input id="chassisUseReference" type="checkbox"> Refine from image</label>
+        </div>
+        <div class="chassis-preview-row">
+          <button id="chassisImagePreviewButton" type="button" title="Open reference preview"><img id="chassisImagePreview" alt="Current reference or generated car body concept" hidden><span id="chassisImageEmpty">No reference yet</span></button>
+          <div class="chassis-preview-actions"><button type="button" id="chassisGenerateImage">✦ Generate concept image</button>
+            <small>Potentially billable image request. You review the concept before ordering a 3D model.</small>
+            <output id="chassisImageStatus" role="status" aria-live="polite">Ready. No request submitted.</output></div>
+        </div>
+        <div class="chassis-3d-title">Convert approved design to a wheel-free 3D shell</div>
+        <div class="chassis-compact-row chassis-3d-options">
+          <label>Lux3D model<select id="chassisLuxModel"><option value="G1">G1 quality</option><option value="G1-Turbo">G1 Turbo</option></select></label>
+          <label>Style<select id="chassisLuxStyle"><option value="photorealistic">Photoreal</option><option value="cartoon">Cartoon</option><option value="cyberpunk">Cyberpunk</option><option value="hand_painted">Painted</option><option value="anime">Anime</option><option value="fantasy">Fantasy</option></select></label>
+          <label>Region<select id="chassisLuxRegion"><option value="international">International</option><option value="china">China</option></select></label>
+        </div>
+        <form id="chassisLuxKeysForm" class="chassis-compact-row" autocomplete="off"><label>Lux3D key<input type="password" autocomplete="off" id="chassisLuxKey" placeholder="Paste if needed"></label><button type="button" id="chassisLuxUseKey">Use key</button><button type="button" id="chassisLuxTest">Test key · free</button></form>
+        <label class="chassis-check"><input id="chassis3DReference" type="checkbox" checked> Use preview image as 3D reference (when present)</label>
+        <label class="chassis-check"><input id="chassisSpendAck" type="checkbox"> Authorize potentially billable 3D generation</label>
+        <button type="button" id="chassisGenerate3D" class="chassis-main-action">Generate wheel-free GLB · import automatically</button>
+        <output id="chassis3DStatus" aria-live="polite" role="status">Not started.</output>
+      </section>
       <div class="body-controls"><label>Front rake <input id="bodyRakeFront" type="number" step=".02" min=".04" max="1.8"></label>
         <label>Rear rake <input id="bodyRakeRear" type="number" step=".02" min=".04" max="1.8"></label>
         <label>Roof width <input id="bodyRoofWidth" type="number" step=".02" min=".3" max="1"></label></div>
@@ -976,6 +1039,7 @@
 
    grassDensity:8000,grassHeight:.25,shrubs:60,rocks:40,vegetationWind:.65,
    courseName:'Open practice ground',courseObjects:[],ghostMode:'off',cameraMode:'orbit',cameraClearance:true,
+   cameraFollowLag:.07,cameraVerticalLag:.20,cameraClearanceLag:.22,
    autopilot:false,autopilotRoute:'wandering',groundRoughness:.9,
    seatOffsets:{}
  };
@@ -1001,6 +1065,9 @@ function normalizeVehicleConfig(){
  if(!['cannon','rapier','ammo'].includes(simulator?.engine))simulator.engine='cannon';
  if(Array.isArray(cfg.seatOffsets)||!cfg.seatOffsets||typeof cfg.seatOffsets!=='object')cfg.seatOffsets={};
  if(!CAMERA_MODES.includes(cfg.cameraMode))cfg.cameraMode='orbit';
+ for(const [k,min,max,fallback] of [['cameraFollowLag',.015,.32,.07],['cameraVerticalLag',.035,.9,.20],['cameraClearanceLag',.035,1.2,.22]]){
+  if(!Number.isFinite(Number(cfg[k])))cfg[k]=fallback;else cfg[k]=clamp(Number(cfg[k]),min,max);
+ }
 }
 
  let mods=defaultMods();
@@ -1029,6 +1096,15 @@ const outsideRigs=new Set();
 
  let headMaterials=[],brakeMaterials=[],headlights=[];
  let physics=null,previousYaw=null;
+const physicsVisual={previous:null,current:null};
+function snapshotPhysicsPose(value){return {
+ position:new THREE.Vector3(value.position.x,value.position.y,value.position.z),
+ rotation:new THREE.Quaternion(value.rotation.x,value.rotation.y,value.rotation.z,value.rotation.w),
+ velocity:new THREE.Vector3(value.velocity.x,value.velocity.y,value.velocity.z)};
+}
+function resetPhysicsInterpolation(){
+ physicsVisual.previous=physicsVisual.current=physics?snapshotPhysicsPose(physics.pose()):null;
+}
 const CAMERA_MODES=['orbit','smart','chase','cinematic','driver','free'];
 const CAMERA_LABELS={orbit:'Orbit follow',smart:'Terrain-aware orbit follow',chase:'Chase / adjustable',cinematic:'Cinematic follow',driver:'Driver',free:'Free / stationary'};
 let drivePanelVisibility=new Map(),stationaryCameraPosition=null,stationaryCameraTarget=null;
@@ -1048,7 +1124,7 @@ let ghostObject=null,ghostSamples=[],ghostElapsed=0,ghostTick=0;
  const serverAccess={token:''};
  let activeProfile=null,guestToken='',serverVisibility='private',adminLogToken='';
  const appEvents=[];
- const VERSION='0.3.6';
+ const VERSION='0.3.8';
  let imageReference=null,busyAI=false;
 
  // Keys remain in volatile memory. Never place credentials in a blueprint or IndexedDB.
@@ -1112,9 +1188,14 @@ xrTeleportMark.rotation.x=-Math.PI/2;xrTeleportMark.visible=false;scene.add(xrTe
  orbit.autoRotateSpeed=1.2;
  orbit.addEventListener('end',()=>{
   if(car)cfg.cameraDistance=clamp(camera.position.distanceTo(orbit.target),3,130);
-  try{localStorage.setItem('vehiclelab.camera.v1',JSON.stringify({offset:camera.position.clone().sub(orbit.target).toArray()}))}catch(e){}
+  try{const offset=camera.position.clone().sub(orbit.target);offset.y-=followRig.lift;
+   if(offset.lengthSq()>1)followRig.orbitOffset.copy(offset);
+   localStorage.setItem('vehiclelab.camera.v1',JSON.stringify({offset:offset.toArray()}))}catch(e){}
  });
 
+ // Keep the user's chosen orbit vector separate from smooth-follow translation.
+ const followRig={focus:new THREE.Vector3(),orbitOffset:new THREE.Vector3(8,5,8),
+  initialized:false,mode:null,lift:0,yaw:null};
  scene.add(new THREE.HemisphereLight(0xe5f3ff,0x35495a,1.6));
 
  const sunlight=new THREE.DirectionalLight(0xffffff,3);
@@ -1580,7 +1661,7 @@ function buildVegetation(){
   object.scale.set(.7+rx*.6,base,.7+rz*.6);object.updateMatrix();batch.setMatrixAt(rendered++,object.matrix);
  }
  batch.count=rendered;batch.instanceMatrix.needsUpdate=true;batch.frustumCulled=false;vegetationRoot.add(batch);grassMaterial=material;
- // Dense nearest-field grass, repositioned only after the vehicle moves 5 m.
+ // Dense nearest-field grass streamed on deterministic world-space tiles.
  // Shared geometry/shader + instancing avoids thousands of individual draw calls.
  const nearCount=Math.min(4400,Math.max(0,Math.round(cfg.grassDensity*.43)));
  if(nearCount){nearGrassMesh=new THREE.InstancedMesh(g,material,nearCount);
@@ -1602,18 +1683,27 @@ function buildVegetation(){
 }
 function updateNearGrass(force=false){
  if(!nearGrassMesh||!car)return;
- if(!force&&nearGrassAnchor&&Math.hypot(car.position.x-nearGrassAnchor.x,car.position.z-nearGrassAnchor.z)<5)return;
- nearGrassAnchor={x:car.position.x,z:car.position.z};
- const proxy=new THREE.Object3D(),r=32;
+ // Stable 9m world tiles: unchanged tiles retain IDENTICAL world coordinates
+ // as the car moves. New blades stream in only along the distant tile border.
+ // The previous car-centered random circle moved every blade by metres at once.
+ const tileSize=9,tileRadius=4,diameter=tileRadius*2+1,tileCount=diameter*diameter;
+ const centerX=Math.floor(car.position.x/tileSize),centerZ=Math.floor(car.position.z/tileSize);
+ if(!force&&nearGrassAnchor?.x===centerX&&nearGrassAnchor?.z===centerZ)return;
+ nearGrassAnchor={x:centerX,z:centerZ};
+ const proxy=new THREE.Object3D();
  for(let i=0;i<nearGrassMesh.count;i++){
-  const theta=hash(i*19,i*23,cfg.seed)*Math.PI*2;
-  const dist=Math.sqrt(hash(i*41,i*47,cfg.seed+9))*r;
-  const x=clamp(nearGrassAnchor.x+Math.cos(theta)*dist,-SIZE*.48,SIZE*.48);
-  const z=clamp(nearGrassAnchor.z+Math.sin(theta)*dist,-SIZE*.48,SIZE*.48);
+  const tileIndex=i%tileCount,bladeIndex=Math.floor(i/tileCount);
+  const tx=centerX+tileIndex%diameter-tileRadius;
+  const tz=centerZ+Math.floor(tileIndex/diameter)-tileRadius;
+  const rx=hash(tx*13+bladeIndex*17,tz*31+bladeIndex*19,cfg.seed+191);
+  const rz=hash(tx*43+bladeIndex*23,tz*53+bladeIndex*29,cfg.seed+419);
+  const x=clamp((tx+rx)*tileSize,-SIZE*.48,SIZE*.48);
+  const z=clamp((tz+rz)*tileSize,-SIZE*.48,SIZE*.48);
   proxy.position.set(x,heightAt(x,z)+.02,z);
-  proxy.rotation.y=theta;
-  const h=(cfg.grassHeight||.25)*(.65+hash(i,3,cfg.seed));
-  proxy.scale.set(.55,h,.55);proxy.updateMatrix();nearGrassMesh.setMatrixAt(i,proxy.matrix);
+  proxy.rotation.set(0,hash(tx*47+bladeIndex,tz*59,cfg.seed)*Math.PI*2,0);
+  const height=(cfg.grassHeight||.25)*(.65+hash(tx*29+bladeIndex*11,tz*71,cfg.seed+3));
+  proxy.scale.set(.55,height,.55);proxy.updateMatrix();
+  nearGrassMesh.setMatrixAt(i,proxy.matrix);
  }
  nearGrassMesh.instanceMatrix.needsUpdate=true;
 }
@@ -2442,21 +2532,30 @@ function scheduleBuild(){
  requestAnimationFrame(()=>{queued=false;buildVehicle()});
 }
 
-// Orbit camera follows both vehicle position and heading while
-// preserving the user's current orbit angle and zoom.
+// Drive camera modes keep orbit angle and distance under user control.
+// The camera and OrbitControls.target MUST translate by exactly the same delta.
+// Physics pose interpolation is performed separately in stepVehicle().
+function clearFollowLift(reset=true){
+ if(followRig.lift)camera.position.y-=followRig.lift;
+ if(reset)followRig.lift=0;
+}
 function preserveCameraOrbit(){
+ clearFollowLift();
  const offset=camera.position.clone().sub(orbit.target);
- const target=car?.position.clone().add(new THREE.Vector3(0,cfg.H*.3,0))||new THREE.Vector3(0,1,0);
- if(offset.lengthSq()<1)offset.set(8,5,8);
+ const target=car?.position.clone().add(new THREE.Vector3(0,cfg.H*.34,0))||new THREE.Vector3(0,1,0);
+ if(offset.lengthSq()<1)offset.copy(followRig.orbitOffset);
+ followRig.orbitOffset.copy(offset);
  orbit.target.copy(target);camera.position.copy(target).add(offset);orbit.update();
+ followRig.initialized=false;followRig.mode=null;followRig.yaw=null;
 }
 function resetCamera(){
- const target=car?.position.clone().add(new THREE.Vector3(0,cfg.H*.3,0))||
- new THREE.Vector3(0,1,0);
- orbit.target.copy(target);
+ clearFollowLift();
+ const target=car?.position.clone().add(new THREE.Vector3(0,cfg.H*.34,0))||new THREE.Vector3(0,1,0);
  const d=Math.max(6,cfg.cameraDistance);
- camera.position.copy(target).add(new THREE.Vector3(d*.65,d*.42,d*.65));
- orbit.update();
+ const offset=new THREE.Vector3(d*.65,d*.42,d*.65);
+ followRig.orbitOffset.copy(offset);
+ orbit.target.copy(target);camera.position.copy(target).add(offset);
+ orbit.update();followRig.initialized=false;followRig.mode=null;followRig.yaw=null;
 }
 function updateCameraLabel(){
  const label=CAMERA_LABELS[cfg.cameraMode]||CAMERA_LABELS.orbit;
@@ -2464,53 +2563,103 @@ function updateCameraLabel(){
  const button=$('cameraBtn');if(button){button.title='Cycle drive camera · '+label;button.setAttribute('aria-label','Cycle camera: '+label)}
 }
 function followCamera(dt){
- if(!car||cfg.cameraMode==='free'){
-  // Camera stays in world space; OrbitControls may still rotate it freely.
-  orbit.update();return;
- }
+ if(!car||xrActive)return;
  const modeCam=cfg.cameraMode||'orbit';
- const yaw=new THREE.Euler().setFromQuaternion(car.quaternion,'YXZ').y;
- const target=car.position.clone().add(new THREE.Vector3(0,cfg.H*.34,0));
- const smoothing=1-Math.exp(-5*dt);
- if(['orbit','smart','chase','cinematic'].includes(modeCam)){
-  // Follow the car without clobbering the user's orbital angle or distance.
-  const old=orbit.target.clone();
-  const offset=camera.position.clone().sub(old);
-  if(modeCam!=='orbit'&&previousYaw!==null&&modeCam!=='smart'){
-   const dy=Math.atan2(Math.sin(yaw-previousYaw),Math.cos(yaw-previousYaw));
-   offset.applyAxisAngle(new THREE.Vector3(0,1,0),dy*.48);
-  }
-  const lerpValue=modeCam==='smart'?1-Math.exp(-4*dt):1-Math.exp(-9*dt);
-  orbit.target.lerp(target,lerpValue);
-  let desired=orbit.target.clone().add(offset);
-  if(cfg.cameraClearance&&(modeCam==='smart'||modeCam==='chase'||modeCam==='cinematic')){
-   // Elevate only as much as needed to keep the line of sight clear of hills.
-   let clearance=desired.y;
-   for(let i=1;i<=22;i++){
-    const t=i/22;
-    const probe=target.clone().lerp(desired,t);
-    const obstacle=heightAt(probe.x,probe.z)+Math.max(1.05,cfg.H*.40);
-    if(probe.y<obstacle)clearance=Math.max(clearance,desired.y+(obstacle-probe.y)/(Math.max(.12,t)));
-   }
-   desired.y=lerp(desired.y,Math.min(clearance,target.y+Math.max(cfg.L*3,20)),1-Math.exp(-3.0*dt));
-  }
-  camera.position.lerp(desired,modeCam==='smart'?1-Math.exp(-5*dt):Math.min(.98,lerpValue*2));
- }else if(modeCam==='driver'){
-  const p=car.position.clone().add(new THREE.Vector3(-cfg.W*.22,cfg.H*.37,cfg.L*.19).applyAxisAngle(new THREE.Vector3(0,1,0),yaw));
-  const look=p.clone().add(new THREE.Vector3(0,0,5).applyAxisAngle(new THREE.Vector3(0,1,0),yaw));
-  camera.position.lerp(p,smoothing*1.4);orbit.target.lerp(look,smoothing*1.4);
+ const previousMode=followRig.mode;
+ // Terrain avoidance is intentionally a temporary screen-space correction,
+ // never a change to the user's chosen orbit pitch / zoom.
+ // Remove last frame's lift before OrbitControls.update(), but KEEP its scalar
+ // for the critically smoothed clearance response below.
+ clearFollowLift(false);
+ if(modeCam==='free'){
+  followRig.lift=0;
+  orbit.enabled=!transformDragging;
+  orbit.update();
+  followRig.initialized=false;followRig.mode='free';followRig.yaw=null;
+  return; // Stationary camera: vehicle drives independently.
  }
- previousYaw=yaw;orbit.update();
+ const yaw=new THREE.Euler().setFromQuaternion(car.quaternion,'YXZ').y;
+ if(modeCam==='driver'){
+  followRig.lift=0;
+  if(previousMode!=='driver'&&previousMode!=='free'){
+   const offset=camera.position.clone().sub(orbit.target);
+   if(offset.lengthSq()>1)followRig.orbitOffset.copy(offset);
+  }
+  orbit.enabled=false;
+  const eye=car.position.clone().add(new THREE.Vector3(-cfg.W*.22,cfg.H*.37,cfg.L*.19)
+   .applyAxisAngle(new THREE.Vector3(0,1,0),yaw));
+  const look=eye.clone().add(new THREE.Vector3(0,0,5).applyAxisAngle(new THREE.Vector3(0,1,0),yaw));
+  const factor=1-Math.exp(-Math.max(0,dt)/.045);
+  if(previousMode!=='driver'){camera.position.copy(eye);orbit.target.copy(look)}
+  else{camera.position.lerp(eye,factor);orbit.target.lerp(look,factor)}
+  camera.lookAt(orbit.target);
+  followRig.mode='driver';followRig.initialized=false;followRig.yaw=yaw;
+  return;
+ }
+ orbit.enabled=!transformDragging;
+ orbit.autoRotate=false;
+ // Process direct pointer/touch orbit input BEFORE changing the follow origin.
+ // Calling orbit.update() after a camera-only lerp caused an expanding offset.
+ orbit.update();
+ const focus=car.position.clone().add(new THREE.Vector3(0,cfg.H*.34,0));
+ if(!followRig.initialized||previousMode==='driver'||previousMode==='free'){
+  let offset=previousMode==='driver'||previousMode==='free'?
+   followRig.orbitOffset.clone():camera.position.clone().sub(orbit.target);
+  if(offset.lengthSq()<1)offset.set(8,5,8);
+  followRig.orbitOffset.copy(offset);
+  camera.position.copy(focus).add(offset);
+  orbit.target.copy(focus);followRig.focus.copy(focus);
+  followRig.initialized=true;followRig.yaw=yaw;
+ }else{
+  // Chase variants can rotate with the car, but users can still orbit/zoom.
+  if((modeCam==='chase'||modeCam==='cinematic')&&followRig.yaw!==null){
+   const angle=Math.atan2(Math.sin(yaw-followRig.yaw),Math.cos(yaw-followRig.yaw));
+   const offset=camera.position.clone().sub(orbit.target);
+   offset.applyAxisAngle(new THREE.Vector3(0,1,0),angle*(modeCam==='chase'?.75:.35));
+   camera.position.copy(orbit.target).add(offset);
+  }
+  const horizontal=1-Math.exp(-dt/Math.max(.015,cfg.cameraFollowLag));
+  const vertical=1-Math.exp(-dt/Math.max(.035,cfg.cameraVerticalLag));
+  followRig.focus.x+=(focus.x-followRig.focus.x)*horizontal;
+  followRig.focus.z+=(focus.z-followRig.focus.z)*horizontal;
+  followRig.focus.y+=(focus.y-followRig.focus.y)*vertical;
+  // Avoid the target falling irrecoverably behind a fast car or on reset.
+  const maxLag=Math.max(cfg.L*.5,1.8);
+  const error=followRig.focus.distanceTo(focus);
+  if(error>maxLag)followRig.focus.lerp(focus,1-maxLag/error);
+  const delta=followRig.focus.clone().sub(orbit.target);
+  orbit.target.copy(followRig.focus);
+  camera.position.add(delta); // SAME translation: orbit radius and angle stay fixed.
+ }
+ followRig.orbitOffset.copy(camera.position).sub(orbit.target);
+ followRig.yaw=yaw;followRig.mode=modeCam;
+ const avoidTerrain=cfg.cameraClearance&&(modeCam==='smart'||modeCam==='chase'||modeCam==='cinematic');
+ if(avoidTerrain){
+  const from=orbit.target,to=camera.position;
+  let necessary=0;
+  for(let i=2;i<=22;i++){
+   const t=i/22;
+   const x=from.x+(to.x-from.x)*t,z=from.z+(to.z-from.z)*t;
+   const rayY=from.y+(to.y-from.y)*t;
+   const ground=heightAt(x,z)+Math.max(.7,cfg.H*.23);
+   necessary=Math.max(necessary,(ground-rayY)/Math.max(.1,t));
+  }
+  necessary=clamp(necessary,0,Math.max(cfg.L*2.2,14));
+  // Lifting terrain avoids occlusion without corrupting OrbitControls' pitch.
+  const tau=necessary>followRig.lift?cfg.cameraClearanceLag:cfg.cameraClearanceLag*2.2;
+  followRig.lift+=(necessary-followRig.lift)*(1-Math.exp(-dt/Math.max(.035,tau)));
+  camera.position.y+=followRig.lift;
+ }else followRig.lift=0;
 }
 function cycleCamera(){
  const i=CAMERA_MODES.indexOf(cfg.cameraMode);
  cfg.cameraMode=CAMERA_MODES[(i+1+CAMERA_MODES.length)%CAMERA_MODES.length];
- previousYaw=null;updateCameraLabel();note('Camera: '+CAMERA_LABELS[cfg.cameraMode]);scheduleHistory('Camera mode');
+ followRig.yaw=null;updateCameraLabel();note('Camera: '+CAMERA_LABELS[cfg.cameraMode]);scheduleHistory('Camera mode');
 }
 function resetUpright(){
  if(mode!=='drive'||!physics){note('Enter DRIVE to reset a flipped vehicle.');return}
  if(typeof physics.upright!=='function'){note('Upright recovery unavailable in this solver.',true);return}
- physics.upright();note('Vehicle upright recovery applied.');
+ physics.upright();resetPhysicsInterpolation();note('Vehicle upright recovery applied.');
 }
 async function resetDriveOrigin(){
  const wasDriving=mode==='drive';
@@ -3040,6 +3189,7 @@ async function enterDrive(){
   // A stale asynchronous Rapier load must not reactivate a dismissed drive.
   if(generation!==driveGeneration){adapter.destroy();return}
   physics=adapter;stepAccumulator=0;previousYaw=null;mode='drive';
+  resetPhysicsInterpolation();clearFollowLift();followRig.initialized=false;followRig.mode=null;followRig.yaw=null;
   if(resumeDrivePose){car.position.set(resumeDrivePose.position.x,resumeDrivePose.position.y,resumeDrivePose.position.z);
    car.quaternion.set(resumeDrivePose.rotation.x,resumeDrivePose.rotation.y,resumeDrivePose.rotation.z,resumeDrivePose.rotation.w);
    resumeDrivePose=null;}
@@ -3049,6 +3199,7 @@ async function enterDrive(){
   $('joystick').style.display='block';
   $('brake').style.display='block';
   orbit.autoRotate=false;
+  orbit.enabled=cfg.cameraMode!=='driver'&&!xrActive;
   if(objectGizmo?.object)objectGizmo.detach();
   hidePanelsForDrive();makeGhost();
   if(highlight){highlight.dispose();scene.remove(highlight);highlight=null}
@@ -3075,6 +3226,7 @@ function leaveDrive(){
  }}
  try{physics?.destroy()}catch(e){console.warn('Physics cleanup',e)}
  vehicleAudio.stop();physics=null;mode='build';stepAccumulator=0;previousYaw=null;braking=false;
+ physicsVisual.previous=physicsVisual.current=null;clearFollowLift();orbit.enabled=!xrActive;
  $('buildBtn').classList.add('active');
  $('driveBtn').classList.remove('active');
  $('speedHud').style.display='none';
@@ -3247,7 +3399,9 @@ function stepVehicle(dt){
   const kmh=physics.getSpeed()*3.6;
   const power=kmh>cfg.maxSpeed&&input.throttle*forwardSpeed>=0?0:motorPower();
   const begin=performance.now();
-  try{physics.step(FIXED_STEP,{...input,brake:braking,power})}
+  try{physics.step(FIXED_STEP,{...input,brake:braking,power});
+   physicsVisual.previous=physicsVisual.current||snapshotPhysicsPose(physics.pose());
+   physicsVisual.current=snapshotPhysicsPose(physics.pose());}
   catch(e){note(ENGINE_LABELS[simulator.engine]+' failed: '+e.message,true);
    console.error(e);leaveDrive();return}
   const ms=performance.now()-begin;
@@ -3263,11 +3417,21 @@ function stepVehicle(dt){
  }
  if(!physics)return;
  const p=physics.pose();
- car.position.set(p.position.x,p.position.y,p.position.z);
- car.quaternion.set(p.rotation.x,p.rotation.y,p.rotation.z,p.rotation.w);
+ if(!physicsVisual.current)resetPhysicsInterpolation();
+ const alpha=clamp(stepAccumulator/FIXED_STEP,0,1);
+ const prior=physicsVisual.previous||physicsVisual.current;
+ const current=physicsVisual.current;
+ car.position.copy(prior.position).lerp(current.position,alpha);
+ car.quaternion.copy(prior.rotation).slerp(current.rotation,alpha).normalize();
  vehicleAudio.update(physics.getSpeed(),inputForStep().throttle,braking);
  vehicleAudio.impact(p.velocity.y);vehicleAudio.damage(physics.getSpeed(),p.rotation,dt);
  physics.syncWheels();physics.syncCourse?.();
+ // Wheels are world-space during DRIVE: apply the same interpolated chassis
+ // transform to suspension poses so they do not jitter against the body.
+ const wheelPoseCorrection=car.quaternion.clone().multiply(current.rotation.clone().invert());
+ for(const wheel of wheels){
+  wheel.position.sub(current.position).applyQuaternion(wheelPoseCorrection).add(car.position);
+ }
  // The wheel graphics rotate about +local X: a positive roll carries the tyre
  // TOP forward toward +Z. Identical world spin on both sides, regardless of
  // GLB wheel-face mirroring. Physics still owns suspension/contact positions.
@@ -3980,6 +4144,10 @@ function updateLuxReferencePreview(message='Reference ready'){
  const img=$('lux3dReferencePreview');img.hidden=!imageReference;if(imageReference)img.src=imageReference;else img.removeAttribute('src');
  $('lux3dReferenceInfo').textContent=imageReference?message:'No reference selected';
  $('lux3dUseReference').checked=Boolean(imageReference);
+ if(!$('chassisCreative').hidden&&!chassisConceptImage){
+  $('chassisImagePreview').src=imageReference||'';$('chassisImagePreview').hidden=!imageReference;
+  $('chassisImageEmpty').hidden=Boolean(imageReference);
+ }
 }
 $('lux3dCaptureReference').onclick=()=>{try{captureChassisReference(false)}catch(error){note(error.message,true)}};
 $('lux3dCaptureFull').onclick=()=>{try{captureChassisReference(true)}catch(error){note(error.message,true)}};
@@ -4309,7 +4477,12 @@ const driving=gui.addFolder('08 · Physics solver & camera');
  driving.add({run:()=>startBenchmark()},'run').name('Run controlled drive test');
  driving.add({csv:exportBenchmarks},'csv').name('Export benchmark CSV');
 driving.add(cfg,'maxSpeed',15,180,5).name('Max speed km/h');
- driving.add(cfg,'cameraMode',Object.fromEntries(CAMERA_MODES.map(v=>[CAMERA_LABELS[v],v]))).name('Drive camera mode').onChange(()=>{previousYaw=null;stationaryCameraPosition=null;updateCameraLabel();scheduleHistory('Camera mode')});
+ driving.add(cfg,'cameraMode',Object.fromEntries(CAMERA_MODES.map(v=>[CAMERA_LABELS[v],v]))).name('Drive camera mode').onChange(()=>{followRig.yaw=null;updateCameraLabel();scheduleHistory('Camera mode')});
+ const followTuning=driving.addFolder('Orbit follow · smoothness');
+ followTuning.add(cfg,'cameraFollowLag',.015,.32,.005).name('Horizontal lag (s)').onFinishChange(()=>scheduleHistory('Camera follow lag'));
+ followTuning.add(cfg,'cameraVerticalLag',.035,.9,.01).name('Vertical lag (s)').onFinishChange(()=>scheduleHistory('Camera vertical lag'));
+ followTuning.add(cfg,'cameraClearanceLag',.035,1.2,.01).name('Clearance lag (s)').onFinishChange(()=>scheduleHistory('Camera terrain lag'));
+ followTuning.close();
  driving.add({cycle:cycleCamera},'cycle').name('Cycle cameras (C)');
  driving.add(cfg,'cameraClearance').name('Terrain collision clearance').onChange(()=>scheduleHistory('Camera clearance'));
  driving.add(cfg,'ghostMode',['off','transparent','wireframe','solid']).name('Recorded ghost / 3s').onChange(()=>{if(mode==='drive')makeGhost();scheduleHistory('Ghost')});
@@ -4815,7 +4988,7 @@ function renderWheelStudio(){
  const createCard=document.createElement('button');createCard.type='button';createCard.className='wheel-style-card wheel-ai-tile';
  createCard.innerHTML='<span aria-hidden="true" class="wheel-brain">✦</span><small>AI · Create</small>';
  createCard.onclick=()=>{
-  const provider=keys[$('wheelAIProvider').value]?$('wheelAIProvider').value:keys.openai?'openai':keys.xai?'xai':null;
+  const provider=keys[$('wheelAIProvider').value]?$('wheelAIProvider').value:keys.meta?'meta':keys.openai?'openai':keys.xai?'xai':null;
   if(provider){wheelAiPrompt();imageEditMode=false;pendingWheelImage=true;ai.provider=provider;
    $('wheelAIStatus').textContent='Generating image for '+selectedWheelAxle+' wheel…';
    void generateImage().then(result=>{if(result)$('wheelAIStatus').textContent='Image ready · preview available for 3D generation.';else $('wheelAIStatus').textContent='Image generation failed or canceled.'})
@@ -6322,6 +6495,12 @@ $('galleryRefreshBtn').onclick=refreshGallery;
 $('layoutPublic').onchange=()=>{serverVisibility=$('layoutPublic').checked?'public':'private'};
 
 const RELEASE_NOTES=[
+ {v:'0.3.7',date:'2026-11-09',title:'Smooth camera following and stable streamed grass',items:[
+  'Fixed orbit-follow camera translation: target and camera now move together with preserved mouse/touch orbit angle and zoom.',
+  'Interpolated vehicle/wheel visuals between physics steps to reduce 60 FPS micro-jitter.',
+  'Terrain-aware camera clearance no longer changes the saved orbit pitch; adjustable horizontal/vertical/clearance lag.',
+  'Grass uses deterministic world tiles, avoiding the previous 5-metre periodic reseeding/pop.'
+ ]},
  {v:'0.3.6',date:'2026-11-09',title:'Drive cameras, body workshop, fleet collisions and editing',items:[
   'Orbitable terrain-aware follow camera, stationary free camera, visible camera mode, and Reset 0,0,0.',
   'Parked vehicles have dynamic collision bodies; flip wheel visuals consistently; configure passenger seat offsets and hollow cabin floor.',
@@ -6448,7 +6627,7 @@ $('testProviderKey').onclick=async()=>{
    headers:{'Content-Type':'application/json',...authHeaders()},
    body:JSON.stringify({provider,key})});
   const result=await response.json();if(!response.ok)throw Error(result.error||'Provider failed');
-  keys[provider]=key;$('providerKey').value='';
+  keys[provider]=key;ai.provider=provider;$('providerKey').value='';
   $('providerResult').textContent=result.count+' accessible models:\\n'+result.models.join(', ')+
     (result.truncated?'\\n(first 50 shown)':'');
   note(provider+' key tested against the model-list endpoint.');
@@ -6627,7 +6806,96 @@ $('wheelEditorBtn').onclick=()=>{renderWheelStudio();setWindowVisible('wheelWind
 $('chassisEditorBtn').onclick=()=>{renderChassisAssets();setWindowVisible('chassisWindow',true)};
 $('chassisImport').onclick=()=>$('importGLB').click();
 $('chassisReset').onclick=()=>{modelSource=null;modelBlob=null;modelName=null;currentChassisAssetId=null;buildVehicle();renderChassisAssets()};
-$('chassisAI').onclick=()=>{showDrawer('config');$('lux3dSection').open=true;$('lux3dComponent').value='chassis';$('lux3dSection').scrollIntoView({block:'start'})};
+// Local chassis design flow: every image and 3D request uses the visible prompt.
+// No provider key, prompt or image is written into exported vehicle blueprints.
+const chassisDesigns={
+ city:'Compact aerodynamic urban hatchback body shell. Short bonnet, sloped windscreen, carefully tapered roof and smooth rear hatch; four door cutlines and exact wheel arch recesses.',
+ sport:'Low sports coupe body shell with elongated wedge nose, dramatic sloping front and rear glass, muscular rear haunches and pronounced wheel arches.',
+ utility:'Rugged modern utility wagon body shell with high roof, five doors, practical rear hatch, subtly raked glass and sturdy wheel-arch moldings.',
+ retro:'Elegant 1960s-inspired compact coupe shell, long flowing hood, soft rounded wings, chrome-compatible trim surfaces and gently sloping rear window.'
+};
+let chassisConceptImage=null;
+function syncChassisPreview(message='Reference ready'){
+ const img=$('chassisImagePreview'),has=Boolean(chassisConceptImage||imageReference);
+ img.hidden=!has;img.src=chassisConceptImage||imageReference||'';
+ $('chassisImageEmpty').hidden=has;
+ $('chassisImageStatus').textContent=has?message:'Ready. No reference selected.';
+}
+$('chassisAI').onclick=()=>{
+ const box=$('chassisCreative');box.hidden=!box.hidden;
+ if(!box.hidden){$('chassisImageProvider').value=keys[ai.provider]?ai.provider:(keys.meta?'meta':keys.openai?'openai':keys.xai?'xai':'meta');syncChassisPreview();}
+};
+for(const item of $('chassisCreative').querySelectorAll('[data-body-style]'))item.onclick=()=>{
+ $('chassisPrompt').value=chassisDesigns[item.dataset.bodyStyle];$('chassisImageStatus').textContent='Design brief updated. No generation started.';
+};
+$('chassisImageKeysForm').onsubmit=e=>{e.preventDefault();$('chassisSaveImageKey').click()};
+$('chassisLuxKeysForm').onsubmit=e=>{e.preventDefault();$('chassisLuxUseKey').click()};
+$('chassisSaveImageKey').onclick=()=>{
+ const provider=$('chassisImageProvider').value,entered=$('chassisImageKey').value.trim();
+ if(entered){keys[provider]=entered;$('chassisImageKey').value='';}
+ $('chassisImageStatus').textContent=keys[provider]?provider.toUpperCase()+' key ready in this tab.':'Paste a key first.';
+};
+$('chassisImageProvider').onchange=()=>{
+ const provider=$('chassisImageProvider').value;
+ $('chassisImageStatus').textContent=keys[provider]?provider+' key available in this tab.':'Enter a '+provider+' key for image generation.';
+};
+$('chassisCapture').onclick=()=>{try{chassisConceptImage=null;captureChassisReference(false);$('chassisUseReference').checked=true;syncChassisPreview('Wheel-free 3/4 body reference captured. Click the thumbnail to inspect.')}catch(e){$('chassisImageStatus').textContent=e.message}};
+$('chassisUpload').onclick=()=>{chassisConceptImage=null;$('chassisUseReference').checked=true;$('lux3dReferenceFile').click()};
+$('chassisReferenceClear').onclick=()=>{chassisConceptImage=null;imageReference=null;updateLuxReferencePreview();syncChassisPreview()};
+$('chassisImagePreviewButton').onclick=()=>{
+ const src=chassisConceptImage||imageReference;if(!src)return;
+ $('referenceImage').src=src;$('referenceCard').hidden=false;
+ $('lux3dPreviewReference').click();
+};
+// An uploaded reference uses the existing secure file input and is reflected in both panels.
+$('lux3dReferenceFile').addEventListener('change',()=>{chassisConceptImage=null;});
+$('chassisGenerateImage').onclick=async()=>{
+ const provider=$('chassisImageProvider').value;
+ const key=$('chassisImageKey').value.trim();if(key){keys[provider]=key;$('chassisImageKey').value='';}
+ if(!keys[provider]){$('chassisImageStatus').textContent='Enter a '+provider+' image API key first.';return}
+ const brief=$('chassisPrompt').value.trim();if(brief.length<12){$('chassisImageStatus').textContent='Describe the body shape first.';return}
+ ai.provider=provider;
+ ai.prompt='Photorealistic three-quarter automotive industrial design studio render. A single isolated exterior car BODY SHELL, no wheels, tyres, axles, chassis rails, people, seats or ground. Fully visible, perfectly framed, controlled studio lighting, clean background. '+brief;
+ imageEditMode=$('chassisUseReference').checked&&!!imageReference;
+ $('chassisImageStatus').textContent='Generating '+provider+' concept…';
+ const button=$('chassisGenerateImage');button.disabled=true;
+ try{const image=await generateImage();if(image){chassisConceptImage=image;syncChassisPreview(provider+' concept ready. Inspect the image, then optionally generate Lux3D model.');
+ $('lux3dUseReference').checked=true;}else $('chassisImageStatus').textContent='Image request failed. See app logs.';}
+ finally{button.disabled=false;imageEditMode=false;}
+};
+$('chassisLuxUseKey').onclick=()=>{
+ const k=$('chassisLuxKey').value.trim();if(k){keys.lux3d=k;$('chassisLuxKey').value='';}
+ $('chassis3DStatus').textContent=keys.lux3d?'Lux3D key ready in tab.':'Paste a Lux3D key first.';
+};
+$('chassisLuxTest').onclick=async()=>{
+ const k=$('chassisLuxKey').value.trim();if(k){keys.lux3d=k;$('chassisLuxKey').value='';}
+ if(!keys.lux3d){$('chassis3DStatus').textContent='Enter a Lux3D key first.';return}
+ const button=$('chassisLuxTest');button.disabled=true;$('chassis3DStatus').textContent='Checking Lux3D task list (read-only)…';
+ try{const result=await lux3dPost('/api/providers/lux3d/test',{key:keys.lux3d,region:$('chassisLuxRegion').value});
+ $('chassis3DStatus').textContent='Authenticated · tasks: '+(result.total_tasks??result.recent_tasks?.length??0)+'. No model generated.';}
+ catch(e){$('chassis3DStatus').textContent='Lux3D test failed: '+e.message;}
+ finally{button.disabled=false;}
+};
+$('chassisGenerate3D').onclick=()=>{
+ const k=$('chassisLuxKey').value.trim();if(k){keys.lux3d=k;$('chassisLuxKey').value='';}
+ if(!keys.lux3d){$('chassis3DStatus').textContent='Enter a Lux3D key first.';return}
+ if(!$('chassisSpendAck').checked){$('chassis3DStatus').textContent='Check the billable-generation confirmation first.';return}
+ const brief=$('chassisPrompt').value.trim();if(brief.length<12){$('chassis3DStatus').textContent='Describe the body shell first.';return}
+ const useImage=$('chassis3DReference').checked&&Boolean(chassisConceptImage||imageReference);
+ if(useImage)imageReference=chassisConceptImage||imageReference;
+ $('lux3dKey').value=keys.lux3d;$('lux3dComponent').value='chassis';$('lux3dPrompt').value=brief;
+ $('lux3dStyle').value=$('chassisLuxStyle').value;
+ $('lux3dModel').value=$('chassisLuxModel').value;
+ $('lux3dRegion').value=$('chassisLuxRegion').value;
+ $('lux3dUseReference').checked=useImage;
+ $('lux3dSpendAck').checked=true;$('lux3dAutoImport').checked=true;
+ $('chassis3DStatus').textContent='Sending approved body brief to Lux3D…';
+ $('chassisSpendAck').checked=false;
+ $('lux3dCreateForm').requestSubmit();
+};
+new MutationObserver(()=>{
+ if(!$('chassisCreative').hidden)$('chassis3DStatus').textContent=$('lux3dTaskStatus').textContent;
+}).observe($('lux3dTaskStatus'),{childList:true,characterData:true,subtree:true});
 for(const [id,field] of [['bodyRakeFront','frontRake'],['bodyRakeRear','rearRake'],['bodyRoofWidth','roofWidth']]){
  $(id).addEventListener('change',()=>{cfg[field]=clamp(Number($(id).value),field==='roofWidth'?.3:.04,field==='roofWidth'?1:1.8);if(!modelSource){buildVehicle()}scheduleHistory('Chassis '+field)});
 }

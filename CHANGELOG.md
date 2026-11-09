@@ -1,3 +1,24 @@
+# v0.3.8 — Meta Muse Image and self-contained chassis AI studio (2026-11-09)
+
+- Enable official Meta Muse Image (`muse-image-1.0`) image generation and reference-guided editing via the same Meta Model API bearer key used by the successful model-list test. Keep image requests profile-scoped and the credential in memory only.
+- Chassis Workshop now contains a visible 3D-design brief, four editable concept starters, image-provider selection (Meta/OpenAI/xAI), in-panel key entry, isolated wheel-free body capture/upload and actual image preview; generation uses the visible brief rather than an unexplained hard-coded generic prompt.
+- Provide reviewed concept-image → Lux3D G1/G1-Turbo workflow directly in Chassis Workshop, with configurable style/region, read-only key test, explicit paid-task authorization, visible polling status, and same-origin automatic GLB import that retains procedural wheels and physics.
+- Extend the compact wheel image-provider dropdown to Meta. Select the most recently tested image provider for later image generation; accept bounded provider image URLs from the verified xAI image CDN when the API does not return embedded base64.
+- Regression coverage checks duplicate IDs, form nesting, Meta image generation/edit request routing, chassis-workshop control wiring and retained Flask/SQLite functionality. No database migration, no installation of third-party server packages.
+- **Limits:** Actual provider image generation, billing, Lux3D conversion and imported GLB fit cannot be tested without the user's API keys and live browser. Successful read-only key tests do not guarantee image model entitlement.
+
+---
+
+# v0.3.7 — interpolated orbit cameras and stable grass (2026-11-09)
+
+- FIX: Orbit-follow now translates both camera and OrbitControls target by the same delta each frame, keeping the selected angle and zoom while following the moving car. Free stays stationary; driver stays vehicle-attached.
+- FIX: Store previous/current fixed-physics poses and interpolate rendered body and wheel positions to reduce visual micro-jitter at otherwise smooth frame rates.
+- FIX: Smart/chase terrain lift is temporary, not baked into OrbitControls pitch; add horizontal/vertical/clearance response controls.
+- FIX: Replace the periodically teleported grass circle with deterministic world-coordinate cells. Neighboring cells retain identical blade locations as the car crosses tile boundaries.
+- No backend or database changes. Live CDN-backed physics/browser driving is not independently verified in this environment.
+
+---
+
 # v0.3.6 — camera controls, dynamic parked vehicles, object editing, chassis library (2026-11-09)
 
 - Add stationary/free camera, terrain-aware following camera with orbit+zoom and mode label; remove top camera. Restore full vehicle pose at world origin on demand.
