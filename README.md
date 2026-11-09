@@ -1,6 +1,6 @@
 # Vehicle Lab — procedural 3D vehicle studio
 
-**Version 0.3.0 (2026-11-08)**. Browser-native modular vehicle editor built with Three.js, lil-gui, three alternative physics engines, optional GLB imports, Flask and SQLite. Project: https://github.com/sylwesterdigital/meta-vehicle-lab. Website: https://vehiclelab.xyz/.
+**Version 0.3.1 (2026-11-09)**. Browser-native modular vehicle editor built with Three.js, lil-gui, three alternative physics engines, optional GLB imports, Flask and SQLite. Project: https://github.com/sylwesterdigital/meta-vehicle-lab. Website: https://vehiclelab.xyz/.
 
 This README deliberately contains the **About, Install, Roadmap, Ideas and LLM Handover** sections in a single allowed release file. The current watcher validates an exact 15-file manifest, so adding standalone documentation to a watcher release without first migrating its manifest schema would reject the ZIP. A separate optional documentation archive contains those sections as individual Markdown files.
 
@@ -8,7 +8,7 @@ This README deliberately contains the **About, Install, Roadmap, Ideas and LLM H
 
 Vehicle Lab is a prototype for procedurally assembling visually plausible city cars, buses, municipal vehicles, heavy trucks, construction equipment, agricultural machinery and warehouse vehicles from parameterized hull modules and equipment. Parameters cover width/height/depth/scale/rotation/offset, body materials, wheels, axles, doors/windows, passenger slots, engines and driving physics. Modules can later be transferred into a shared 3D world as an independent blueprint generator. This is **not** an engineering-grade physics simulator.
 
-## Features through v0.3.0
+## Features through v0.3.1
 
 - Full-size Three.js canvas. Draggable, resizable, minimizable actions/tools/catalog/gallery/parameters/log windows. Right-side configuration and profile drawers, custom theme/typography and text/icon button modes.
 - Circular uploaded/webcam profile picture, optional passwordless identity, bearer-secret JSON backup. Credentials must remain private. Public gallery is **opt-in**; private layouts remain owner-scoped.
@@ -30,7 +30,7 @@ Vehicle Lab is a prototype for procedurally assembling visually plausible city c
 
 ## Run / install
 
-Place exactly **`META_VEHICLE_LAB_UPDATE_v0.3.0.zip`** in:
+Place exactly **`META_VEHICLE_LAB_UPDATE_v0.3.1.zip`** in:
 
 `/Users/smielniczuk/Documents/works/meta-vehicle-lab/updates/META_VEHICLE_LAB_UPDATE_v0.2.8.zip`
 
@@ -124,7 +124,7 @@ The last command writes `optimized.glb` and five 960x720 PNG renders (hero, fron
 6. Generate five previews; verify the full stage and orbit camera remain intact. Check private/public gallery visibility and cross-user ownership.
 7. Verify the offline Blender asset tool separately with a trusted, sufficiently small GLB before considering any public processing service.
 
-## Vehicle Lab 0.3.0 — operator guide
+## Vehicle Lab 0.3.1 — operator guide
 
 **Aerodynamics:** BUILD → Parameters → `01b · Aerodynamic glazing / roof`. `Front windshield rake m` and `Rear windshield rake m` independently change the front and back top-edge insets (positive Z is forward). `Upper cabin width ratio` tapers side windows. `Door opening type` selects outward `swing` or `gullwing`. Current doors are surface-level procedural geometry and animation rather than physically hinged rigid bodies or cut-through vehicle apertures. Exported blueprint uses `procedural-vehicle/v3` with new config keys.
 
@@ -143,3 +143,15 @@ The last command writes `optimized.glb` and five 960x720 PNG renders (hero, fron
 ## Outstanding production acceptance tests
 
 Test on actual HTTPS/WebGL hardware before deploying as a verified feature: wheel GLB imports using Draco/Meshopt, selection raycasts and rebuilt axle meshes, repeated BUILD ↔ DRIVE on Cannon/Rapier/Ammo, contact with each map obstacle, webcam/identity, public JPEG/PNG previews, browser viewport recovery after 5 captures, iOS/Android window dragging, profile backup recovery and WebXR headset teleport. This package has not been run with an external AI billing account and cannot confirm provider credit usage. Run server `python -m unittest discover -s tests -v` in the pinned Flask venv and watcher `--dry-run` before production installation.
+
+### v0.3.1 — Reference and map workflows
+
+**Generate a chassis without tyres:** Configuration → Lux3D → set model/style/prompt. Select **Capture body-only 3/4 view** to render an isolated, well-lit body shell, or **Upload reference image** to use PNG/JPEG/WebP. Verify the preview and **Include this reference image** before explicitly authorising a potentially chargeable task. This image is transmitted to Lux3D only on generation. Never submit a paid task merely to test an API key.
+
+**Load the resulting model:** On task success, Vehicle Lab attempts to import a GLB through the same-origin Flask endpoint `/api/providers/lux3d/import` when **Automatically import** is selected. The backend obtains the task's official temporary output URL after authenticating your profile and Lux3D key. It only accepts GLB and ZIP-with-GLB and only downloads from a restricted set of provider/CDN domains; unsupported providers or expired links require manual download/import. Result GLBs replace the visual vehicle shell, not its procedural suspension or wheels. Generated wheel GLBs go to the wheel workshop instead of the body.
+
+**Design a test map:** Open **Test map**, select **Relief / contours** or **Precision plan / symbols**, and use the narrow left-side icon toolbar. Every view stays exactly 1:1 independent of window resizing. Change footprint type, drag on the map, save locally or export JSON. Editing a map while driving rebuilds the physics world and restores the last vehicle pose/velocity. Temporary suspension resets/reconfiguration should be checked in each backend.
+
+**Access tokens:** Your passwordless Vehicle Lab profile authorizes private/public layouts and Lux3D import. Provider keys are separate, used only when contacting the selected provider, and kept in browser memory. Server-log access requires a distinct administrator token. Successful OpenAI model listing does not grant permission for admin logs.
+
+**Acceptance limitations:** No live generated model, signed provider result URL, CORS CDN, or driving physics roundtrip has been verified in a real deployed browser. These must be tested after deployment; version and syntax checks are not substitutes for full interaction testing.

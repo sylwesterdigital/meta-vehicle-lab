@@ -1,3 +1,14 @@
+# v0.3.1 — Lux3D reference workflows, direct GLB import, and precision test maps (2026-11-09)
+
+- Lux3D chassis generator now offers an explicit isolated body-only 3/4 reference capture (no wheels or passengers), photo upload, preview, clearing, and a clearly controlled include-reference checkbox. Capture uses an offscreen render target without resizing the main stage.
+- Completed tasks offer **Import into Vehicle Lab**, optionally automatic. An owner-authenticated same-origin Flask endpoint retrieves the finished task's GLB or safely extracts the GLB from a ZIP without re-uploading. A limited approved-provider CDN list, blocked private-network addresses, payload validation and 80 MiB limits restrict downloads. Official download links remain as a fallback.
+- Drive test map remains **square at any window size**; a left-side icon rail provides drawing tools. The map offers topographic shaded-relief/contour mode or geometric-plan mode, precise oval/circle/square/line footprints, a 10m grid, and a live coordinate readout.
+- Editing or loading a map during DRIVE preserves car position, orientation and linear velocity while terrain and obstacle physics colliders are reconstructed. Brief physics reconstruction may interrupt motion. A full running-frame browser acceptance pass is still required.
+- Better administrator-token error text distinguishes provider AI keys, profile identity, and admin-only server logs.
+- Tests: JavaScript syntax; desktop Chromium CSS/DOM checks for a 1:1 map at multiple window widths; Python storage and Nginx regressions. New Flask import endpoint tests require the server's pinned Python environment; **no live Lux3D generation or real CDN transfer was tested**.
+
+---
+
 # v0.3.0 — Aerodynamic vehicle geometry, wheel workbench, terrain maps and drive cinematics (2026-11-08)
 
 - Aerodynamic cabin loft: independent front/rear windshield rake and narrower upper roof, tapered side glazing, side window divisions and dedicated front/back glass panels; two explicit outward-opening door modes (side-hinged and gullwing). Procedural modules remain parametric.

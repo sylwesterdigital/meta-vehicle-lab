@@ -160,3 +160,58 @@ class Lux3DTests(unittest.TestCase):
         self.assertEqual(bad.status_code,400)
         unauth=self.client.post('/api/providers/lux3d/test',json={'key':'very-secret-test-key'})
         self.assertEqual(unauth.status_code,401)
+
+# A read-only provider task may return a GLB or a ZIP containing one. A distinct,
+# authenticated import action transfers the resulting model without the user
+# downloading and re-uploading it. Tests never contact or bill Lux3D.
+@unittest.skipIf(create_app is None,'Flask must be installed for API tests')
+class LuxImportTests(unittest.TestCase):
+    def setUp(self):
+        self.temp=tempfile.TemporaryDirectory()
+        self.addCleanup(self.temp.cleanup)
+        self.client=create_app({'TESTING':True,'DATA_DIR':self.temp.name,'API_TOKEN':'admin-test'}).test_client()
+        identity=self.client.post('/api/identity/guest',json={'name':'Import test'}).json
+        self.headers={'Authorization':'Bearer '+identity['token']}
+        self.body={'key':'test-key-with-8-chars','region':'international','task_id':'123'}
+
+    def test_import_requires_owner_and_completed_task(self):
+        from unittest.mock import patch
+        response=self.client.post('/api/providers/lux3d/import',json=self.body)
+        self.assertEqual(response.status_code,401)
+        with patch('backend.app.urllib.request.urlopen',return_value=_FakeLuxResponse(
+                {'c':'0','d':{'status':1,'outputs':[]}})) as upstream:
+            response=self.client.post('/api/providers/lux3d/import',headers=self.headers,json=self.body)
+        self.assertEqual(response.status_code,409)
+        upstream.assert_called_once()
+
+    def test_completed_glb_streamed_as_same_origin_without_browser_cors(self):
+        from unittest.mock import patch
+        glb=b'glTF'+(2).to_bytes(4,'little')+(20).to_bytes(4,'little')+b'abcdefgh'
+        with patch('backend.app.urllib.request.urlopen',return_value=_FakeLuxResponse(
+                {'c':'0','d':{'status':3,'outputs':[{'content':'https://assets.aholo.ai/123.glb'}]}})),\
+             patch('backend.app._download_lux_glb',return_value=glb) as download:
+            response=self.client.post('/api/providers/lux3d/import',headers=self.headers,json=self.body)
+        self.assertEqual(response.status_code,200,response.get_data(as_text=True) if response.status_code!=200 else '')
+        self.assertEqual(response.data,glb)
+        self.assertEqual(response.mimetype,'model/gltf-binary')
+        download.assert_called_once_with('https://assets.aholo.ai/123.glb')
+
+    def test_unknown_task_cannot_forward_to_arbitrary_network(self):
+        from unittest.mock import patch
+        with patch('backend.app.urllib.request.urlopen',return_value=_FakeLuxResponse(
+                {'c':'0','d':{'status':3,'outputs':[]}})),\
+             patch('backend.app._download_lux_glb') as download:
+            response=self.client.post('/api/providers/lux3d/import',headers=self.headers,json=self.body)
+        self.assertEqual(response.status_code,404)
+        download.assert_not_called()
+
+    def test_zip_glb_extraction_and_forbidden_result_urls(self):
+        from backend.app import _extract_lux_glb,_validate_lux_asset_url
+        import io, zipfile
+        glb=b'glTF'+(2).to_bytes(4,'little')+(20).to_bytes(4,'little')+b'abcdefgh'
+        content=io.BytesIO()
+        with zipfile.ZipFile(content,'w') as z:z.writestr('safe/model.glb',glb)
+        self.assertEqual(_extract_lux_glb(glb),glb)
+        self.assertEqual(_extract_lux_glb(content.getvalue()),glb)
+        with self.assertRaises(ValueError):_validate_lux_asset_url('https://127.0.0.1/internal.glb')
+        with self.assertRaises(ValueError):_validate_lux_asset_url('https://not-approved.example/test.glb')

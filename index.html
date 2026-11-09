@@ -5,7 +5,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Vehicle Lab — Procedural Studio</title>
-  <meta name="vehicle-lab-version" content="0.3.0">
+  <meta name="vehicle-lab-version" content="0.3.1">
   <style>
     :root {
       color-scheme:dark;
@@ -232,6 +232,7 @@
     #galleryWindow.dock-left{left:0!important;top:55px!important;width:min(340px,45vw)!important;height:calc(100dvh - 60px)!important}
     #galleryWindow.dock-right{right:0!important;left:auto!important;top:55px!important;width:min(340px,45vw)!important;height:calc(100dvh - 60px)!important}
     #galleryWindow.dock-bottom{left:10%!important;right:10%!important;top:auto!important;bottom:0!important;width:80%!important;height:min(270px,38dvh)!important}
+    #lux3dReferencePreview[hidden]{display:none!important}
     #lux3dSection .lux-diagnostics{border:1px solid #8099a7;padding:10px;border-radius:8px;color:#ecf5fc;background:#162a38;white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.55;margin:10px 0}
     #lux3dSection .lux-account{display:inline-block;color:#b9eaff;text-decoration:underline;font-size:12px;margin:7px 0}
     #lux3dSection .lux-divider{border-top:1px solid #678092;margin:15px 0}
@@ -285,7 +286,22 @@
     .theme-generator button{min-height:32px}
     @media(max-width:700px){#paletteWindow{left:8vw;top:12vh;width:min(340px,84vw);height:55vh}}
      #mapWindow{left:390px;top:95px;width:370px;height:540px}
-    #terrainMini{width:100%;max-width:100%;aspect-ratio:1;touch-action:none;cursor:crosshair;border:1px solid var(--pane-border);border-radius:8px}
+    #stage #terrainMini{display:block;width:100%;height:auto!important;aspect-ratio:1 / 1!important;min-height:0;max-height:none;flex:none;touch-action:none;cursor:crosshair;border:1px solid var(--pane-border);border-radius:7px;image-rendering:auto}
+    .map-workspace{display:grid;grid-template-columns:42px minmax(0,1fr);gap:7px;align-items:start;max-width:100%;margin-bottom:8px}
+    #mapToolRail{display:flex;flex-direction:column;gap:4px;align-self:start}
+    #mapToolRail button{display:grid;place-items:center;min-width:38px;height:38px;padding:3px;border-radius:7px;font:17px ui-monospace,monospace;min-height:38px}
+    #mapToolRail button[aria-pressed=true]{outline:2px solid #f2fbff;outline-offset:-3px}
+    .map-view-bar{display:flex;gap:6px;align-items:center;margin:0 0 7px}
+    .map-view-bar select{flex:1;min-width:0;padding:7px 8px}
+    .map-view-bar label{font-size:11px;display:flex;align-items:center;gap:5px}
+    #mapCoordinates{font:10px ui-monospace,monospace;opacity:.78}
+    .lux-reference{display:grid;grid-template-columns:84px minmax(0,1fr);gap:9px;margin:10px 0;align-items:center}
+    #lux3dReferencePreview{width:84px;height:84px;aspect-ratio:1;object-fit:contain;background:#192e3b;border:1px solid #728a9a;border-radius:8px}
+    .lux-reference small{font-size:11px;line-height:1.5;color:var(--text)}
+    .lux-reference-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px;margin:7px 0}
+    .lux-reference-actions button{min-width:0;white-space:normal}
+    #lux3dImportResult{margin:6px 0;width:100%}
+    @media(max-width:700px){#mapToolRail button{height:35px;min-height:35px}.map-workspace{grid-template-columns:36px minmax(0,1fr)}}
     .map-top{display:flex;align-items:center;gap:6px;margin-bottom:7px}
     .map-top input,.map-top select{flex:1;min-width:0;background:#132839;color:#f2f8fb;padding:7px;border-radius:6px}
     .map-top label{flex:1;min-width:0;display:grid;gap:3px;font-size:10px}
@@ -323,7 +339,7 @@
 
   <div id="stage">
   <div id="hud">
-    <div class="stage-badge"><strong>Vehicle Lab</strong><small>v0.3.0</small></div>
+    <div class="stage-badge"><strong>Vehicle Lab</strong><small>v0.3.1</small></div>
     <p id="vehicleName">City Car</p><p id="vehicleInfo">Procedural vehicle</p>
     <div id="speedHud"><strong id="speed">0</strong><div>km/h</div></div>
     <div id="physicsHud"><strong id="engineName">Cannon-es</strong> · <span id="physicsMode">BUILD</span>
@@ -385,13 +401,27 @@
    <div class="window-head"><strong>09 / Drive test map</strong><button class="mini-btn minimize" title="Minimize">−</button></div>
    <div class="window-body">
     <div class="map-top"><input id="mapName" maxlength="90" placeholder="Course name" value="Open practice ground"><button type="button" id="mapCenter">Follow car</button></div>
-    <canvas id="terrainMini" width="320" height="320" aria-label="Editable topographic map. Drag to place obstacles or hills."></canvas>
+    <div class="map-view-bar"><select id="mapView" aria-label="Map rendering mode"><option value="terrain">Relief / contours</option><option value="diagram">Precision plan / symbols</option></select><label><input type="checkbox" id="mapGrid" checked> Grid</label></div>
+    <div class="map-workspace"><nav id="mapToolRail" aria-label="Map drawing tools">
+      <button data-map-tool="select" aria-label="Inspect or follow vehicle" title="Inspect">⌖</button>
+      <button data-map-tool="hill" title="Draw terrain hill">▲</button>
+      <button data-map-tool="puddle" title="Draw water / puddle">◉</button>
+      <button data-map-tool="cone" title="Traffic cone">△</button>
+      <button data-map-tool="rock" title="Boulder">◆</button>
+      <button data-map-tool="barrier" title="Safety barrier">▰</button>
+      <button data-map-tool="cube" title="Cube obstacle">□</button>
+      <button data-map-tool="pyramid" title="Pyramid">◇</button>
+      <button data-map-tool="bridge" title="Bridge">≡</button>
+      <button data-map-tool="jump" title="Rally jump">↗</button>
+      <button data-map-tool="beam" title="Balance beam (static)">━</button>
+    </nav><canvas id="terrainMini" width="512" height="512" aria-label="Square editable test map: relief contours or geometric plan. Drag to draw exactly shaped obstacles."></canvas></div>
+    <div id="mapCoordinates" aria-live="polite">Map: 1:1 · coordinates in metres</div>
     <div class="map-top"><label>Tool<select id="mapTool"><option value="select">Pan / inspect</option><option value="hill">Draw hill</option><option value="puddle">Draw puddle</option><option value="cone">Traffic cone</option><option value="rock">Physical boulder</option><option value="barrier">Race barrier</option><option value="cube">Cube obstacle</option><option value="pyramid">Pyramid obstacle</option><option value="bridge">Raised bridge</option><option value="jump">Rally jump</option><option value="beam">Balance beam (static)</option></select></label>
       <label>Footprint<select id="mapShape"><option value="ellipse">Oval</option><option value="circle">Circle</option><option value="square">Square</option><option value="line">Line</option></select></label></div>
     <label>Height (m) <input id="mapHeight" type="range" min=".2" max="7" step=".1" value="2"><output id="mapHeightValue">2m</output></label>
     <div class="drawer-actions"><button id="mapUndo">Remove last</button><button id="mapClear">Clear objects</button><button id="mapSave">Save map</button><button id="mapExport">Export JSON</button><button id="mapImport">Import JSON</button></div>
     <div class="map-top"><select id="mapSaved" aria-label="Saved test map"><option>Loading maps...</option></select><button id="mapLoad">Load</button></div>
-    <small id="mapStatus">Draw on the map. Course obstacles have matching static physics colliders.</small>
+    <small id="mapStatus">Drag to draw the selected footprint. Edits in DRIVE rebuild physics at the car’s current position.</small>
    </div>
   </section>
   <section id="wheelWindow" class="float-window" aria-label="Selected wheel editor" style="display:none">
@@ -481,12 +511,17 @@
       <label>Model <select id="lux3dModel"><option value="G1">G1 · high quality GLB + ZIP</option><option value="G1-Turbo">G1-Turbo · fast GLB</option></select></label>
       <label>Style <select id="lux3dStyle"><option value="photorealistic">Photorealistic</option><option value="cartoon">Cartoon</option><option value="hand_painted">Hand painted</option><option value="cyberpunk">Cyberpunk</option><option value="anime">Anime</option><option value="fantasy">Fantasy</option></select></label>
       <label>Design instructions <textarea id="lux3dPrompt" rows="4" maxlength="1000" placeholder="Aerodynamic compact hatchback shell with a low nose, muscular shoulders, and clean wheel arches."></textarea></label>
-      <label class="lux-check"><input id="lux3dUseReference" type="checkbox"> Include current reference image (if uploaded)</label>
+      <div class="lux-reference-actions"><button type="button" id="lux3dCaptureReference">Capture body-only 3/4 view</button><button type="button" id="lux3dUploadReference">Upload reference image</button><button type="button" id="lux3dClearReference">Clear reference</button><button type="button" id="lux3dPreviewReference">View reference</button></div>
+      <input type="file" id="lux3dReferenceFile" accept="image/png,image/jpeg,image/webp" hidden>
+      <div class="lux-reference"><img id="lux3dReferencePreview" alt="Optional chassis-only reference preview" hidden><small id="lux3dReferenceInfo">No reference selected. Capture a wheel-free three-quarter image, or upload an image.</small></div>
+      <label class="lux-check"><input id="lux3dUseReference" type="checkbox"> Include this reference image with generation</label>
+      <label class="lux-check"><input id="lux3dAutoImport" type="checkbox" checked> Automatically import finished GLB into the vehicle (replace visual shell only)</label>
       <label class="lux-check"><input id="lux3dSpendAck" type="checkbox" required> I authorize starting a potentially billable 3D generation task.</label>
       <button type="submit" id="lux3dGenerate">Generate selected 3D component</button>
     </form>
     <div id="lux3dTaskStatus" class="lux-diagnostics" role="status" aria-live="polite">No task running.</div>
     <div id="lux3dDownloads" class="lux-downloads" hidden></div>
+    <button id="lux3dImportResult" type="button" hidden>Import completed GLB into editor</button>
     <p>Generated files are downloaded directly from provider links. Import a downloaded GLB with Vehicle Tools → Import GLB. Generated body meshes remain visual replacements; wheels/physics stay procedural. External model output and charges require a real provider key.</p>
   </details>
   <details><summary>Server logs (administrator only)</summary>
@@ -713,7 +748,7 @@ let ghostObject=null,ghostSamples=[],ghostElapsed=0,ghostTick=0;
  const serverAccess={token:''};
  let activeProfile=null,guestToken='',serverVisibility='private',adminLogToken='';
  const appEvents=[];
- const VERSION='0.3.0';
+ const VERSION='0.3.1';
  let imageReference=null,busyAI=false;
 
  // Keys remain in volatile memory. Never place credentials in a blueprint or IndexedDB.
@@ -1121,9 +1156,26 @@ function buildVegetation(){
 function updateVegetation(dt){if(grassMaterial){grassMaterial.uniforms.uTime.value=performance.now()*.001;
  grassMaterial.uniforms.uWind.value=cfg.vegetationWind??.65;
  if(car)grassMaterial.uniforms.uCar.value.copy(car.position)}}
-function refreshEnvironmentForMap(){
- if(mode==='drive')leaveDrive();buildTerrain();buildCourse();buildVegetation();clearTracks();
- buildVehicle();scheduleHistory('Test map edit');
+// Map editing preserves the vehicle's pose and velocity. Rebuilding physics is
+// necessary for modified terrain triangle colliders (new hills). Do not reset to origin.
+let resumeDrivePose=null,mapUpdating=false,mapRefreshQueued=false;
+async function refreshEnvironmentForMap(){
+ if(mapUpdating){mapRefreshQueued=true;return;}
+ mapUpdating=true;
+ const driving=mode==='drive';
+ try{
+  if(driving){resumeDrivePose=physics?.pose?.()||null;leaveDrive();}
+  buildTerrain();buildCourse();buildVegetation();clearTracks();buildVehicle();
+  if(driving&&resumeDrivePose){
+   // Engine initialization uses the saved world pose, including heading and velocity.
+   await enterDrive();
+  }
+  scheduleHistory('Test map edit');
+  drawMinimap();
+  $('mapStatus').textContent=(driving?'DRIVE restored at previous position · ':'')+
+    (cfg.courseObjects||[]).length+' test-map objects.';
+ }catch(error){note('Map rebuild: '+error.message,true)}
+ finally{mapUpdating=false;if(mapRefreshQueued){mapRefreshQueued=false;queueMicrotask(refreshEnvironmentForMap);}}
 }
 
 const grid=new THREE.GridHelper(180,90,0x61757f,0x314a57);
@@ -1981,9 +2033,12 @@ const wheelZ=axle=>{
 const pose=(p,q,v)=>({position:p,rotation:q,velocity:v});
 
 function makeCannonAdapter(){
+ const spawn=resumeDrivePose;
  const chassis=new CANNON.Body({mass:vehicleMass(),
-  position:new CANNON.Vec3(0,heightAt(0,0)+cfg.radius+.85,0),
+  position:new CANNON.Vec3(spawn?.position.x??0,spawn?.position.y??(heightAt(0,0)+cfg.radius+.85),spawn?.position.z??0),
   linearDamping:.13,angularDamping:.55});
+ if(spawn){chassis.quaternion.set(spawn.rotation.x,spawn.rotation.y,spawn.rotation.z,spawn.rotation.w);
+  chassis.velocity.set(spawn.velocity.x,spawn.velocity.y,spawn.velocity.z);}
  chassis.addShape(new CANNON.Box(new CANNON.Vec3(
   cfg.W*.44,Math.max(.23,cfg.H*.24),cfg.L*.44)),
   new CANNON.Vec3(0,-.07,0));
@@ -2070,9 +2125,11 @@ async function makeRapierAdapter(){
     .setTranslation(solid.x,solid.y,solid.z).setRotation({x:q.x,y:q.y,z:q.z,w:q.w}).setFriction(.93));}
 
   rw.integrationParameters.dt=FIXED_STEP;
+  const spawn=resumeDrivePose;
   const desc=R.RigidBodyDesc.dynamic()
-   .setTranslation(0,heightAt(0,0)+cfg.radius+.85,0)
+   .setTranslation(spawn?.position.x??0,spawn?.position.y??(heightAt(0,0)+cfg.radius+.85),spawn?.position.z??0)
    .setLinearDamping(.13).setAngularDamping(.55);
+  if(spawn){desc.setRotation(spawn.rotation).setLinvel(spawn.velocity.x,spawn.velocity.y,spawn.velocity.z);}
   const chassis=rw.createRigidBody(desc);
   const hx=cfg.W*.44,hy=Math.max(.23,cfg.H*.24),hz=cfg.L*.44;
   const originalMass=vehicleMass();
@@ -2212,12 +2269,15 @@ async function makeAmmoAdapter(){
   }
   const shape=own(new A.btBoxShape(v(cfg.W*.44,Math.max(.23,cfg.H*.24),cfg.L*.44)));
   const transform=own(new A.btTransform());transform.setIdentity();
-  transform.setOrigin(v(0,heightAt(0,0)+cfg.radius+.85,0));
+  const spawn=resumeDrivePose;
+  transform.setOrigin(v(spawn?.position.x??0,spawn?.position.y??(heightAt(0,0)+cfg.radius+.85),spawn?.position.z??0));
+  if(spawn)transform.setRotation(own(new A.btQuaternion(spawn.rotation.x,spawn.rotation.y,spawn.rotation.z,spawn.rotation.w)));
   const motion=own(new A.btDefaultMotionState(transform));
   const inertia=v(0,0,0);shape.calculateLocalInertia(vehicleMass(),inertia);
   chassis=own(new A.btRigidBody(own(new A.btRigidBodyConstructionInfo(vehicleMass(),motion,shape,inertia))));
   chassis.setActivationState(4);
   dynamics.addRigidBody(chassis);
+  if(spawn)chassis.setLinearVelocity(v(spawn.velocity.x,spawn.velocity.y,spawn.velocity.z));
   const tuning=own(new A.btVehicleTuning()),caster=own(new A.btDefaultVehicleRaycaster(dynamics));
   rayVehicle=own(new A.btRaycastVehicle(tuning,chassis,caster));
   rayVehicle.setCoordinateSystem(0,1,2);
@@ -2316,6 +2376,9 @@ async function enterDrive(){
   // A stale asynchronous Rapier load must not reactivate a dismissed drive.
   if(generation!==driveGeneration){adapter.destroy();return}
   physics=adapter;stepAccumulator=0;previousYaw=null;mode='drive';
+  if(resumeDrivePose){car.position.set(resumeDrivePose.position.x,resumeDrivePose.position.y,resumeDrivePose.position.z);
+   car.quaternion.set(resumeDrivePose.rotation.x,resumeDrivePose.rotation.y,resumeDrivePose.rotation.z,resumeDrivePose.rotation.w);
+   resumeDrivePose=null;}
   $('buildBtn').classList.remove('active');
   $('driveBtn').classList.add('active');
   $('speedHud').style.display='block';
@@ -3010,11 +3073,78 @@ function captureReference(){
  canvas.height=Math.max(1,Math.floor(source.height*s));
  canvas.getContext('2d').drawImage(source,0,0,canvas.width,canvas.height);
  imageReference=canvas.toDataURL('image/png');
+ updateLuxReferencePreview('Captured current view (contains complete scene)');
  $('referenceImage').src=imageReference;
  $('referenceCard').hidden=false;
  note('Reference captured from the current vehicle view.');
  return imageReference;
 }
+// This reference renders only the vehicle body in a separate transparent studio scene;
+// wheels, passengers, ground, grid and sky are never included. The stage renderer's
+// size / camera / viewport are preserved (no thumbnail resizing regression).
+function captureChassisReference(){
+ if(!car||!bodyRoot)throw Error('Build a vehicle body before taking its reference.');
+ const clean=new THREE.Scene();clean.background=new THREE.Color('#dce8ee');
+ clean.add(new THREE.HemisphereLight(0xffffff,0x5b7486,2.2));
+ for(const [x,y,z,power] of [[-6,9,8,135],[7,7,2,95],[1,9,-9,95]]){
+  const light=new THREE.PointLight(0xffffff,power,0);light.position.set(x,y,z);clean.add(light);
+ }
+ const shell=new THREE.Group();clean.add(shell);
+ // bodyRoot can be hidden when a GLB body has replaced it.
+ if(!bodyRoot.visible&&modelSource){
+  for(const child of car.children){if(child!==bodyRoot&&child.userData.externalModel)shell.add(child.clone(true));}
+ }else{shell.add(bodyRoot.clone(true));shell.children[0].visible=true;}
+ const bbox=new THREE.Box3().setFromObject(shell);
+ if(bbox.isEmpty())throw Error('No chassis geometry available for reference');
+ const center=bbox.getCenter(new THREE.Vector3()),size=bbox.getSize(new THREE.Vector3());
+ shell.position.sub(center);
+ const cam=new THREE.PerspectiveCamera(34,1,.08,200);
+ const r=Math.max(size.length()*.95,3.5);
+ cam.position.set(r*.80,r*.52,r*.96);cam.lookAt(0,0,0);
+ const rt=new THREE.WebGLRenderTarget(768,768,{depthBuffer:true,stencilBuffer:false});
+ const oldTarget=renderer.getRenderTarget(),oldViewport=renderer.getViewport(new THREE.Vector4());
+ const oldScissor=renderer.getScissor(new THREE.Vector4()),oldScissorTest=renderer.getScissorTest();
+ const oldClear=renderer.getClearColor(new THREE.Color()).clone(),oldAlpha=renderer.getClearAlpha();
+ try{
+  renderer.setRenderTarget(rt);renderer.setScissorTest(false);renderer.setViewport(0,0,768,768);
+  renderer.render(clean,cam);
+  const pixels=new Uint8Array(768*768*4);renderer.readRenderTargetPixels(rt,0,0,768,768,pixels);
+  const canvas=document.createElement('canvas');canvas.width=canvas.height=768;
+  const cx=canvas.getContext('2d'),image=cx.createImageData(768,768);
+  for(let y=0;y<768;y++)image.data.set(pixels.subarray((767-y)*768*4,(768-y)*768*4),y*768*4);
+  cx.putImageData(image,0,0);
+  imageReference=canvas.toDataURL('image/jpeg',.88); // under 2 MiB backend limit
+  updateLuxReferencePreview('Isolated body shell · front three-quarter · no wheels/occupants');
+  note('Body-only reference captured. Wheel and passenger geometry excluded.');
+  return imageReference;
+ }finally{
+  renderer.setRenderTarget(oldTarget);renderer.setViewport(oldViewport);
+  renderer.setScissor(oldScissor);renderer.setScissorTest(oldScissorTest);
+  renderer.setClearColor(oldClear,oldAlpha);rt.dispose();
+ }
+}
+function updateLuxReferencePreview(message='Reference ready'){
+ const img=$('lux3dReferencePreview');img.hidden=!imageReference;if(imageReference)img.src=imageReference;else img.removeAttribute('src');
+ $('lux3dReferenceInfo').textContent=imageReference?message:'No reference selected';
+ $('lux3dUseReference').checked=Boolean(imageReference);
+}
+$('lux3dCaptureReference').onclick=()=>{try{captureChassisReference()}catch(error){note(error.message,true)}};
+$('lux3dUploadReference').onclick=()=>$('lux3dReferenceFile').click();
+$('lux3dReferenceFile').onchange=async e=>{const f=e.target.files?.[0];if(!f)return;
+ try{
+  if(f.size>4*1024*1024||!['image/jpeg','image/png','image/webp'].includes(f.type))throw Error('Reference must be JPEG/PNG/WebP, below 4 MB.');
+  const source=await createImageBitmap(f);const canvas=document.createElement('canvas');
+  const scale=Math.min(1,1024/Math.max(source.width,source.height));
+  canvas.width=Math.round(source.width*scale);canvas.height=Math.round(source.height*scale);
+  canvas.getContext('2d').drawImage(source,0,0,canvas.width,canvas.height);source.close?.();
+  imageReference=canvas.toDataURL('image/jpeg',.83);
+  if(imageReference.length>2*1024*1024)throw Error('Reference cannot be compressed under 2MB.');
+  updateLuxReferencePreview('Uploaded '+f.name+' · '+canvas.width+'×'+canvas.height);
+ }catch(error){note(error.message,true)}finally{e.target.value=''};
+};
+$('lux3dClearReference').onclick=()=>{imageReference=null;updateLuxReferencePreview()};
+$('lux3dPreviewReference').onclick=()=>{if(!imageReference){note('Add a reference first.',true);return}
+ $('referenceImage').src=imageReference;$('referenceCard').hidden=false;};
 $('closeReference').onclick=()=>$('referenceCard').hidden=true;
 $('importImage').onchange=e=>{
  const file=e.target.files?.[0];if(!file)return;
@@ -3022,6 +3152,7 @@ $('importImage').onchange=e=>{
  const reader=new FileReader();
  reader.onload=()=>{
   imageReference=reader.result;
+  updateLuxReferencePreview('Uploaded AI reference image');
   $('referenceImage').src=imageReference;
   $('referenceCard').hidden=false;
   note('Reference image loaded.');
@@ -3442,7 +3573,7 @@ library.close();
 
 /* Admin/server-token compatibility settings remain accessible via the config drawer.
 const serverFolder=gui.addFolder('12 · SQLite server');
-const access=serverFolder.add(serverAccess,'token').name('Access token');
+const access=serverFolder.add(serverAccess,'token').name('Legacy admin layout token');
 const tokenInput=access.domElement.querySelector('input');
 if(tokenInput){tokenInput.type='password';tokenInput.autocomplete='off';tokenInput.spellcheck=false;}
 serverFolder.add({refresh:()=>refreshServer().catch(e=>note(e.message,true))},'refresh').name('Refresh SQLite');
@@ -3767,48 +3898,143 @@ $('wheelLux3D').onclick=()=>{wheelAiPrompt();showDrawer('config');$('lux3dSectio
 
 // Map canvas: 2D topographic drawing, common descriptor format and IndexedDB gallery.
 const MAP_STORE='test-maps',courseCanvas=$('terrainMini'),courseContext=courseCanvas.getContext('2d');
+const MAP_RES=512;
 let courseCache=null,courseDrag=null,courseFollow=true;
 function worldMapPoint(e){const r=courseCanvas.getBoundingClientRect();
- return {x:clamp((e.clientX-r.left)/r.width,0,1)*SIZE-SIZE/2,
- z:clamp((e.clientY-r.top)/r.height,0,1)*SIZE-SIZE/2};}
-function mapScreen(x,z){return {x:(x/SIZE+.5)*courseCanvas.width,y:(z/SIZE+.5)*courseCanvas.height}}
+ const dim=Math.min(r.width,r.height),left=r.left+(r.width-dim)/2,top=r.top+(r.height-dim)/2;
+ return {x:clamp((e.clientX-left)/dim,0,1)*SIZE-SIZE/2,
+ z:clamp((e.clientY-top)/dim,0,1)*SIZE-SIZE/2};}
+function mapScreen(x,z){return {x:(x/SIZE+.5)*MAP_RES,y:(z/SIZE+.5)*MAP_RES}}
 function updateMinimapBackground(){courseCache=null}
+function hillElevation(x,z){const o={...cfg};return heightAt(x,z)}
+function createMapRelief(){
+ const off=document.createElement('canvas');off.width=off.height=MAP_RES;
+ const c=off.getContext('2d'),image=c.createImageData(MAP_RES,MAP_RES),h=new Float32Array(MAP_RES*MAP_RES);
+ const diagram=$('mapView').value==='diagram';
+ const colors=cfg.groundSurface==='sand'?[191,165,119]:cfg.groundSurface==='asphalt'?[76,90,103]:[83,125,92];
+ for(let j=0;j<MAP_RES;j++)for(let i=0;i<MAP_RES;i++){
+  const x=(i/(MAP_RES-1)-.5)*SIZE,z=(j/(MAP_RES-1)-.5)*SIZE;
+  h[j*MAP_RES+i]=diagram?0:heightAt(x,z);
+ }
+ const light=[-.46,-.43],heightScale=MAP_RES/SIZE;
+ for(let j=0;j<MAP_RES;j++)for(let i=0;i<MAP_RES;i++){
+  const k=j*MAP_RES+i,p=k*4,height=h[k];
+  const dx=(h[j*MAP_RES+Math.min(i+2,MAP_RES-1)]-h[j*MAP_RES+Math.max(i-2,0)])*heightScale*.25;
+  const dz=(h[Math.min(j+2,MAP_RES-1)*MAP_RES+i]-h[Math.max(j-2,0)*MAP_RES+i])*heightScale*.25;
+  const hillshade=diagram?1:clamp(.88+(dx*light[0]+dz*light[1])*.48,.47,1.38);
+  const tint=diagram?0:Math.min(1,height/13)*.27;
+  for(let b=0;b<3;b++)image.data[p+b]=Math.min(255,Math.max(0,(colors[b]*(1-tint)+[205,198,165][b]*tint)*hillshade));
+  image.data[p+3]=255;
+ }
+ c.putImageData(image,0,0);
+ if(!diagram){ // 1m elevation isolines; marching squares on a sampled height field
+  c.lineWidth=.85;c.strokeStyle='rgba(18,46,48,.58)';
+  const step=4;
+  for(let j=0;j<MAP_RES-step;j+=step)for(let i=0;i<MAP_RES-step;i+=step){
+   const v=[h[j*MAP_RES+i],h[j*MAP_RES+i+step],h[(j+step)*MAP_RES+i+step],h[(j+step)*MAP_RES+i]];
+   const lowest=Math.ceil(Math.min(...v)),highest=Math.floor(Math.max(...v));
+   for(let level=lowest;level<=highest;level++){
+    if(level<-.5)continue;
+    const edges=[];
+    for(const [a,b,x1,y1,x2,y2] of [[0,1,i,j,i+step,j],[1,2,i+step,j,i+step,j+step],
+      [2,3,i+step,j+step,i,j+step],[3,0,i,j+step,i,j]]){
+     if((v[a]<level)!==(v[b]<level)){
+      const t=(level-v[a])/(v[b]-v[a]||1);
+      edges.push([x1+(x2-x1)*t,y1+(y2-y1)*t]);
+     }
+    }
+    if(edges.length>=2){c.beginPath();c.moveTo(...edges[0]);c.lineTo(...edges[1]);c.stroke();}
+    if(edges.length===4){c.beginPath();c.moveTo(...edges[2]);c.lineTo(...edges[3]);c.stroke();}
+   }
+  }
+ }
+ return off;
+}
+function drawMapFootprint(c,obj,outline=false){
+ const {x,y}=mapScreen(obj.x,obj.z),w=Math.max(2,(obj.w||1)/SIZE*MAP_RES),d=Math.max(2,(obj.d||1)/SIZE*MAP_RES);
+ c.save();c.translate(x,y);c.rotate((obj.angle||0)*Math.PI/180);
+ c.beginPath();
+ const shape=obj.shape||'ellipse',line=shape==='line',square=shape==='square',circle=shape==='circle';
+ if(line){c.rect(-w/2,-Math.max(2,d*.07),w,Math.max(3,d*.14));}
+ else if(square){c.rect(-w/2,-d/2,w,d)}
+ else {c.ellipse(0,0,w/2,circle?w/2:d/2,0,0,Math.PI*2)}
+ const colors={hill:['#d6bb83','#5b5139'],puddle:['#369fc5','#c4f8ff'],cone:['#fa8f44','#67371e'],
+  rock:['#a4a6a1','#3a4a50'],barrier:['#ffffff','#e85834'],bridge:['#698bab','#102f46'],jump:['#e2ae69','#674828'],
+  cube:['#9fb9da','#38516a'],pyramid:['#cfaa68','#59422b'],beam:['#e1c57c','#6d4d28']};
+ const [fill,stroke]=colors[obj.kind]||colors.cube;
+ c.fillStyle=outline?'#ffffff33':fill;c.strokeStyle=outline?'#ffffff':stroke;
+ c.lineWidth=outline?2.5:2;c.setLineDash(outline?[6,4]:[]);c.fill();c.stroke();c.setLineDash([]);
+ if(!outline){
+  if(obj.kind==='hill'){
+   for(const fraction of [.75,.48,.22]){
+    c.beginPath();c.ellipse(0,0,w*fraction/2,(circle?w:d)*fraction/2,0,0,Math.PI*2);
+    c.lineWidth=.9;c.strokeStyle='#695532cc';c.stroke();
+   }
+   c.fillStyle='#2a3539';c.font='bold 10px ui-monospace';c.textAlign='center';c.fillText((obj.h||2).toFixed(1)+'m',0,3);
+  }else if(obj.kind==='puddle'){
+   c.beginPath();c.ellipse(0,0,w*.42,(circle?w:d)*.40,0,0,Math.PI*2);c.strokeStyle='#d8faff';c.lineWidth=1.2;c.stroke();
+  }else if(['bridge','barrier','jump','beam'].includes(obj.kind)){
+   c.beginPath();c.moveTo(-w*.35,-d*.25);c.lineTo(w*.35,d*.25);c.strokeStyle='#1f3742';c.lineWidth=2;c.stroke();
+  }else if(obj.kind==='cone'){
+   c.fillStyle='#fff7d4';c.beginPath();c.moveTo(0,-5);c.lineTo(5,5);c.lineTo(-5,5);c.fill();
+  }
+ }
+ c.restore();
+}
 function drawMinimap(){
  if(!courseContext||!courseCanvas)return;
- if(!courseCache){const off=document.createElement('canvas');off.width=off.height=128;
-  const c=off.getContext('2d'),image=c.createImageData(128,128);
-  for(let y=0;y<128;y++)for(let x=0;x<128;x++){
-   const wx=(x/127-.5)*SIZE,wz=(y/127-.5)*SIZE,h=heightAt(wx,wz);
-   const base=cfg.groundSurface==='sand'?[193,166,110]:cfg.groundSurface==='asphalt'?[72,81,90]:[63,113,77];
-   const strength=clamp(h/10,0,1);const p=(y*128+x)*4;
-   image.data[p]=base[0]+strength*80;image.data[p+1]=base[1]+strength*55;
-   image.data[p+2]=base[2]+strength*70;image.data[p+3]=255;
-  }c.putImageData(image,0,0);courseCache=off;
+ if(!courseCache)courseCache=createMapRelief();
+ const c=courseContext,w=MAP_RES;c.clearRect(0,0,w,w);c.drawImage(courseCache,0,0,w,w);
+ if($('mapGrid').checked){
+  const division=10;const spacing=division/SIZE*w;
+  c.save();c.lineWidth=.8;c.strokeStyle='rgba(17,48,57,.35)';c.font='10px ui-monospace';c.fillStyle='#f8f8ed';
+  for(let i=Math.ceil(-SIZE/2/division)*division;i<=SIZE/2;i+=division){
+   const sx=(i/SIZE+.5)*w;c.beginPath();c.moveTo(sx,0);c.lineTo(sx,w);c.stroke();
+   const sy=sx;c.beginPath();c.moveTo(0,sy);c.lineTo(w,sy);c.stroke();
+  }
+  const p0=mapScreen(0,0);c.lineWidth=1.8;c.strokeStyle='#e3f3e899';
+  c.beginPath();c.moveTo(p0.x,0);c.lineTo(p0.x,w);c.moveTo(0,p0.y);c.lineTo(w,p0.y);c.stroke();
+  c.fillText('N ↑',w-34,16);c.fillText('10m GRID',9,w-10);c.restore();
  }
- const c=courseContext,w=courseCanvas.width;c.clearRect(0,0,w,w);c.drawImage(courseCache,0,0,w,w);
- for(const obj of cfg.courseObjects||[]){const center=mapScreen(obj.x,obj.z);
-  const rw=obj.w/SIZE*w,rh=obj.d/SIZE*w;
-  c.beginPath();c.ellipse(center.x,center.y,Math.max(3,rw/2),Math.max(3,rh/2),0,0,Math.PI*2);
-  c.fillStyle=obj.kind==='puddle'?'#207d9f9c':obj.kind==='hill'?'#d8bd73a8':'#d8e7f3c2';c.fill();
-  c.strokeStyle='#132d38';c.stroke();
+ for(const obj of cfg.courseObjects||[])drawMapFootprint(c,obj);
+ if(courseDrag){const kind=$('mapTool').value,start=courseDrag.start,end=courseDrag.end;
+  if(kind!=='select')drawMapFootprint(c,mapObjectForDrag(start,end,kind),true);
  }
- if(car&&courseFollow){const point=mapScreen(car.position.x,car.position.z),yaw=new THREE.Euler().setFromQuaternion(car.quaternion,'YXZ').y;
-  c.save();c.translate(point.x,point.y);c.rotate(yaw);c.fillStyle='#ffe293';
-  c.beginPath();c.moveTo(0,9);c.lineTo(-6,-7);c.lineTo(6,-7);c.closePath();c.fill();c.restore();
+ if(car){const point=mapScreen(car.position.x,car.position.z),yaw=new THREE.Euler().setFromQuaternion(car.quaternion,'YXZ').y;
+  c.save();c.translate(point.x,point.y);c.rotate(yaw);c.fillStyle='#ffe69c';c.strokeStyle='#132532';c.lineWidth=2;
+  c.beginPath();c.moveTo(0,11);c.lineTo(-7,-9);c.lineTo(7,-9);c.closePath();c.fill();c.stroke();c.restore();
  }
- if(courseDrag){const center=mapScreen((courseDrag.start.x+courseDrag.end.x)/2,(courseDrag.start.z+courseDrag.end.z)/2);
-  c.strokeStyle='#ffffff';c.lineWidth=2;c.setLineDash([5,3]);c.strokeRect(center.x-Math.abs(courseDrag.end.x-courseDrag.start.x)/SIZE*w/2,
-   center.y-Math.abs(courseDrag.end.z-courseDrag.start.z)/SIZE*w/2,
-   Math.abs(courseDrag.end.x-courseDrag.start.x)/SIZE*w,Math.abs(courseDrag.end.z-courseDrag.start.z)/SIZE*w);c.setLineDash([]);
+}
+$('mapView').onchange=()=>{updateMinimapBackground();drawMinimap()};
+$('mapGrid').onchange=drawMinimap;
+const mapRail=$('mapToolRail');
+function syncMapTool(){for(const btn of mapRail.querySelectorAll('button[data-map-tool]'))
+ btn.setAttribute('aria-pressed',String(btn.dataset.mapTool===$('mapTool').value));}
+for(const btn of mapRail.querySelectorAll('button[data-map-tool]'))btn.onclick=()=>{
+ $('mapTool').value=btn.dataset.mapTool;syncMapTool();};
+$('mapTool').onchange=syncMapTool;syncMapTool();
+courseCanvas.addEventListener('pointermove',e=>{
+ const p=worldMapPoint(e);$('mapCoordinates').textContent='X '+p.x.toFixed(1)+'m · Z '+p.z.toFixed(1)+'m · '+$('mapShape').selectedOptions[0].textContent;
+});
+function mapObjectForDrag(a,b,kind){
+ const shape=$('mapShape').value,point=kind==='cone',solid=!['hill','puddle'].includes(kind);
+ const maxSize=solid?18:Math.min(SIZE,120),minSize=point?.6:1.5;
+ let w=clamp(Math.abs(b.x-a.x),minSize,maxSize),d=clamp(Math.abs(b.z-a.z),minSize,maxSize),angle=0;
+ if(shape==='circle'||shape==='square'){w=d=Math.max(w,d);}
+ if(shape==='line'){
+  w=clamp(Math.hypot(b.x-a.x,b.z-a.z),minSize,maxSize);
+  d=kind==='hill'||kind==='puddle'?Math.max(1,w*.10):.7;
+  angle=Math.atan2(b.z-a.z,b.x-a.x)*180/Math.PI;
  }
+ // All dimensions correspond to the physical terrain/solid descriptor bounds.
+ return {id:crypto.randomUUID(),kind,x:(a.x+b.x)/2,z:(a.z+b.z)/2,w,d,
+  h:Number($('mapHeight').value)||2,shape,angle};
 }
 function applyCourseDraw(a,b){
  const kind=$('mapTool').value;if(kind==='select')return;
- const w=Math.max(kind==='cone'?.6:1.5,Math.abs(b.x-a.x)),d=Math.max(kind==='cone'?.6:1.5,Math.abs(b.z-a.z));
- const x=(a.x+b.x)/2,z=(a.z+b.z)/2,h=Number($('mapHeight').value)||2;
- const o={id:crypto.randomUUID(),kind,x,z,w,d,h,shape:$('mapShape').value,angle:0};
- if(kind==='barrier'||kind==='jump'||kind==='beam'){
-  if(w>d*1.5){o.angle=90;o.w=d;o.d=w}
+ const o=mapObjectForDrag(a,b,kind);const {x,z}=o;
+ if(['barrier','jump','beam'].includes(kind)&&o.shape!=='line'&&o.w>o.d*1.5){
+  const oldW=o.w;o.w=o.d;o.d=oldW;o.angle=90;
  }
  if((cfg.courseObjects||[]).length>=140){note('Maximum 140 course objects.',true);return}
  cfg.courseObjects.push(o);refreshEnvironmentForMap();
@@ -4193,7 +4419,7 @@ async function refreshLogs(){
   const response=await fetch('/api/admin/logs?limit=250',{
    headers:{Authorization:'Bearer '+adminLogToken},cache:'no-store'});
   const data=await response.json().catch(()=>({}));
-  if(!response.ok)throw Error(data.error||'Server logs unavailable');
+  if(!response.ok)throw Error(response.status===401?'Server logs require a Vehicle Lab administrator token. OpenAI/Lux3D keys cannot authorize server logs.':(data.error||'Server logs unavailable'));
   displayedServerLogs=data.lines||[];
  }renderLogs();
 }
@@ -4542,6 +4768,13 @@ $('galleryRefreshBtn').onclick=refreshGallery;
 $('layoutPublic').onchange=()=>{serverVisibility=$('layoutPublic').checked?'public':'private'};
 
 const RELEASE_NOTES=[
+ {v:'0.3.1',date:'2026-11-09',title:'Reference-guided Lux3D import and cartographic drive-map editor',items:[
+  'Capture a wheel-free chassis-only three-quarter reference in an offscreen studio, or upload a reference image; preview and explicitly choose whether to send it.',
+  'Import successfully generated GLB (or ZIP containing a GLB) directly through an authenticated, restricted same-origin server transfer; provider result links remain available.',
+  'Square 1:1 minimap at any panel size, detailed relief / topographic contours or precision plan, 10-metre grid, and left-edge map-drawing tool rail.',
+  'Accurate oval, circular, square and linear footprint previews with readable hill and water contours; map edits preserve drive position, heading and velocity.',
+  'Differentiate vehicle-profile access, provider keys and administrator-only server logs; no generation is triggered by read-only credential tests.'
+ ]},
  {v:'0.2.9',date:'2026-11-08',title:'Lux3D chassis generation and read-only API verification',items:[
   'Separate Lux3D key diagnostics via documented read-only task-list call; no generation or credits consumed by test.',
   'AI 3D component prompt presets for body shell without wheels, bumpers, front and rear lamps.',
@@ -4636,7 +4869,7 @@ $('testProviderKey').onclick=async()=>{
 
 // Lux3D OpenAPI: read-only account task-list test and explicit, potentially billable task creation.
 // Authentication key stays in memory; no key, result URL or credential enters a blueprint.
-let lux3dTask=null,lux3dPolling=false;
+let lux3dTask=null,lux3dPolling=false,lux3dCompleted=null;
 const lux3dComponentPrompts={
  chassis:'An aerodynamic passenger car exterior body shell without any wheels, tyres, axles or suspension; sculpted roof, wheel arches, windows and doors.',
  bumper:'A standalone front bumper for a modular passenger car, no whole car or wheels, clean attachment interface.',
@@ -4677,10 +4910,12 @@ $('lux3dCreateForm').onsubmit=async e=>{
  const component=$('lux3dComponent').value;
  const description=$('lux3dPrompt').value.trim();
  const prompt=(lux3dComponentPrompts[component]||lux3dComponentPrompts.chassis)+' '+description;
+ if($('lux3dUseReference').checked&&!imageReference){$('lux3dTaskStatus').textContent='Capture or upload a reference before generating.';return;}
  const reference=$('lux3dUseReference').checked?imageReference:null;
  const submit=$('lux3dGenerate');submit.disabled=true;busyAI=true;
  $('lux3dTaskStatus').textContent='Submitting potentially billable Lux3D task…';
  $('lux3dDownloads').hidden=true;$('lux3dDownloads').replaceChildren();
+  $('lux3dImportResult').hidden=true;lux3dCompleted=null;
  try{
   const task=await lux3dPost('/api/providers/lux3d/create',{key,region:$('lux3dRegion').value,
    prompt,component,style:$('lux3dStyle').value,version:$('lux3dModel').value,reference_image:reference,
@@ -4699,7 +4934,8 @@ async function pollLux3d(taskId,region,key){
    if(i)await new Promise(resolve=>setTimeout(resolve,4000));
    const data=await lux3dPost('/api/providers/lux3d/status',{key,region,task_id:taskId});
    if(data.state==='success'){
-    $('lux3dTaskStatus').textContent='Task '+taskId+' completed. Download GLB/ZIP below; import GLB to replace the procedural body.';
+    lux3dCompleted={task_id:taskId,region,key,component:lux3dTask?.component||'chassis'};
+    $('lux3dTaskStatus').textContent='Task '+taskId+' finished. GLB available for direct import; ZIP can be retrieved if GLB is inside.';
     const regionData=$('lux3dDownloads');regionData.replaceChildren();
     for(const url of data.download_urls||[]){
      try{
@@ -4708,7 +4944,13 @@ async function pollLux3d(taskId,region,key){
       link.textContent='Download '+(parsed.pathname.toLowerCase().endsWith('.glb')?'GLB':parsed.pathname.toLowerCase().endsWith('.zip')?'ZIP':'3D result')+' ↗';regionData.append(link);
      }catch{}
     }
-    regionData.hidden=false;return;
+    regionData.hidden=false;
+    $('lux3dImportResult').hidden=false;
+    if($('lux3dAutoImport').checked){
+     try{await importLux3dResult();}
+     catch(error){$('lux3dTaskStatus').textContent='3D task completed, but automatic import failed: '+error.message+' · use download links or retry import.';}
+    }
+    return;
    }
    if(data.state==='failed'||data.state==='canceled')throw Error('Lux3D task '+data.state);
    $('lux3dTaskStatus').textContent='Lux3D task '+taskId+': '+data.state+' · '+(i+1)+' checks';
@@ -4716,6 +4958,33 @@ async function pollLux3d(taskId,region,key){
   throw Error('Polling timed out; task '+taskId+' may still be active. Check Lux3D task history.');
  }finally{lux3dPolling=false}
 }
+// Imported GLB goes through the owner-authenticated Flask proxy: the browser
+// never needs CORS permission from Lux3D's temporary signed download URL.
+async function importLux3dResult(){
+ const task=lux3dCompleted;
+ if(!task)throw Error('No finished Lux3D result to import.');
+ const button=$('lux3dImportResult');button.disabled=true;
+ try{
+  $('lux3dTaskStatus').textContent='Receiving GLB securely through Vehicle Lab backend…';
+  const response=await fetch('/api/providers/lux3d/import',{method:'POST',cache:'no-store',credentials:'same-origin',
+   headers:{'Content-Type':'application/json',...authHeaders()},
+   body:JSON.stringify({key:task.key,region:task.region,task_id:task.task_id})});
+  if(!response.ok){const err=await response.json().catch(()=>({}));throw Error(err.error||'GLB transfer HTTP '+response.status)}
+  const contentLength=Number(response.headers.get('Content-Length')||0);
+  if(contentLength>80*1024*1024)throw Error('Generated GLB exceeds 80MB.');
+  const blob=await response.blob();
+  if(blob.size>80*1024*1024)throw Error('Generated GLB exceeds the importer limit.');
+  if(task.component==='wheel'){
+   // A generated wheel should not accidentally replace the whole car body.
+   await storeWheelAsset(new File([blob],`Lux3D-${task.task_id}.glb`,{type:'model/gltf-binary'}),'wheel');
+  }else{
+   await loadGLB(blob,`Lux3D-${task.task_id}.glb`);
+  }
+  $('lux3dTaskStatus').textContent='✓ Lux3D task '+task.task_id+' imported directly into editor ('+(blob.size/1048576).toFixed(1)+' MiB). Procedural wheels / physics preserved.';
+  note('Lux3D GLB imported from verified result, without manual download.');
+ }finally{button.disabled=false}
+}
+$('lux3dImportResult').onclick=()=>void importLux3dResult().catch(error=>note('Lux3D import failed: '+error.message,true));
 const SHORTCUTS=[
  ['Undo last edit','⌘/Ctrl + Z','undo'],['Redo edit','⌘/Ctrl + Shift + Z','redo'],
  ['Redo (alternate)','Ctrl + Y','redo'],['Keyboard shortcuts','⌘/Ctrl + /','help'],

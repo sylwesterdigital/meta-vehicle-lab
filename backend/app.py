@@ -10,6 +10,10 @@ import uuid
 import io
 import logging
 import time
+import zipfile
+import socket
+import ipaddress
+from urllib.parse import urlsplit
 import urllib.error
 import urllib.request
 from logging.handlers import RotatingFileHandler
@@ -22,6 +26,81 @@ from .storage import InvalidLayout, StaleLayout, Storage, validate_uuid
 
 PROJECT_ROOT=Path(__file__).resolve().parents[1]
 MAX_ASSET=80*1024*1024
+
+
+
+# Results are provider-issued, short-lived URLs obtained from an authenticated
+# task-status query. Never accept an arbitrary URL supplied by the browser.
+_LUX_CDN_SUFFIXES=(
+    '.aholo.ai', '.aholo3d.cn', '.kujiale.com', '.kujiale.cn',
+    '.aliyuncs.com', '.cloudfront.net', '.amazonaws.com',
+    '.myqcloud.com', '.qcloud.com', '.qunhe.com', '.qunhe.com.cn',
+)
+
+class _RejectRedirect(urllib.request.HTTPRedirectHandler):
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        return None
+
+def _validate_lux_asset_url(url):
+    parsed=urlsplit(url)
+    host=(parsed.hostname or '').lower().rstrip('.')
+    if (parsed.scheme!='https' or parsed.username or parsed.password or
+        parsed.port not in (None,443) or not host or len(url)>4096 or
+        not any(host.endswith(suffix) or host==suffix[1:] for suffix in _LUX_CDN_SUFFIXES)):
+        raise ValueError('Lux3D result host is not on the approved provider CDN list')
+    try:
+        addresses=socket.getaddrinfo(host,443,type=socket.SOCK_STREAM)
+        if not addresses:
+            raise ValueError('Result URL could not be resolved')
+        for entry in addresses:
+            ip=ipaddress.ip_address(entry[4][0])
+            if not ip.is_global:
+                raise ValueError('Result URL resolves to a non-public network address')
+    except (socket.gaierror,OSError) as exc:
+        raise ValueError('Provider result host resolution failed') from exc
+    return url
+
+def _extract_lux_glb(blob):
+    # No filesystem extraction and no trusting ZIP sizes/paths. Avoid zip bombs.
+    if blob[:4]==b'glTF':
+        glb=blob
+    elif blob[:4]==b'PK\x03\x04':
+        try:
+            with zipfile.ZipFile(io.BytesIO(blob)) as archive:
+                items=[i for i in archive.infolist() if not i.is_dir() and i.filename.lower().endswith('.glb')]
+                if len(archive.infolist())>256 or not items:
+                    raise ValueError('Lux3D ZIP does not contain a GLB model')
+                item=min(items,key=lambda i:i.file_size)
+                if item.file_size>MAX_ASSET or item.file_size<20:
+                    raise ValueError('Lux3D ZIP GLB is outside allowed size')
+                with archive.open(item) as input_file:
+                    glb=input_file.read(MAX_ASSET+1)
+        except (zipfile.BadZipFile,RuntimeError) as exc:
+            raise ValueError('Lux3D returned an invalid ZIP') from exc
+    else:
+        raise ValueError('Lux3D result is neither GLB nor ZIP')
+    if (len(glb)<20 or len(glb)>MAX_ASSET or glb[:4]!=b'glTF' or
+        int.from_bytes(glb[4:8],'little')!=2 or
+        int.from_bytes(glb[8:12],'little')!=len(glb)):
+        raise ValueError('Lux3D GLB header or length is invalid')
+    return glb
+
+def _download_lux_glb(url):
+    url=_validate_lux_asset_url(url)
+    opener=urllib.request.build_opener(_RejectRedirect())
+    request_obj=urllib.request.Request(url,headers={'Accept':'model/gltf-binary,application/zip,application/octet-stream'})
+    try:
+        with opener.open(request_obj,timeout=22) as response:
+            if int(response.headers.get('Content-Length') or 0)>MAX_ASSET:
+                raise ValueError('Lux3D result exceeds 80 MB')
+            result=response.read(MAX_ASSET+1)
+    except urllib.error.HTTPError as exc:
+        raise ValueError('Lux3D result transfer was rejected (HTTP %s)'%exc.code) from None
+    except (urllib.error.URLError,OSError,TimeoutError) as exc:
+        raise ValueError('Lux3D result transfer unavailable') from exc
+    if len(result)>MAX_ASSET:
+        raise ValueError('Lux3D result exceeds 80 MB')
+    return _extract_lux_glb(result)
 
 
 def create_app(config=None):
@@ -510,6 +589,44 @@ def create_app(config=None):
         return jsonify(ok=True,task_id=str(task_id),status=status,
                        state={0:'queued',1:'running',3:'success',4:'failed',6:'canceled'}.get(status,'unknown'),
                        download_urls=urls[:6])
+
+    @app.post('/api/providers/lux3d/import')
+    def lux3d_import():
+        # Server fetch is intentionally read-only: provider key belongs to this
+        # request only. Download URLs are re-obtained from the provider task.
+        member,key,region,error=lux3d_credential()
+        if error:return error
+        task_id=request.get_json(silent=True).get('task_id','')
+        if not str(task_id).isdigit() or len(str(task_id))>18:
+            return jsonify(error='Invalid Lux3D task ID'),400
+        try:
+            result=lux3d_request(key,region,'/generate/task/get?taskid='+str(task_id))
+            if not isinstance(result,dict) or result.get('status')!=3:
+                return jsonify(error='Lux3D task has not completed successfully'),409
+            outputs=result.get('outputs',[])
+            if not isinstance(outputs,list):return jsonify(error='Invalid Lux3D result list'),502
+            urls=[]
+            for item in outputs:
+                if isinstance(item,dict):
+                    u=item.get('content')
+                    if isinstance(u,str) and u.startswith('https://'):
+                        urls.append(u)
+            if not urls:return jsonify(error='Lux3D task has no downloadable GLB or ZIP'),404
+            # Prefer an explicit .glb, but some providers deliver signed URLs
+            # without an extension or pack GLB in ZIP.
+            urls.sort(key=lambda u:0 if '.glb' in urlsplit(u).path.lower() else 1 if '.zip' in urlsplit(u).path.lower() else 2)
+            last_error='No compatible GLB result returned'
+            for url in urls[:5]:
+                try:
+                    glb=_download_lux_glb(url)
+                    app.logger.info('Lux3D completed GLB transferred to profile (bytes=%d)',len(glb))
+                    return send_file(io.BytesIO(glb),mimetype='model/gltf-binary',as_attachment=True,
+                                     download_name='lux3d-'+str(task_id)+'.glb')
+                except ValueError as exc:
+                    last_error=str(exc)
+            return jsonify(error=last_error),422
+        except RuntimeError as exc:return jsonify(error=str(exc)),502
+        except ValueError as exc:return jsonify(error=str(exc)),400
 
     @app.post('/api/providers/test')
     def test_provider():
