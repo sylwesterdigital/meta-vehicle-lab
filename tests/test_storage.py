@@ -211,3 +211,83 @@ class UserMediaTests(unittest.TestCase):
         record=self.store.save_media(self.first['id'],'image','Mock JPEG',b'JPEG test bytes','image/jpeg')
         self.assertEqual(self.store.own_media(self.first['id'],record['id'])['mime'],'image/jpeg')
         self.assertIsNone(self.store.own_media(self.second['id'],record['id']))
+
+
+# ===== Radio storage regression cases =====
+import io
+import wave
+from types import SimpleNamespace
+from backend.storage import RadioStore, RadioError
+def radio_test_tone():
+    output=io.BytesIO()
+    with wave.open(output,'wb') as audio:
+        audio.setnchannels(1);audio.setsampwidth(2);audio.setframerate(8000)
+        audio.writeframes(b'\x00\x00'*16000)
+    return output.getvalue()
+
+@unittest.skipUnless(__import__('importlib').util.find_spec('mutagen'),'Production mutagen dependency required')
+class RadioStoreTests(unittest.TestCase):
+    def setUp(self):
+        self.temp=tempfile.TemporaryDirectory()
+        self.addCleanup(self.temp.cleanup)
+        self.store=RadioStore(self.temp.name)
+        self.sample=radio_test_tone()
+
+    def upload(self,user,filename='Test Music.wav'):
+        return self.store.add_track(user,SimpleNamespace(filename=filename,stream=io.BytesIO(self.sample)))
+
+    def test_own_tracks_and_playlist_isolation(self):
+        a=self.upload('alice');b=self.upload('bob')
+        self.assertEqual(a['title'],'Test Music')
+        self.assertEqual(len(self.store.tracks_for('alice')),1)
+        self.assertEqual(len(self.store.tracks_for('bob')),1)
+        playlist=self.store.save_playlist('alice','Road Trip',[a['id']])
+        self.assertEqual(self.store.playlists_for('alice')[1]['track_ids'],[a['id']])
+        with self.assertRaises(RadioError):
+            self.store.save_playlist('alice','Illegal',[b['id']])
+        with self.assertRaises(RadioError):
+            self.store.save_playlist('bob','Illegal',[],identifier=playlist)
+        self.assertFalse(self.store.delete_track('bob',a['id']))
+        self.assertTrue(self.store.delete_track('alice',a['id']))
+        self.assertFalse((self.store.files/(a['id']+'.wav')).exists())
+        self.assertEqual(self.store.playlists_for('alice')[1]['track_ids'],[])
+
+    def test_demo_playlist_admin_only(self):
+        demo=next(p for p in self.store.playlists_for('alice') if p['demo'])
+        sample=self.upload('admin')
+        with self.assertRaises(RadioError):
+            self.store.save_playlist('alice','Hijacked',[sample['id']],demo['id'],demo=True)
+        self.store.save_playlist('admin','Vehicle Lab Demo Radio',[sample['id']],demo['id'],demo=True)
+        self.assertEqual(self.store.playlists_for('bob')[0]['track_ids'],[sample['id']])
+        self.assertFalse(self.store.delete_playlist('admin',demo['id']))
+
+    def test_signed_links_and_expiry(self):
+        audio=self.upload('alice');now=__import__('time').time()
+        until=int(now+600);signature=self.store.sign(audio['id'],until)
+        self.assertTrue(self.store.verify(audio['id'],until,signature))
+        self.assertFalse(self.store.verify(audio['id'],until,'0'*64))
+        self.assertFalse(self.store.verify(audio['id'],int(now-2),signature))
+        self.assertFalse(self.store.verify(audio['id'],int(now+9000),self.store.sign(audio['id'],int(now+9000))))
+
+    def test_invalid_codec_rejected_cleanly(self):
+        with self.assertRaises(RadioError):
+            self.store.add_track('alice',SimpleNamespace(filename='bad.mp3',stream=io.BytesIO(b'bad' * 100)))
+        self.assertFalse(list(self.store.files.iterdir()))
+
+    def test_metadata_and_demo_empty_by_default(self):
+        self.assertEqual(next(p for p in self.store.playlists_for('alice') if p['demo'])['track_ids'],[])
+        audio=self.upload('alice')
+        self.assertAlmostEqual(audio['duration'],2.0,delta=.1)
+        self.assertTrue(audio['bytes']>1000)
+
+
+
+class RadioFrontEndContract(unittest.TestCase):
+    def test_ui_and_signed_streams(self):
+        html=(Path(__file__).resolve().parents[1]/'index.html').read_text()
+        for text in ('id="radioWindow"','id="radioVolume"','id="radioMode"','data-media-type="music"',
+                     'data-media-type="public"','function autopilotPlanPath',"'terrain-aware'",
+                     "await radioRequest('/api/radio/library')"):
+            self.assertIn(text,html)
+        self.assertNotIn('hls.js',html) # Native byte-range playback by design.
+

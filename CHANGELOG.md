@@ -1,3 +1,12 @@
+# v0.3.14 — Radio, personal media and terrain-aware autopilot (2026-11-09)
+
+- Personal audio library with validated uploads, ID3/MP4 metadata and cover art, SQLite playlists, native HTTP Range streaming, short-lived signed stream URLs, and owner isolation.
+- Compact floating radio with mixed-track playlists, shuffle-track/playlist, repeat-one, pause, stop, previous/next, volume. Empty admin-only demo station (no bundled copyrighted audio).
+- Media browser adds Music and Public tabs. Vehicle gallery cloud cards gain explicit Publish/Unpublish; redundant preset-pane layout lists hidden.
+- Material Studio automatically targets selected map objects, with in-place color updates.
+- Optional terrain-aware autopilot uses bounded local pathfinding to avoid hills, obstacles and terrain edges. Live physics validation required.
+- No new 3D assets or licensed music. Backend adds radio.py and mutagen dependency. Cloud user data is preserved.
+
 # v0.3.13 — Edge-safe worlds, optional Umami, personal media and Quest driving (2026-11-09)
 
 - Async, non-blocking Umami page/event analytics, fail-open with privacy-safe event names.

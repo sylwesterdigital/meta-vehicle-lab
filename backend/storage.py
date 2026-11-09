@@ -8,6 +8,9 @@ import sqlite3
 import time
 import uuid
 import hashlib
+import hmac
+import os
+from contextlib import contextmanager
 import re
 import secrets
 from pathlib import Path
@@ -518,3 +521,330 @@ class Storage:
         with self.connect() as db:
             row=db.execute('SELECT * FROM assets WHERE id=?',(identifier,)).fetchone()
             return dict(row) if row else None
+
+
+# ===== PRIVATE VEHICLE RADIO v0.3.14 =====
+MAX_TRACK = 35 * 1024 * 1024
+MAX_TOTAL = 500 * 1024 * 1024
+MAX_TRACKS = 150
+EXT_MIME = {'.mp3':'audio/mpeg','.m4a':'audio/mp4','.mp4':'audio/mp4',
+            '.wav':'audio/wav','.ogg':'audio/ogg','.opus':'audio/ogg','.flac':'audio/flac'}
+
+class RadioError(ValueError):
+    pass
+
+
+def metadata(path: Path, fallback_title='Audio track'):
+    """Read metadata from the actual codec, never trust uploaded tags as HTML."""
+    from mutagen import File as AudioFile
+    from PIL import Image
+    try:
+        original=AudioFile(str(path))
+        if original is None or not getattr(original,'info',None):
+            raise RadioError('Audio codec or file is not supported')
+        duration=float(getattr(original.info,'length',0))
+        if not .1 < duration < 5*3600:raise RadioError('Invalid track duration')
+        easy=AudioFile(str(path),easy=True)
+        def tag(key):
+            values=easy.get(key,[]) if easy is not None else []
+            return str(values[0])[:180] if values else ''
+        title=tag('title') or fallback_title[:160]
+        artist=tag('artist') or 'Unknown artist'
+        album=tag('album') or 'Unknown album'
+        art=None
+        tags=getattr(original,'tags',None)
+        if tags is not None:
+            try:
+                if hasattr(tags,'getall'):
+                    frames=tags.getall('APIC')
+                    if frames:art=frames[0].data
+                if not art and 'covr' in tags:
+                    covers=tags['covr'];art=bytes(covers[0]) if covers else None
+            except (KeyError,IndexError,TypeError,AttributeError):pass
+        if not art and getattr(original,'pictures',None):
+            art=original.pictures[0].data
+        cover=None
+        if art and len(art)<8*1024*1024:
+            try:
+                with Image.open(io.BytesIO(art)) as image:
+                    if image.width*image.height<12_000_000:
+                        image=image.convert('RGB');image.thumbnail((320,320))
+                        output=io.BytesIO();image.save(output,'JPEG',quality=78,optimize=True)
+                        cover=output.getvalue()
+            except (OSError,ValueError):pass
+        return title,artist,album,round(duration,2),cover
+    except RadioError:raise
+    except Exception as exc:raise RadioError('Invalid or unsupported audio stream') from exc
+
+
+class RadioStore:
+    def __init__(self, data_dir):
+        self.dir=Path(data_dir)/'radio'
+        self.dir.mkdir(parents=True,exist_ok=True,mode=0o700)
+        self.db=self.dir/'radio.sqlite3'
+        self.files=self.dir/'audio';self.files.mkdir(exist_ok=True,mode=0o700)
+        self.secret_file=self.dir/'signing-key'
+        if not self.secret_file.exists():
+            try:
+                fd=os.open(self.secret_file,os.O_WRONLY|os.O_CREAT|os.O_EXCL,0o600)
+                with os.fdopen(fd,'wb') as f:f.write(secrets.token_bytes(32))
+            except FileExistsError:pass
+        self.key=self.secret_file.read_bytes()
+        if len(self.key)!=32:raise RadioError('Invalid radio signing key')
+        self.init()
+
+    @contextmanager
+    def connect(self):
+        db=sqlite3.connect(self.db,timeout=15)
+        try:
+            db.row_factory=sqlite3.Row
+            db.execute('PRAGMA foreign_keys=ON')
+            db.execute('PRAGMA busy_timeout=10000')
+            with db:
+                yield db
+        finally:
+            db.close()
+
+    def init(self):
+        with self.connect() as db:
+            db.execute('PRAGMA journal_mode=WAL')
+            db.executescript('''
+            CREATE TABLE IF NOT EXISTS tracks(
+                id TEXT PRIMARY KEY, owner TEXT NOT NULL, title TEXT NOT NULL,
+                artist TEXT NOT NULL, album TEXT NOT NULL, duration REAL NOT NULL,
+                mime TEXT NOT NULL, suffix TEXT NOT NULL, bytes INTEGER NOT NULL,
+                cover BLOB, created INTEGER NOT NULL);
+            CREATE INDEX IF NOT EXISTS tracks_owner ON tracks(owner,created DESC);
+            CREATE TABLE IF NOT EXISTS playlists(
+                id TEXT PRIMARY KEY, owner TEXT NOT NULL, name TEXT NOT NULL,
+                demo INTEGER NOT NULL DEFAULT 0, created INTEGER NOT NULL, updated INTEGER NOT NULL);
+            CREATE INDEX IF NOT EXISTS playlists_owner ON playlists(owner,updated DESC);
+            CREATE TABLE IF NOT EXISTS playlist_items(
+                playlist_id TEXT NOT NULL REFERENCES playlists(id) ON DELETE CASCADE,
+                track_id TEXT NOT NULL REFERENCES tracks(id) ON DELETE CASCADE,
+                position INTEGER NOT NULL, PRIMARY KEY(playlist_id,position));
+            ''')
+            if not db.execute('SELECT id FROM playlists WHERE demo=1').fetchone():
+                now=int(time.time());db.execute('INSERT INTO playlists VALUES(?,?,?,?,?,?)',
+                  (str(uuid.uuid4()),'admin','Vehicle Lab Demo Radio',1,now,now))
+
+    def tracks_for(self,owner):
+        with self.connect() as db:
+            return [dict(row) for row in db.execute('SELECT id,owner,title,artist,album,duration,mime,bytes,created, '
+                '(cover IS NOT NULL) AS has_cover FROM tracks WHERE owner IN (?,?) ORDER BY created DESC',
+                (owner,'admin'))]
+
+    def track(self,identifier):
+        with self.connect() as db:
+            row=db.execute('SELECT * FROM tracks WHERE id=?',(identifier,)).fetchone()
+            return dict(row) if row else None
+
+    def playlists_for(self,owner):
+        with self.connect() as db:
+            playlists=db.execute('SELECT * FROM playlists WHERE owner IN (?,?) ORDER BY demo DESC,updated DESC',
+                (owner,'admin')).fetchall()
+            return [{**dict(row),'track_ids':[r['track_id'] for r in db.execute(
+                'SELECT track_id FROM playlist_items WHERE playlist_id=? ORDER BY position',(row['id'],))]}
+                for row in playlists]
+
+    def add_track(self,owner,uploaded):
+        filename=(uploaded.filename or '').rsplit('/',1)[-1].rsplit('\\',1)[-1]
+        suffix=Path(filename).suffix.lower()
+        if suffix not in EXT_MIME:raise RadioError('Use MP3, WAV, M4A, OGG, Opus or FLAC')
+        with self.connect() as db:
+            row=db.execute('SELECT COUNT(*) AS total,COALESCE(SUM(bytes),0) AS size FROM tracks WHERE owner=?',(owner,)).fetchone()
+            if row['total']>=MAX_TRACKS:raise RadioError('Track limit reached')
+            if row['size']>=MAX_TOTAL:raise RadioError('Audio storage limit reached')
+        identifier=str(uuid.uuid4());target=self.files/(identifier+suffix)
+        size=0
+        try:
+            with target.open('xb') as output:
+                os.chmod(target,0o600)
+                while True:
+                    chunk=uploaded.stream.read(65536)
+                    if not chunk:break
+                    size+=len(chunk)
+                    if size>MAX_TRACK:raise RadioError('Track exceeds 35 MB')
+                    output.write(chunk)
+            if size<128:raise RadioError('Empty audio file')
+            title,artist,album,duration,cover=metadata(target,Path(filename).stem)
+            with self.connect() as db:
+                db.execute('BEGIN IMMEDIATE')
+                row=db.execute('SELECT COALESCE(SUM(bytes),0) AS total FROM tracks WHERE owner=?',(owner,)).fetchone()
+                if row['total']+size>MAX_TOTAL:raise RadioError('Storage quota exceeded')
+                db.execute('INSERT INTO tracks VALUES(?,?,?,?,?,?,?,?,?,?,?)',
+                    (identifier,owner,title,artist,album,duration,EXT_MIME[suffix],suffix,size,cover,int(time.time())))
+            return {'id':identifier,'title':title,'artist':artist,'album':album,'duration':duration,
+                    'owner':owner,'has_cover':bool(cover),'bytes':size}
+        except Exception:
+            target.unlink(missing_ok=True)
+            raise
+
+    def delete_track(self,owner,identifier):
+        track=self.track(identifier)
+        if not track or track['owner']!=owner:return False
+        with self.connect() as db:db.execute('DELETE FROM tracks WHERE id=? AND owner=?',(identifier,owner))
+        (self.files/(identifier+track['suffix'])).unlink(missing_ok=True)
+        return True
+
+    def save_playlist(self,owner,name,track_ids,identifier=None,demo=False):
+        if not isinstance(name,str) or not 1<=len(name.strip())<=90:raise RadioError('Playlist name must be 1–90 characters')
+        if not isinstance(track_ids,list) or len(track_ids)>300 or any(not isinstance(x,str) for x in track_ids):
+            raise RadioError('Invalid playlist tracks')
+        identifier=identifier or str(uuid.uuid4());now=int(time.time())
+        with self.connect() as db:
+            db.execute('BEGIN IMMEDIATE')
+            existing=db.execute('SELECT owner,demo FROM playlists WHERE id=?',(identifier,)).fetchone()
+            if existing and (existing['owner']!=owner or bool(existing['demo'])!=bool(demo)):
+                raise RadioError('Playlist is not editable by this user')
+            for track in track_ids:
+                row=db.execute('SELECT owner FROM tracks WHERE id=?',(track,)).fetchone()
+                if not row or row['owner'] not in (owner,'admin'):
+                    raise RadioError('Playlist contains a track not available to this user')
+            if existing:db.execute('UPDATE playlists SET name=?,updated=? WHERE id=?',(name.strip(),now,identifier))
+            else:db.execute('INSERT INTO playlists VALUES(?,?,?,?,?,?)',(identifier,owner,name.strip(),int(demo),now,now))
+            db.execute('DELETE FROM playlist_items WHERE playlist_id=?',(identifier,))
+            db.executemany('INSERT INTO playlist_items VALUES(?,?,?)',[(identifier,x,i) for i,x in enumerate(track_ids)])
+        return identifier
+
+    def delete_playlist(self,owner,identifier):
+        with self.connect() as db:
+            cur=db.execute('DELETE FROM playlists WHERE id=? AND owner=? AND demo=0',(identifier,owner))
+            return bool(cur.rowcount)
+
+    def sign(self,identifier,expires):
+        message=f'{identifier}:{int(expires)}'.encode()
+        return hmac.new(self.key,message,hashlib.sha256).hexdigest()
+
+    def verify(self,identifier,expires,signature):
+        try:until=int(expires)
+        except (ValueError,TypeError):return False
+        if until<time.time() or until>time.time()+3700:return False
+        return isinstance(signature,str) and hmac.compare_digest(self.sign(identifier,until),signature)
+
+
+def register_radio(app,data_dir,guest_or_error):
+    """Register routes; /api/radio/ paths must bypass the legacy admin before_request."""
+    from flask import jsonify, request, send_file
+    store=RadioStore(data_dir)
+    app.extensions['vehicle_radio']=store
+    def owner():
+        member,error=guest_or_error()
+        return (member['id'],None) if member else (None,error)
+    def admin():
+        configured=app.config.get('API_TOKEN') or os.environ.get('VEHICLELAB_API_TOKEN') or ''
+        header=request.headers.get('Authorization','')
+        if not configured or not header.startswith('Bearer ') or not hmac.compare_digest(header[7:],configured):
+            return jsonify(error='Administrator authorization required'),401
+        return None
+    def signed_entry(track):
+        expiry=int(time.time()+3300)
+        return {'stream_url':f'/api/radio/stream/{track["id"]}?expires={expiry}&sig={store.sign(track["id"],expiry)}',
+                'cover_url':f'/api/radio/cover/{track["id"]}?expires={expiry}&sig={store.sign(track["id"],expiry)}' if track.get('has_cover') else None}
+    def make_library(user):
+        tracks=store.tracks_for(user)
+        return {'tracks':[{k:v for k,v in track.items() if k!='owner'} | signed_entry(track) | {'demo':track['owner']=='admin'} for track in tracks],
+                'playlists':store.playlists_for(user)}
+
+    @app.get('/api/radio/library')
+    def radio_library():
+        user,error=owner()
+        if error:return error
+        return jsonify(make_library(user))
+
+    @app.post('/api/radio/tracks')
+    def radio_upload():
+        user,error=owner()
+        if error:return error
+        file=request.files.get('file')
+        if not file:return jsonify(error='Audio file required'),400
+        try:return jsonify(track=store.add_track(user,file)),201
+        except RadioError as exc:return jsonify(error=str(exc)),400
+
+    @app.delete('/api/radio/tracks/<identifier>')
+    def radio_delete(identifier):
+        user,error=owner()
+        if error:return error
+        return ('',204) if store.delete_track(user,identifier) else (jsonify(error='Track not found'),404)
+
+    @app.post('/api/radio/playlists')
+    def radio_new_playlist():
+        user,error=owner()
+        if error:return error
+        data=request.get_json(silent=True) or {}
+        try:
+            identifier=store.save_playlist(user,data.get('name'),data.get('track_ids',[]))
+            return jsonify(id=identifier),201
+        except RadioError as exc:return jsonify(error=str(exc)),400
+
+    @app.put('/api/radio/playlists/<identifier>')
+    def radio_update_playlist(identifier):
+        user,error=owner()
+        if error:return error
+        data=request.get_json(silent=True) or {}
+        try:
+            # Explicit existence check prevents changing IDs into new records.
+            if not any(p['id']==identifier and p['owner']==user for p in store.playlists_for(user)):
+                return jsonify(error='Playlist not found'),404
+            store.save_playlist(user,data.get('name'),data.get('track_ids',[]),identifier=identifier)
+            return jsonify(id=identifier)
+        except RadioError as exc:return jsonify(error=str(exc)),400
+
+    @app.delete('/api/radio/playlists/<identifier>')
+    def radio_remove_playlist(identifier):
+        user,error=owner()
+        if error:return error
+        return ('',204) if store.delete_playlist(user,identifier) else (jsonify(error='Playlist not found'),404)
+
+    @app.get('/api/radio/stream/<identifier>')
+    def radio_stream(identifier):
+        track=store.track(identifier)
+        if not track or not store.verify(identifier,request.args.get('expires'),request.args.get('sig')):
+            return jsonify(error='Audio link expired or invalid'),403
+        path=store.files/(identifier+track['suffix'])
+        if not path.is_file():return jsonify(error='Audio unavailable'),404
+        response=send_file(path,mimetype=track['mime'],conditional=True,as_attachment=False,
+            download_name='track'+track['suffix'],max_age=0)
+        response.headers['Accept-Ranges']='bytes'
+        response.headers['Referrer-Policy']='no-referrer'
+        response.headers['Cache-Control']='private, max-age=0'
+        return response
+
+    @app.get('/api/radio/cover/<identifier>')
+    def radio_cover(identifier):
+        if not store.verify(identifier,request.args.get('expires'),request.args.get('sig')):
+            return jsonify(error='Cover link expired'),403
+        track=store.track(identifier)
+        if not track or not track.get('cover'):return jsonify(error='Cover unavailable'),404
+        return send_file(io.BytesIO(track['cover']),mimetype='image/jpeg')
+
+    @app.get('/api/radio/admin/library')
+    def radio_admin_library():
+        error=admin()
+        if error:return error
+        return jsonify(make_library('admin'))
+
+    @app.post('/api/radio/admin/tracks')
+    def radio_admin_upload():
+        error=admin()
+        if error:return error
+        file=request.files.get('file')
+        if not file:return jsonify(error='Audio file required'),400
+        try:
+            track=store.add_track('admin',file)
+            demo=next((p for p in store.playlists_for('admin') if p['demo']),None)
+            if demo:store.save_playlist('admin',demo['name'],demo['track_ids']+[track['id']],identifier=demo['id'],demo=True)
+            return jsonify(track=track),201
+        except RadioError as exc:return jsonify(error=str(exc)),400
+
+    @app.put('/api/radio/admin/demo')
+    def radio_admin_demo():
+        error=admin()
+        if error:return error
+        data=request.get_json(silent=True) or {}
+        demo=next((p for p in store.playlists_for('admin') if p['demo']),None)
+        if not demo:return jsonify(error='Demo playlist unavailable'),404
+        try:
+            store.save_playlist('admin',data.get('name','Vehicle Lab Demo Radio'),data.get('track_ids',[]),identifier=demo['id'],demo=True)
+            return jsonify(id=demo['id'])
+        except RadioError as exc:return jsonify(error=str(exc)),400

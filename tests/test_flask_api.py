@@ -331,3 +331,50 @@ class LuxImportTests(unittest.TestCase):
         self.assertEqual(_extract_lux_glb(content.getvalue()),glb)
         with self.assertRaises(ValueError):_validate_lux_asset_url('https://127.0.0.1/internal.glb')
         with self.assertRaises(ValueError):_validate_lux_asset_url('https://not-approved.example/test.glb')
+
+
+# ===== Private radio API and signed Range stream regression cases =====
+import io
+import wave
+def radio_api_test_tone():
+    buf=io.BytesIO()
+    with wave.open(buf,"wb") as a:
+        a.setnchannels(1);a.setsampwidth(2);a.setframerate(8000);a.writeframes(b"\x00\x00"*16000)
+    return buf.getvalue()
+
+@unittest.skipIf(create_app is None,'Flask must be installed for API tests')
+class RadioAPITests(unittest.TestCase):
+    def setUp(self):
+        from backend.app import create_app
+        self.temp=tempfile.TemporaryDirectory();self.addCleanup(self.temp.cleanup)
+        self.client=create_app({'TESTING':True,'DATA_DIR':self.temp.name,'API_TOKEN':'admin-key'}).test_client()
+        guest=self.client.post('/api/identity/guest',json={'name':'Music user'}).json
+        other=self.client.post('/api/identity/guest',json={'name':'Different user'}).json
+        self.auth={'Authorization':'Bearer '+guest['token']}
+        self.other={'Authorization':'Bearer '+other['token']}
+
+    def test_owner_private_playlist_admin_upload_and_partial_stream(self):
+        self.assertEqual(self.client.get('/api/radio/library').status_code,401)
+        data=self.sample_upload(self.auth)
+        self.assertEqual(data.status_code,201,data.json)
+        track=data.json['track']
+        self.assertEqual(self.client.get('/api/radio/library',headers=self.other).json['tracks'],[])
+        lib=self.client.get('/api/radio/library',headers=self.auth).json
+        song=lib['tracks'][0]
+        self.assertNotIn('Bearer',song['stream_url'])
+        response=self.client.get(song['stream_url'],headers={'Range':'bytes=0-511'})
+        self.assertEqual(response.status_code,206)
+        self.assertLessEqual(len(response.data),512)
+        self.assertEqual(self.client.get(song['stream_url']+'bad').status_code,403)
+        playlist=self.client.post('/api/radio/playlists',json={'name':'Favorites','track_ids':[track['id']]},headers=self.auth)
+        self.assertEqual(playlist.status_code,201,playlist.json)
+        forbidden=self.client.put('/api/radio/playlists/'+playlist.json['id'],headers=self.other,json={'name':'Hack','track_ids':[]})
+        self.assertEqual(forbidden.status_code,404)
+        self.assertEqual(self.client.post('/api/radio/admin/tracks',data={'file':(io.BytesIO(radio_api_test_tone()),'demo.wav')},content_type='multipart/form-data').status_code,401)
+        admin=self.sample_upload({'Authorization':'Bearer admin-key'},'/api/radio/admin/tracks')
+        self.assertEqual(admin.status_code,201,admin.json)
+        self.assertEqual(len(self.client.get('/api/radio/library',headers=self.auth).json['playlists'][0]['track_ids']),1)
+
+    def sample_upload(self,headers,path='/api/radio/tracks'):
+        return self.client.post(path,headers=headers,data={'file':(io.BytesIO(radio_api_test_tone()),'test.wav')},content_type='multipart/form-data')
+

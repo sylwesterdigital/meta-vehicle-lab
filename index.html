@@ -5,7 +5,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Vehicle Lab — Procedural Studio</title>
-  <meta name="vehicle-lab-version" content="0.3.13">
+  <meta name="vehicle-lab-version" content="0.3.14">
   <style>
     :root {
       color-scheme:dark;
@@ -567,7 +567,7 @@
 #chassisFitPanel .drawer-actions button{color:white;background:#23445a;border:1px solid #628ca2;font-size:10px;padding:5px 9px;border-radius:6px;min-height:30px}
 #chassisFitPanel small{display:block;font-size:10px;color:#b9d7e9;line-height:1.5}
 #chassisWindow{min-width:330px}
-/* Vehicle Lab 0.3.13 */
+/* Vehicle Lab 0.3.14 */
 .world-cells:not([hidden]){display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding:4px;border:1px solid var(--pane-border);border-radius:5px;background:#112637}
 .world-cells label{display:flex;align-items:center;gap:5px;font-size:11px}
 .world-cells input{width:65px;max-width:65px}
@@ -591,6 +591,36 @@
 .media-card button{font-size:10px;padding:3px 5px;min-height:25px;flex:1}
 #mediaFooter{font-size:10px;color:var(--muted);padding:4px}
 .drawer-media-button{width:100%;padding:9px;margin:10px 0}
+
+/* v0.3.14 — radio, clearer publication and targeted material editing. */
+#catalogWindow #saved,#catalogWindow #serverSaved,#catalogWindow #gallerySaved,
+#catalogWindow #libraryInfo,#catalogWindow #galleryRefreshBtn,#catalogWindow #layoutPublic,
+#catalogWindow .inline-field{display:none!important}
+#catalogWindow h3{display:none!important}
+#radioWindow{left:calc(50% - 240px);top:12%;width:min(465px,95vw);height:435px;min-height:245px}
+#radioWindow .window-body{display:flex;flex-direction:column;gap:6px;overflow:auto;padding:10px}
+.radio-line{display:flex;gap:5px;align-items:center;min-height:29px}
+.radio-line>*{min-width:0}.radio-line select{flex:1}
+.radio-line button{flex:0 0 auto;padding:5px 8px;min-height:29px}
+.radio-panel{border:1px solid var(--pane-border);border-radius:9px;padding:7px;display:grid;gap:5px}
+.radio-panel summary{cursor:pointer;font-weight:700}
+.radio-cover{width:51px;height:51px;object-fit:cover;background:#203544;border:1px solid #4c7186;border-radius:6px}
+#radioNow{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#radioQueue{display:flex;flex-direction:column;gap:3px;max-height:145px;overflow:auto}
+.radio-track{display:flex;align-items:center;gap:5px;text-align:left;padding:4px;border:1px solid var(--pane-border);border-radius:6px;background:color-mix(in srgb,var(--pane) 75%,#203746)}
+.radio-track[aria-pressed=true]{outline:2px solid var(--accent)}
+.radio-track .radio-cover{width:34px;height:34px;flex-shrink:0}
+.radio-track span{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px}
+#radioVolume{width:65px;min-width:52px;accent-color:var(--accent)}
+#radioEditorTracks{max-height:115px;overflow:auto;display:grid;gap:4px}
+#radioEditorTracks label{display:flex;align-items:center;gap:6px;font-size:11px}
+#radioEditorTracks input{width:auto}
+#radioStatus{color:var(--muted);font-size:11px;min-height:20px}
+#radioWindow button:hover,.media-toolbar button:hover{filter:brightness(1.18)}
+#radioWindow input[type=text]{width:100%;box-sizing:border-box}
+#gallerySources button[data-source=public]{font-weight:700}
+#paletteWindow #materialHeading{max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+@media(max-width:700px){#radioWindow{left:3vw;top:20%;width:94vw}}
 </style>
 
  <script type="importmap">
@@ -611,7 +641,7 @@
 
   <div id="stage">
   <div id="hud">
-    <div class="stage-badge"><strong>Vehicle Lab</strong><small id="appVersionBadge">v0.3.13</small></div>
+    <div class="stage-badge"><strong>Vehicle Lab</strong><small id="appVersionBadge">v0.3.14</small></div>
     <p id="vehicleName">City Car</p><p id="vehicleInfo">Procedural vehicle</p>
     <div id="speedHud"><strong id="speed">0</strong><div>km/h</div></div>
     <div id="cameraModeReadout" style="padding:3px 6px;margin-top:4px;width:max-content;max-width:260px;border-radius:5px;background:#132d3cc0;color:#e9f5fc;font:10px ui-monospace,monospace">Camera · Orbit follow</div>
@@ -632,7 +662,7 @@
   <section id="toolsWindow" class="float-window" aria-label="Vehicle tools">
     <div class="window-head"><strong>02 / Vehicle tools</strong><button class="mini-btn minimize" title="Minimize">−</button></div>
     <div class="window-body"><div id="boarding"><button type="button" id="openOccupants" title="Choose driver and passenger 3D models">Driver / passengers</button>
-      <button id="exitBtn">Exit −</button><button id="boardBtn">Board +</button><button id="doorsBtn">Open doors</button><button id="wheelEditorBtn" title="Wheel styles / GLB models">Wheel workshop</button><button id="chassisEditorBtn" title="3D chassis asset library">Body workshop</button><button id="fleetBtn" title="Scene vehicle instances">Fleet</button><button id="mapEditorBtn" title="Test track / obstacles / hills">Test map</button><button id="mediaBrowserBtn" title="My cars, models, images, and maps">My media</button><button id="xrBtn" title="WebXR immersive VR">Enter XR</button><button id="xrSeatBtn" title="Teleport into the cabin (XR only)">Cabin</button>
+      <button id="exitBtn">Exit −</button><button id="boardBtn">Board +</button><button id="doorsBtn">Open doors</button><button id="wheelEditorBtn" title="Wheel styles / GLB models">Wheel workshop</button><button id="chassisEditorBtn" title="3D chassis asset library">Body workshop</button><button id="fleetBtn" title="Scene vehicle instances">Fleet</button><button id="mapEditorBtn" title="Test track / obstacles / hills">Test map</button><button id="mediaBrowserBtn" title="Cars, models, images, maps, music and public gallery">My media</button><button id="radioBtn" title="Music playlists and in-vehicle radio">♫ Radio</button><button id="xrBtn" title="WebXR immersive VR">Enter XR</button><button id="xrSeatBtn" title="Teleport into the cabin (XR only)">Cabin</button>
     </div></div>
   </section>
   <section id="catalogWindow" class="float-window" aria-label="Vehicle library">
@@ -653,7 +683,7 @@
     <div class="window-body">
       <div class="gallery-topline"><input id="gallerySearch" type="search" placeholder="Search vehicle, category, description" aria-label="Search gallery">
         <div id="gallerySizes" class="pill-row"><button data-size="xl">XL</button><button data-size="m">M</button><button data-size="s">S</button></div></div>
-      <div class="gallery-topline"><div id="gallerySources" class="pill-row"><button data-source="local">Local</button><button data-source="cloud">My cloud</button><button data-source="public">Public</button></div>
+      <div class="gallery-topline"><div id="gallerySources" class="pill-row"><button data-source="local">Local</button><button data-source="cloud">My cloud</button><button data-source="public" title="Explore vehicles published by other creators">Public gallery</button></div>
         <select id="galleryDock" aria-label="Dock gallery"><option value="float">Float</option><option value="left">Dock left</option><option value="right">Dock right</option><option value="bottom">Dock bottom</option></select></div>
       <div id="vehicleGallery" class="thumb-gallery" role="list"></div>
     </div>
@@ -662,7 +692,7 @@
     <div class="window-head"><strong>07 / Material studio</strong><button class="mini-btn minimize" title="Minimize" aria-label="Minimize material studio">−</button></div>
     <div class="window-body">
       <div class="palette-head"><input id="materialPicker" type="color" value="#70afd5" aria-label="Browser color spectrum"><div><strong id="materialHeading">Body paint</strong><small style="display:block;color:var(--muted)">Native spectrum · editable targets</small></div></div>
-      <div class="palette-tools"><label>Material target<select id="materialTarget"><option value="paint">Body paint</option><option value="glass">Windows</option><option value="trimColor">Trim / dashboard</option><option value="tireColor">Tyres</option><option value="rimColor">Rims</option><option value="seatColor">Seats</option><option value="interiorColor">Interior panels</option></select></label>
+      <div class="palette-tools"><label>Material target<select id="materialTarget"><option value="selectedObject">Selected scene object</option><option value="paint">Body paint</option><option value="glass">Windows</option><option value="trimColor">Trim / dashboard</option><option value="tireColor">Tyres</option><option value="rimColor">Rims</option><option value="seatColor">Seats</option><option value="interiorColor">Interior panels</option></select></label>
         <label>Palette family<select id="paletteFamily"><option value="cool">Cool</option><option value="warm">Warm</option><option value="pastel">Pastels</option><option value="mono">Monochrome</option><option value="earth">Earth</option><option value="sport">Sport</option></select></label></div>
       <div id="colorPalette" class="palette-grid" aria-label="Palette swatches"></div>
       <div class="palette-tools"><label>Body texture<select id="materialPattern"><option value="solid">Gloss / solid</option><option value="speckle">Speckle</option><option value="cloud">Cloud noise</option><option value="camo">Camo</option><option value="brushed">Brushed metal</option></select></label>
@@ -718,13 +748,40 @@
    <div class="window-body">
     <div class="media-toolbar"><div id="mediaTabs" role="group" aria-label="Media category">
      <button data-media-type="cars">Cars</button><button data-media-type="models">Models</button>
-     <button data-media-type="images">Images</button><button data-media-type="maps">Maps</button></div>
+     <button data-media-type="images">Images</button><button data-media-type="maps">Maps</button><button data-media-type="music">Music</button><button data-media-type="public">Public</button></div>
      <select id="mediaSource" aria-label="Media location"><option value="local">This device</option><option value="cloud">My cloud</option></select>
      <input id="mediaSearch" type="search" placeholder="Search my assets" aria-label="Search media">
      <button id="mediaRefresh" title="Refresh media">↻</button><button id="mediaUpload" title="Upload an image privately" hidden>＋ Upload</button><input type="file" id="mediaUploadFile" accept="image/png,image/jpeg,image/webp" hidden></div>
     <div id="mediaGrid" class="media-grid" role="list"></div>
     <div id="mediaFooter" role="status">Your personal media library. Cloud assets are private.</div>
    </div>
+  </section>
+
+  <section id="radioWindow" class="float-window" aria-label="Music radio and playlists" style="display:none">
+    <div class="window-head"><strong>14 / Radio · playlists</strong><button class="mini-btn minimize" title="Minimize radio">−</button></div>
+    <div class="window-body">
+      <div class="radio-line"><img class="radio-cover" id="radioCover" alt="Album artwork"><div id="radioNow" title="Now playing">Choose a playlist · upload your music</div></div>
+      <div class="radio-line"><button id="radioPrev" title="Previous">◀◀</button><button id="radioPlay" title="Play / pause">▶</button><button id="radioStop" title="Stop">■</button><button id="radioNext" title="Next">▶▶</button>
+        <label for="radioVolume" style="font-size:10px">Vol</label><input id="radioVolume" type="range" min="0" max="1" step=".01" value=".55" aria-label="Radio volume"><span id="radioTime" style="font:10px monospace">0:00</span></div>
+      <div class="radio-line"><select id="radioPlaylist" aria-label="Active playlist"><option>Loading playlists…</option></select>
+       <select id="radioMode" aria-label="Playback mode" title="Playlist / shuffle / repeat"><option value="sequence">In order</option><option value="random-track">Shuffle tracks</option><option value="random-playlist">Random playlist</option><option value="repeat-one">Loop track</option></select>
+       <button id="radioReload" title="Refresh">↻</button></div>
+      <div id="radioQueue" aria-label="Playlist tracks"></div>
+      <details class="radio-panel"><summary>Edit my playlists</summary>
+        <div class="radio-line"><input id="radioPlaylistName" type="text" maxlength="90" placeholder="Playlist name" aria-label="Playlist name"><button id="radioPlaylistNew" title="Create playlist">＋</button><button id="radioPlaylistSave" title="Save playlist">Save</button><button id="radioPlaylistDelete" title="Delete playlist">×</button></div>
+        <div id="radioEditorTracks" aria-label="Select tracks for playlist"></div>
+      </details>
+      <details class="radio-panel"><summary>My audio uploads · MP3 / WAV / M4A / OGG / FLAC</summary>
+        <div class="radio-line"><input type="file" id="radioUploadFile" accept="audio/mpeg,audio/mp4,audio/wav,audio/ogg,audio/flac,.mp3,.m4a,.wav,.ogg,.opus,.flac" aria-label="Upload audio" style="flex:1"><button id="radioUploadBtn" title="Upload to my private library">Upload</button></div>
+        <small>Private audio · HTTP byte-range streaming · maximum 35 MB per track · upload only music you have rights to use.</small>
+      </details>
+      <details class="radio-panel"><summary>Administrator · demo radio</summary>
+        <form id="radioAdminForm" autocomplete="off"><input id="radioAdminKey" type="password" autocomplete="off" placeholder="Administrator token (not saved)" aria-label="Administrator token"></form>
+        <div class="radio-line"><input type="file" id="radioAdminFile" accept="audio/*,.mp3,.wav,.m4a,.flac" aria-label="Demo track audio"><button id="radioAdminUpload" title="Upload licensed demo audio">Upload demo</button><button id="radioAdminSaveDemo" title="Save selected demo tracks">Save demo</button></div>
+        <small>The demo playlist starts empty. Only an administrator can add licensed tracks.</small>
+      </details>
+      <div id="radioStatus" role="status">Choose a playlist, then press ▶.</div>
+    </div>
   </section>
   <section id="objectWindow" class="float-window" aria-label="3D object transforms and physics" style="display:none">
    <div class="window-head"><strong>10 / Object inspector</strong><button class="mini-btn minimize" title="Minimize">−</button></div>
@@ -1120,7 +1177,7 @@
    grassDensity:8000,grassHeight:.25,shrubs:60,rocks:40,vegetationWind:.65,
    courseName:'Open practice ground',courseObjects:[],ghostMode:'off',cameraMode:'orbit',cameraClearance:true,
    cameraFollowLag:.07,cameraVerticalLag:.20,cameraClearanceLag:.22,
-   autopilot:false,autopilotRoute:'wandering',groundRoughness:.9,
+   autopilot:false,autopilotRoute:'terrain-aware',groundRoughness:.9,
    seatOffsets:{}
  };
 
@@ -1191,7 +1248,7 @@ function resetPhysicsInterpolation(){
 const CAMERA_MODES=['orbit','smart','chase','cinematic','driver','free'];
 const CAMERA_LABELS={orbit:'Orbit follow',smart:'Terrain-aware orbit follow',chase:'Chase / adjustable',cinematic:'Cinematic follow',driver:'Driver',free:'Free / stationary'};
 let drivePanelVisibility=new Map(),stationaryCameraPosition=null,stationaryCameraTarget=null;
-const autopilotState={enabled:false,anchor:null,time:0,phase:0,steer:0};
+const autopilotState={enabled:false,anchor:null,time:0,phase:0,steer:0,nav:null,lastPlan:0,stuck:0,lastSpeedAt:0};
 let ghostObject=null,ghostSamples=[],ghostElapsed=0,ghostTick=0;
  const ENGINE_LABELS={cannon:'Cannon-es',rapier:'Rapier (WASM)',ammo:'Ammo.js / Bullet'};
  const simulator={engine:'cannon',benchmarkSeconds:10};
@@ -1219,7 +1276,7 @@ let ghostObject=null,ghostSamples=[],ghostElapsed=0,ghostTick=0;
     if(result&&typeof result.catch==='function')result.catch(()=>{});}}
   catch{/* analytics must never affect the app */}
  }
- const VERSION='0.3.13';
+ const VERSION='0.3.14';
  document.getElementById('appVersionBadge').textContent='v'+VERSION;
  let imageReference=null,busyAI=false;
 
@@ -2859,6 +2916,85 @@ function updateAutopilotButton(){
  button.dataset.actionLabel=cfg.autopilot?'Stop autopilot':'Start autopilot';
  applyButtonMode();
 }
+// Terrain-aware navigation. A local, bounded weighted A* grid is computed
+// roughly every three seconds, NOT each render frame. High slopes, deep water,
+// obstacles and terrain edges are penalised/blocked. Steering follows waypoints.
+function autopilotPlanPath(destinationX,destinationZ){
+ if(!car)return [];
+ const side=Math.max(85,Math.min(700,cfg.terrainSize||180)),limit=side/2-7;
+ const spacing=4.5,radius=15,size=radius*2+1,positions=[],blocked=new Uint8Array(size*size),
+   heights=new Float32Array(size*size),penalties=new Float32Array(size*size);
+ const centerX=car.position.x,centerZ=car.position.z,baseX=centerX-radius*spacing,baseZ=centerZ-radius*spacing;
+ const obstacles=(cfg.courseObjects||[]).filter(o=>
+   ['cube','cone','rock','barrier','pyramid','bridge','beam','trees','hedge','jump','dune','hill','puddle'].includes(o.kind));
+ for(let z=0;z<size;z++)for(let x=0;x<size;x++){
+  const index=z*size+x,wx=baseX+x*spacing,wz=baseZ+z*spacing;
+  heights[index]=heightAt(wx,wz);penalties[index]=0;
+  if(cfg.worldEdgeMode!=='wrap'&&(Math.abs(wx)>limit||Math.abs(wz)>limit)){
+    blocked[index]=1;continue;
+  }
+  for(const o of obstacles){
+   const angle=(o.angle||0)*Math.PI/180,cs=Math.cos(angle),sn=Math.sin(angle),dx=wx-(o.x||0),dz=wz-(o.z||0),
+    lx=dx*cs+dz*sn,lz=-dx*sn+dz*cs;
+   const w=Math.max(.5,(o.w||4)/2),d=Math.max(.5,(o.d||4)/2);
+   if(Math.abs(lx)>w+1.3||Math.abs(lz)>d+1.3)continue;
+   if(['puddle','hill','dune'].includes(o.kind))penalties[index]+=o.kind==='puddle'?20:12;
+   else {blocked[index]=1;break}
+  }
+  if(heights[index]<-1.0)penalties[index]+=25;
+ }
+ const indexOf=(wx,wz)=>Math.round(clamp((wz-baseZ)/spacing,0,size-1))*size+
+    Math.round(clamp((wx-baseX)/spacing,0,size-1));
+ let start=indexOf(centerX,centerZ),end=indexOf(destinationX,destinationZ);
+ blocked[start]=0;
+ if(blocked[end]){
+  const ex=end%size,ez=Math.floor(end/size);let best=end,score=Infinity;
+  for(let rz=-6;rz<=6;rz++)for(let rx=-6;rx<=6;rx++){
+   const xx=ex+rx,zz=ez+rz;if(xx<0||zz<0||xx>=size||zz>=size)continue;
+   const i=zz*size+xx;if(blocked[i])continue;
+   const v=rx*rx+rz*rz+penalties[i]*.05;if(v<score){score=v;best=i;}
+  }
+  end=best;
+ }
+ if(blocked[end])return [];
+ const g=new Float32Array(size*size);g.fill(Infinity);
+ const parent=new Int32Array(size*size);parent.fill(-1);
+ const closed=new Uint8Array(size*size),heap=[];
+ const push=(id,cost)=>{let i=heap.length;heap.push([id,cost]);while(i>0){let p=(i-1)>>1;
+   if(heap[p][1]<=cost)break;heap[i]=heap[p];i=p;}heap[i]=[id,cost];};
+ const pop=()=>{const top=heap[0],last=heap.pop();if(heap.length){let i=0;
+   while(2*i+1<heap.length){let c=2*i+1;if(c+1<heap.length&&heap[c+1][1]<heap[c][1])c++;
+    if(heap[c][1]>=last[1])break;heap[i]=heap[c];i=c;}heap[i]=last;}return top;};
+ const heuristic=i=>Math.hypot((i%size)-(end%size),Math.floor(i/size)-Math.floor(end/size));
+ g[start]=0;push(start,heuristic(start));
+ const directions=[[-1,0],[1,0],[0,-1],[0,1],[-1,-1],[-1,1],[1,-1],[1,1]];
+ let visited=0;
+ while(heap.length&&visited++<size*size*4){
+  const [id]=pop();if(closed[id])continue;closed[id]=1;
+  if(id===end)break;
+  const x=id%size,z=(id/size)|0;
+  for(const [dx,dz] of directions){const xx=x+dx,zz=z+dz;
+   if(xx<0||xx>=size||zz<0||zz>=size)continue;
+   const next=zz*size+xx;if(blocked[next]||closed[next])continue;
+   if(dx&&dz&&(blocked[z*size+xx]||blocked[zz*size+x]))continue;
+   const heightChange=Math.abs(heights[next]-heights[id])/spacing;
+   if(heightChange>.62)continue;
+   const distance=dx&&dz?1.414:1;
+   const cost=distance*(1+penalties[next]+heightChange*heightChange*30);
+   const tentative=g[id]+cost;
+   if(tentative>=g[next])continue;
+   g[next]=tentative;parent[next]=id;push(next,tentative+heuristic(next));
+  }
+ }
+ if(!closed[end])return [];
+ const points=[];let current=end;
+ while(current!==start&&current>=0&&points.length<size*size){
+  points.push({x:baseX+(current%size)*spacing,z:baseZ+((current/size)|0)*spacing});current=parent[current];
+ }
+ points.reverse();
+ return points.filter((_,i)=>i===points.length-1||i%2===0);
+}
+
 function autopilotInput(){
  if(!car)return {throttle:0,steer:0,brake:false};
  if(!autopilotState.anchor){autopilotState.anchor=car.position.clone();autopilotState.time=0;
@@ -2878,7 +3014,24 @@ function autopilotInput(){
   dz=13*Math.sin(t*.11+.7)+8*Math.sin(t*.059+2.1);
  }
  // The route target remains inside the physics world's bounds.
- const x=clamp(base.x+dx,-limit,limit),z=clamp(base.z+dz,-limit,limit);
+ let x=clamp(base.x+dx,-limit,limit),z=clamp(base.z+dz,-limit,limit);
+ if(route==='terrain-aware'){
+  // The wandering target changes slowly; local path avoids impassable terrain.
+  const now=performance.now(),previous=autopilotState.nav;
+  const changed=!previous||Math.hypot(previous.goalX-x,previous.goalZ-z)>12;
+  if(changed||now-autopilotState.lastPlan>3500){
+   const points=autopilotPlanPath(x,z);
+   autopilotState.nav={goalX:x,goalZ:z,points,index:0};autopilotState.lastPlan=now;
+  }
+  const nav=autopilotState.nav;
+  if(nav?.points?.length){
+   while(nav.index<nav.points.length-1&&Math.hypot(nav.points[nav.index].x-car.position.x,nav.points[nav.index].z-car.position.z)<7)nav.index++;
+   const p=nav.points[nav.index];x=p.x;z=p.z;
+  }else{
+   // Select a different destination instead of holding full throttle against a hill.
+   autopilotState.phase+=.7;autopilotState.lastPlan=now-2800;
+  }
+ }
  const yaw=new THREE.Euler().setFromQuaternion(car.quaternion,'YXZ').y;
  const targetYaw=Math.atan2(x-car.position.x,z-car.position.z);
  const difference=Math.atan2(Math.sin(targetYaw-yaw),Math.cos(targetYaw-yaw));
@@ -2886,7 +3039,13 @@ function autopilotInput(){
  autopilotState.steer=lerp(autopilotState.steer,steering,.055);
  const speed=physics?.getSpeed?.()||0;
  const brake=Math.abs(difference)>1.3&&speed>7;
- return {throttle:brake?0.12:(Math.abs(difference)>.7?.38:.70),steer:autopilotState.steer,brake};
+ if(route==='terrain-aware'){
+  if(Math.abs(speed)<.8){autopilotState.stuck+=1/60}else autopilotState.stuck=0;
+  if(autopilotState.stuck>5){autopilotState.nav=null;autopilotState.anchor=car.position.clone();
+   autopilotState.phase+=1.2;autopilotState.stuck=0;}
+ }
+ return {throttle:brake?0.12:(Math.abs(difference)>.7?.38:route==='terrain-aware'?.52:.70),
+  steer:autopilotState.steer,brake};
 }
 function makeGhost(){
  if(ghostObject){scene.remove(ghostObject);ghostObject.traverse(o=>{if(o.isMesh&&o.material?.userData?.ghost)o.material.dispose()});ghostObject=null}
@@ -4772,7 +4931,7 @@ driving.add(cfg,'maxSpeed',15,180,5).name('Max speed km/h');
  driving.add({recover:resetUpright},'recover').name('Recover upright (U)');
  driving.add({reset:resetDriveOrigin},'reset').name('Reset to world origin (0,0,0)');
  driving.add(cfg,'autopilot').name('Autopilot (P)').onChange(value=>{autopilotState.enabled=!!value;autopilotState.anchor=null;autopilotState.time=0;updateAutopilotButton();scheduleHistory('Autopilot')});
- driving.add(cfg,'autopilotRoute',['wandering','oval','figure-eight']).name('Autopilot route').onChange(()=>{autopilotState.anchor=null;scheduleHistory('Autopilot route')});
+ driving.add(cfg,'autopilotRoute',['terrain-aware','wandering','oval','figure-eight']).name('Autopilot route').onChange(()=>{autopilotState.anchor=null;scheduleHistory('Autopilot route')});
 driving.add(cfg,'cameraDistance',3,65,.5).name('Camera distance')
 .onChange(value=>{
  const direction=camera.position.clone().sub(orbit.target).normalize();
@@ -5777,6 +5936,7 @@ function syncCannonObstacle(o){
 }
 function selectCourseObject(id,openEditor=false){
  selectedCourseId=id;const obj=cfg.courseObjects.find(o=>o.id===id);
+ if(obj&&$('materialTarget')){$('materialTarget').value='selectedObject';renderMaterialPalette()}
  $('mapSelected').hidden=!obj;
  if(obj){$('mapSelectedName').textContent=(obj.name||obj.kind)+' · '+(obj.physics||'static');
   if(openEditor)renderCourseInspector()}
@@ -6138,7 +6298,7 @@ $('mapTool').closest('label').after(patchSelector);
 updateMapZoomUI();let mapFrame=0;
 
 // Workspace windows: pointer dragging + native CSS resize + minimize.
-const WINDOW_IDS=['toolbarWindow','toolsWindow','catalogWindow','galleryWindow','paramsWindow','logWindow','paletteWindow','wheelWindow','mapWindow','objectWindow','fleetWindow','chassisWindow','mediaWindow'];
+const WINDOW_IDS=['toolbarWindow','toolsWindow','catalogWindow','galleryWindow','paramsWindow','logWindow','paletteWindow','wheelWindow','mapWindow','objectWindow','fleetWindow','chassisWindow','mediaWindow','radioWindow'];
 const WINDOW_NAMES=['Actions','Tools','Library','Gallery','Parameters','Logs','Materials','Wheel workshop','Test map','Object','Scene vehicles','Chassis workshop'];
 let highestZ=18;
 const safeStore=(name,value)=>{try{localStorage.setItem(name,value)}catch(e){}};
@@ -6337,9 +6497,9 @@ const materialPalettes={
 };
 let paletteSeed=0;
 function renderMaterialPalette(){
- const target=$('materialTarget').value,base=cfg[target]||'#777777';
+ const target=$('materialTarget').value,selected=cfg.courseObjects?.find(o=>o.id===selectedCourseId),base=target==='selectedObject'?(selected?.color||'#777777'):(cfg[target]||'#777777');
  $('materialPicker').value=/^#[0-9a-f]{6}$/i.test(base)?base:'#777777';
- $('materialHeading').textContent=$('materialTarget').selectedOptions[0].textContent;
+ $('materialHeading').textContent=target==='selectedObject'?(selected?(selected.name||selected.kind)+' · selected object':'Select a scene object'):$('materialTarget').selectedOptions[0].textContent;
  const colors=materialPalettes[$('paletteFamily').value]||materialPalettes.cool;
  const root=$('colorPalette');root.replaceChildren();
  colors.forEach((original,i)=>{
@@ -6347,23 +6507,43 @@ function renderMaterialPalette(){
   const b=document.createElement('button');b.type='button';b.style.backgroundColor=hex;
   b.title=hex;b.setAttribute('aria-label','Apply '+hex);b.onclick=()=>applyMaterialColor(hex);root.append(b);
  });
- const patternKey=patternForTarget[target],select=$('materialPattern');
+ const patternKey=target==='selectedObject'?'texture':patternForTarget[target],select=$('materialPattern');
  select.replaceChildren();
- for(const kind of materialPatternChoices[target]||['solid'])select.add(new Option(kind.replace(/([A-Z])/g,' $1'),kind));
- select.value=cfg[patternKey]||select.options[0]?.value;
- $('materialSeed').value=cfg.seed;
+ for(const kind of (target==='selectedObject'?['solid','noise','grain','stone','wood','metal']:materialPatternChoices[target]||['solid']))select.add(new Option(kind.replace(/([A-Z])/g,' $1'),kind));
+ select.value=(target==='selectedObject'?selected?.texture:cfg[patternKey])||select.options[0]?.value;
+ $('materialSeed').value=target==='selectedObject'?(selected?.seed||0):cfg.seed;
 }
 function applyMaterialColor(hex){
  const key=$('materialTarget').value;
  if(!/^#[0-9a-f]{6}$/i.test(hex))return;
+ if(key==='selectedObject'){
+  const obj=cfg.courseObjects?.find(x=>x.id===selectedCourseId);
+  if(!obj){note('Select a scene object before editing material.',true);return}
+  obj.color=hex;$('materialPicker').value=hex;
+  const mesh=courseMeshes.get(obj.id);
+  mesh?.traverse(o=>{if(o.isMesh){for(const m of Array.isArray(o.material)?o.material:[o.material])if(m?.color)m.color.set(hex)}});
+  scheduleHistory('Object color');return;
+ }
  cfg[key]=hex;$('materialPicker').value=hex;
  if(mode==='drive')leaveDrive();scheduleBuild();scheduleHistory('Material '+key);
 }
 $('materialTarget').onchange=renderMaterialPalette;
 $('paletteFamily').onchange=renderMaterialPalette;
 $('materialPicker').oninput=e=>applyMaterialColor(e.target.value);
-$('materialPattern').onchange=e=>{cfg[patternForTarget[$('materialTarget').value]]=e.target.value;scheduleBuild();scheduleHistory('Texture finish')};
-$('materialSeed').onchange=e=>{cfg.seed=clamp(Number(e.target.value)||0,0,99999);scheduleBuild();scheduleHistory('Texture seed')};
+$('materialPattern').onchange=e=>{
+ if($('materialTarget').value==='selectedObject'){
+  const obj=cfg.courseObjects.find(x=>x.id===selectedCourseId);
+  if(obj){obj.texture=e.target.value;void refreshEnvironmentForMap();scheduleHistory('Object texture')}
+  return;
+ }
+ cfg[patternForTarget[$('materialTarget').value]]=e.target.value;scheduleBuild();scheduleHistory('Texture finish')};
+$('materialSeed').onchange=e=>{
+ if($('materialTarget').value==='selectedObject'){
+  const obj=cfg.courseObjects.find(x=>x.id===selectedCourseId);
+  if(obj){obj.seed=clamp(Number(e.target.value)||0,0,99999);void refreshEnvironmentForMap();scheduleHistory('Object texture seed')}
+  return;
+ }
+ cfg.seed=clamp(Number(e.target.value)||0,0,99999);scheduleBuild();scheduleHistory('Texture seed')};
 $('materialRandom').onclick=()=>{paletteSeed=(paletteSeed+29)%360;renderMaterialPalette()};
 $('materialReset').onclick=()=>{for(const key of ['paint','glass','trimColor','tireColor','rimColor','seatColor','interiorColor'])cfg[key]=defaults[key];renderMaterialPalette();scheduleBuild();scheduleHistory('Material reset')};
 $('paletteBtn').onclick=()=>{
@@ -6725,7 +6905,19 @@ function makeGalleryCard(item){
  }else if(item.source==='public')appendBtn('Save copy',async()=>{
   await openGalleryItem(item);await saveLayout(true);
  });
- else appendBtn('Copy',async()=>{await openGalleryItem(item);await saveServer(true)});
+ else {
+  appendBtn(item.visibility==='public'?'Unpublish':'Publish',async()=>{
+    const current=await serverRequest('GET','/api/layouts/'+encodeURIComponent(item.id));
+    const row=current.layout;
+    const value=row.visibility==='public'?'private':'public';
+    const result=await serverRequest('PUT','/api/layouts/'+encodeURIComponent(item.id),{
+      name:row.name,revision:row.revision,asset_id:row.asset_id,blueprint:row.blueprint,visibility:value});
+    if(serverLayoutId===item.id)serverRevision=result.layout.revision;
+    note(value==='public'?'Vehicle published · visible in Public gallery':'Vehicle is private.');
+    await refreshVehicleGallery();if(value==='public')void refreshGallery();
+  });
+  appendBtn('Copy',async()=>{await openGalleryItem(item);await saveServer(true)});
+ }
  card.append(buttons);return card;
 }
 // Scene instances: one actively editable vehicle; other vehicles remain independent visible
@@ -6912,10 +7104,17 @@ const previousDock=safeRead('vehiclelab.gallery.dock');
 setGalleryDock(['left','right','bottom'].includes(previousDock)?previousDock:'float');
 gallerySelection();
 
-$('galleryRefreshBtn').onclick=refreshGallery;
+$('galleryRefreshBtn').onclick=()=>{gallerySource='public';setWindowVisible('galleryWindow',true);void refreshVehicleGallery()};
 $('layoutPublic').onchange=()=>{serverVisibility=$('layoutPublic').checked?'public':'private'};
 
 const RELEASE_NOTES=[
+ {v:'0.3.14',date:'2026-11-09',title:'Radio, personal audio playlists, public galleries and terrain-aware autopilot',items:[
+  'Private music uploads with metadata and album art, persistent playlists and native byte-range streaming playback.',
+  'Repeat-one, shuffled tracks, shuffled playlists and a compact floating radio player with volume controls.',
+  'Administrator-only demo station starts empty; licensed audio can be added via Radio administrator controls.',
+  'Terrain-aware local A* waypoint navigation penalizes hills and obstacles; obstacle-aware driving remains experimental.',
+  'Vehicle Gallery now exposes explicit Publish / Unpublish controls; Public tab in My media; selected map-object materials can be edited directly.',
+  'No licensed music is bundled. Live headset, terrain-physics and browser radio acceptance tests are still required.']},
  {v:'0.3.13',date:'2026-11-09',title:'World boundaries, private media and Quest driving',items:[
   'Optional non-blocking Umami tracking with anonymous action events; no keys, prompts or names transmitted.',
   'Physical world borders, uphill walls, wraparound and editable 3 × 3 connected world cells.',
@@ -7431,12 +7630,25 @@ async function refreshMediaBrowser(){
  const id=++mediaRequest,grid=$('mediaGrid');grid.replaceChildren();
  for(const b of $('mediaTabs').querySelectorAll('button'))b.setAttribute('aria-pressed',String(b.dataset.mediaType===mediaType));
  $('mediaSource').value=mediaSource;
- $('mediaUpload').hidden=mediaType!=='images'||mediaSource!=='cloud';
+ $('mediaUpload').hidden=mediaType!=='images'||mediaSource!=='cloud';$('mediaSource').disabled=['music','public'].includes(mediaType);
  for(const url of mediaObjectURLs)URL.revokeObjectURL(url);mediaObjectURLs=[];
  const query=$('mediaSearch').value.trim().toLowerCase();
  const entries=[];
  try{
-  if(mediaSource==='local'){
+  if(mediaType==='music'){
+    await radioLoad();
+    for(const track of radioLibrary.tracks)entries.push({name:track.title+' · '+track.artist,
+      preview:track.cover_url||null,action:()=>{openRadio();void radioPlayTrack(track.id)}});
+    for(const pl of radioLibrary.playlists)entries.push({name:'Playlist · '+pl.name,
+      preview:vehicleFallbackImage(pl),action:()=>{openRadio();$('radioPlaylist').value=pl.id;radioRenderQueue()}});
+   }else if(mediaType==='public'){
+    const response=await fetch('/api/gallery',{cache:'no-store'});
+    if(!response.ok)throw Error('Public gallery unavailable');
+    const data=await response.json();
+    for(const row of data.layouts||[])entries.push({name:row.name+' · '+row.creator_name,
+      preview:row.preview||vehicleFallbackImage(row),action:()=>{gallerySource='public';
+        setWindowVisible('galleryWindow',true);void refreshVehicleGallery()}});
+   }else if(mediaSource==='local'){
    if(mediaType==='cars')for(const item of await allLayouts()){
     const images=item.metadata?.images||item.previews||[];
     entries.push({name:item.name,preview:galleryImage(images)||vehicleFallbackImage(item),
@@ -7495,7 +7707,7 @@ async function refreshMediaBrowser(){
   for(const entry of entries.filter(x=>x.name.toLowerCase().includes(query))){
    const card=document.createElement('div');card.className='media-card';card.setAttribute('role','listitem');
    const img=document.createElement('img');img.alt=entry.name+' thumbnail';img.loading='lazy';
-   img.src=entry.preview||vehicleFallbackImage(entry);card.append(img);
+   img.src=entry.preview||(mediaType==='music'?radioEmptyArt:vehicleFallbackImage(entry));card.append(img);
    const title=document.createElement('strong');title.textContent=entry.name;title.title=entry.name;card.append(title);
    const actions=document.createElement('div');actions.className='media-actions';
    const open=document.createElement('button');open.textContent=mediaType==='images'?'View / save':'Open';
@@ -7511,7 +7723,7 @@ async function refreshMediaBrowser(){
     }else loadPicture();
    }
   }
-  $('mediaFooter').textContent=grid.children.length+' '+mediaType+' · '+(mediaSource==='local'?'on this device':'private cloud');
+  $('mediaFooter').textContent=grid.children.length+' '+mediaType+' · '+(mediaType==='public'?'published by the community':mediaType==='music'?'radio library':mediaSource==='local'?'on this device':'private cloud');
  }catch(e){if(id===mediaRequest){grid.textContent=e.message;recordEvent('WARN','Media: '+e.message)}}
 }
 for(const b of $('mediaTabs').querySelectorAll('button'))b.onclick=()=>{mediaType=b.dataset.mediaType;void refreshMediaBrowser()};
@@ -7527,6 +7739,174 @@ $('mediaUploadFile').onchange=async event=>{try{
  note('Saved image privately to your cloud library.');
  }catch(e){note('Image library upload: '+e.message,true)}finally{event.target.value=''};};
 
+
+// ===== Vehicle Lab Radio v0.3.14 =====
+// Native HTMLAudioElement uses HTTP byte ranges (206) to avoid fetching whole
+// tracks. Signed stream URLs contain NO profile or administrator bearer token.
+const radioAudio=new Audio();radioAudio.preload='metadata';
+let radioLibrary={tracks:[],playlists:[]},radioTrackId=null,radioLoadedAt=0,radioLoadPending=null;
+radioAudio.volume=clamp(Number(safeRead('vehiclelab.radio.volume')||'.55'),0,1);
+$('radioVolume').value=String(radioAudio.volume);
+$('radioMode').value=['sequence','random-track','random-playlist','repeat-one'].includes(safeRead('vehiclelab.radio.mode'))?safeRead('vehiclelab.radio.mode'):'sequence';
+function radioStatus(msg,error=false){$('radioStatus').textContent=msg;if(error)recordEvent('WARN','Radio: '+msg)}
+function radioClock(sec){if(!Number.isFinite(sec))return '0:00';return Math.floor(sec/60)+':'+String(Math.floor(sec%60)).padStart(2,'0')}
+const radioEmptyArt='data:image/svg+xml;charset=UTF-8,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128"><rect width="128" height="128" rx="17" fill="#1b3c4d"/><path d="M75 25v61a18 18 0 1 1-7-14V34l32-8v19l-25 7" fill="#97d3bf"/></svg>');
+$('radioCover').src=radioEmptyArt;
+async function radioRequest(path,method='GET',data=null,admin=false){
+ const token=admin?$('radioAdminKey').value.trim():guestToken;
+ if(!token)throw Error(admin?'Administrator token required':'Create or restore a Vehicle Lab profile first');
+ const form=data instanceof FormData;
+ const response=await fetch(path,{method,credentials:'same-origin',cache:'no-store',headers:{
+  Authorization:'Bearer '+token,...(data&&!form?{'Content-Type':'application/json'}:{})},
+  ...(data?{body:form?data:JSON.stringify(data)}:{})});
+ if(response.status===204)return {};
+ const body=await response.json().catch(()=>({}));
+ if(!response.ok)throw Error(body.error||'Radio HTTP '+response.status);
+ return body;
+}
+async function radioLoad(force=false){
+ if(!force&&radioLibrary.tracks.length&&Date.now()-radioLoadedAt<10*60*1000)return radioLibrary;
+ if(radioLoadPending)return radioLoadPending;
+ radioLoadPending=(async()=>{
+  const value=await radioRequest('/api/radio/library');radioLibrary=value;radioLoadedAt=Date.now();
+  radioRenderPlaylistSelect();return value;
+ })();
+ try{return await radioLoadPending}finally{radioLoadPending=null}
+}
+function radioActivePlaylist(){return radioLibrary.playlists.find(p=>p.id===$('radioPlaylist').value)}
+function radioTrack(id){return radioLibrary.tracks.find(t=>t.id===id)}
+function radioSequence(){const pl=radioActivePlaylist();return pl?pl.track_ids:radioLibrary.tracks.filter(t=>!t.demo).map(t=>t.id)}
+function radioRenderPlaylistSelect(){
+ const input=$('radioPlaylist'),selected=input.value;
+ input.replaceChildren();
+ input.add(new Option('All my tracks','all'));
+ for(const p of radioLibrary.playlists)input.add(new Option((p.demo?'★ ':'')+p.name,p.id));
+ input.value=[...input.options].some(o=>o.value===selected)?selected:'all';
+ radioRenderQueue();
+}
+function radioRenderQueue(){
+ const pl=radioActivePlaylist(),tracks=radioSequence();
+ $('radioPlaylistName').value=pl?pl.name:'';
+ const root=$('radioQueue');root.replaceChildren();
+ for(const id of tracks){const t=radioTrack(id);if(!t)continue;
+  const button=document.createElement('button');button.type='button';button.className='radio-track';button.title=t.album;
+  button.setAttribute('aria-pressed',String(radioTrackId===id));
+  const art=document.createElement('img');art.className='radio-cover';art.src=t.cover_url||radioEmptyArt;art.alt='';
+  const copy=document.createElement('span');copy.textContent=t.title+' · '+t.artist+' ('+radioClock(t.duration)+')';
+  button.append(art,copy);button.onclick=()=>void radioPlayTrack(id).catch(e=>radioStatus(e.message,true));
+  root.append(button);
+ }
+ if(!root.children.length){root.textContent='No tracks in this playlist. Upload your music or select a different playlist.'}
+ const editor=$('radioEditorTracks');editor.replaceChildren();
+ const chosen=new Set(pl?.track_ids||[]);
+ for(const t of radioLibrary.tracks){
+  if(pl?.demo&&!t.demo)continue;
+  const label=document.createElement('label'),cb=document.createElement('input');cb.type='checkbox';
+  cb.value=t.id;cb.checked=chosen.has(t.id);cb.disabled=Boolean(pl?.demo&&!$('radioAdminKey').value.trim());
+  label.append(cb,document.createTextNode(t.title+' — '+t.artist+(t.demo?' · demo':'')));
+  const line=document.createElement('div');line.className='radio-line';line.append(label);
+  if(!t.demo){
+   const del=document.createElement('button');del.type='button';del.textContent='×';del.title='Delete this audio file';
+   del.onclick=()=>void (async()=>{
+    if(!confirm('Delete audio track '+t.title+'?'))return;
+    await radioRequest('/api/radio/tracks/'+t.id,'DELETE');
+    if(radioTrackId===t.id){radioAudio.pause();radioAudio.removeAttribute('src');radioTrackId=null;}
+    await radioLoad(true);radioStatus('Audio file deleted.');
+   })().catch(e=>radioStatus(e.message,true));line.append(del);
+  }
+  editor.append(line);
+ }
+}
+async function radioPlayTrack(id,force=false){
+ if(!force&&radioTrackId===id&&!radioAudio.paused){radioAudio.pause();return}
+ if(!force&&radioTrackId===id&&radioAudio.src){await radioAudio.play();return}
+ let track=radioTrack(id);
+ if(!track)throw Error('Track is no longer in your radio library');
+ if(Date.now()-radioLoadedAt>40*60*1000){await radioLoad(true);track=radioTrack(id)}
+ if(!track?.stream_url)throw Error('Track stream is unavailable');
+ radioTrackId=id;radioAudio.src=track.stream_url;
+ $('radioCover').src=track.cover_url||radioEmptyArt;
+ $('radioNow').textContent=track.title+' · '+track.artist+' · '+track.album;
+ radioStatus('Loading '+track.title+'…');
+ try{await radioAudio.play();radioStatus('Playing · byte-range audio stream')}
+ catch(error){radioStatus('Playback: '+error.message,true)}
+ radioRenderQueue();
+}
+async function radioStep(direction=1){
+ const current=radioSequence(),mode=$('radioMode').value;
+ if(mode==='repeat-one'&&radioTrackId)return radioPlayTrack(radioTrackId,true);
+ let choices=current;
+ if(mode==='random-playlist'){
+  const available=radioLibrary.playlists.filter(x=>x.track_ids?.length);
+  if(available.length){const pl=available[Math.floor(Math.random()*available.length)];
+   $('radioPlaylist').value=pl.id;choices=pl.track_ids;}
+ }
+ if(!choices.length){radioStatus('No audio tracks are available.');return}
+ let next;
+ if(mode==='random-track'||mode==='random-playlist'){
+  const others=choices.filter(id=>id!==radioTrackId);
+  const options=others.length?others:choices;next=options[Math.floor(Math.random()*options.length)];
+ }else{
+  const index=choices.indexOf(radioTrackId);
+  next=choices[(index+direction+choices.length)%choices.length];
+ }
+ await radioPlayTrack(next,true);
+}
+function openRadio(){setWindowVisible('radioWindow',true);void radioLoad().catch(e=>radioStatus(e.message,true))}
+$('radioBtn').onclick=openRadio;
+$('radioPlaylist').onchange=radioRenderQueue;
+$('radioMode').onchange=()=>safeStore('vehiclelab.radio.mode',$('radioMode').value);
+$('radioReload').onclick=()=>void radioLoad(true).catch(e=>radioStatus(e.message,true));
+$('radioPlay').onclick=()=>void (async()=>{
+ if(!radioTrackId)return radioStep();
+ if(radioAudio.paused)await radioAudio.play();else radioAudio.pause();
+})().catch(e=>radioStatus(e.message,true));
+$('radioPrev').onclick=()=>void radioStep(-1).catch(e=>radioStatus(e.message,true));
+$('radioNext').onclick=()=>void radioStep(1).catch(e=>radioStatus(e.message,true));
+$('radioStop').onclick=()=>{radioAudio.pause();radioAudio.currentTime=0;radioStatus('Stopped')};
+$('radioVolume').oninput=e=>{radioAudio.volume=clamp(Number(e.target.value),0,1);safeStore('vehiclelab.radio.volume',String(radioAudio.volume))};
+radioAudio.onpause=()=>{$('radioPlay').textContent='▶'};
+radioAudio.onplay=()=>{$('radioPlay').textContent='Ⅱ'};
+radioAudio.ontimeupdate=()=>{$('radioTime').textContent=radioClock(radioAudio.currentTime)};
+radioAudio.onended=()=>void radioStep().catch(e=>radioStatus(e.message,true));
+radioAudio.onerror=()=>{radioStatus('Track failed to play. Refresh the radio library to renew its signed link.',true)};
+$('radioPlaylistNew').onclick=()=>{$('radioPlaylist').value='all';$('radioPlaylistName').value='';
+ for(const box of $('radioEditorTracks').querySelectorAll('input'))box.checked=false;
+ $('radioPlaylistName').focus();radioStatus('Enter a playlist name, select tracks, and Save.');};
+function radioChosenTrackIds(){return [...$('radioEditorTracks').querySelectorAll('input:checked')].map(input=>input.value)}
+$('radioPlaylistSave').onclick=()=>void(async()=>{
+ const existing=radioActivePlaylist();if(existing?.demo)throw Error('Use administrator controls to edit the demo playlist');
+ const name=$('radioPlaylistName').value.trim();if(!name)throw Error('Enter a playlist name');
+ const path=existing?'/api/radio/playlists/'+existing.id:'/api/radio/playlists';
+ const result=await radioRequest(path,existing?'PUT':'POST',{name,track_ids:radioChosenTrackIds()});
+ await radioLoad(true);$('radioPlaylist').value=result.id;radioRenderQueue();radioStatus('Playlist saved.');
+})().catch(e=>radioStatus(e.message,true));
+$('radioPlaylistDelete').onclick=()=>void(async()=>{
+ const pl=radioActivePlaylist();if(!pl||pl.demo)throw Error('Select one of your playlists');
+ if(!confirm('Delete playlist '+pl.name+'? Audio tracks will not be deleted.'))return;
+ await radioRequest('/api/radio/playlists/'+pl.id,'DELETE');await radioLoad(true);radioStatus('Playlist deleted.');
+})().catch(e=>radioStatus(e.message,true));
+$('radioUploadBtn').onclick=()=>void(async()=>{
+ const file=$('radioUploadFile').files?.[0];if(!file)throw Error('Choose an audio file');
+ if(file.size>35*1024*1024)throw Error('Audio must be below 35 MB');
+ const form=new FormData();form.append('file',file,file.name);
+ radioStatus('Uploading '+file.name+'…');const result=await radioRequest('/api/radio/tracks','POST',form);
+ $('radioUploadFile').value='';await radioLoad(true);radioStatus('Uploaded '+result.track.title+' · '+result.track.artist);
+})().catch(e=>radioStatus(e.message,true));
+$('radioAdminUpload').onclick=()=>void(async()=>{
+ const file=$('radioAdminFile').files?.[0];if(!file)throw Error('Choose a demo track');
+ const form=new FormData();form.append('file',file,file.name);
+ await radioRequest('/api/radio/admin/tracks','POST',form,true);
+ $('radioAdminFile').value='';await radioLoad(true);radioStatus('Admin demo track uploaded and added to the demo playlist.');
+})().catch(e=>radioStatus(e.message,true));
+$('radioAdminSaveDemo').onclick=()=>void(async()=>{
+ const pl=radioActivePlaylist();if(!pl?.demo)throw Error('Select ★ Vehicle Lab Demo Radio in the playlist menu');
+ await radioRequest('/api/radio/admin/demo','PUT',{name:pl.name,track_ids:radioChosenTrackIds()},true);
+ await radioLoad(true);radioStatus('Demo playlist updated.');
+})().catch(e=>radioStatus(e.message,true));
+$('radioAdminKey').oninput=radioRenderQueue;
+$('radioAdminForm').onsubmit=e=>e.preventDefault();
+// ===== End radio =====
 
 initWorkspace();initTheme();renderMaterialPalette();renderChassisAssets();initReleaseHistory();
  buildCourse();buildVegetation();

@@ -421,8 +421,8 @@ class ChassisAssetRegression(unittest.TestCase):
         self.assertIn("clean.background=new THREE.Color('#ffffff')",text)
         self.assertIn('PURE WHITE (#FFFFFF)',text)
         self.assertIn('downloadCurrentChassisReference',text)
-        self.assertIn("const VERSION='0.3.13'",text)
-        self.assertIn('name="vehicle-lab-version" content="0.3.13"',text)
+        self.assertIn("const VERSION='0.3.14'",text)
+        self.assertIn('name="vehicle-lab-version" content="0.3.14"',text)
 
     def test_sqlite_preserves_imported_shell_transform_and_asset_pointer(self):
         with tempfile.TemporaryDirectory() as d:

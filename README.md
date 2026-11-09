@@ -1,6 +1,16 @@
+# Vehicle Lab — v0.3.14 — Radio, profile media, public gallery and path-aware driving (2026-11-09)
+
+- **Radio:** draggable music player, per-profile audio uploads (MP3/WAV/M4A/OGG/FLAC/Opus, browser support varying), track metadata/embedded album covers via Mutagen, personally curated playlists and four playback modes: sequence, shuffle tracks, shuffle playlists, repeat one. Uploads are validated and limited to 35 MB each, 150 tracks/500 MB per profile; codec support is checked by Mutagen. Audio files live outside webroot; SQLite `radio.sqlite3` tracks owner relationships and playlists. Native `HTMLAudioElement` HTTP Range (206) playback requests chunks on demand, with HMAC-signed 55-minute URLs and no bearer token in URLs. HLS/DASH transcoding is intentionally not included; range streaming meets the chunk-request requirement without ffmpeg or transcoding.
+- **Demo radio:** admin-only uploads and demo-playlist edits; playlist starts empty, with no copyright-restricted audio bundled. Admin access stays separate from user and provider credentials.
+- **Personal media browser:** Music and Public tabs added to Cars/Models/Images/Maps. Old duplicate local/server lists hidden from vehicle preset pane; actual browser remains the vehicle-gallery source of truth. Cloud vehicle cards expose Publish and Unpublish actions (public gallery uses explicit `visibility` and never auto-publishes private work).
+- **Material studio:** selecting an editable scene obstacle auto-selects its material target and displays object name, allowing in-place tint changes without rebuilding the vehicle; noise/texture changes use the existing environmental refresh.
+- **Autopilot:** optional terrain-aware local weighted A* waypoint navigation; updates route at intervals, penalizes gradients, puddles and obstacles, avoids physical world edges, and replans if stuck. This is a *heuristic obstacle-avoidance prototype*, not proof of collision-free driving on arbitrary terrain.
+- **Dependency:** `mutagen==1.47.0` added to backend/requirements.txt; pinned Flask/Gunicorn/Pillow unchanged. Existing data and blueprint schema are not migrated or erased. Radio creates a separate SQLite database and files on first startup.
+- **Validation limits:** native browser range requests and UI tested by contracts and server tests where Flask is available; Quest, live music-playback behavior, cross-engine autopilot driving, and deployment remain subject to live acceptance tests.
+
 # Vehicle Lab — procedural 3D vehicle studio
 
-**Version 0.3.13 (2026-11-09)**. Browser-native modular vehicle editor built with Three.js, lil-gui, three alternative physics engines, optional GLB imports, Flask and SQLite. Project: https://github.com/sylwesterdigital/meta-vehicle-lab. Website: https://vehiclelab.xyz/.
+**Version 0.3.14 (2026-11-09)**. Browser-native modular vehicle editor built with Three.js, lil-gui, three alternative physics engines, optional GLB imports, Flask and SQLite. Project: https://github.com/sylwesterdigital/meta-vehicle-lab. Website: https://vehiclelab.xyz/.
 
 This README deliberately contains the **About, Install, Roadmap, Ideas and LLM Handover** sections in a single allowed release file. The current watcher validates an exact 15-file manifest, so adding standalone documentation to a watcher release without first migrating its manifest schema would reject the ZIP. A separate optional documentation archive contains those sections as individual Markdown files.
 

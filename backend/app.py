@@ -22,7 +22,7 @@ from pathlib import Path
 from flask import Flask, jsonify, request, send_file, g
 from werkzeug.exceptions import RequestEntityTooLarge
 
-from .storage import InvalidLayout, StaleLayout, Storage, validate_uuid, prepare_lux_reference
+from .storage import InvalidLayout, StaleLayout, Storage, validate_uuid, prepare_lux_reference, register_radio
 
 PROJECT_ROOT=Path(__file__).resolve().parents[1]
 MAX_ASSET=80*1024*1024
@@ -125,6 +125,8 @@ def create_app(config=None):
         if not member:return None,(jsonify(error='Guest credential missing or invalid. Import a profile backup or create a guest.'),401)
         return member,None
 
+    register_radio(app,data_dir,guest_or_error)
+
     # Different owners never share a session token. No token, email, IP or
     # provider credential is written into application logs.
     @app.after_request
@@ -178,7 +180,7 @@ def create_app(config=None):
         # Public gallery and guest profile routes have scoped, per-profile
         # authentication below. Never let them fall through to the server
         # administrator's legacy layout token.
-        guest_paths=('/api/identity/', '/api/me/', '/api/gallery', '/api/providers/test', '/api/providers/lux3d/', '/api/vehicle/generate-image')
+        guest_paths=('/api/identity/', '/api/me/', '/api/gallery', '/api/radio/', '/api/providers/test', '/api/providers/lux3d/', '/api/vehicle/generate-image')
         if request.path.startswith(guest_paths):
             if request.method not in ('GET','HEAD'):
                 origin=request.headers.get('Origin')
