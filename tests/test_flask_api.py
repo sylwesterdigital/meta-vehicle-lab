@@ -68,6 +68,29 @@ class FlaskAPITests(unittest.TestCase):
         self.assertEqual(self.client.post('/api/providers/test',headers=member_headers,
             json={'provider':'tripo','key':'some-secret'}).status_code,422)
 
+    def test_generation_endpoint_auth_schema_and_mocked_openai(self):
+        import base64, io, json
+        from unittest.mock import patch
+        profile=self.client.post('/api/identity/guest',json={'name':'Creative Tester'}).json
+        headers={'Authorization':'Bearer '+profile['token'],'X-Provider-Key':'sample-key-1234567890'}
+        request_data={'provider':'openai','prompt':'Clean isolated wheel hub assembly in studio lighting'}
+        self.assertEqual(self.client.post('/api/vehicle/generate-image',json=request_data).status_code,401)
+        self.assertEqual(self.client.post('/api/vehicle/generate-image',headers=headers,
+            json={**request_data,'provider':'meta'}).status_code,422)
+        class Upstream(io.BytesIO):
+            headers={}
+            def __enter__(self):return self
+            def __exit__(self,*args):self.close()
+        fake=base64.b64encode(b'\x89PNG\r\n\x1a\n'+b'valid-image-byte-placeholder').decode()
+        def provider_response(req,timeout=0):
+            self.assertEqual(req.full_url,'https://api.openai.com/v1/images/generations')
+            self.assertEqual(json.loads(req.data)['model'],'gpt-image-2.5-flare')
+            return Upstream(json.dumps({'data':[{'b64_json':fake}]}).encode())
+        with patch('backend.app.urllib.request.urlopen',provider_response):
+            result=self.client.post('/api/vehicle/generate-image',headers=headers,json=request_data)
+            self.assertEqual(result.status_code,200,result.json)
+            self.assertTrue(result.json['image'].startswith('data:image/png;base64,'))
+
 if __name__=='__main__':unittest.main()
 
 # AHOLO Lux3D integration: all credential probes must stay read-only.

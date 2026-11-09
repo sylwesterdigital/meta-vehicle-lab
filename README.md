@@ -1,6 +1,6 @@
 # Vehicle Lab — procedural 3D vehicle studio
 
-**Version 0.3.2 (2026-11-09)**. Browser-native modular vehicle editor built with Three.js, lil-gui, three alternative physics engines, optional GLB imports, Flask and SQLite. Project: https://github.com/sylwesterdigital/meta-vehicle-lab. Website: https://vehiclelab.xyz/.
+**Version 0.3.3 (2026-11-09)**. Browser-native modular vehicle editor built with Three.js, lil-gui, three alternative physics engines, optional GLB imports, Flask and SQLite. Project: https://github.com/sylwesterdigital/meta-vehicle-lab. Website: https://vehiclelab.xyz/.
 
 This README deliberately contains the **About, Install, Roadmap, Ideas and LLM Handover** sections in a single allowed release file. The current watcher validates an exact 15-file manifest, so adding standalone documentation to a watcher release without first migrating its manifest schema would reject the ZIP. A separate optional documentation archive contains those sections as individual Markdown files.
 
@@ -8,7 +8,7 @@ This README deliberately contains the **About, Install, Roadmap, Ideas and LLM H
 
 Vehicle Lab is a prototype for procedurally assembling visually plausible city cars, buses, municipal vehicles, heavy trucks, construction equipment, agricultural machinery and warehouse vehicles from parameterized hull modules and equipment. Parameters cover width/height/depth/scale/rotation/offset, body materials, wheels, axles, doors/windows, passenger slots, engines and driving physics. Modules can later be transferred into a shared 3D world as an independent blueprint generator. This is **not** an engineering-grade physics simulator.
 
-## Features through v0.3.2
+## Features through v0.3.3
 
 - Full-size Three.js canvas. Draggable, resizable, minimizable actions/tools/catalog/gallery/parameters/log windows. Right-side configuration and profile drawers, custom theme/typography and text/icon button modes.
 - Circular uploaded/webcam profile picture, optional passwordless identity, bearer-secret JSON backup. Credentials must remain private. Public gallery is **opt-in**; private layouts remain owner-scoped.
@@ -30,9 +30,9 @@ Vehicle Lab is a prototype for procedurally assembling visually plausible city c
 
 ## Run / install
 
-Place exactly **`META_VEHICLE_LAB_UPDATE_v0.3.2.zip`** in:
+Place exactly **`META_VEHICLE_LAB_UPDATE_v0.3.3.zip`** in:
 
-`/Users/smielniczuk/Documents/works/meta-vehicle-lab/updates/META_VEHICLE_LAB_UPDATE_v0.3.2.zip`
+`/Users/smielniczuk/Documents/works/meta-vehicle-lab/updates/META_VEHICLE_LAB_UPDATE_v0.3.3.zip`
 
 From repository root:
 
@@ -56,7 +56,7 @@ Mac watcher checks versioned ZIP hashes/tests, verified GitHub main, SSH `-p 333
 
 v3 blueprint uses Three.js Y-up +Z-forward geometry, `vehicle` and independent `modules`, `simulation`, `occupants`, `metadata` (category/description/five preview JPEGs). Each parameter is bounded by GUI and backed by collision/visual geometry as appropriate. Imported GLB binary is **not** embedded in JSON; local IndexedDB preserves body/occupant file(s). User-owned body GLB can be uploaded to SQLite; occupant GLB server asset storage is a future milestone.
 
-Profile identity is a random bearer secret (not UUID-based login). JSON profile backups include credentials and must not be shared. No verified password/email recovery, SMTP activation or Postfix configuration. AI generator endpoints remain contracts, while API-key model-list diagnostics are separate. Admin logs require a legacy administrator token; guests cannot access them.
+Profile identity is a random bearer secret (not UUID-based login). JSON profile backups include credentials and must not be shared. No verified password/email recovery, SMTP activation or Postfix configuration. OpenAI and xAI image generation and edits use authenticated fixed HTTPS API routes with user-provided keys kept in browser memory; Lux3D handles billable 3D creation. Tripo 3D endpoints remain unimplemented. Provider model-list diagnostics are separately read-only. Admin logs require a legacy administrator token; guests cannot access them.
 
 ## Lux3D integration (v0.2.9)
 
@@ -165,3 +165,13 @@ Test on actual HTTPS/WebGL hardware before deploying as a verified feature: whee
 **Access tokens:** Your passwordless Vehicle Lab profile authorizes private/public layouts and Lux3D import. Provider keys are separate, used only when contacting the selected provider, and kept in browser memory. Server-log access requires a distinct administrator token. Successful OpenAI model listing does not grant permission for admin logs.
 
 **Acceptance limitations:** No live generated model, signed provider result URL, CORS CDN, or driving physics roundtrip has been verified in a real deployed browser. These must be tested after deployment; version and syntax checks are not substitutes for full interaction testing.
+
+## v0.3.3 repair scope (2026-11-09)
+
+- Align Rapier compatibility build (`rapier.mjs` v0.21), vehicle wheel accessors and physics error staging with the current Three.js Rapier vehicle-controller example. **Runtime parity is not established until a real browser test succeeds.**
+- Wheel style/material changes replace only wheel meshes and avoid reconstructing the driver/cabin. Chassis reference uses a separate offscreen orthographic camera fitted to model bounds, with explicit body-only vs whole-vehicle options.
+- Add procedural WebAudio engine sound with start, idle, throttle harmonic/noise, braking and impact parameters (electric, petrol, diesel, turbine presets). Audio starts only with a user gesture and is silent in BUILD.
+- Add compact XYZ and dimension inspector rows with focused sliders; object orthographic views 1–7 and +/- zoom. Avoid reconstructing occupants on ordinary course edits. Add parameter groups for cockpit seats, dashboard and lamps.
+- Improve higher-zoom map contours and preserve fixed map pixel resolution when resizing the window. Map edits are attached to the existing Undo/Redo history.
+- The wheel workshop offers in-place AI prompts, tab-only provider keys, and Lux3D auto-import of finished wheel GLBs. OpenAI (`gpt-image-2.5-flare`) and xAI (`grok-imagine-image-2.0`) reference-image generation and edit routes use owner-scoped credentials and explicit calls; these routes are not free, and no real paid task is tested.
+- Tripo image-to-3D remains a disabled backend contract, and the physics realism of roof impacts/door joints is not engineering-certified. The release has static/code/test validation, not a full WebGL interactive acceptance pass.

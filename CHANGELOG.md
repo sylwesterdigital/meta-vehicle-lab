@@ -1,3 +1,14 @@
+# v0.3.3 — Rapier/driver-state repairs, audio, AI wheel workflow and editor ergonomics (2026-11-09)
+
+- Use a pinned compatible Rapier ESM build, correct up/forward axes, wheel-local/world transforms and wheel force tuning; include staged failure messages. Real Rapier drive behavior remains **browser-unverified**.
+- Swap procedural wheel visuals without resetting passenger rigs; maintain camera state during BUILD/DRIVE; increase collider coverage over roof. Chassis and full-car reference captures fit model bounds in an isolated offscreen studio.
+- Add adjustable procedural WebAudio engine preset synthesis (electric, petrol, diesel, turbine), live noise/filter/harmonic controls, braking and impacts.
+- Compact object-inspector XYZ and dimension controls with active range sliders, 1–7 camera views and +/- zoom. Map undo/redo, higher-zoom vector contours, non-scaling map canvas and environment edits without reconstructing occupants.
+- Add chassis/seat/dashboard/lamp editing groups. Wheel workshop offers first-tile AI actions and inline provider keys; route Lux3D completed wheel GLBs to selected axle. OpenAI/xAI image reference generation/edit endpoints added with guest authorization, input size caps and no key storage; these are potentially billable. Meta image generation and Tripo 3D remain explicitly unimplemented.
+- Validation: Node JavaScript syntax, Python syntax, stdlib tests and watcher ZIP checks. Real WebGL driving, sound playback, avatar animation, GPU rendering and paid provider calls are not independently tested.
+
+---
+
 # v0.3.2 — Precision terrain and physics object editing (2026-11-09)
 
 - 1:1 square precision map now supports wheel zoom centered at pointer, pinch-to-zoom, explicit +/- and Fit, right/middle drag and hand pan, selectable and movable objects, dynamic coordinate grid and vector-outline footprints. Relief/contour raster is a background; geometry stays vector-precise.

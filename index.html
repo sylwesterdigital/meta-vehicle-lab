@@ -5,7 +5,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Vehicle Lab — Procedural Studio</title>
-  <meta name="vehicle-lab-version" content="0.3.2">
+  <meta name="vehicle-lab-version" content="0.3.3">
   <style>
     :root {
       color-scheme:dark;
@@ -344,6 +344,48 @@
   .pill-row button[aria-pressed="true"],.gallery-topline button[aria-pressed="true"],
   button.active,button[aria-pressed="true"]{background:var(--accent)!important;color:var(--accent-ink,#0d1821)!important}
   button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid var(--accent)!important;outline-offset:2px}
+
+    /* Legibility is computed for EVERY surface, not only the selected pills. */
+    :root{--button-surface:#203a4c;--button-ink:#f5fbff;--button-border:#5c8498}
+    button:not([aria-pressed="true"]):not(.active){color:var(--button-ink);background:var(--button-surface);border-color:var(--button-border)}
+    body[data-theme=light] .side-drawer button:not([aria-pressed="true"]):not(.active){color:#f9fcff;background:#224153;border-color:#69889b}
+    .side-drawer button[aria-pressed=true],.side-drawer button.active{color:var(--accent-ink)!important}
+    .side-drawer summary,.side-drawer small,.side-drawer label{color:var(--text)}
+    #generateTheme,#workspaceExport,#workspaceImport,#localFonts{color:#f7fbff!important;background:#21485b!important}
+    .side-drawer button:disabled{opacity:.6}
+    #referenceCard{width:min(760px,88vw);max-height:80vh;position:fixed;left:50%;top:50%;bottom:auto;
+      transform:translate(-50%,-50%);z-index:75;padding:14px;box-shadow:0 0 0 100vmax #020911ae,0 18px 90px #000d}
+    #referenceCard img{max-height:72vh;object-fit:contain;width:100%;height:auto}
+    #lux3dReferencePreview{cursor:zoom-in}
+
+
+    /* Resizing the floating window changes clipping, not the map scale. */
+    .map-workspace{grid-template-columns:42px minmax(0,1fr)}
+    .map-canvas-clip{width:100%;min-width:0;max-width:100%;overflow:hidden;position:relative;border:1px solid var(--pane-border);border-radius:8px}
+    #stage .map-canvas-clip #terrainMini{width:450px!important;height:450px!important;min-width:450px;
+      min-height:450px;max-width:none;aspect-ratio:1/1;display:block;border:0;border-radius:0;touch-action:none}
+    @media(max-width:700px){#stage .map-canvas-clip #terrainMini{width:360px!important;height:360px!important;min-width:360px;min-height:360px}}
+
+
+    #objectWindow{width:min(500px,95vw)}
+    .object-vector{display:grid;grid-template-columns:65px repeat(3,minmax(0,1fr));gap:5px;align-items:center;margin:6px 0}
+    .object-vector>span{font-weight:650;font-size:12px}
+    .object-vector label{display:flex;align-items:center;gap:3px;min-width:0;font-size:10px;font-weight:650}
+    .object-vector input{min-width:0;width:100%;padding:6px 4px;background:var(--pane);color:var(--text);border:1px solid var(--pane-border);border-radius:5px}
+    .object-slider{display:grid;grid-template-columns:82px minmax(0,1fr) 52px;align-items:center;gap:6px;padding:8px 3px 10px}
+    .object-slider input[type=range]{width:100%;accent-color:var(--accent)}
+    .object-slider output{font:11px ui-monospace,monospace;text-align:right}
+    #objectWindow .object-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+
+
+    .wheel-ai-tile{background:#355e71!important;color:white!important;min-height:88px}
+    .wheel-brain{font-size:37px;line-height:55px}
+    .wheel-ai-keys{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px;margin-top:9px}
+    .wheel-ai-keys label{font-size:11px;display:grid;gap:3px;min-width:0}
+    .wheel-ai-keys input:not([type=checkbox]),.wheel-ai-keys select{width:100%;min-width:0;padding:6px;
+      color:#fff;background:#182e3b;border:1px solid #678a9a;border-radius:6px}
+    #wheelAIStatus{margin:10px 0;padding:9px;border:1px solid var(--pane-border);border-radius:6px;overflow-wrap:anywhere}
+
 </style>
 
  <script type="importmap">
@@ -352,7 +394,7 @@
     "three":"https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js",
     "three/addons/":"https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/",
     "cannon-es":"https://cdn.jsdelivr.net/npm/cannon-es@0.20.0/dist/cannon-es.js",
-    "@dimforge/rapier3d-compat":"https://esm.sh/@dimforge/rapier3d-compat@0.19.3?bundle",
+    "@dimforge/rapier3d-compat":"https://cdn.jsdelivr.net/npm/@dimforge/rapier3d-compat@0.21.0/dist/rapier.mjs",
     "lil-gui":"https://cdn.jsdelivr.net/npm/lil-gui@0.21.0/dist/lil-gui.esm.js"
   }
 }
@@ -362,7 +404,7 @@
 
   <div id="stage">
   <div id="hud">
-    <div class="stage-badge"><strong>Vehicle Lab</strong><small>v0.3.2</small></div>
+    <div class="stage-badge"><strong>Vehicle Lab</strong><small>v0.3.3</small></div>
     <p id="vehicleName">City Car</p><p id="vehicleInfo">Procedural vehicle</p>
     <div id="speedHud"><strong id="speed">0</strong><div>km/h</div></div>
     <div id="physicsHud"><strong id="engineName">Cannon-es</strong> · <span id="physicsMode">BUILD</span>
@@ -445,13 +487,13 @@
       <button data-map-tool="trees" title="Tree cluster">♠</button>
       <button data-map-tool="hedge" title="Hedge patch">▥</button>
       <button data-map-tool="dune" title="Sand dunes">∿</button>
-    </nav><canvas id="terrainMini" width="768" height="768" aria-label="Square editable test map: relief contours or geometric plan. Drag to draw exactly shaped obstacles."></canvas></div>
+    </nav><div class="map-canvas-clip"><canvas id="terrainMini" width="768" height="768" aria-label="Square editable map: drag and pinch to pan/zoom."></canvas></div></div>
     <div id="mapCoordinates" aria-live="polite">Map: true world metres · wheel to zoom · middle/right drag to pan</div>
     <div id="mapSelected" class="map-selected" hidden><strong id="mapSelectedName">Selected object</strong><div class="drawer-actions"><button id="mapEditObject">Edit / gizmo</button><button id="mapDuplicateObject">Duplicate</button><button id="mapRemoveObject">Remove</button></div></div>
-    <div class="map-top"><label>Tool<select id="mapTool"><option value="select">Select / move</option><option value="pan">Pan / hand</option><option value="freehand">Freehand patch</option><option value="hill">Draw hill</option><option value="puddle">Draw puddle</option><option value="cone">Traffic cone</option><option value="rock">Physical boulder</option><option value="barrier">Race barrier</option><option value="cube">Cube obstacle</option><option value="pyramid">Pyramid obstacle</option><option value="bridge">Raised bridge</option><option value="jump">Rally jump</option><option value="beam">Balance beam (static)</option><option value="grass">Grass patch</option><option value="sand">Sand patch</option><option value="trees">Tree cluster</option><option value="hedge">Hedge strip</option><option value="dune">Dunes</option></select></label>
-      <label>Footprint<select id="mapShape"><option value="ellipse">Oval</option><option value="circle">Circle</option><option value="square">Square</option><option value="line">Line</option><option value="polygon">Freehand polygon</option></select></label></div>
+    <div class="map-top"><label>Action<select id="mapTool"><option value="select">Select / move</option><option value="pan">Pan / hand</option><option value="freehand">Freehand patch</option><option value="hill">Draw hill</option><option value="puddle">Draw puddle</option><option value="cone">Traffic cone</option><option value="rock">Physical boulder</option><option value="barrier">Race barrier</option><option value="cube">Cube obstacle</option><option value="pyramid">Pyramid obstacle</option><option value="bridge">Raised bridge</option><option value="jump">Rally jump</option><option value="beam">Balance beam (static)</option><option value="grass">Grass patch</option><option value="sand">Sand patch</option><option value="trees">Tree cluster</option><option value="hedge">Hedge strip</option><option value="dune">Dunes</option></select></label>
+      <label>Draw footprint<select id="mapShape"><option value="ellipse">Oval</option><option value="circle">Circle</option><option value="square">Square</option><option value="line">Line</option><option value="polygon">Freehand polygon</option></select></label></div>
     <label>Height (m) <input id="mapHeight" type="range" min=".2" max="7" step=".1" value="2"><output id="mapHeightValue">2m</output></label>
-    <div class="drawer-actions"><button id="mapUndo">Remove last</button><button id="mapClear">Clear objects</button><button id="mapSave">Save map</button><button id="mapExport">Export JSON</button><button id="mapImport">Import JSON</button></div>
+    <div class="drawer-actions"><button id="mapUndo">Undo</button><button id="mapRedo">Redo</button><button id="mapClear">Clear objects</button><button id="mapSave">Save map</button><button id="mapExport">Export JSON</button><button id="mapImport">Import JSON</button></div>
     <div class="map-top"><select id="mapSaved" aria-label="Saved test map"><option>Loading maps...</option></select><button id="mapLoad">Load</button></div>
     <small id="mapStatus">Drag to draw the selected footprint. Edits in DRIVE rebuild physics at the car’s current position.</small>
    </div>
@@ -460,17 +502,27 @@
    <div class="window-head"><strong>10 / Object inspector</strong><button class="mini-btn minimize" title="Minimize">−</button></div>
    <div class="window-body"><strong id="objectKindTitle">Select an object</strong><small id="objectIdText" style="display:block;color:var(--muted);margin:5px 0">Click a course object in the 3D world or on the map.</small>
     <div class="object-mode" id="objectGizmoModes"><button data-gizmo="translate" aria-pressed="true">Move</button><button data-gizmo="rotate">Rotate</button><button data-gizmo="scale">Scale</button></div>
+    <div class="object-vector"><span>Position</span>
+      <label>X <input id="objectX" type="number" step="0.1"></label>
+      <label>Y <input id="objectY" type="number" step="0.1"></label>
+      <label>Z <input id="objectZ" type="number" step="0.1"></label>
+    </div>
+    <div class="object-vector"><span>Size</span>
+      <label>X <input id="objectW" type="number" min="0.1" max="80" step="0.1"></label>
+      <label>Y <input id="objectH" type="number" min="0.1" max="30" step="0.1"></label>
+      <label>Z <input id="objectD" type="number" min="0.1" max="80" step="0.1"></label>
+    </div>
+    <div class="object-slider"><span id="objectSlideLabel">X position</span>
+      <input id="objectQuickSlider" type="range" min="-150" max="150" step="0.1" value="0">
+      <output id="objectSlideValue">0</output></div>
     <div class="object-grid">
-     <label>X (m)<input id="objectX" type="number" step="0.1"></label><label>Y center (m)<input id="objectY" type="number" step="0.1"></label>
-     <label>Z (m)<input id="objectZ" type="number" step="0.1"></label><label>Yaw (degrees)<input id="objectAngle" type="number" step="1"></label>
-     <label>Width X (m)<input id="objectW" type="number" min="0.1" max="80" step="0.1"></label><label>Height (m)<input id="objectH" type="number" min="0.1" max="30" step="0.1"></label>
-     <label>Depth Z (m)<input id="objectD" type="number" min="0.1" max="80" step="0.1"></label><label>Color<input id="objectColor" type="color"></label>
+     <label>Yaw °<input id="objectAngle" type="number" step="1"></label><label>Color<input id="objectColor" type="color"></label>
      <label>Physics<select id="objectPhysics"><option value="static">Static · collider</option><option value="dynamic">Dynamic · rigid body</option><option value="none">No collider</option></select></label>
-     <label>Mass (kg)<input id="objectMass" type="number" min="0.1" max="10000" step="1"></label>
+     <label>Mass kg<input id="objectMass" type="number" min="0.1" max="10000" step="1"></label>
      <label>Friction<input id="objectFriction" type="number" min="0" max="2" step="0.05"></label>
      <label>Bounce<input id="objectBounce" type="number" min="0" max="1" step="0.05"></label>
      <label>Texture<select id="objectTexture"><option value="none">Solid</option><option value="speckle">Fine noise</option><option value="checker">Checker / panels</option><option value="grain">Natural grain</option><option value="stripes">Striped / industrial</option></select></label>
-     <label>Texture seed<input id="objectSeed" type="number" min="0" max="99999" step="1"></label>
+     <label>Seed<input id="objectSeed" type="number" min="0" max="99999" step="1"></label>
     </div><small style="display:block;margin:9px 0;color:var(--muted)">Primitive rigid bodies use collision-box approximations when a precise mesh collider is unavailable. Terrain and surface patches are edited on the map.</small>
     <div class="drawer-actions"><button id="objectDuplicate">Duplicate</button><button id="objectDelete">Delete</button><button id="objectDeselect">Deselect</button></div>
    </div>
@@ -488,10 +540,17 @@
         <label>Alloy<input id="wheelAlloyEdit" type="color"></label></div>
       <div class="drawer-actions"><button type="button" id="wheelUpload">Import wheel GLB</button><button type="button" id="wheelCapUpload">Import optional cap GLB</button><button type="button" id="wheelRemove">Use procedural wheel</button></div>
       <div id="wheelAssetList" class="wheel-asset-list"></div>
-      <details><summary>AI wheel asset pipeline</summary>
+      <details id="wheelAISection"><summary>AI wheel workshop · provider, image & 3D</summary>
+        <form id="wheelAiCredentials" class="wheel-ai-keys" autocomplete="off"><label>Image model<select id="wheelAIProvider"><option value="openai">OpenAI</option><option value="xai">xAI</option></select></label>
+          <label>Image API key<input type="password" id="wheelImageKey" autocomplete="off" placeholder="Paste key (tab only)"></label>
+          <button type="button" id="wheelUseImageKey">Use key</button>
+          <label>Lux3D key<input type="password" id="wheelLuxKey" autocomplete="off" placeholder="Optional Lux3D key"></label>
+          <button type="button" id="wheelTestLuxKey">Test Lux3D key</button>
+          <label><input type="checkbox" id="wheelSpendAck"> Authorize potentially billable 3D generation</label></form>
+        <div id="wheelAIStatus" role="status">AI generation and key testing run in this workshop. Lux3D wheel results auto-import when complete.</div>
         <p>Text/image → image provider → optional refinement → Lux3D or Tripo 3D. Paid generation requires confirmation in provider controls.</p>
         <textarea id="wheelPrompt" rows="3" placeholder="Forged 10-spoke alloy rim, isolated wheel assembly, no vehicle"></textarea>
-        <div class="drawer-actions"><button type="button" id="wheelTextImage">Text → image</button><button type="button" id="wheelEditImage">Reference → refined image</button><button type="button" id="wheelImage3D">Image → Tripo 3D</button><button type="button" id="wheelLux3D">Lux3D generation</button></div>
+        <div class="drawer-actions"><button type="button" id="wheelTextImage">Text → image</button><button type="button" id="wheelEditImage">Reference → refined image</button><button type="button" id="wheelImage3D" disabled title="Tripo server adapter has not been installed">Tripo (unavailable)</button><button type="button" id="wheelLux3D">Lux3D generation</button></div>
         <button type="button" id="wheelReferenceFile">Upload reference image</button>
       </details>
     </div>
@@ -562,7 +621,7 @@
       <label>Model <select id="lux3dModel"><option value="G1">G1 · high quality GLB + ZIP</option><option value="G1-Turbo">G1-Turbo · fast GLB</option></select></label>
       <label>Style <select id="lux3dStyle"><option value="photorealistic">Photorealistic</option><option value="cartoon">Cartoon</option><option value="hand_painted">Hand painted</option><option value="cyberpunk">Cyberpunk</option><option value="anime">Anime</option><option value="fantasy">Fantasy</option></select></label>
       <label>Design instructions <textarea id="lux3dPrompt" rows="4" maxlength="1000" placeholder="Aerodynamic compact hatchback shell with a low nose, muscular shoulders, and clean wheel arches."></textarea></label>
-      <div class="lux-reference-actions"><button type="button" id="lux3dCaptureReference">Capture body-only 3/4 view</button><button type="button" id="lux3dUploadReference">Upload reference image</button><button type="button" id="lux3dClearReference">Clear reference</button><button type="button" id="lux3dPreviewReference">View reference</button></div>
+      <div class="lux-reference-actions"><button type="button" id="lux3dCaptureReference">Body shell · 3/4 studio</button><button type="button" id="lux3dCaptureFull">Complete car · 3/4 studio</button><button type="button" id="lux3dUploadReference">Upload image</button><button type="button" id="lux3dClearReference">Clear reference</button><button type="button" id="lux3dPreviewReference">View reference</button></div>
       <input type="file" id="lux3dReferenceFile" accept="image/png,image/jpeg,image/webp" hidden>
       <div class="lux-reference"><img id="lux3dReferencePreview" alt="Optional chassis-only reference preview" hidden><small id="lux3dReferenceInfo">No reference selected. Capture a wheel-free three-quarter image, or upload an image.</small></div>
       <label class="lux-check"><input id="lux3dUseReference" type="checkbox"> Include this reference image with generation</label>
@@ -743,6 +802,13 @@
    frontRake:.64,rearRake:.42,roofWidth:.76,roofArch:.045,
    doorStyle:'swing',galleryBackdrop:'studio',galleryBackdropColor:'#eff4fa',
    galleryExposure:1.65,driveHidePanels:true,
+   seatWidth:.29,seatHeight:.10,seatBackHeight:.32,seatRecline:0,
+   dashDepth:.42,dashHeight:.22,steeringRadius:.17,
+   lampWidth:.25,lampHeight:.12,headlightPower:18,
+   audioEnabled:true,soundPreset:'electric',audioVolume:.2,baseRPM:780,
+   soundPitchRange:2.2,engineHarmonics:.4,engineNoise:.18,
+   tyreNoise:.16,impactVolume:.42,engineFilter:1300,
+
    grassDensity:8000,grassHeight:.25,shrubs:60,rocks:40,vegetationWind:.65,
    courseName:'Open practice ground',courseObjects:[],ghostMode:'off',cameraMode:'orbit',cameraClearance:true
  };
@@ -809,7 +875,7 @@ let ghostObject=null,ghostSamples=[],ghostElapsed=0,ghostTick=0;
  const serverAccess={token:''};
  let activeProfile=null,guestToken='',serverVisibility='private',adminLogToken='';
  const appEvents=[];
- const VERSION='0.3.2';
+ const VERSION='0.3.3';
  let imageReference=null,busyAI=false;
 
  // Keys remain in volatile memory. Never place credentials in a blueprint or IndexedDB.
@@ -1346,7 +1412,10 @@ async function refreshEnvironmentForMap(){
  const driving=mode==='drive';
  try{
   if(driving){resumeDrivePose=physics?.pose?.()||null;leaveDrive();}
-  buildTerrain();buildCourse();buildVegetation();clearTracks();buildVehicle();
+  buildTerrain();buildCourse();buildVegetation();clearTracks();
+  // Preserve passenger rigs and their active clips during ordinary map/object edits.
+  // Reconstructing the vehicle here used to make the driver jump back to idle.
+  if(!car)buildVehicle();
   if(driving&&resumeDrivePose){
    // Engine initialization uses the saved world pose, including heading and velocity.
    await enterDrive();
@@ -1809,7 +1878,7 @@ function addLamp(parent,x,z,front){
  const m=mat(colour,.1,.22,{
   emissive:new THREE.Color(colour),emissiveIntensity:0
 });
- box(parent,.25,.12,.05,m,x,-.13,z);
+ box(parent,cfg.lampWidth,cfg.lampHeight,.05,m,x,-.13,z);
  if(front){
   headMaterials.push(m);
   const spot=new THREE.SpotLight(0xfff2da,0,22,Math.PI/7,.65,1.5);
@@ -1822,7 +1891,7 @@ function addLamp(parent,x,z,front){
 }
 function updateLights(){
  for(const m of headMaterials)m.emissiveIntensity=cfg.headlights?3:.02;
-   for(const l of headlights)l.intensity=cfg.headlights?18:0;
+   for(const l of headlights)l.intensity=cfg.headlights?cfg.headlightPower:0;
      for(const m of brakeMaterials)m.emissiveIntensity=braking?5:cfg.headlights?.7:.05;
    }
 
@@ -2025,11 +2094,11 @@ for(const side of [-1,1]){
 
 const passengers=new THREE.Group();car.add(passengers);passengersGroup=passengers;
  // Cockpit anchor shared by driver rig and future XR interaction tests.
- const dash=box(passengers,W*.62,.16,.42,detailMaterial(cfg.interiorColor,cfg.interiorPattern,.08,.8),0,.22,L*.1);
+ const dash=box(passengers,W*.62,.16,cfg.dashDepth,detailMaterial(cfg.interiorColor,cfg.interiorPattern,.08,.8),0,cfg.dashHeight,L*.1);
  const steerFrame=new THREE.Group();steerFrame.position.set(-W*.24,.23,L*.11);
  steerFrame.rotation.x=-.24;passengers.add(steerFrame);
  steeringWheel=new THREE.Group();steerFrame.add(steeringWheel);
- const hoop=add(steeringWheel,new THREE.TorusGeometry(.17,.021,9,32),mat(cfg.trimColor,.3,.6));
+ const hoop=add(steeringWheel,new THREE.TorusGeometry(cfg.steeringRadius,.021,9,32),mat(cfg.trimColor,.3,.6));
  hoop.rotation.x=0;
  for(let i=0;i<3;i++){const arm=box(steeringWheel,.025,.15,.027,mat(cfg.trimColor),0,.07,0);arm.rotation.z=i*Math.PI*2/3}
  const lcd=box(passengers,.29,.19,.019,new THREE.MeshBasicMaterial({color:'#192f3d'}),0,.25,L*.11);lcd.rotation.x=-.16;
@@ -2040,8 +2109,9 @@ for(let i=0;i<cfg.seats;i++){
   const col=i%columns,row=Math.floor(i/columns);
   const x=(col-(columns-1)/2)*W*.66/columns;
   const z=b*.36-(row+.5)*b*.72/rows+(L/2-a-b/2);
-  box(passengers,.29,.10,.3,seatMat,x,-.22,z);
-  box(passengers,.29,.32,.075,seatMat,x,-.01,z-.12);
+  box(passengers,cfg.seatWidth,cfg.seatHeight,.3,seatMat,x,-.22,z);
+  const back=box(passengers,cfg.seatWidth,cfg.seatBackHeight,.075,seatMat,x,-.01,z-.12);
+  back.rotation.x=cfg.seatRecline*Math.PI/180;
   let figure,model=null;
   const modelId=seatBindings[i];
   if(modelId&&occupantModels.has(modelId))model=occupantModels.get(modelId);
@@ -2233,8 +2303,8 @@ function makeCannonAdapter(){
  if(spawn){chassis.quaternion.set(spawn.rotation.x,spawn.rotation.y,spawn.rotation.z,spawn.rotation.w);
   chassis.velocity.set(spawn.velocity.x,spawn.velocity.y,spawn.velocity.z);}
  chassis.addShape(new CANNON.Box(new CANNON.Vec3(
-  cfg.W*.44,Math.max(.23,cfg.H*.24),cfg.L*.44)),
-  new CANNON.Vec3(0,-.07,0));
+  cfg.W*.44,Math.max(.4,cfg.H*.46),cfg.L*.44)),
+  new CANNON.Vec3(0,cfg.H*.04,0));
  const vehicle=new CANNON.RaycastVehicle({chassisBody:chassis,
    indexRightAxis:0,indexUpAxis:1,indexForwardAxis:2});
  for(let axle=0;axle<cfg.axles;axle++)for(const side of [-1,1]){
@@ -2292,29 +2362,33 @@ function makeCannonAdapter(){
  };
 }
 async function getRapier(){
- if(!rapierModule){
-  let mod,firstError;
-  try{mod=await import('@dimforge/rapier3d-compat')}
-  catch(error){
-   firstError=error;
-   try{mod=await import('https://cdn.jsdelivr.net/npm/@dimforge/rapier3d-compat@0.19.3/+esm')}
-   catch(backupError){throw Error('Rapier CDN unavailable; '+firstError.message+' / '+backupError.message)}
-  }
-  const R=mod.default||mod;
-  if(typeof R.init==='function')await R.init();
-  rapierModule=R;
+ if(rapierModule)return rapierModule;
+ // Match the Three.js RapierPhysics helper's known-compatible ESM build.
+ // The compat distribution embeds WASM, avoiding unbundled .wasm resolution.
+ let module;
+ try{module=await import('@dimforge/rapier3d-compat')}
+ catch(first){
+  try{module=await import('https://cdn.jsdelivr.net/npm/@dimforge/rapier3d-compat@0.21.0/dist/rapier.mjs')}
+  catch(second){throw Error('Rapier could not load: '+first.message+'; '+second.message)}
  }
- return rapierModule;
+ const R=module.default?.World?module.default:module;
+ if(typeof R.init==='function')await R.init({});
+ if(!R.World||!R.ColliderDesc||!R.RigidBodyDesc)throw Error('Rapier bindings incomplete');
+ rapierModule=R;
+ return R;
 }
 async function makeRapierAdapter(){
  const R=await getRapier();
+ let rapierStage='create world';
  const rw=new R.World({x:0,y:-9.82,z:0});
  try{
+  rapierStage='terrain collider';
   // Reuse exact visible terrain triangles; don't substitute a flat collider.
   const attr=terrain.geometry.getAttribute('position');
   const positions=new Float32Array(attr.array);
   const indices=new Uint32Array(terrain.geometry.index.array);
   rw.createCollider(R.ColliderDesc.trimesh(positions,indices).setFriction(.85));
+  rapierStage='course colliders';
   const movingCourse=[];
   for(const solid of courseSolidSpecs){if(solid.physics==='none')continue;
    const q=new THREE.Quaternion().setFromEuler(new THREE.Euler(solid.rx,solid.ry,solid.rz));
@@ -2327,21 +2401,23 @@ async function makeRapierAdapter(){
    if(rb&&solid.id)movingCourse.push({id:solid.id,body:rb});
   }
 
+  rapierStage='chassis';
   rw.integrationParameters.dt=FIXED_STEP;
   const spawn=resumeDrivePose;
   const desc=R.RigidBodyDesc.dynamic()
-   .setTranslation(spawn?.position.x??0,spawn?.position.y??(heightAt(0,0)+cfg.radius+.85),spawn?.position.z??0)
+   .setTranslation(spawn?.position.x??0,spawn?.position.y??(heightAt(0,0)+Math.max(cfg.radius,cfg.rearWheelRadius||cfg.radius)+Math.max(.8,cfg.H*.55)),spawn?.position.z??0)
    .setLinearDamping(.13).setAngularDamping(.55);
   if(spawn){desc.setRotation(spawn.rotation).setLinvel(spawn.velocity.x,spawn.velocity.y,spawn.velocity.z);}
   const chassis=rw.createRigidBody(desc);
-  const hx=cfg.W*.44,hy=Math.max(.23,cfg.H*.24),hz=cfg.L*.44;
+  const hx=cfg.W*.44,hy=Math.max(.4,cfg.H*.46),hz=cfg.L*.44;
   const originalMass=vehicleMass();
   const density=originalMass/(8*hx*hy*hz);
   const chassisCollider=rw.createCollider(R.ColliderDesc.cuboid(hx,hy,hz)
-   .setTranslation(0,-.07,0).setDensity(density).setFriction(.85),chassis);
+   .setTranslation(0,cfg.H*.04,0).setDensity(density).setFriction(.85),chassis);
+  rapierStage='vehicle controller';
   const vehicle=rw.createVehicleController(chassis);
   vehicle.indexUpAxis=1;
-  vehicle.setIndexForwardAxis=2; // This is a documented JS setter name.
+  vehicle.indexForwardAxis=2;
   for(let axle=0;axle<cfg.axles;axle++)for(const side of [-1,1]){
    const i=vehicle.numWheels();
    vehicle.addWheel({x:side*(cfg.W*.54+wheelOutsetFor(axle)),y:-.3,z:wheelZ(axle)},
@@ -2349,10 +2425,11 @@ async function makeRapierAdapter(){
    vehicle.setWheelSuspensionStiffness(i,42);
    vehicle.setWheelSuspensionCompression(i,4.6);
    vehicle.setWheelSuspensionRelaxation(i,2.8);
-   vehicle.setWheelFrictionSlip(i,5.4);
+   vehicle.setWheelFrictionSlip(i,1000);
    vehicle.setWheelMaxSuspensionTravel(i,.3);
    vehicle.setWheelMaxSuspensionForce(i,150000);
   }
+  rapierStage='adapter';
   const adapter={
    kind:'rapier',chassis,
    syncCourse:()=>{for(const o of movingCourse){const m=courseMeshes.get(o.id);if(m)applyDynamicCoursePose(o.id,o.body.translation(),o.body.rotation())}},
@@ -2377,8 +2454,8 @@ async function makeRapierAdapter(){
     for(let i=0;i<vehicle.numWheels();i++){
      const here=chassis.translation();
      const grip=surfaceGrip(here.x,here.z);
-     vehicle.setWheelFrictionSlip(i,5.4*grip);
-     vehicle.setWheelEngineForce(i,drivenWheel(i)?input.throttle*input.power*2.1*grip:0);
+     vehicle.setWheelFrictionSlip(i,1000*grip);
+     vehicle.setWheelEngineForce(i,drivenWheel(i)?-input.throttle*input.power*.55*grip:0);
      vehicle.setWheelSteering(i,wheelAxle(i)===0?-input.steer*.47:0);
      vehicle.setWheelBrake(i,input.brake?400:0);
     }
@@ -2387,30 +2464,32 @@ async function makeRapierAdapter(){
       const submerged=clamp((cfg.waterLevel+cfg.H*.4-here.y)/(cfg.H*.7),0,1);
       if(submerged){const m=vehicleMass();chassis.addForce({x:-vel.x*m*.6*submerged,y:m*9.82*1.12*submerged,z:-vel.z*m*.6*submerged},true)}
     }
-    vehicle.updateVehicle(dt,R.QueryFilterFlags.EXCLUDE_DYNAMIC);
+    vehicle.updateVehicle(dt);
     rw.step();
    },
    pose:()=>pose(chassis.translation(),chassis.rotation(),chassis.linvel()),
    syncWheels:()=>{
-    const q=chassis.rotation();
+    // Rapier exposes chassis-local connection points, not wheelHardPoint().
+    // Wheel matrices must be in WORLD space because DRIVE attaches wheels to scene.
+    const q=chassis.rotation(),p=chassis.translation();
     const quat=new THREE.Quaternion(q.x,q.y,q.z,q.w);
-    const downward=new THREE.Vector3(0,-1,0).applyQuaternion(quat);
     for(let i=0;i<wheels.length;i++){
-     const t=vehicle.wheelHardPoint(i);
-     if(!t)continue;
-     wheels[i].position.set(t.x,t.y,t.z).addScaledVector(
-       downward,vehicle.wheelSuspensionLength(i)??.32);
-     const steering=wheelAxle(i)===0?vehicle.wheelSteering(i):0;
-     wheels[i].quaternion.copy(quat).multiply(
-      new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,1,0),steering))
-      .multiply(new THREE.Quaternion().setFromAxisAngle(
-        new THREE.Vector3(1,0,0),vehicle.wheelRotation(i)||0));
+     const c=vehicle.wheelChassisConnectionPointCs(i);
+     if(!c)continue;
+     const suspension=vehicle.wheelSuspensionLength(i)??.32;
+     const point=new THREE.Vector3(c.x,c.y-suspension,c.z).applyQuaternion(quat);
+     wheels[i].position.set(p.x+point.x,p.y+point.y,p.z+point.z);
+     const steer=vehicle.wheelSteering(i)||0;
+     const axis=vehicle.wheelAxleCs(i)||{x:-1,y:0,z:0};
+     wheels[i].quaternion.copy(quat)
+       .multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,1,0),steer))
+       .multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(axis.x,axis.y,axis.z),vehicle.wheelRotation(i)||0));
     }
    },
    destroy:()=>{rw.removeVehicleController(vehicle);rw.free();}
   };
   return adapter;
- }catch(e){rw.free();throw e}
+ }catch(e){try{rw.free()}catch{}throw Error('Rapier '+rapierStage+': '+e.message,{cause:e})}
 }
 // Bullet/Ammo is a third real rigid-body solver, not a kinematic stand-in.
 // Import is isolated so a failed CDN or missing vehicle binding cannot break
@@ -2579,6 +2658,7 @@ async function enterDrive(){
  const generation=++driveGeneration;
  engineLoading=true;
  $('driveBtn').disabled=true;
+ vehicleAudio.start();
  note('Initialising '+ENGINE_LABELS[simulator.engine]+'…');
  try{
   const adapter=simulator.engine==='rapier'?await makeRapierAdapter():
@@ -2604,7 +2684,7 @@ async function enterDrive(){
   updatePhysicsHud();
   note(ENGINE_LABELS[simulator.engine]+': arrows / joystick to drive · Space / touch to brake · Orbit / pinch to follow');
  }catch(e){
-  physics=null;note('Physics backend failed: '+e.message+' — select Cannon-es or retry.',true);
+  vehicleAudio.stop();physics=null;note('Physics backend failed: '+e.message+' — select Cannon-es or retry.',true);
   console.error('Vehicle physics initialisation failed',e);
  }finally{
   engineLoading=false;$('driveBtn').disabled=false;
@@ -2620,7 +2700,7 @@ function leaveDrive(){
   if(m&&o){o.x=m.position.x;o.z=m.position.z;o.y=m.position.y;o.angle=m.rotation.y*180/Math.PI;}
  }}
  try{physics?.destroy()}catch(e){console.warn('Physics cleanup',e)}
- physics=null;mode='build';stepAccumulator=0;previousYaw=null;braking=false;
+ vehicleAudio.stop();physics=null;mode='build';stepAccumulator=0;previousYaw=null;braking=false;
  $('buildBtn').classList.add('active');
  $('driveBtn').classList.remove('active');
  $('speedHud').style.display='none';
@@ -2674,6 +2754,77 @@ $('brake').addEventListener('pointerdown',e=>{
 for(const event of ['pointerup','pointercancel','lostpointercapture'])
  $('brake').addEventListener(event,()=>touchBrake=false);
 
+// User-gesture Web Audio synthesizer; does not download sounds or require a server.
+// One long-lived graph permits independent engine, air/tyre and impact timbres.
+const AUDIO_PRESETS={
+ electric:{baseRPM:560,soundPitchRange:3.3,engineHarmonics:.13,engineNoise:.07,engineFilter:1900},
+ petrol:{baseRPM:820,soundPitchRange:2.7,engineHarmonics:.6,engineNoise:.19,engineFilter:1900},
+ diesel:{baseRPM:520,soundPitchRange:1.9,engineHarmonics:.85,engineNoise:.38,engineFilter:920},
+ turbine:{baseRPM:1100,soundPitchRange:3.9,engineHarmonics:.4,engineNoise:.48,engineFilter:3000}
+};
+const vehicleAudio={ctx:null,master:null,engine:null,harmonic:null,noise:null,filter:null,
+  motorGain:null,harmonicGain:null,noiseGain:null,lastImpact:0,lastVy:0,running:false,
+ start(){
+  if(!cfg.audioEnabled)return;
+  try{
+   const AC=window.AudioContext||window.webkitAudioContext;
+   if(!AC)return;
+   if(!this.ctx){
+    const ctx=this.ctx=new AC(),master=this.master=ctx.createGain();
+    master.gain.value=0;master.connect(ctx.destination);
+    const filter=this.filter=ctx.createBiquadFilter();filter.type='lowpass';filter.frequency.value=cfg.engineFilter;filter.connect(master);
+    const engine=this.engine=ctx.createOscillator();engine.type='sawtooth';
+    const motorGain=this.motorGain=ctx.createGain();motorGain.gain.value=0;engine.connect(motorGain).connect(filter);engine.start();
+    const harmonic=this.harmonic=ctx.createOscillator();harmonic.type='triangle';
+    const harmonicGain=this.harmonicGain=ctx.createGain();harmonicGain.gain.value=0;harmonic.connect(harmonicGain).connect(filter);harmonic.start();
+    const buffer=ctx.createBuffer(1,ctx.sampleRate*2,ctx.sampleRate),data=buffer.getChannelData(0);
+    let seed=987654321;for(let i=0;i<data.length;i++){seed=(1664525*seed+1013904223)>>>0;data[i]=(seed/2147483648-1)*.65;}
+    const noise=this.noise=ctx.createBufferSource();noise.buffer=buffer;noise.loop=true;
+    const hf=ctx.createBiquadFilter();hf.type='bandpass';hf.frequency.value=720;hf.Q.value=.65;
+    const ng=this.noiseGain=ctx.createGain();ng.gain.value=0;noise.connect(hf).connect(ng).connect(master);noise.start();
+   }
+   void this.ctx.resume();this.running=true;this.update(0,0,false);this.effect('start',.23);
+  }catch(e){console.warn('WebAudio unavailable:',e.message)}
+ },
+ update(speed,throttle,brake){
+  if(!this.ctx||!this.running)return;
+  const now=this.ctx.currentTime,base=cfg.baseRPM/60;
+  const fraction=Math.min(1,Math.max(0,speed/(Math.max(20,cfg.maxSpeed)/3.6)));
+  const modulation=Math.max(.0,Math.abs(throttle));
+  const rpm=base*(1+fraction*cfg.soundPitchRange+modulation*.45);
+  const irregular=.013*Math.sin(now*17)*Math.sin(now*7.3);
+  this.engine.frequency.setTargetAtTime(rpm*(1+irregular),now,.06);
+  this.harmonic.frequency.setTargetAtTime(rpm*(2+cfg.engineHarmonics),now,.07);
+  this.motorGain.gain.setTargetAtTime(.075+.14*modulation,now,.10);
+  this.harmonicGain.gain.setTargetAtTime(cfg.engineHarmonics*(.015+.06*modulation),now,.11);
+  this.noiseGain.gain.setTargetAtTime(cfg.engineNoise*.02+(cfg.tyreNoise*.09*fraction)+(brake?.055:0),now,.16);
+  this.filter.frequency.setTargetAtTime(Math.max(200,cfg.engineFilter)*(0.65+fraction*1.1),now,.16);
+  this.master.gain.setTargetAtTime(Math.min(.6,cfg.audioVolume),now,.12);
+ },
+ effect(type,amount=1){
+  if(!this.running||!this.ctx)return;
+  const ctx=this.ctx,now=ctx.currentTime;
+  const dur=type==='impact'?.25:type==='stop'?.42:.2;
+  const oscillator=ctx.createOscillator(),gain=ctx.createGain();
+  oscillator.type=type==='impact'?'triangle':'sine';
+  const frequency=type==='impact'?62:type==='start'?140:90;
+  oscillator.frequency.setValueAtTime(frequency,now);
+  oscillator.frequency.exponentialRampToValueAtTime(type==='start'?210:35,now+dur);
+  gain.gain.setValueAtTime(Math.max(.0001,Math.min(.16,amount*.11*cfg.impactVolume)),now);
+  gain.gain.exponentialRampToValueAtTime(.0001,now+dur);
+  oscillator.connect(gain).connect(this.master);oscillator.start(now);oscillator.stop(now+dur+.02);
+  oscillator.onended=()=>{oscillator.disconnect();gain.disconnect()};
+ },
+ impact(currentVy){
+  const now=performance.now()/1000,delta=currentVy-this.lastVy;
+  if(this.lastVy< -2.3&&delta>2.8&&now-this.lastImpact>.3){
+   this.effect('impact',Math.min(2,delta/5));this.lastImpact=now;
+  }
+  this.lastVy=currentVy;
+ },
+ stop(){if(!this.ctx)return;this.effect('stop',.2);this.running=false;
+   this.master.gain.setTargetAtTime(0,this.ctx.currentTime,.08);this.lastVy=0;}
+};
 function inputForStep(){
  const active=telemetry.active;
  if(active){
@@ -2719,6 +2870,8 @@ function stepVehicle(dt){
  const p=physics.pose();
  car.position.set(p.position.x,p.position.y,p.position.z);
  car.quaternion.set(p.rotation.x,p.rotation.y,p.rotation.z,p.rotation.w);
+ vehicleAudio.update(physics.getSpeed(),inputForStep().throttle,braking);
+ vehicleAudio.impact(p.velocity.y);
  physics.syncWheels();physics.syncCourse?.();
  updateLights();followCamera(dt);recordGhost(dt);
  leaveWheelTracks(p,dt);
@@ -3300,45 +3453,63 @@ function captureReference(){
 // This reference renders only the vehicle body in a separate transparent studio scene;
 // wheels, passengers, ground, grid and sky are never included. The stage renderer's
 // size / camera / viewport are preserved (no thumbnail resizing regression).
-function captureChassisReference(){
- if(!car||!bodyRoot)throw Error('Build a vehicle body before taking its reference.');
- const clean=new THREE.Scene();clean.background=new THREE.Color('#dce8ee');
- clean.add(new THREE.HemisphereLight(0xffffff,0x5b7486,2.2));
- for(const [x,y,z,power] of [[-6,9,8,135],[7,7,2,95],[1,9,-9,95]]){
-  const light=new THREE.PointLight(0xffffff,power,0);light.position.set(x,y,z);clean.add(light);
+function captureChassisReference(includeWheels=false){
+ if(!car||!bodyRoot)throw Error('Build a vehicle before taking its reference.');
+ const clean=new THREE.Scene();clean.background=new THREE.Color('#edf3f8');
+ clean.add(new THREE.HemisphereLight(0xffffff,0x8e9daa,3.8));
+ for(const [x,y,z,power] of [[-8,12,8,280],[9,7,1,190],[2,11,-10,200]]){
+  const light=new THREE.PointLight(0xffffff,power,0,1.4);light.position.set(x,y,z);clean.add(light);
  }
  const shell=new THREE.Group();clean.add(shell);
- // bodyRoot can be hidden when a GLB body has replaced it.
  if(!bodyRoot.visible&&modelSource){
-  for(const child of car.children){if(child!==bodyRoot&&child.userData.externalModel)shell.add(child.clone(true));}
- }else{shell.add(bodyRoot.clone(true));shell.children[0].visible=true;}
+  for(const child of car.children){if(child.userData.externalModel)shell.add(child.clone(true));}
+ }else{
+  const clone=bodyRoot.clone(true);clone.visible=true;shell.add(clone);
+ }
+ if(includeWheels){for(const original of wheels){
+  const clone=original.clone(true);
+  if(original.parent===scene){
+   const local=car.worldToLocal(original.getWorldPosition(new THREE.Vector3()));
+   clone.position.copy(local);clone.quaternion.copy(car.quaternion).invert().multiply(original.getWorldQuaternion(new THREE.Quaternion()));
+  }
+  shell.add(clone);
+ }}
  const bbox=new THREE.Box3().setFromObject(shell);
- if(bbox.isEmpty())throw Error('No chassis geometry available for reference');
- const center=bbox.getCenter(new THREE.Vector3()),size=bbox.getSize(new THREE.Vector3());
- shell.position.sub(center);
- const cam=new THREE.PerspectiveCamera(34,1,.08,200);
- const r=Math.max(size.length()*.95,3.5);
- cam.position.set(r*.80,r*.52,r*.96);cam.lookAt(0,0,0);
- const rt=new THREE.WebGLRenderTarget(768,768,{depthBuffer:true,stencilBuffer:false});
+ if(bbox.isEmpty())throw Error('No vehicle geometry for reference capture');
+ const center=bbox.getCenter(new THREE.Vector3());shell.position.sub(center);
+ const shifted=new THREE.Box3().setFromObject(shell);
+ // Orthographic auto-fit uses all eight corners projected into camera space.
+ // A fixed FOV and radius previously produced a close-up of the hood only.
+ const cam=new THREE.OrthographicCamera(-1,1,1,-1,.1,250);
+ const direction=new THREE.Vector3(.9,.58,1.05).normalize();
+ cam.position.copy(direction).multiplyScalar(30);cam.lookAt(0,0,0);cam.updateMatrixWorld(true);
+ const points=[];for(const x of [shifted.min.x,shifted.max.x])for(const y of [shifted.min.y,shifted.max.y])
+  for(const z of [shifted.min.z,shifted.max.z])points.push(new THREE.Vector3(x,y,z).applyMatrix4(cam.matrixWorldInverse));
+ const hx=Math.max(1,...points.map(v=>Math.abs(v.x)))*1.3,hy=Math.max(1,...points.map(v=>Math.abs(v.y)))*1.3;
+ const span=Math.max(hx,hy);cam.left=-span;cam.right=span;cam.top=span;cam.bottom=-span;cam.updateProjectionMatrix();
+ const sz=900,rt=new THREE.WebGLRenderTarget(sz,sz,{depthBuffer:true});
  const oldTarget=renderer.getRenderTarget(),oldViewport=renderer.getViewport(new THREE.Vector4());
  const oldScissor=renderer.getScissor(new THREE.Vector4()),oldScissorTest=renderer.getScissorTest();
  const oldClear=renderer.getClearColor(new THREE.Color()).clone(),oldAlpha=renderer.getClearAlpha();
+ const oldExposure=renderer.toneMappingExposure;
  try{
-  renderer.setRenderTarget(rt);renderer.setScissorTest(false);renderer.setViewport(0,0,768,768);
+  renderer.toneMappingExposure=2.05;
+  renderer.setRenderTarget(rt);renderer.setScissorTest(false);renderer.setViewport(0,0,sz,sz);
   renderer.render(clean,cam);
-  const pixels=new Uint8Array(768*768*4);renderer.readRenderTargetPixels(rt,0,0,768,768,pixels);
-  const canvas=document.createElement('canvas');canvas.width=canvas.height=768;
-  const cx=canvas.getContext('2d'),image=cx.createImageData(768,768);
-  for(let y=0;y<768;y++)image.data.set(pixels.subarray((767-y)*768*4,(768-y)*768*4),y*768*4);
+  const pixels=new Uint8Array(sz*sz*4);renderer.readRenderTargetPixels(rt,0,0,sz,sz,pixels);
+  const canvas=document.createElement('canvas');canvas.width=canvas.height=sz;
+  const cx=canvas.getContext('2d'),image=cx.createImageData(sz,sz);
+  for(let y=0;y<sz;y++)image.data.set(pixels.subarray((sz-y-1)*sz*4,(sz-y)*sz*4),y*sz*4);
   cx.putImageData(image,0,0);
-  imageReference=canvas.toDataURL('image/jpeg',.88); // under 2 MiB backend limit
-  updateLuxReferencePreview('Isolated body shell · front three-quarter · no wheels/occupants');
-  note('Body-only reference captured. Wheel and passenger geometry excluded.');
+  imageReference=canvas.toDataURL('image/jpeg',.88);
+  updateLuxReferencePreview(includeWheels?'Studio complete car · 3/4':'Studio body shell · 3/4 (no tyres, avatars, terrain)');
+  $('referenceImage').src=imageReference;
+  note((includeWheels?'Full vehicle':'Chassis-only')+' studio image captured. Click the preview to inspect.');
   return imageReference;
  }finally{
-  renderer.setRenderTarget(oldTarget);renderer.setViewport(oldViewport);
-  renderer.setScissor(oldScissor);renderer.setScissorTest(oldScissorTest);
-  renderer.setClearColor(oldClear,oldAlpha);rt.dispose();
+  renderer.toneMappingExposure=oldExposure;renderer.setRenderTarget(oldTarget);
+  renderer.setViewport(oldViewport);renderer.setScissor(oldScissor);
+  renderer.setScissorTest(oldScissorTest);renderer.setClearColor(oldClear,oldAlpha);rt.dispose();
  }
 }
 function updateLuxReferencePreview(message='Reference ready'){
@@ -3346,7 +3517,8 @@ function updateLuxReferencePreview(message='Reference ready'){
  $('lux3dReferenceInfo').textContent=imageReference?message:'No reference selected';
  $('lux3dUseReference').checked=Boolean(imageReference);
 }
-$('lux3dCaptureReference').onclick=()=>{try{captureChassisReference()}catch(error){note(error.message,true)}};
+$('lux3dCaptureReference').onclick=()=>{try{captureChassisReference(false)}catch(error){note(error.message,true)}};
+$('lux3dCaptureFull').onclick=()=>{try{captureChassisReference(true)}catch(error){note(error.message,true)}};
 $('lux3dUploadReference').onclick=()=>$('lux3dReferenceFile').click();
 $('lux3dReferenceFile').onchange=async e=>{const f=e.target.files?.[0];if(!f)return;
  try{
@@ -3361,6 +3533,7 @@ $('lux3dReferenceFile').onchange=async e=>{const f=e.target.files?.[0];if(!f)ret
  }catch(error){note(error.message,true)}finally{e.target.value=''};
 };
 $('lux3dClearReference').onclick=()=>{imageReference=null;updateLuxReferencePreview()};
+$('lux3dReferencePreview').onclick=()=>$('lux3dPreviewReference').click();
 $('lux3dPreviewReference').onclick=()=>{if(!imageReference){note('Add a reference first.',true);return}
  $('referenceImage').src=imageReference;$('referenceCard').hidden=false;};
 $('closeReference').onclick=()=>$('referenceCard').hidden=true;
@@ -3383,7 +3556,8 @@ async function api(path,method='GET',payload=null,key=''){
   method,credentials:'same-origin',
   headers:{
    'Content-Type':'application/json',
-   ...(key?{'X-Provider-Key':key}:{})
+   ...(key?{'X-Provider-Key':key}:{}),
+   ...(path==='/api/vehicle/generate-image'&&guestToken?{'Authorization':'Bearer '+guestToken}:{})
  },
  ...(payload?{body:JSON.stringify(payload)}:{})
 });
@@ -3394,6 +3568,7 @@ async function api(path,method='GET',payload=null,key=''){
 }
 return data;
 }
+let imageEditMode=false;
 async function generateImage(){
  if(busyAI)return;
  const key=keys[ai.provider];
@@ -3404,7 +3579,7 @@ async function generateImage(){
   const data=await api('/api/vehicle/generate-image','POST',{
    provider:ai.provider,
    prompt:ai.prompt,
-   reference_image:imageReference||captureReference(),
+   reference_image:imageEditMode?imageReference:null,
    blueprint:blueprint()
  },key);
   if(!data.image)throw Error('Backend returned no image');
@@ -3415,6 +3590,7 @@ async function generateImage(){
 }catch(error){note(error.message,true)}
 finally{busyAI=false}
 }
+let pendingTripoComponent='chassis';
 async function generateTripo(){
  if(busyAI)return;
  if(!keys.tripo){note('Enter a Tripo API key in AI / API Keys.',true);return}
@@ -3439,8 +3615,12 @@ async function generateTripo(){
      throw Error('Backend must proxy the GLB through a same-origin URL');
    const response=await fetch(url,{credentials:'same-origin'});
    if(!response.ok)throw Error('Model download failed');
-   await loadGLB(await response.blob(),'tripo-'+id+'.glb');
-   note('Tripo model loaded as visual chassis.');
+   const blob=await response.blob();
+   if(pendingTripoComponent==='wheel'){
+    await storeWheelAsset(new File([blob],'Tripo-'+id+'.glb',{type:'model/gltf-binary'}),'wheel');
+    note('Tripo wheel model imported into the selected axle.');
+   }else{await loadGLB(blob,'tripo-'+id+'.glb');note('Tripo model loaded as visual chassis.');}
+   pendingTripoComponent='chassis';
    return;
  }
  note('Tripo: '+(data.progress??'processing')+'%');
@@ -3677,6 +3857,22 @@ driving.add(cfg,'cameraDistance',3,65,.5).name('Camera distance')
 driving.add(cfg,'headlights').name('Headlights').onChange(()=>{
   updateLights();updateLightsButton();
 });
+const soundFolder=gui.addFolder('08b · Engine sound synthesizer');
+soundFolder.add(cfg,'audioEnabled').name('Audio on DRIVE').onChange(v=>{if(v&&mode==='drive')vehicleAudio.start();if(!v)vehicleAudio.stop()});
+soundFolder.add(cfg,'soundPreset',Object.keys(AUDIO_PRESETS)).name('Engine preset').onChange(name=>{
+ Object.assign(cfg,AUDIO_PRESETS[name]);if(vehicleAudio.running)vehicleAudio.update(physics?.getSpeed?.()||0,0,false);
+ setupGUI();scheduleHistory('Engine sound preset');
+});
+for(const [key,label,min,max,step] of [
+ ['audioVolume','Master volume',0,.6,.01],['baseRPM','Idle RPM',250,2800,10],
+ ['soundPitchRange','Acceleration pitch',.2,6,.05],['engineHarmonics','Harmonics',0,1,.02],
+ ['engineNoise','Mechanical noise',0,1,.02],['tyreNoise','Tyre/brake hiss',0,1,.02],
+ ['engineFilter','Low-pass Hz',250,4800,50],['impactVolume','Impact effect',0,1,.02]])
+ soundFolder.add(cfg,key,min,max,step).name(label).onFinishChange(()=>scheduleHistory('Audio '+label));
+soundFolder.add({listen:()=>{vehicleAudio.start();vehicleAudio.update(7,.4,false)}},'listen').name('Preview sound');
+soundFolder.add({silence:()=>vehicleAudio.stop()},'silence').name('Stop preview');
+soundFolder.close();
+
 const environment=gui.addFolder('09 · Terrain & sky');
  environment.add(cfg,'terrainProfile',['flat','bumps','hills','extreme','moon','beach']).name('Terrain').onChange(()=>{if(mode==='drive')leaveDrive();if(cfg.terrainProfile==='beach')cfg.groundSurface='sand';if(cfg.terrainProfile==='moon')cfg.groundSurface='moon';buildTerrain();buildCourse();buildVegetation();clearTracks();buildVehicle();scheduleHistory('Terrain')});
  environment.add(cfg,'terrainSize',90,300,30).name('Terrain width').onFinishChange(()=>{if(mode==='drive')leaveDrive();buildTerrain();buildCourse();buildVegetation();clearTracks();scheduleHistory('Terrain size')});
@@ -3738,6 +3934,35 @@ passengerFolder.add({clear:()=>{
  delete seatBindings[avatarEdit.seat-1];avatarEdit.model='Procedural';buildVehicle();setupGUI();scheduleHistory('Seat avatar removed')
 }},'clear').name('Use procedural occupant');
 passengerFolder.open();
+
+const cabinWorkshop=gui.addFolder('11 · Chassis / aerodynamic body workshop');
+for(const [key,label,min,max,step] of [
+ ['frontRake','Front glass rake',.04,1.8,.01],['rearRake','Rear glass rake',.04,1.8,.01],
+ ['roofWidth','Upper roof width',.3,1,.01],['roofArch','Roof curvature',0,.4,.01]])
+ cabinWorkshop.add(cfg,key,min,max,step).name(label).onChange(changed);
+cabinWorkshop.add(cfg,'doorStyle',['swing','gullwing']).name('Door articulation').onChange(changed);
+cabinWorkshop.close();
+const seatWorkshop=gui.addFolder('12 · Seat workshop');
+for(const [key,label,min,max,step] of [
+ ['seatWidth','Seat width',.15,.75,.01],['seatHeight','Cushion thickness',.04,.3,.01],
+ ['seatBackHeight','Backrest height',.15,.9,.01],['seatRecline','Recline angle °',-30,45,1]])
+ seatWorkshop.add(cfg,key,min,max,step).name(label).onChange(changed);
+seatWorkshop.addColor(cfg,'seatColor').name('Upholstery').onChange(changed);
+seatWorkshop.close();
+const cockpitWorkshop=gui.addFolder('13 · Dashboard workshop');
+for(const [key,label,min,max,step] of [
+ ['dashDepth','Dashboard depth',.2,1,.01],['dashHeight','Dashboard Y',0,.7,.01],
+ ['steeringRadius','Wheel diameter / 2',.1,.4,.01]])
+ cockpitWorkshop.add(cfg,key,min,max,step).name(label).onChange(changed);
+cockpitWorkshop.addColor(cfg,'interiorColor').name('Dashboard finish').onChange(changed);
+cockpitWorkshop.close();
+const lampWorkshop=gui.addFolder('14 · Lighting assemblies');
+for(const [key,label,min,max,step] of [
+ ['lampWidth','Lamp width',.08,.65,.01],['lampHeight','Lamp height',.04,.4,.01],
+ ['headlightPower','Light intensity',0,80,1]])
+ lampWorkshop.add(cfg,key,min,max,step).name(label).onChange(changed);
+lampWorkshop.add(cfg,'headlights').name('Lights enabled').onChange(()=>updateLights());
+lampWorkshop.close();
 
 const asset=gui.addFolder('08 · GLB & blueprint');
 asset.add(cfg,'modelScale',.25,2.5,.01).name('GLB scale').onChange(changed);
@@ -4073,8 +4298,28 @@ function wheelStyleSVG(style){
  const svg=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120"><circle cx="60" cy="60" r="55" fill="#151a1f" stroke="#293741" stroke-width="5"/><circle cx="60" cy="60" r="40" fill="#33414e" stroke="#a5b8c6" stroke-width="4"/>${lines}<circle cx="60" cy="60" r="9" fill="#dbebf2"/></svg>`;
  return 'data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svg);
 }
+// Rebuild ONLY wheel visuals. Do not touch cabin meshes, passenger rigs, seat
+// animations or camera when changing a cosmetic rim/tyre/cap design.
+function rebuildWheelVisuals(){
+ if(!car||!wheels.length){buildVehicle();return}
+ for(let i=0;i<wheels.length;i++){
+  const old=wheels[i],axle=wheelAxle(i);
+  const wasInScene=old.parent===scene;
+  const x=old.position.x,y=old.position.y,z=old.position.z;
+  const q=old.quaternion.clone(),parent=old.parent||car;
+  const child=makeWheel(parent,x,y,z,wheelRadiusFor(axle),axle);
+  child.quaternion.copy(q);
+  wheels[i]=child;
+  disposeTree(old);
+  if(wasInScene)scene.attach(child);
+ }
+}
 function renderWheelStudio(){
  const prefix=selectedWheelAxle;const target=$('wheelStyles');target.replaceChildren();
+ const createCard=document.createElement('button');createCard.type='button';createCard.className='wheel-style-card wheel-ai-tile';
+ createCard.innerHTML='<span aria-hidden="true" class="wheel-brain">✦</span><small>AI · Create</small>';
+ createCard.onclick=()=>{const p=$('wheelAISection');p.open=!p.open;
+  if(p.open){$('wheelPrompt').focus();p.scrollIntoView({block:'nearest'})}};target.append(createCard);
  $('wheelTargetTitle').textContent=prefix==='front'?'Front wheels · selectable':'Rear wheels · selectable';
  for(const button of $('wheelAxleSwitch').querySelectorAll('button'))button.setAttribute('aria-pressed',String(button.dataset.axle===prefix));
  for(const style of wheelStylesAvailable){
@@ -4083,7 +4328,7 @@ function renderWheelStudio(){
   const img=document.createElement('img');img.alt=style+' wheel';img.src=wheelStyleSVG(style);
   const name=document.createElement('small');name.textContent=style;
   button.append(img,name);button.onclick=()=>{cfg[prefix+'WheelModel']=null;cfg[prefix+'WheelStyle']=style;
-   buildVehicle();renderWheelStudio();scheduleHistory('Wheel design '+style)};target.append(button);
+   rebuildWheelVisuals();renderWheelStudio();scheduleHistory('Wheel design '+style)};target.append(button);
  }
  for(const [id,value] of Object.entries({RadiusEdit:'WheelRadius',ThicknessEdit:'WheelWidth',OutsetEdit:'WheelOutset',SpokesEdit:'Spokes',SidewallEdit:'TireSidewall',AlloyEdit:'RimColor'})){
   const elem=$('wheel'+id);elem.value=cfg[prefix+value];
@@ -4095,7 +4340,7 @@ function renderWheelStudio(){
   button.textContent=`${item.kind==='cap'?'CAP':'WHEEL'} · ${item.name}`;
   button.setAttribute('aria-pressed',String(cfg[prefix+(item.kind==='cap'?'CapModel':'WheelModel')]===id));
   button.onclick=()=>{cfg[prefix+(item.kind==='cap'?'CapModel':'WheelModel')]=id;
-   buildVehicle();renderWheelStudio();scheduleHistory('Selected wheel asset')};assets.append(button)}
+   rebuildWheelVisuals();renderWheelStudio();scheduleHistory('Selected wheel asset')};assets.append(button)}
 }
 for(const button of $('wheelAxleSwitch').querySelectorAll('button'))button.onclick=()=>{selectedWheelAxle=button.dataset.axle;renderWheelStudio()};
 $('wheelUpload').onclick=()=>$('wheelGLBFile').click();$('wheelCapUpload').onclick=()=>$('wheelCapFile').click();
@@ -4103,15 +4348,31 @@ for(const [id,kind] of [['wheelGLBFile','wheel'],['wheelCapFile','cap']])$(id).o
  try{await storeWheelAsset(e.target.files?.[0],kind)}catch(err){note(err.message,true)}finally{e.target.value=''}
 };
 $('wheelRemove').onclick=()=>{cfg[selectedWheelAxle+'WheelModel']=null;cfg[selectedWheelAxle+'CapModel']=null;
- buildVehicle();renderWheelStudio();scheduleHistory('Restored procedural wheels')};
+ rebuildWheelVisuals();renderWheelStudio();scheduleHistory('Restored procedural wheels')};
 $('wheelReferenceFile').onclick=()=>$('importImage').click();
 const wheelAiPrompt=()=>{ai.prompt=$('wheelPrompt').value.trim()||'Photorealistic isolated alloy wheel, studio product shot, clean white background';};
-$('wheelTextImage').onclick=()=>{wheelAiPrompt();void generateImage()};
+$('wheelUseImageKey').onclick=()=>{const k=$('wheelImageKey').value.trim();if(!k)return;
+ keys[$('wheelAIProvider').value]=k;ai.provider=$('wheelAIProvider').value;$('wheelImageKey').value='';
+ $('wheelAIStatus').textContent='Image key stored in this tab.';};
+$('wheelAIProvider').onchange=e=>{ai.provider=e.target.value};
+$('wheelTestLuxKey').onclick=()=>{const k=$('wheelLuxKey').value.trim();if(k)keys.lux3d=k;
+ $('lux3dKey').value=keys.lux3d;$('lux3dTestForm').requestSubmit();$('wheelLuxKey').value='';
+ $('wheelAIStatus').textContent='Testing Lux3D key without generation. Results are mirrored below.';};
+new MutationObserver(()=>{$('wheelAIStatus').textContent=$('lux3dTaskStatus').textContent+' · '+$('lux3dDiagnostics').textContent;})
+ .observe($('lux3dTaskStatus'),{childList:true,characterData:true,subtree:true});
+$('wheelTextImage').onclick=()=>{wheelAiPrompt();imageEditMode=false;ai.provider=$('wheelAIProvider').value;void generateImage()};
 $('wheelEditImage').onclick=()=>{if(!imageReference){$('importImage').click();note('Select an image first; then run the refinement with a prompt.');return}
- wheelAiPrompt();void generateImage()};
-$('wheelImage3D').onclick=()=>{wheelAiPrompt();void generateTripo()};
-$('wheelLux3D').onclick=()=>{wheelAiPrompt();showDrawer('config');$('lux3dSection').open=true;
- $('lux3dPrompt').value=ai.prompt;$('lux3dComponent').value='wheel';$('lux3dSection').scrollIntoView({block:'start'})};
+ wheelAiPrompt();imageEditMode=true;ai.provider=$('wheelAIProvider').value;void generateImage()};
+$('wheelImage3D').onclick=()=>{wheelAiPrompt();pendingTripoComponent='wheel';void generateTripo()};
+$('wheelLux3D').onclick=()=>{
+ if(!$('wheelSpendAck').checked){$('wheelAIStatus').textContent='Check authorization before starting a potentially billable Lux3D task.';return}
+ if($('wheelLuxKey').value.trim())keys.lux3d=$('wheelLuxKey').value.trim();
+ if(!keys.lux3d){$('wheelAIStatus').textContent='Enter a Lux3D key in the wheel workshop.';return}
+ wheelAiPrompt();$('lux3dKey').value=keys.lux3d;$('lux3dComponent').value='wheel';
+ $('lux3dPrompt').value=ai.prompt;$('lux3dSpendAck').checked=true;$('lux3dAutoImport').checked=true;
+ $('lux3dCreateForm').requestSubmit();$('wheelSpendAck').checked=false;
+ $('wheelAIStatus').textContent='Lux3D wheel generation requested. The completed GLB will be attached to this axle.';
+};
 
 
 // Precision test-map editor: pan/zoom and world metre coordinates are not tied to CSS aspect ratio.
@@ -4241,9 +4502,37 @@ function drawMinimap(){
  const c=courseContext;c.clearRect(0,0,MAP_RES,MAP_RES);
  c.fillStyle='#102029';c.fillRect(0,0,MAP_RES,MAP_RES);
  if(!courseCache)courseCache=createMapRelief();
- const top=mapScreen(-SIZE/2,-SIZE/2);c.imageSmoothingEnabled=mapZoom<1.5;
- c.drawImage(courseCache,top.x,top.y,MAP_RES*mapZoom,MAP_RES*mapZoom);
- c.imageSmoothingEnabled=true;
+ if(mapZoom>1.6){
+  c.fillStyle=$('mapView').value==='diagram'?'#172834':'#547960';
+  c.fillRect(0,0,MAP_RES,MAP_RES);
+  // Sharp procedural elevation contour isolines in screen coordinates.
+  // Sample the current world viewport rather than magnifying a 768px bitmap.
+  const step=10,scale=mapPixelsPerMetre();
+  const heights=[];
+  for(let y=0;y<=MAP_RES/step;y++){
+   const row=[];for(let x=0;x<=MAP_RES/step;x++)
+    row.push(heightAt(mapCenterX+(x*step-MAP_RES/2)/scale,mapCenterZ+(y*step-MAP_RES/2)/scale));
+   heights.push(row);
+  }
+  c.strokeStyle=$('mapView').value==='diagram'?'#719a9b99':'#294c3aa6';c.lineWidth=1;
+  for(let y=0;y<heights.length-1;y++)for(let x=0;x<heights[y].length-1;x++){
+   const v=[heights[y][x],heights[y][x+1],heights[y+1][x+1],heights[y+1][x]];
+   for(let level=Math.ceil(Math.min(...v));level<=Math.floor(Math.max(...v));level++){
+    const edges=[];
+    for(const [a,b,x1,y1,x2,y2] of [[0,1,x,y,x+1,y],[1,2,x+1,y,x+1,y+1],
+       [2,3,x+1,y+1,x,y+1],[3,0,x,y+1,x,y]]){
+      if((v[a]<level)!==(v[b]<level)){
+       const t=(level-v[a])/(v[b]-v[a]||1);
+       edges.push([step*(x1+(x2-x1)*t),step*(y1+(y2-y1)*t)]);
+      }
+    }
+    if(edges.length>=2){c.beginPath();c.moveTo(...edges[0]);c.lineTo(...edges[1]);c.stroke()}
+   }
+  }
+ }else{
+  const top=mapScreen(-SIZE/2,-SIZE/2);c.imageSmoothingEnabled=true;
+  c.drawImage(courseCache,top.x,top.y,MAP_RES*mapZoom,MAP_RES*mapZoom);
+ }
  if($('mapGrid').checked){
   const step=mapGridStep(),span=MAP_RES/mapPixelsPerMetre();
   const left=mapCenterX-span/2,right=mapCenterX+span/2,topZ=mapCenterZ-span/2,bottom=mapCenterZ+span/2;
@@ -4372,7 +4661,8 @@ const finishMapPointer=e=>{
 };
 for(const type of ['pointerup','pointercancel','lostpointercapture'])courseCanvas.addEventListener(type,finishMapPointer);
 $('mapHeight').oninput=e=>$('mapHeightValue').textContent=Number(e.target.value).toFixed(1)+'m';
-$('mapUndo').onclick=()=>{cfg.courseObjects.pop();selectCourseObject(null);void refreshEnvironmentForMap()};
+$('mapUndo').onclick=()=>undo();
+$('mapRedo').onclick=()=>redo();
 $('mapClear').onclick=()=>{cfg.courseObjects=[];selectCourseObject(null);void refreshEnvironmentForMap()};
 function selectCourseObject(id,openEditor=false){
  selectedCourseId=id;const obj=cfg.courseObjects.find(o=>o.id===id);
@@ -4393,6 +4683,50 @@ function duplicateSelectedCourse(){const o=cfg.courseObjects.find(o=>o.id===sele
  addCourseObject(other,'Duplicated course object');selectCourseObject(other.id,true)}
 function deleteSelectedCourse(){const ix=cfg.courseObjects.findIndex(o=>o.id===selectedCourseId);
  if(ix<0)return;cfg.courseObjects.splice(ix,1);selectCourseObject(null);void refreshEnvironmentForMap();setWindowVisible('objectWindow',false)}
+const OBJECT_SLIDER_BOUNDS={objectX:[-200,200,.05],objectY:[-40,100,.05],objectZ:[-200,200,.05],
+ objectW:[.1,80,.05],objectH:[.1,40,.05],objectD:[.1,80,.05],
+ objectAngle:[-180,180,1],objectMass:[.1,10000,1],objectFriction:[0,2,.01],objectBounce:[0,1,.01]};
+let selectedObjectSlider='objectX';
+function bindObjectSlider(id){
+ const field=$(id),slider=$('objectQuickSlider');if(!field||!OBJECT_SLIDER_BOUNDS[id])return;
+ selectedObjectSlider=id;
+ const [min,max,step]=OBJECT_SLIDER_BOUNDS[id];slider.min=min;slider.max=max;slider.step=step;
+ slider.value=clamp(Number(field.value)||0,min,max);
+ $('objectSlideLabel').textContent=field.closest('label')?.textContent.trim()||id;
+ $('objectSlideValue').textContent=Number(field.value||0).toFixed(step>=1?0:2);
+}
+$('objectQuickSlider').oninput=e=>{
+ const field=$(selectedObjectSlider);if(!field)return;
+ const value=Number(e.target.value);field.value=String(value);$('objectSlideValue').textContent=value.toFixed(2);
+ const o=cfg.courseObjects.find(x=>x.id===selectedCourseId),mesh=courseMeshes.get(selectedCourseId);
+ if(!o)return;
+ const fieldMap={objectX:'x',objectY:'y',objectZ:'z',objectW:'w',objectH:'h',objectD:'d',objectAngle:'angle',
+  objectMass:'mass',objectFriction:'friction',objectBounce:'bounce'};
+ const prop=fieldMap[selectedObjectSlider];if(!prop)return;o[prop]=value;
+ if(mesh){if(prop==='x'||prop==='y'||prop==='z')mesh.position[prop]=value;
+  else if(prop==='angle')mesh.rotation.y=value*Math.PI/180;
+  else if(['w','h','d'].includes(prop)){const old=mesh.userData.baseSize||{w:o.w,h:o.h,d:o.d};
+    mesh.scale.set(o.w/old.w,o.h/old.h,o.d/old.d);}}
+ drawMinimap();
+};
+$('objectQuickSlider').onchange=()=>$(selectedObjectSlider)?.dispatchEvent(new Event('change'));
+for(const id of Object.keys(OBJECT_SLIDER_BOUNDS))$(id)?.addEventListener('focus',()=>bindObjectSlider(id));
+function focusSelectedCourse(direction){
+ const o=cfg.courseObjects.find(x=>x.id===selectedCourseId);if(!o)return;
+ const t=new THREE.Vector3(o.x,Number.isFinite(o.y)?o.y:heightAt(o.x,o.z)+o.h/2,o.z);
+ const dirs={1:[0,0,1],2:[0,0,-1],3:[-1,0,0],4:[1,0,0],5:[0,1,0],6:[0,-1,0],7:[1,1,1]};
+ const d=dirs[direction]||dirs[7];const r=Math.max(3,Math.max(o.w,o.h,o.d)*2.1);
+ orbit.target.copy(t);camera.position.copy(t).add(new THREE.Vector3(...d).normalize().multiplyScalar(r));
+ camera.lookAt(t);orbit.update();
+}
+window.addEventListener('keydown',e=>{
+ if(!selectedCourseId||mode!=='build'||['INPUT','TEXTAREA','SELECT'].includes(document.activeElement?.tagName)||e.metaKey||e.ctrlKey||e.altKey)return;
+ const n=Number(e.key);if(n>=1&&n<=7){focusSelectedCourse(n);e.preventDefault();return;}
+ if(['+','=','-','_'].includes(e.key)){
+  const offset=camera.position.clone().sub(orbit.target).multiplyScalar(['+','='].includes(e.key)?.83:1.2);
+  camera.position.copy(orbit.target).add(offset);orbit.update();e.preventDefault();
+ }
+});
 function renderCourseInspector(){const o=cfg.courseObjects.find(item=>item.id===selectedCourseId);
  if(!o)return;setWindowVisible('objectWindow',true);
  $('objectKindTitle').textContent=(o.name||o.kind)+' · object properties';$('objectIdText').textContent='Object ID '+o.id;
@@ -4410,7 +4744,8 @@ function renderCourseInspector(){const o=cfg.courseObjects.find(item=>item.id===
    void refreshEnvironmentForMap();scheduleHistory('Edit course object '+prop);};
  }
  const y=$('objectY');y.value=Number.isFinite(o.y)?o.y:(heightAt(o.x,o.z)+o.h/2);
- y.onchange=()=>{o.y=Number(y.value);void refreshEnvironmentForMap()};
+ y.onchange=()=>{o.y=Number(y.value);void refreshEnvironmentForMap();scheduleHistory('Course object Y')};
+ bindObjectSlider(selectedObjectSlider);
  $('objectPhysics').value=o.physics||'static';$('objectPhysics').onchange=e=>{o.physics=e.target.value;void refreshEnvironmentForMap()};
  for(const button of $('objectGizmoModes').querySelectorAll('button'))
   button.setAttribute('aria-pressed',String(objectGizmo?.getMode?.()===button.dataset.gizmo));
@@ -5230,6 +5565,13 @@ $('galleryRefreshBtn').onclick=refreshGallery;
 $('layoutPublic').onchange=()=>{serverVisibility=$('layoutPublic').checked?'public':'private'};
 
 const RELEASE_NOTES=[
+ {v:'0.3.3',date:'2026-11-09',title:'Rapier compatibility, cockpit edits, WebAudio and wheel AI',items:[
+  'Rapier controller switched to a pinned compatible module with staged diagnostics and corrected wheel matrices; real browser physics verification is still required.',
+  'Changing wheel styles now swaps visuals without resetting the driver. Improved body-only reference capture and full-vehicle preview.',
+  'New WebAudio presets for electric, petrol, diesel and turbine engines, including braking and impacts and tuneable noise/harmonics.',
+  'Compact object transforms, camera presets 1–7, +/- zoom, map undo/redo, higher-zoom contours; chassis, seat, dashboard and lighting controls.',
+  'Wheel workshop now has inline image-provider keys and automatic Lux3D wheel asset placement; OpenAI/xAI image generation routes require paid provider keys.'
+ ]},
  {v:'0.3.2',date:'2026-11-09',title:'Precision world editor — zoomable map, Shift+A and editable physical obstacles',items:[
   'Pan with hand or right-drag, zoom with mouse wheel/pinch or +/- buttons; the 1:1 map preserves metre coordinates on panel resize.',
   'Select and move objects, draw freehand terrain/grass/sand/water/dunes/trees/hedges as area polygons or smoothed ribbons.',
@@ -5455,7 +5797,7 @@ async function importLux3dResult(){
 }
 $('lux3dImportResult').onclick=()=>void importLux3dResult().catch(error=>note('Lux3D import failed: '+error.message,true));
 const SHORTCUTS=[
- ['Add object to test world','Shift + A','map'],['Map pan','Hand tool / right drag','map'],['Map zoom','Scroll / pinch / + or −','map'],['Select map object','Click / drag','map'],['Object transform gizmo','Move / Rotate / Scale','map'],['Undo last edit','⌘/Ctrl + Z','undo'],['Redo edit','⌘/Ctrl + Shift + Z','redo'],
+ ['Object camera views','1–7 (selected)','camera'],['Object zoom','+ / − (selected)','camera'],['Add object to test world','Shift + A','map'],['Map pan','Hand tool / right drag','map'],['Map zoom','Scroll / pinch / + or −','map'],['Select map object','Click / drag','map'],['Object transform gizmo','Move / Rotate / Scale','map'],['Undo last edit','⌘/Ctrl + Z','undo'],['Redo edit','⌘/Ctrl + Shift + Z','redo'],
  ['Redo (alternate)','Ctrl + Y','redo'],['Keyboard shortcuts','⌘/Ctrl + /','help'],
  ['Close dialog','Escape','close'],['Drive or exit drive','D','drive'],
  ['Reset camera to default','R','reset'],['Save locally','⌘/Ctrl + S','save'],

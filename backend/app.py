@@ -178,7 +178,7 @@ def create_app(config=None):
         # Public gallery and guest profile routes have scoped, per-profile
         # authentication below. Never let them fall through to the server
         # administrator's legacy layout token.
-        guest_paths=('/api/identity/', '/api/me/', '/api/gallery', '/api/providers/test', '/api/providers/lux3d/')
+        guest_paths=('/api/identity/', '/api/me/', '/api/gallery', '/api/providers/test', '/api/providers/lux3d/', '/api/vehicle/generate-image')
         if request.path.startswith(guest_paths):
             if request.method not in ('GET','HEAD'):
                 origin=request.headers.get('Origin')
@@ -655,7 +655,77 @@ def create_app(config=None):
         models=[r['id'] for r in data_list if isinstance(r,dict) and isinstance(r.get('id'),str)] if isinstance(data_list,list) else []
         return jsonify(ok=True,provider=provider,count=len(models),models=models[:50],truncated=len(models)>50)
 
+    # User-initiated image creation is scoped to a profile, not the admin API.
+    # Only two fixed HTTPS endpoints are permitted. Keys are forwarded in
+    # memory only, never put in a database, source control or runtime log.
+    image_generation_last = {}
+
     @app.post('/api/vehicle/generate-image')
+    def generate_reference_image():
+        member,error=guest_or_error()
+        if error:return error
+        obj=request.get_json(silent=True)
+        if not isinstance(obj,dict):return jsonify(error='Expected JSON object'),400
+        provider=obj.get('provider')
+        key=request.headers.get('X-Provider-Key','')
+        prompt=obj.get('prompt','')
+        if provider not in ('openai','xai'):
+            return jsonify(error='Image-generation adapter is available for OpenAI or xAI; Meta image generation is not configured.'),422
+        if not isinstance(key,str) or not 12<=len(key)<=512 or '\n' in key or '\r' in key:
+            return jsonify(error='Invalid provider credential'),400
+        if not isinstance(prompt,str) or not 8<=len(prompt.strip())<=2500:
+            return jsonify(error='Image prompt must be 8–2,500 characters'),400
+        reference=obj.get('reference_image')
+        if reference is not None:
+            if (not isinstance(reference,str) or not reference.startswith((
+                'data:image/png;base64,','data:image/jpeg;base64,','data:image/webp;base64,')) or
+                len(reference)>2*1024*1024):
+                return jsonify(error='Reference must be a PNG/JPEG/WebP image under 2 MB'),400
+        now=time.monotonic()
+        if now-image_generation_last.get(member['id'],0)<20:
+            return jsonify(error='Wait at least 20 seconds between image requests'),429
+        image_generation_last[member['id']]=now
+        if provider=='openai':
+            endpoint='https://api.openai.com/v1/images/edits' if reference else 'https://api.openai.com/v1/images/generations'
+            payload={'model':'gpt-image-2.5-flare','prompt':prompt.strip(),'n':1,
+                     'size':'1024x1024','quality':'medium','output_format':'png'}
+            if reference:payload['images']=[{'image_url':reference}]
+        else:
+            endpoint='https://api.x.ai/v1/images/edits' if reference else 'https://api.x.ai/v1/images/generations'
+            payload={'model':'grok-imagine-image-2.0','prompt':prompt.strip(),
+                     'n':1,'response_format':'b64_json','aspect_ratio':'1:1','quality':'medium'}
+            if reference:payload['image']={'url':reference,'type':'image_url'}
+        upstream=urllib.request.Request(endpoint,
+            data=json.dumps(payload,separators=(',',':')).encode('utf-8'),method='POST',
+            headers={'Authorization':'Bearer '+key,'Content-Type':'application/json','Accept':'application/json'})
+        try:
+            with urllib.request.urlopen(upstream,timeout=120) as response:
+                if int(response.headers.get('Content-Length') or 0)>20*1024*1024:
+                    return jsonify(error='Generated image exceeds response limit'),502
+                body=response.read(20*1024*1024+1)
+                if len(body)>20*1024*1024:
+                    return jsonify(error='Generated image exceeds response limit'),502
+                result=json.loads(body)
+        except urllib.error.HTTPError as exc:
+            return jsonify(error='Image provider rejected request (HTTP %s)'%exc.code),502
+        except (urllib.error.URLError,TimeoutError,OSError,ValueError) as exc:
+            app.logger.warning('image provider request failed (%s)',type(exc).__name__)
+            return jsonify(error='Image generation response unavailable'),502
+        item=(result.get('data') or [{}])[0] if isinstance(result,dict) else {}
+        encoded=item.get('b64_json') if isinstance(item,dict) else None
+        if not isinstance(encoded,str) or not encoded or len(encoded)>19*1024*1024:
+            return jsonify(error='Image provider returned no embedded image'),502
+        # Validate base64 and image magic before returning to the browser.
+        import base64
+        try:bytes_image=base64.b64decode(encoded,validate=True)
+        except (ValueError,base64.binascii.Error):return jsonify(error='Provider image was not valid base64'),502
+        mime=('image/png' if bytes_image.startswith(b'\x89PNG\r\n\x1a\n') else
+              'image/jpeg' if bytes_image.startswith(b'\xff\xd8\xff') else
+              'image/webp' if bytes_image[:4]==b'RIFF' and bytes_image[8:12]==b'WEBP' else None)
+        if not mime or len(bytes_image)>14*1024*1024:return jsonify(error='Provider image format was invalid'),502
+        app.logger.info('reference image completed (provider=%s, bytes=%d)',provider,len(bytes_image))
+        return jsonify(ok=True,image='data:'+mime+';base64,'+encoded,provider=provider)
+
     @app.post('/api/vehicle/tripo/start')
     @app.get('/api/vehicle/tripo/status/<task_id>')
     def ai_not_configured(task_id=None):
