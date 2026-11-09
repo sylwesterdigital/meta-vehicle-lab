@@ -251,7 +251,7 @@ road-test calibration of the three engines is still required; a successful synta
 is not a proof of driving parity.
 
 
-### v0.3.11 — AI body shell alignment and persistence
+### v0.3.12 — AI body shell alignment and persistence
 
 The chassis workshop has vehicle-local X/Y/Z positional offsets, X/Y/Z rotation,
 a uniform size control, reset-to-wheel-plane fitting, and direct downloads of

@@ -1,3 +1,11 @@
+## v0.3.12 — Deduplicate loaded chassis GLBs (2026-11-09)
+
+- Fix repeated reimports: every save/load or cloud restore used to assign a fresh random chassis-library ID, even when the GLB binary was unchanged.
+- SHA-256 of the GLB identifies identical assets; reuse the existing decoded scene and gallery entry on later imports and layout loads.
+- Collapse already duplicated legacy IndexedDB chassis cards without deleting any existing binary or altering a user's layouts, gallery, profiles or API keys.
+- Models with the same filename but different file content remain separate. No Flask migration; no changes to vehicle physics.
+- Requires live browser acceptance; ZIP/watch validation cannot prove IndexedDB runtime behavior.
+
 
 
 ## v0.3.11 — Editable generated-shell alignment, white references and cloud GLB recovery (2026-11-09)

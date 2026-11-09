@@ -5,7 +5,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Vehicle Lab — Procedural Studio</title>
-  <meta name="vehicle-lab-version" content="0.3.11">
+  <meta name="vehicle-lab-version" content="0.3.12">
   <style>
     :root {
       color-scheme:dark;
@@ -1156,7 +1156,7 @@ let ghostObject=null,ghostSamples=[],ghostElapsed=0,ghostTick=0;
  const serverAccess={token:''};
  let activeProfile=null,guestToken='',serverVisibility='private',adminLogToken='';
  const appEvents=[];
- const VERSION='0.3.11';
+ const VERSION='0.3.12';
  document.getElementById('appVersionBadge').textContent='v'+VERSION;
  let imageReference=null,busyAI=false;
 
@@ -3651,6 +3651,19 @@ async function createChassisPreview(source){
  }catch(err){recordEvent('WARN','Chassis preview: '+err.message);return null}
  finally{if(rendererPreview){rendererPreview.dispose();rendererPreview.forceContextLoss()}}
 }
+// A generated GLB must correspond to ONE library entry even if a layout or
+// cloud preset loads it repeatedly. Filenames/IDs are not content identities.
+// SHA-256 is available on the HTTPS origin; old stored assets had no hashes.
+async function chassisFingerprint(blob){
+ if(!(blob instanceof Blob))throw Error('Chassis GLB binary unavailable');
+ const data=await blob.arrayBuffer();
+ const hash=await crypto.subtle.digest('SHA-256',data);
+ return Array.from(new Uint8Array(hash),b=>b.toString(16).padStart(2,'0')).join('');
+}
+function findChassisByFingerprint(fingerprint){
+ for(const item of chassisAssets.values())if(item.fingerprint===fingerprint)return item;
+ return null;
+}
 async function selectChassisAsset(id){
  const item=chassisAssets.get(id);if(!item)return;
  if(mode==='drive')leaveDrive();
@@ -3678,15 +3691,23 @@ function renderChassisAssets(){
 }
 async function loadAvatarLibrary(){
  const saved=await avatarStore('readonly','getAll');
+ let hiddenDuplicates=0;
  for(const data of saved){try{
   if(data.kind==='cloud-cache')continue;
   if(data.kind==='wheel'||data.kind==='cap')await parseWheelAsset(data);
   else if(data.kind==='chassis'){
+   const fingerprint=await chassisFingerprint(data.blob);
+   // Older versions stored a fresh random ID at every load. Collapse those
+   // duplicate cards without deleting or altering the original IndexedDB rows.
+   if(findChassisByFingerprint(fingerprint)){hiddenDuplicates++;continue;}
    const url=URL.createObjectURL(data.blob);
-   try{const result=await decodeGLB(url);chassisAssets.set(data.id,{...data,source:result.scene});}
-   finally{URL.revokeObjectURL(url)}
+   try{
+    const result=await decodeGLB(url);
+    chassisAssets.set(data.id,{...data,fingerprint,source:result.scene});
+   }finally{URL.revokeObjectURL(url)}
   }else await parseAvatarAsset(data);
  }catch(e){recordEvent('WARN','3D asset '+data.name+': '+e.message)}}
+ if(hiddenDuplicates)recordEvent('INFO','Chassis library: hidden '+hiddenDuplicates+' duplicate GLB record(s); original files retained.');
  if(saved.length){setupGUI();buildVehicle();renderChassisAssets()}
 }
  async function allLayouts(){
@@ -4107,6 +4128,17 @@ async function decodeGLB(source){
 async function loadGLB(blob,name='Imported GLB',rebuild=true){
  if(blob.size>80*1024*1024)throw Error('GLB exceeds 80 MB');
  if(blob.size<12 || new TextDecoder().decode(new Uint8Array(await blob.slice(0,4).arrayBuffer()))!=='glTF')throw Error('File is not a binary GLB model');
+ const fingerprint=await chassisFingerprint(blob);
+ const existing=findChassisByFingerprint(fingerprint);
+ if(existing){
+  // Keep the binary instance from the current layout so cloud asset reuse and
+  // saveServer() don't treat a legitimate download as an unrelated upload.
+  modelSource=existing.source;modelBlob=blob;modelName=name;
+  currentChassisAssetId=existing.id;renderChassisAssets();
+  if(rebuild){if(mode==='drive')leaveDrive();buildVehicle();scheduleHistory('Selected existing vehicle model')}
+  recordEvent('INFO','Reused identical 3D chassis: '+name+' (no duplicate library entry).');
+  return;
+ }
  const url=URL.createObjectURL(blob);
  try{
   const result=await decodeGLB(url);
@@ -4115,7 +4147,7 @@ async function loadGLB(blob,name='Imported GLB',rebuild=true){
   if(bounds.isEmpty())throw Error('No visible mesh');
   modelSource=result.scene;modelBlob=blob;modelName=name;
   const newId=crypto.randomUUID();currentChassisAssetId=newId;
-  const record={id:newId,name:String(name).slice(0,120),kind:'chassis',blob,created:Date.now(),preview:null};
+  const record={id:newId,name:String(name).slice(0,120),kind:'chassis',blob,created:Date.now(),preview:null,fingerprint};
   record.preview=await createChassisPreview(result.scene);
   chassisAssets.set(newId,{...record,source:result.scene});
   try{await avatarStore('readwrite','put',record)}catch(err){recordEvent('WARN','Chassis library save: '+err.message)}
@@ -6605,6 +6637,11 @@ $('galleryRefreshBtn').onclick=refreshGallery;
 $('layoutPublic').onchange=()=>{serverVisibility=$('layoutPublic').checked?'public':'private'};
 
 const RELEASE_NOTES=[
+ {v:'0.3.12',date:'2026-11-09',title:'Deduplicated chassis model library',items:[
+  'Repeatedly opening the same GLB from a local layout or cloud no longer creates a new chassis library entry.',
+  'Existing byte-identical chassis entries are collapsed into one gallery card using SHA-256; stored originals are preserved.',
+  'Different models sharing a filename remain separate when the underlying GLB bytes differ.'
+ ]},
  {v:'0.3.11',date:'2026-11-09',title:'Fit imported 3D chassis accurately and restore cloud GLBs',items:[
   'Imported body shells have independent X/Y/Z offset, pitch/yaw/roll and relative size controls, with reset-to-wheel-plane alignment.',
   'Chassis image concepts request a clean white-background front-left three-quarter studio reference; GLB and image downloads are available.',
