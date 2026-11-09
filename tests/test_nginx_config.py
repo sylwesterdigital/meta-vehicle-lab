@@ -68,7 +68,10 @@ class VehicleStudioRegressionTests(unittest.TestCase):
         self.assertIn('makeAmmoAdapter()',self.source)
         self.assertNotIn('makeBaselineAdapter()',self.source)
         self.assertIn("{x:-1,y:0,z:0},.32,wheelRadiusFor(axle)",self.source)
-        self.assertIn('buildVehicle();preserveCameraOrbit();updatePhysicsHud();',self.source)
+        self.assertIn('const finishedVehiclePose=physics?.pose?.()||null;',self.source)
+        self.assertIn('buildVehicle();',self.source)
+        self.assertIn('preserveCameraOrbit();updatePhysicsHud();',self.source)
+        self.assertIn('if(finishedVehiclePose){const p=finishedVehiclePose;',self.source)
 
     def test_driver_selection_and_texture_parameters(self):
         self.assertIn('openOccupants',self.source)
@@ -154,13 +157,18 @@ function extract(name){let i=src.indexOf('function '+name+'(');assert(i>=0,name)
  throw Error('unterminated function '+name);
 }
 const MAP_RES=768,SIZE=180,mapZoom=2,mapCenterX=17,mapCenterZ=-12;
+const courseCanvas={width:768,height:768};
+const mapCanvasDpr=()=>1;
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const names=['mapPixelsPerMetre','mapScreen','worldPoly','pointInsidePolygon','distanceToPolyline','smoothFreehandPoints'];
 const functions=names.map(extract).join('\n');
-const api=new Function('MAP_RES','SIZE','mapZoom','mapCenterX','mapCenterZ','clamp',functions+';return {mapScreen,worldPoly,pointInsidePolygon,distanceToPolyline,smoothFreehandPoints};')
-(MAP_RES,SIZE,mapZoom,mapCenterX,mapCenterZ,clamp);
+const api=new Function('MAP_RES','SIZE','mapZoom','mapCenterX','mapCenterZ','clamp','courseCanvas','mapCanvasDpr',functions+';return {mapScreen,worldPoly,pointInsidePolygon,distanceToPolyline,smoothFreehandPoints};')
+(MAP_RES,SIZE,mapZoom,mapCenterX,mapCenterZ,clamp,courseCanvas,mapCanvasDpr);
 assert.deepEqual(api.mapScreen(17,-12),{x:384,y:384});
-const point=api.mapScreen(21,-12);assert(Math.abs(point.x-384-4*768*2/180)<.001);
+const point=api.mapScreen(21,-12);assert(Math.abs(point.x-384-4*450*2/180)<.001);
+courseCanvas.width=960;courseCanvas.height=480;
+assert.deepEqual(api.mapScreen(17,-12),{x:480,y:240});
+assert(Math.abs(api.mapScreen(21,-12).x-480-4*450*2/180)<.001); // window resizing does not zoom
 const poly=[{x:0,z:0},{x:8,z:0},{x:8,z:3},{x:0,z:3}];
 assert(api.pointInsidePolygon(3,1,poly));assert(!api.pointInsidePolygon(9,1,poly));
 assert(Math.abs(api.distanceToPolyline(4,1,poly,true)-1)<.00001);
@@ -177,3 +185,44 @@ console.log('actual map geometry/math tests passed');
             result=subprocess.run(['node',str(js),str(Path(__file__).resolve().parents[1]/'index.html')],
                     text=True,capture_output=True,timeout=20)
             self.assertEqual(result.returncode,0,result.stdout+result.stderr)
+
+class VehicleLab034RegressionTests(unittest.TestCase):
+    """Quick structural gates for UI state, live audio and multi-vehicle staging.
+
+    Full WebGL and interaction coverage still needs an actual browser.
+    """
+    def setUp(self):
+        self.source=(Path(__file__).resolve().parents[1]/'index.html').read_text(encoding='utf-8')
+
+    def test_minimization_is_preserved_during_drive(self):
+        for snippet in ('function setWindowVisible(id,show,restore=false)',
+                        'if(!restore)snapshotWindow(win)',
+                        'setWindowVisible(id,false,true)',
+                        'setWindowVisible(id,true,true)',
+                        "win.classList.toggle('is-minimized');snapshotWindow(win)"):
+            self.assertIn(snippet,self.source)
+
+    def test_context_palette_and_editor_shortcuts(self):
+        for snippet in ("e.code==='KeyA'", 'function openAddPalette(',
+                        'function placeObjectInScene(', 'duplicateSelectedCourse()',
+                        'deleteSelectedCourse()', "e.code==='KeyD'",
+                        "KeyG:'translate'", "KeyE:'scale'", "KeyR:'rotate'"):
+            self.assertIn(snippet,self.source)
+
+    def test_map_and_lightweight_collider_updates(self):
+        for snippet in ('function mapCanvasDpr()', 'function requestMinimapPaint()',
+                        'function heightfieldSignature()', 'const fastColliderSync=',
+                        'if(requiresTerrain){buildTerrain();buildVegetation();',
+                        'const mapDock=document.createElement'):
+            # mapCanvasDpr is a constant arrow function; check equivalent below.
+            if snippet=='function mapCanvasDpr()':
+                self.assertIn('const mapCanvasDpr=()',self.source)
+            else:
+                self.assertIn(snippet,self.source)
+
+    def test_audio_and_scene_vehicle_paths(self):
+        for snippet in ('vehiclelab-audio/v1', 'audioPresetImport',
+                        'vehicleAudio.damage(', 'function renderFleetList()',
+                        'function activateFleetVehicle(', 'function parkedFleetSpecs()',
+                        'function addGalleryVehicle(', "appendBtn('＋',"):
+            self.assertIn(snippet,self.source)

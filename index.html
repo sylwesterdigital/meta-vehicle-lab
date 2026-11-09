@@ -5,7 +5,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Vehicle Lab — Procedural Studio</title>
-  <meta name="vehicle-lab-version" content="0.3.3">
+  <meta name="vehicle-lab-version" content="0.3.4">
   <style>
     :root {
       color-scheme:dark;
@@ -386,6 +386,86 @@
       color:#fff;background:#182e3b;border:1px solid #678a9a;border-radius:6px}
     #wheelAIStatus{margin:10px 0;padding:9px;border:1px solid var(--pane-border);border-radius:6px;overflow-wrap:anywhere}
 
+
+/* v0.3.4: compact, pointer-first workspace with guaranteed panel-state persistence. */
+.window-head{min-height:26px;height:26px;padding:2px 7px;gap:4px}
+.window-head .mini-btn{width:22px;height:21px;min-height:21px;padding:0;border-radius:5px}
+.float-window.is-minimized{height:26px!important;min-height:26px!important}
+.float-window button{transition:background-color .13s ease,border-color .13s ease,filter .13s ease}
+.float-window button:not(:disabled):hover,.side-drawer button:not(:disabled):hover{filter:brightness(1.23);border-color:var(--accent)!important}
+#mapWindow{min-width:265px;min-height:230px}
+#mapWindow .window-body{position:relative;display:flex;flex-direction:column;overflow:hidden;padding:5px;gap:3px}
+#mapWindow .map-interactions{display:flex;flex-wrap:nowrap;gap:3px;margin:0;min-height:27px;overflow:hidden}
+#mapWindow .map-interactions button{min-height:25px;height:25px;min-width:27px;width:27px;padding:1px;font-size:14px;flex:0 0 27px}
+#mapWindow #mapZoomValue{min-width:37px;font-size:10px}
+#mapWindow .map-view-bar{position:absolute;top:4px;right:5px;z-index:4;margin:0}
+#mapWindow .map-view-bar select{display:none}
+#mapWindow .map-view-bar label{display:none}
+#mapWindow #mapGrid{position:absolute;opacity:0;pointer-events:none}
+#mapWindow .map-workspace{display:grid;grid-template-columns:25px minmax(0,1fr);gap:3px;flex:1 1 auto;min-height:0;height:100%;overflow:hidden;margin:0}
+#mapWindow #mapToolRail{height:100%;min-height:0;max-height:100%;overflow:auto hidden;overscroll-behavior:contain;scrollbar-width:thin;gap:1px;align-self:stretch;flex:1}
+#mapWindow #mapToolRail button{font:12px ui-monospace,monospace;min-height:22px;height:22px;min-width:22px;width:22px;padding:0;border-radius:4px;flex:0 0 22px}
+#mapWindow .map-canvas-clip{min-height:0;height:100%;width:100%;overflow:hidden;align-self:stretch;border-radius:4px}
+#stage #mapWindow .map-canvas-clip #terrainMini{width:450px!important;height:450px!important;min-width:450px!important;min-height:450px!important;max-width:none!important;display:block!important;aspect-ratio:1!important;image-rendering:auto}
+#mapWindow #mapCoordinates{position:absolute;bottom:3px;left:29px;z-index:4;pointer-events:none;padding:2px 4px;border-radius:3px;background:#111d2aca;color:#f7fbff;font-size:9px}
+#mapWindow .map-selected{padding:3px;min-height:0;margin:0;border-radius:4px}
+#mapWindow .map-selected strong{font-size:10px;margin:0}
+#mapWindow .map-selected .drawer-actions{margin:0}
+#mapWindow .map-selected button{padding:3px;font-size:10px}
+#mapDock{position:absolute;left:31px;right:5px;bottom:0;z-index:5;max-height:42%;padding:5px 6px 6px;
+  overflow:auto;backdrop-filter:blur(8px);background:linear-gradient(0deg,var(--pane) 80%,transparent);border-radius:6px}
+#mapDock.is-collapsed{max-height:25px;overflow:hidden;padding-top:0;padding-bottom:0}
+#mapDockToggle{position:sticky;float:right;top:0;margin:0;height:22px;min-height:22px;padding:0 6px;font-size:11px;z-index:6}
+#mapDock .map-top{margin:2px 0 4px;gap:3px}
+#mapDock .map-top select,#mapDock .map-top input{min-height:24px;padding:3px 4px;font-size:10px}
+#mapDock label,#mapDock .drawer-actions{margin:2px 0;font-size:10px}
+#mapDock .drawer-actions button{font-size:10px;padding:3px 5px;min-height:24px}
+#mapDock small{font-size:9px}
+#addObjectOverlay:not([hidden]){background:transparent;display:block;pointer-events:none;padding:0}
+#addObjectOverlay .add-palette{position:fixed;width:min(270px,calc(100vw - 16px));max-height:min(350px,65vh);padding:6px;gap:3px;
+  border-radius:9px;pointer-events:auto;box-shadow:0 12px 35px #000b}
+#addObjectOverlay .add-palette header{min-height:23px;font-size:11px}
+#addObjectOverlay .add-palette input{padding:6px 8px;font-size:12px;border-width:1px}
+#addObjectResults{max-height:270px;gap:1px}
+#addObjectResults button{padding:4px 8px;min-height:25px;font-size:11px;line-height:1.15}
+#addObjectOverlay .add-palette>small{display:none}
+.thumb-gallery{gap:3px}
+.thumb-card{position:relative;padding:2px;border-radius:6px;overflow:hidden}
+.thumb-card .thumb-hero{border-radius:3px}
+.thumb-card .thumb-actions{position:absolute;right:3px;bottom:19px;left:3px;display:flex;gap:2px;opacity:.92}
+.thumb-card .thumb-actions button{font-size:10px;padding:2px 4px;background:#142b3aec!important;color:#fff!important;border:1px solid #86a9b5!important;min-height:22px}
+.thumb-title{margin:2px;font-size:11px}
+.thumb-category{margin:2px;font-size:9px}
+.thumb-strip img{width:19%}
+#wheelWindow .window-body{padding:5px}
+#wheelWindow .wheel-grid{gap:3px;margin:3px 0}
+#wheelWindow .wheel-style-card{padding:1px!important;gap:0;font-size:10px}
+#wheelWindow .wheel-style-card img{max-width:100px}
+#wheelWindow .wheel-fields{grid-template-columns:repeat(3,minmax(0,1fr));gap:3px;margin:5px 0}
+#wheelWindow .wheel-fields label{font-size:10px}
+#wheelWindow .wheel-fields input{padding:4px;font-size:11px}
+#wheelWindow details{padding:3px;margin-top:3px}
+#wheelWindow .drawer-actions{gap:3px;margin:4px 0}
+#wheelWindow .drawer-actions button{min-height:24px;padding:4px 5px;font-size:10px}
+
+
+#fleetWindow{left:40%;top:85px;width:245px;height:230px}
+.fleet-toolbar{display:flex;gap:3px;margin-bottom:5px}.fleet-toolbar button{flex:1;min-width:0;padding:4px;font-size:10px}
+#fleetList{display:grid;gap:3px}.fleet-row{display:grid;grid-template-columns:minmax(0,1fr) 24px;gap:2px}
+.fleet-row button{padding:5px 3px;font-size:11px;text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fleet-row button:last-child{padding:2px;text-align:center}
+#fleetHelp{display:block;margin:8px 0;font-size:10px;color:var(--muted)}
+
+#stage #mapWindow .map-canvas-clip #terrainMini{width:100%!important;height:100%!important;min-width:0!important;
+ min-height:0!important;max-width:100%!important;max-height:100%!important;display:block!important;aspect-ratio:auto!important}
+
+#mapSaveDialog{border:1px solid var(--pane-border);border-radius:12px;color:var(--text);background:var(--pane);
+ padding:12px;box-shadow:0 12px 50px #000b;width:min(360px,90vw)}
+#mapSaveDialog::backdrop{background:#050f16aa;backdrop-filter:blur(2px)}
+#mapSaveDialog .mini-save-form{display:grid;gap:9px}
+#mapSaveDialog input{padding:8px;background:#142637;color:#eef8fa;border:1px solid #7194a6;border-radius:6px}
+#mapSaveDialog .mini-save-form>div{display:flex;gap:5px;justify-content:flex-end}
+#mapSaveDialog button{padding:6px 12px}
 </style>
 
  <script type="importmap">
@@ -404,7 +484,7 @@
 
   <div id="stage">
   <div id="hud">
-    <div class="stage-badge"><strong>Vehicle Lab</strong><small>v0.3.3</small></div>
+    <div class="stage-badge"><strong>Vehicle Lab</strong><small>v0.3.4</small></div>
     <p id="vehicleName">City Car</p><p id="vehicleInfo">Procedural vehicle</p>
     <div id="speedHud"><strong id="speed">0</strong><div>km/h</div></div>
     <div id="physicsHud"><strong id="engineName">Cannon-es</strong> · <span id="physicsMode">BUILD</span>
@@ -424,7 +504,7 @@
   <section id="toolsWindow" class="float-window" aria-label="Vehicle tools">
     <div class="window-head"><strong>02 / Vehicle tools</strong><button class="mini-btn minimize" title="Minimize">−</button></div>
     <div class="window-body"><div id="boarding"><button type="button" id="openOccupants" title="Choose driver and passenger 3D models">Driver / passengers</button>
-      <button id="exitBtn">Exit −</button><button id="boardBtn">Board +</button><button id="doorsBtn">Open doors</button><button id="wheelEditorBtn" title="Wheel styles / GLB models">Wheel workshop</button><button id="mapEditorBtn" title="Test track / obstacles / hills">Test map</button><button id="xrBtn" title="WebXR immersive VR">Enter XR</button><button id="xrSeatBtn" title="Teleport into the cabin (XR only)">Cabin</button>
+      <button id="exitBtn">Exit −</button><button id="boardBtn">Board +</button><button id="doorsBtn">Open doors</button><button id="wheelEditorBtn" title="Wheel styles / GLB models">Wheel workshop</button><button id="fleetBtn" title="Scene vehicle instances">Fleet</button><button id="mapEditorBtn" title="Test track / obstacles / hills">Test map</button><button id="xrBtn" title="WebXR immersive VR">Enter XR</button><button id="xrSeatBtn" title="Teleport into the cabin (XR only)">Cabin</button>
     </div></div>
   </section>
   <section id="catalogWindow" class="float-window" aria-label="Vehicle library">
@@ -465,8 +545,8 @@
   <section id="mapWindow" class="float-window" aria-label="Drive test map editor" style="display:none">
    <div class="window-head"><strong>09 / Drive test map</strong><button class="mini-btn minimize" title="Minimize">−</button></div>
    <div class="window-body">
-    <div class="map-top"><input id="mapName" maxlength="90" placeholder="Course name" value="Open practice ground"><button type="button" id="mapCenter">Follow car</button></div>
-    <div class="map-interactions"><button id="mapZoomOut" title="Zoom out (−)">−</button><output id="mapZoomValue">100%</output><button id="mapZoomIn" title="Zoom in (+)">+</button><button id="mapFit" title="Fit entire map">Fit</button><button id="mapFollowBtn" title="Follow vehicle">Follow</button><button id="mapObjectAdd" title="Add 3D primitive · Shift+A">+ Object</button></div>
+    <input id="mapName" maxlength="90" value="Open practice ground" hidden><button type="button" id="mapCenter" hidden aria-label="Center car on map">◎</button>
+    <div class="map-interactions"><button id="mapZoomOut" title="Zoom out (−)">−</button><output id="mapZoomValue">100%</output><button id="mapZoomIn" title="Zoom in (+)">+</button><button id="mapFit" title="Fit entire map">⛶</button><button id="mapFollowBtn" title="Follow vehicle" aria-label="Follow vehicle">◎</button><button id="mapObjectAdd" title="Add object · Shift+A" aria-label="Add object">＋</button><button id="mapViewCycle" title="Toggle contour / precision map" aria-label="Toggle map style">▤</button></div>
     <div class="map-view-bar"><select id="mapView" aria-label="Map rendering mode"><option value="terrain">Relief / contours</option><option value="diagram">Precision plan / symbols</option></select><label><input type="checkbox" id="mapGrid" checked> Grid</label></div>
     <div class="map-workspace"><nav id="mapToolRail" aria-label="Map drawing tools">
       <button data-map-tool="select" aria-label="Select / move map objects" title="Select and drag objects">⌖</button>
@@ -553,6 +633,14 @@
         <div class="drawer-actions"><button type="button" id="wheelTextImage">Text → image</button><button type="button" id="wheelEditImage">Reference → refined image</button><button type="button" id="wheelImage3D" disabled title="Tripo server adapter has not been installed">Tripo (unavailable)</button><button type="button" id="wheelLux3D">Lux3D generation</button></div>
         <button type="button" id="wheelReferenceFile">Upload reference image</button>
       </details>
+    </div>
+  </section>
+  <section id="fleetWindow" class="float-window" aria-label="Scene vehicles" style="display:none">
+    <div class="window-head"><strong>11 / Scene vehicles</strong><button class="mini-btn minimize" title="Minimize">−</button></div>
+    <div class="window-body">
+      <div class="fleet-toolbar"><button type="button" id="fleetDuplicate" title="Duplicate active vehicle">＋ Duplicate</button><button type="button" id="fleetViewGallery" title="Select another vehicle from gallery">Gallery ＋</button></div>
+      <div id="fleetList" role="list"></div>
+      <small id="fleetHelp">Select a vehicle to edit or drive it. Parked vehicles are static collision obstacles in DRIVE.</small>
     </div>
   </section>
   <section id="paramsWindow" class="float-window" aria-label="Vehicle parameters">
@@ -691,7 +779,7 @@
   <div id="releaseHistory"></div><button id="closeRelease">Continue to studio</button>
 </div></div>
 <input id="importJSON" type="file" accept=".json" hidden>
-<input id="importGLB" type="file" accept=".glb" hidden>
+<input id="audioPresetImport" type="file" accept=".json,application/json" hidden><input id="importGLB" type="file" accept=".glb" hidden>
 <input id="importPassenger" type="file" accept=".glb,model/gltf-binary" hidden>
 <input id="wheelGLBFile" type="file" accept=".glb,model/gltf-binary" hidden>
 <input id="wheelCapFile" type="file" accept=".glb,model/gltf-binary" hidden>
@@ -875,7 +963,7 @@ let ghostObject=null,ghostSamples=[],ghostElapsed=0,ghostTick=0;
  const serverAccess={token:''};
  let activeProfile=null,guestToken='',serverVisibility='private',adminLogToken='';
  const appEvents=[];
- const VERSION='0.3.3';
+ const VERSION='0.3.4';
  let imageReference=null,busyAI=false;
 
  // Keys remain in volatile memory. Never place credentials in a blueprint or IndexedDB.
@@ -1347,7 +1435,7 @@ function buildCourse(){
    trunk.count=used;crowns.count=used;courseRoot.add(trunk,crowns);
   }
  }
- if(selectedCourseId&&courseMeshes.has(selectedCourseId)&&objectGizmo&&mode==='build')objectGizmo.attach(courseMeshes.get(selectedCourseId));
+ if(selectedCourseId&&courseMeshes.has(selectedCourseId)&&objectGizmo)objectGizmo.attach(courseMeshes.get(selectedCourseId));
  updateMinimapBackground();
 }
 function buildVegetation(){
@@ -1406,17 +1494,26 @@ function updateVegetation(dt){if(grassMaterial){grassMaterial.uniforms.uTime.val
 // Map editing preserves the vehicle's pose and velocity. Rebuilding physics is
 // necessary for modified terrain triangle colliders (new hills). Do not reset to origin.
 let resumeDrivePose=null,mapUpdating=false,mapRefreshQueued=false;
+const terrainAffectingKinds=new Set(['hill','dune']);
+function heightfieldSignature(){return JSON.stringify((cfg.courseObjects||[])
+ .filter(o=>terrainAffectingKinds.has(o.kind)).map(o=>[o.id,o.x,o.z,o.h,o.w,o.d,o.shape,o.points]));}
+let previousHeightfieldSignature=null;
 async function refreshEnvironmentForMap(){
  if(mapUpdating){mapRefreshQueued=true;return;}
  mapUpdating=true;
  const driving=mode==='drive';
  try{
-  if(driving){resumeDrivePose=physics?.pose?.()||null;leaveDrive();}
-  buildTerrain();buildCourse();buildVegetation();clearTracks();
+  const signature=heightfieldSignature();
+  const fastColliderSync=driving&&simulator.engine==='cannon'&&signature===previousHeightfieldSignature;
+  if(driving&&!fastColliderSync){resumeDrivePose=physics?.pose?.()||null;leaveDrive();}
+  const requiresTerrain=signature!==previousHeightfieldSignature;
+  if(requiresTerrain){buildTerrain();buildVegetation();clearTracks();previousHeightfieldSignature=signature;}
+  buildCourse();
+  // Static map objects are updated without regenerating terrain, procedural textures or vegetation.
   // Preserve passenger rigs and their active clips during ordinary map/object edits.
   // Reconstructing the vehicle here used to make the driver jump back to idle.
   if(!car)buildVehicle();
-  if(driving&&resumeDrivePose){
+  if(driving&&!fastColliderSync&&resumeDrivePose){
    // Engine initialization uses the saved world pose, including heading and velocity.
    await enterDrive();
   }
@@ -2261,18 +2358,29 @@ function hidePanelsForDrive(){
  drivePanelVisibility=new Map();
  for(const id of WINDOW_IDS){if(DRIVE_DEFAULT_VISIBLE.includes(id))continue;
   const win=$(id),visible=id==='logWindow'?win.classList.contains('is-visible'):win.style.display!=='none';
-  drivePanelVisibility.set(id,visible);if(visible)setWindowVisible(id,false)
+  drivePanelVisibility.set(id,visible);if(visible)setWindowVisible(id,false,true)
  }
 }
 function restorePanelsAfterDrive(){
- for(const [id,visible] of drivePanelVisibility){if(visible)setWindowVisible(id,true)}
+ for(const [id,visible] of drivePanelVisibility){if(visible)setWindowVisible(id,true,true)}
  drivePanelVisibility.clear();
 }
 
+function activeCarPose(){
+ if(!car)return null;
+ return {position:car.position.clone(),rotation:car.quaternion.clone(),velocity:new THREE.Vector3(0,0,0)};
+}
 // Engine-agnostic drive adapters. Physics engines use their own raycast
 // controllers and the identical procedural chassis, wheel spacing and terrain.
 // The baseline is NOT a rigid-body engine; it measures non-physics overhead.
 const vehicleMass=()=>Math.max(650,cfg.L*cfg.W*cfg.H*145+occupants*75);
+function parkedFleetSpecs(){return fleetRecords.filter(item=>item.id!==activeFleetId&&item.visual).map(item=>{
+ const v=item.visual.position,c=item.config;
+ return {id:'fleet-'+item.id,kind:'cube',x:v.x,y:v.y+c.H*.06,z:v.z,
+  w:c.W*.88,h:Math.max(.5,c.H*.92),d:c.L*.88,mass:0,friction:.9,bounce:.10,
+  physics:'static',rx:0,ry:item.visual.rotation.y,rz:0};
+})}
+
 const motorPower=()=>({electric:4500,petrol:3600,diesel:4900,hybrid:4000,hydrogen:4400}[cfg.engine]||4000);
 const wheelAxle=i=>Math.floor(i/2);
 const wheelRadiusFor=axle=>axle===0?(cfg.frontWheelRadius||cfg.radius):(cfg.rearWheelRadius||cfg.radius);
@@ -2296,7 +2404,7 @@ function applyDynamicCoursePose(id,position,rotation){
   new THREE.Quaternion(rotation.x,rotation.y,rotation.z,rotation.w),'YXZ').y*180/Math.PI;
 }
 function makeCannonAdapter(){
- const spawn=resumeDrivePose;
+ const spawn=resumeDrivePose||activeCarPose();
  const chassis=new CANNON.Body({mass:vehicleMass(),
   position:new CANNON.Vec3(spawn?.position.x??0,spawn?.position.y??(heightAt(0,0)+cfg.radius+.85),spawn?.position.z??0),
   linearDamping:.13,angularDamping:.55});
@@ -2319,6 +2427,13 @@ function makeCannonAdapter(){
   });
  }
  vehicle.addToWorld(world);
+ const parkedBodies=[];
+ for(const spec of parkedFleetSpecs()){
+  const body=new CANNON.Body({mass:0,position:new CANNON.Vec3(spec.x,spec.y,spec.z)});
+  body.addShape(new CANNON.Box(new CANNON.Vec3(spec.w/2,spec.h/2,spec.d/2)));
+  body.quaternion.setFromAxisAngle(new CANNON.Vec3(0,1,0),spec.ry);
+  world.addBody(body);parkedBodies.push(body);
+ }
  return {
   kind:'cannon',chassis,
   syncCourse:()=>{for(const b of coursePhysicsBodies){if(b.mass<=0)continue;const m=courseMeshes.get(b.userData.courseId);
@@ -2358,7 +2473,7 @@ function makeCannonAdapter(){
     wheels[i].quaternion.copy(t.quaternion);
    }
   },
-  destroy:()=>vehicle.removeFromWorld(world)
+  destroy:()=>{vehicle.removeFromWorld(world);for(const b of parkedBodies)world.removeBody(b)}
  };
 }
 async function getRapier(){
@@ -2390,7 +2505,7 @@ async function makeRapierAdapter(){
   rw.createCollider(R.ColliderDesc.trimesh(positions,indices).setFriction(.85));
   rapierStage='course colliders';
   const movingCourse=[];
-  for(const solid of courseSolidSpecs){if(solid.physics==='none')continue;
+  for(const solid of [...courseSolidSpecs,...parkedFleetSpecs()]){if(solid.physics==='none')continue;
    const q=new THREE.Quaternion().setFromEuler(new THREE.Euler(solid.rx,solid.ry,solid.rz));
    let rb=null;
    if(solid.physics==='dynamic')rb=rw.createRigidBody(R.RigidBodyDesc.dynamic().setTranslation(solid.x,solid.y,solid.z).setRotation(q));
@@ -2403,7 +2518,7 @@ async function makeRapierAdapter(){
 
   rapierStage='chassis';
   rw.integrationParameters.dt=FIXED_STEP;
-  const spawn=resumeDrivePose;
+  const spawn=resumeDrivePose||activeCarPose();
   const desc=R.RigidBodyDesc.dynamic()
    .setTranslation(spawn?.position.x??0,spawn?.position.y??(heightAt(0,0)+Math.max(cfg.radius,cfg.rearWheelRadius||cfg.radius)+Math.max(.8,cfg.H*.55)),spawn?.position.z??0)
    .setLinearDamping(.13).setAngularDamping(.55);
@@ -2541,7 +2656,7 @@ async function makeAmmoAdapter(){
   ground=own(new A.btRigidBody(own(new A.btRigidBodyConstructionInfo(0,gm,groundShape,zero))));
   dynamics.addRigidBody(ground);
   const staticObstacles=[],dynamicCourse=[];
-  for(const solid of courseSolidSpecs){if(solid.physics==='none')continue;
+  for(const solid of [...courseSolidSpecs,...parkedFleetSpecs()]){if(solid.physics==='none')continue;
    const sc=own(new A.btBoxShape(v(solid.w/2,solid.h/2,solid.d/2)));
    const t=own(new A.btTransform());t.setIdentity();t.setOrigin(v(solid.x,solid.y,solid.z));
    const q=new THREE.Quaternion().setFromEuler(new THREE.Euler(solid.rx,solid.ry,solid.rz));
@@ -2694,6 +2809,7 @@ function leaveDrive(){
  ++driveGeneration;
  if(mode!=='drive')return;
  if(telemetry.active)finishBenchmark('stopped');
+ const finishedVehiclePose=physics?.pose?.()||null;
  if(physics?.syncCourse){physics.syncCourse();for(const spec of courseSolidSpecs){
   if(spec.physics!=='dynamic'||!spec.id)continue;
   const m=courseMeshes.get(spec.id),o=cfg.courseObjects.find(o=>o.id===spec.id);
@@ -2709,7 +2825,13 @@ function leaveDrive(){
  $('speed').textContent='0';
  orbit.autoRotate=autoRotate;
  if(ghostObject){scene.remove(ghostObject);ghostObject=null}restorePanelsAfterDrive();
- buildVehicle();preserveCameraOrbit();updatePhysicsHud();
+ buildVehicle();
+ if(finishedVehiclePose){const p=finishedVehiclePose;
+  car.position.set(p.position.x,p.position.y,p.position.z);
+  car.quaternion.set(p.rotation.x,p.rotation.y,p.rotation.z,p.rotation.w);
+  resumeDrivePose=p;
+ }
+ preserveCameraOrbit();updatePhysicsHud();
  if(selectedCourseId&&courseMeshes.has(selectedCourseId))objectGizmo?.attach(courseMeshes.get(selectedCourseId));
  if(wheels.length!==cfg.axles*2)note('Vehicle axle mesh count mismatch after returning to BUILD.',true);
 }
@@ -2756,6 +2878,7 @@ for(const event of ['pointerup','pointercancel','lostpointercapture'])
 
 // User-gesture Web Audio synthesizer; does not download sounds or require a server.
 // One long-lived graph permits independent engine, air/tyre and impact timbres.
+const AUDIO_FIELDS=['audioEnabled','audioVolume','baseRPM','soundPitchRange','engineHarmonics','engineNoise','tyreNoise','engineFilter','impactVolume'];
 const AUDIO_PRESETS={
  electric:{baseRPM:560,soundPitchRange:3.3,engineHarmonics:.13,engineNoise:.07,engineFilter:1900},
  petrol:{baseRPM:820,soundPitchRange:2.7,engineHarmonics:.6,engineNoise:.19,engineFilter:1900},
@@ -2763,7 +2886,7 @@ const AUDIO_PRESETS={
  turbine:{baseRPM:1100,soundPitchRange:3.9,engineHarmonics:.4,engineNoise:.48,engineFilter:3000}
 };
 const vehicleAudio={ctx:null,master:null,engine:null,harmonic:null,noise:null,filter:null,
-  motorGain:null,harmonicGain:null,noiseGain:null,lastImpact:0,lastVy:0,running:false,
+  motorGain:null,harmonicGain:null,noiseGain:null,lastImpact:0,lastVy:0,lastSpeed:0,lastTilt:0,running:false,
  start(){
   if(!cfg.audioEnabled)return;
   try{
@@ -2804,12 +2927,12 @@ const vehicleAudio={ctx:null,master:null,engine:null,harmonic:null,noise:null,fi
  effect(type,amount=1){
   if(!this.running||!this.ctx)return;
   const ctx=this.ctx,now=ctx.currentTime;
-  const dur=type==='impact'?.25:type==='stop'?.42:.2;
+  const dur=type==='crash'?.63:type==='rollover'?.48:type==='impact'?.25:type==='stop'?.42:.2;
   const oscillator=ctx.createOscillator(),gain=ctx.createGain();
-  oscillator.type=type==='impact'?'triangle':'sine';
-  const frequency=type==='impact'?62:type==='start'?140:90;
+  oscillator.type=['impact','crash','rollover'].includes(type)?'triangle':'sine';
+  const frequency=type==='crash'?43:type==='rollover'?35:type==='impact'?62:type==='start'?140:90;
   oscillator.frequency.setValueAtTime(frequency,now);
-  oscillator.frequency.exponentialRampToValueAtTime(type==='start'?210:35,now+dur);
+  oscillator.frequency.exponentialRampToValueAtTime(type==='start'?210:type==='crash'?24:35,now+dur);
   gain.gain.setValueAtTime(Math.max(.0001,Math.min(.16,amount*.11*cfg.impactVolume)),now);
   gain.gain.exponentialRampToValueAtTime(.0001,now+dur);
   oscillator.connect(gain).connect(this.master);oscillator.start(now);oscillator.stop(now+dur+.02);
@@ -2821,6 +2944,18 @@ const vehicleAudio={ctx:null,master:null,engine:null,harmonic:null,noise:null,fi
    this.effect('impact',Math.min(2,delta/5));this.lastImpact=now;
   }
   this.lastVy=currentVy;
+ },
+ damage(speed,quat,dt){
+  if(!this.running)return;
+  const now=performance.now()/1000;
+  const slowing=Math.max(0,(this.lastSpeed-speed)/Math.max(.02,dt));
+  const up=new THREE.Vector3(0,1,0).applyQuaternion(new THREE.Quaternion(quat.x,quat.y,quat.z,quat.w));
+  const tilt=up.y;
+  if(now-this.lastImpact>.55){
+   if(slowing>18&&this.lastSpeed>5){this.effect('crash',Math.min(2,slowing/35));this.lastImpact=now}
+   else if(tilt<-.55&&this.lastTilt>=-.55){this.effect('rollover',1.2);this.lastImpact=now}
+  }
+  this.lastSpeed=speed;this.lastTilt=tilt;
  },
  stop(){if(!this.ctx)return;this.effect('stop',.2);this.running=false;
    this.master.gain.setTargetAtTime(0,this.ctx.currentTime,.08);this.lastVy=0;}
@@ -2871,7 +3006,7 @@ function stepVehicle(dt){
  car.position.set(p.position.x,p.position.y,p.position.z);
  car.quaternion.set(p.rotation.x,p.rotation.y,p.rotation.z,p.rotation.w);
  vehicleAudio.update(physics.getSpeed(),inputForStep().throttle,braking);
- vehicleAudio.impact(p.velocity.y);
+ vehicleAudio.impact(p.velocity.y);vehicleAudio.damage(physics.getSpeed(),p.rotation,dt);
  physics.syncWheels();physics.syncCourse?.();
  updateLights();followCamera(dt);recordGhost(dt);
  leaveWheelTracks(p,dt);
@@ -3868,11 +4003,25 @@ for(const [key,label,min,max,step] of [
  ['soundPitchRange','Acceleration pitch',.2,6,.05],['engineHarmonics','Harmonics',0,1,.02],
  ['engineNoise','Mechanical noise',0,1,.02],['tyreNoise','Tyre/brake hiss',0,1,.02],
  ['engineFilter','Low-pass Hz',250,4800,50],['impactVolume','Impact effect',0,1,.02]])
- soundFolder.add(cfg,key,min,max,step).name(label).onFinishChange(()=>scheduleHistory('Audio '+label));
-soundFolder.add({listen:()=>{vehicleAudio.start();vehicleAudio.update(7,.4,false)}},'listen').name('Preview sound');
+ soundFolder.add(cfg,key,min,max,step).name(label).onChange(()=>{if(vehicleAudio.running)vehicleAudio.update(8,.45,false)}).onFinishChange(()=>scheduleHistory('Audio '+label));
+soundFolder.add({listen:()=>{vehicleAudio.start();vehicleAudio.update(7,.4,false)}},'listen').name('Live preview (plays until stopped)');
 soundFolder.add({silence:()=>vehicleAudio.stop()},'silence').name('Stop preview');
+ soundFolder.add({export:()=>{
+  const payload={schema:'vehiclelab-audio/v1',name:cfg.soundPreset||'Custom',settings:Object.fromEntries(AUDIO_FIELDS.map(k=>[k,cfg[k]]))};
+  download(JSON.stringify(payload,null,2),'vehiclelab-engine-sound-'+Date.now()+'.json','application/json');
+ }},'export').name('Export sound JSON');
+ soundFolder.add({import:()=>$('audioPresetImport').click()},'import').name('Import sound JSON');
 soundFolder.close();
 
+$('audioPresetImport').onchange=async event=>{try{
+  const file=event.target.files?.[0];if(!file)return;
+  if(file.size>16000)throw Error('Sound preset is too large');
+  const data=JSON.parse(await file.text());if(data.schema!=='vehiclelab-audio/v1'||!data.settings)throw Error('Invalid sound preset');
+  for(const key of AUDIO_FIELDS){const value=data.settings[key];if(key==='audioEnabled'&&typeof value==='boolean'){cfg[key]=value;continue}
+   if(typeof value==='number'&&Number.isFinite(value))cfg[key]=value;}
+  cfg.soundPreset=String(data.name||'Custom').slice(0,48);vehicleAudio.update(8,.45,false);
+  setupGUI();scheduleHistory('Imported sound preset');note('Sound preset imported.');
+ }catch(error){note(error.message,true)}finally{event.target.value=''}};
 const environment=gui.addFolder('09 · Terrain & sky');
  environment.add(cfg,'terrainProfile',['flat','bumps','hills','extreme','moon','beach']).name('Terrain').onChange(()=>{if(mode==='drive')leaveDrive();if(cfg.terrainProfile==='beach')cfg.groundSurface='sand';if(cfg.terrainProfile==='moon')cfg.groundSurface='moon';buildTerrain();buildCourse();buildVegetation();clearTracks();buildVehicle();scheduleHistory('Terrain')});
  environment.add(cfg,'terrainSize',90,300,30).name('Terrain width').onFinishChange(()=>{if(mode==='drive')leaveDrive();buildTerrain();buildCourse();buildVegetation();clearTracks();scheduleHistory('Terrain size')});
@@ -4251,7 +4400,7 @@ const clock=new THREE.Clock();
 function animate(){
  const frameDelta=clock.getDelta();
  const dt=Math.min(frameDelta,.05);
- if($('mapWindow').style.display!=='none'&&++mapFrame%7===0)drawMinimap();
+ if($('mapWindow').style.display!=='none'&&!$('mapWindow').classList.contains('is-minimized')&&++mapFrame%12===0)requestMinimapPaint();
  for(const mixer of passengerMixers)mixer.update(dt);updateSeatAnimations(dt);tickEnvironment(dt);updateVegetation(dt);
  telemetry.frames++;
  telemetry.frameTime+=frameDelta;
@@ -4318,8 +4467,18 @@ function renderWheelStudio(){
  const prefix=selectedWheelAxle;const target=$('wheelStyles');target.replaceChildren();
  const createCard=document.createElement('button');createCard.type='button';createCard.className='wheel-style-card wheel-ai-tile';
  createCard.innerHTML='<span aria-hidden="true" class="wheel-brain">✦</span><small>AI · Create</small>';
- createCard.onclick=()=>{const p=$('wheelAISection');p.open=!p.open;
-  if(p.open){$('wheelPrompt').focus();p.scrollIntoView({block:'nearest'})}};target.append(createCard);
+ createCard.onclick=()=>{
+  const provider=keys[$('wheelAIProvider').value]?$('wheelAIProvider').value:keys.openai?'openai':keys.xai?'xai':null;
+  if(provider){wheelAiPrompt();imageEditMode=false;ai.provider=provider;
+   $('wheelAIStatus').textContent='Generating image for '+selectedWheelAxle+' wheel…';
+   void generateImage().then(()=>{$('wheelAIStatus').textContent='Image ready · preview available for 3D generation.'})
+    .catch(e=>{$('wheelAIStatus').textContent=e.message;});
+  }else{
+   const p=$('wheelAISection');p.open=true;
+   $('wheelAIStatus').textContent='Enter a provider key once. Subsequent ✦ taps will generate directly.';
+   $('wheelImageKey').focus();
+  }
+ };target.append(createCard);
  $('wheelTargetTitle').textContent=prefix==='front'?'Front wheels · selectable':'Rear wheels · selectable';
  for(const button of $('wheelAxleSwitch').querySelectorAll('button'))button.setAttribute('aria-pressed',String(button.dataset.axle===prefix));
  for(const style of wheelStylesAvailable){
@@ -4333,7 +4492,10 @@ function renderWheelStudio(){
  for(const [id,value] of Object.entries({RadiusEdit:'WheelRadius',ThicknessEdit:'WheelWidth',OutsetEdit:'WheelOutset',SpokesEdit:'Spokes',SidewallEdit:'TireSidewall',AlloyEdit:'RimColor'})){
   const elem=$('wheel'+id);elem.value=cfg[prefix+value];
   elem.onchange=()=>{cfg[prefix+value]=elem.type==='color'?elem.value:Number(elem.value);
-   normalizeVehicleConfig();if(mode==='drive')leaveDrive();buildVehicle();setupGUI();scheduleHistory('Wheel geometry')};
+   normalizeVehicleConfig();const prior=activeCarPose();
+   if(mode==='drive')leaveDrive();buildVehicle();
+   if(prior&&car){car.position.copy(prior.position);car.quaternion.copy(prior.rotation);}
+   setupGUI();scheduleHistory('Wheel geometry')};
  }
  const assets=$('wheelAssetList');assets.replaceChildren();
  for(const [id,item] of wheelAssets){const button=document.createElement('button');
@@ -4350,7 +4512,13 @@ for(const [id,kind] of [['wheelGLBFile','wheel'],['wheelCapFile','cap']])$(id).o
 $('wheelRemove').onclick=()=>{cfg[selectedWheelAxle+'WheelModel']=null;cfg[selectedWheelAxle+'CapModel']=null;
  rebuildWheelVisuals();renderWheelStudio();scheduleHistory('Restored procedural wheels')};
 $('wheelReferenceFile').onclick=()=>$('importImage').click();
-const wheelAiPrompt=()=>{ai.prompt=$('wheelPrompt').value.trim()||'Photorealistic isolated alloy wheel, studio product shot, clean white background';};
+const wheelAiPrompt=()=>{
+ const custom=$('wheelPrompt').value.trim();
+ const wheel=selectedWheelAxle,style=cfg[wheel+'WheelStyle'],spokes=cfg[wheel+'Spokes'];
+ ai.prompt=custom||`Premium isolated automotive wheel and tyre, ${style} design with ${spokes} metallic spokes, `+
+  `${(cfg[wheel+'WheelRadius']*2).toFixed(2)} metre diameter, ${(cfg[wheel+'WheelWidth']).toFixed(2)} metre tyre width, `+
+  `front three-quarter product shot, realistic physically based materials, no car, white studio background`;
+};
 $('wheelUseImageKey').onclick=()=>{const k=$('wheelImageKey').value.trim();if(!k)return;
  keys[$('wheelAIProvider').value]=k;ai.provider=$('wheelAIProvider').value;$('wheelImageKey').value='';
  $('wheelAIStatus').textContent='Image key stored in this tab.';};
@@ -4375,42 +4543,63 @@ $('wheelLux3D').onclick=()=>{
 };
 
 
+// Compact map: controls stay pinned to the bottom of the visible map window.
+const mapDock=document.createElement('div');mapDock.id='mapDock';
+const mapBody=$('mapWindow').querySelector('.window-body');
+for(const node of [...mapBody.children]){
+ if(node.id==='mapSelected'||node.classList.contains('map-top')||node.id==='mapStatus'||
+  node.querySelector?.('#mapHeight')||node.classList.contains('drawer-actions'))mapDock.append(node);
+}
+mapBody.append(mapDock);
+const mapDockToggle=document.createElement('button');mapDockToggle.id='mapDockToggle';
+mapDockToggle.type='button';mapDockToggle.textContent='⌄';mapDockToggle.title='Collapse map controls';
+mapDock.prepend(mapDockToggle);mapDockToggle.onclick=()=>{mapDock.classList.toggle('is-collapsed');mapDockToggle.textContent=mapDock.classList.contains('is-collapsed')?'⌃':'⌄'};
+$('mapViewCycle').onclick=()=>{$('mapView').value=$('mapView').value==='diagram'?'terrain':'diagram';updateMinimapBackground();drawMinimap()};
 // Precision test-map editor: pan/zoom and world metre coordinates are not tied to CSS aspect ratio.
 const MAP_STORE='test-maps',courseCanvas=$('terrainMini'),courseContext=courseCanvas.getContext('2d');
 const MAP_RES=768;
+const mapViewport=()=>({w:courseCanvas.width,h:courseCanvas.height});
+const mapCanvasDpr=()=>clamp(window.devicePixelRatio||1,1,2);
+function resizeMapCanvas(){
+ const clip=$('mapWindow').querySelector('.map-canvas-clip');
+ const dpr=mapCanvasDpr(),width=Math.max(1,Math.round(clip.clientWidth*dpr)),height=Math.max(1,Math.round(clip.clientHeight*dpr));
+ if(courseCanvas.width!==width||courseCanvas.height!==height){courseCanvas.width=width;courseCanvas.height=height;requestMinimapPaint();}
+}
+new ResizeObserver(()=>resizeMapCanvas()).observe($('mapWindow').querySelector('.map-canvas-clip'));
+
 var courseCache=null;
 let courseDrag=null,courseFollow=false,mapZoom=1,mapCenterX=0,mapCenterZ=0,selectedMapObject=null;
 let currentMapPatch='hill';
-function mapPixelsPerMetre(){return MAP_RES/SIZE*mapZoom}
-function mapScreen(x,z){const scale=mapPixelsPerMetre();return{x:MAP_RES/2+(x-mapCenterX)*scale,y:MAP_RES/2+(z-mapCenterZ)*scale}}
+function mapPixelsPerMetre(){return 450/SIZE*mapZoom*mapCanvasDpr()}
+function mapScreen(x,z){const scale=mapPixelsPerMetre();return{x:courseCanvas.width/2+(x-mapCenterX)*scale,y:courseCanvas.height/2+(z-mapCenterZ)*scale}}
 function worldMapPoint(e){const r=courseCanvas.getBoundingClientRect();
- const x=(e.clientX-r.left)/r.width*MAP_RES,y=(e.clientY-r.top)/r.height*MAP_RES;
- const scale=mapPixelsPerMetre();return{x:mapCenterX+(x-MAP_RES/2)/scale,z:mapCenterZ+(y-MAP_RES/2)/scale};}
+ const x=(e.clientX-r.left)/r.width*courseCanvas.width,y=(e.clientY-r.top)/r.height*courseCanvas.height;
+ const scale=mapPixelsPerMetre();return{x:mapCenterX+(x-courseCanvas.width/2)/scale,z:mapCenterZ+(y-courseCanvas.height/2)/scale};}
 function updateMinimapBackground(){courseCache=null}
 function updateMapZoomUI(){$('mapZoomValue').textContent=Math.round(mapZoom*100)+'%'}
 function setMapZoom(next,at=null){
- const anchor=at||{x:MAP_RES/2,y:MAP_RES/2};
- const before={x:mapCenterX+(anchor.x-MAP_RES/2)/mapPixelsPerMetre(),
-  z:mapCenterZ+(anchor.y-MAP_RES/2)/mapPixelsPerMetre()};
+ const anchor=at||{x:courseCanvas.width/2,y:courseCanvas.height/2};
+ const before={x:mapCenterX+(anchor.x-courseCanvas.width/2)/mapPixelsPerMetre(),
+  z:mapCenterZ+(anchor.y-courseCanvas.height/2)/mapPixelsPerMetre()};
  mapZoom=clamp(next,.6,24);
- mapCenterX=before.x-(anchor.x-MAP_RES/2)/mapPixelsPerMetre();
- mapCenterZ=before.z-(anchor.y-MAP_RES/2)/mapPixelsPerMetre();
+ mapCenterX=before.x-(anchor.x-courseCanvas.width/2)/mapPixelsPerMetre();
+ mapCenterZ=before.z-(anchor.y-courseCanvas.height/2)/mapPixelsPerMetre();
  updateMapZoomUI();drawMinimap();
 }
 function createMapRelief(){
- const off=document.createElement('canvas');off.width=off.height=MAP_RES;
- const c=off.getContext('2d'),image=c.createImageData(MAP_RES,MAP_RES),heights=new Float32Array(MAP_RES*MAP_RES);
+ const S=256;const off=document.createElement('canvas');off.width=off.height=S;
+ const c=off.getContext('2d'),image=c.createImageData(S,S),heights=new Float32Array(S*S);
  const diagram=$('mapView').value==='diagram';
- if(diagram){c.fillStyle='#15242c';c.fillRect(0,0,MAP_RES,MAP_RES);return off;}
+ if(diagram){c.fillStyle='#15242c';c.fillRect(0,0,S,S);return off;}
  const colors=cfg.groundSurface==='sand'?[191,170,128]:cfg.groundSurface==='asphalt'?[84,101,116]:[89,132,92];
- for(let j=0;j<MAP_RES;j++)for(let i=0;i<MAP_RES;i++){
-  const x=(i/MAP_RES-.5)*SIZE,z=(j/MAP_RES-.5)*SIZE;
-  heights[j*MAP_RES+i]=heightAt(x,z);
+ for(let j=0;j<S;j++)for(let i=0;i<S;i++){
+  const x=(i/S-.5)*SIZE,z=(j/S-.5)*SIZE;
+  heights[j*S+i]=heightAt(x,z);
  }
- for(let j=0;j<MAP_RES;j++)for(let i=0;i<MAP_RES;i++){
-  const k=j*MAP_RES+i,p=k*4,height=heights[k];
-  const dx=heights[j*MAP_RES+Math.min(MAP_RES-1,i+2)]-heights[j*MAP_RES+Math.max(0,i-2)];
-  const dz=heights[Math.min(MAP_RES-1,j+2)*MAP_RES+i]-heights[Math.max(0,j-2)*MAP_RES+i];
+ for(let j=0;j<S;j++)for(let i=0;i<S;i++){
+  const k=j*S+i,p=k*4,height=heights[k];
+  const dx=heights[j*S+Math.min(S-1,i+2)]-heights[j*S+Math.max(0,i-2)];
+  const dz=heights[Math.min(S-1,j+2)*S+i]-heights[Math.max(0,j-2)*S+i];
   const shade=clamp(.97-dx*.3-dz*.45,.48,1.28);
   const tint=Math.min(1,Math.abs(height)/14)*.23;
   for(let b=0;b<3;b++)image.data[p+b]=clamp((colors[b]*(1-tint)+[194,198,178][b]*tint)*shade,0,255);
@@ -4420,8 +4609,8 @@ function createMapRelief(){
  // Mathematically sampled contour lines; style remains sharp in vector/plan mode.
  c.lineWidth=.85;c.strokeStyle='rgba(30,61,50,.62)';
  const step=4;
- for(let j=0;j<MAP_RES-step;j+=step)for(let i=0;i<MAP_RES-step;i+=step){
-  const v=[heights[j*MAP_RES+i],heights[j*MAP_RES+i+step],heights[(j+step)*MAP_RES+i+step],heights[(j+step)*MAP_RES+i]];
+ for(let j=0;j<S-step;j+=step)for(let i=0;i<S-step;i+=step){
+  const v=[heights[j*S+i],heights[j*S+i+step],heights[(j+step)*S+i+step],heights[(j+step)*S+i]];
   for(let level=Math.ceil(Math.min(...v));level<=Math.floor(Math.max(...v));level++){
    const edges=[];
    for(const [a,b,x1,y1,x2,y2] of [[0,1,i,j,i+step,j],[1,2,i+step,j,i+step,j+step],
@@ -4499,19 +4688,19 @@ function mapGridStep(){return [1,2,5,10,20,50].find(x=>x*mapPixelsPerMetre()>38)
 function drawMinimap(){
  if(!courseContext)return;
  if(courseFollow&&mode==='drive'&&car){mapCenterX=car.position.x;mapCenterZ=car.position.z}
- const c=courseContext;c.clearRect(0,0,MAP_RES,MAP_RES);
- c.fillStyle='#102029';c.fillRect(0,0,MAP_RES,MAP_RES);
+ const c=courseContext,W=courseCanvas.width,H=courseCanvas.height;c.clearRect(0,0,W,H);
+ c.fillStyle='#102029';c.fillRect(0,0,W,H);
  if(!courseCache)courseCache=createMapRelief();
  if(mapZoom>1.6){
   c.fillStyle=$('mapView').value==='diagram'?'#172834':'#547960';
-  c.fillRect(0,0,MAP_RES,MAP_RES);
+  c.fillRect(0,0,W,H);
   // Sharp procedural elevation contour isolines in screen coordinates.
   // Sample the current world viewport rather than magnifying a 768px bitmap.
   const step=10,scale=mapPixelsPerMetre();
   const heights=[];
-  for(let y=0;y<=MAP_RES/step;y++){
-   const row=[];for(let x=0;x<=MAP_RES/step;x++)
-    row.push(heightAt(mapCenterX+(x*step-MAP_RES/2)/scale,mapCenterZ+(y*step-MAP_RES/2)/scale));
+  for(let y=0;y<=H/step;y++){
+   const row=[];for(let x=0;x<=W/step;x++)
+    row.push(heightAt(mapCenterX+(x*step-W/2)/scale,mapCenterZ+(y*step-H/2)/scale));
    heights.push(row);
   }
   c.strokeStyle=$('mapView').value==='diagram'?'#719a9b99':'#294c3aa6';c.lineWidth=1;
@@ -4531,15 +4720,15 @@ function drawMinimap(){
   }
  }else{
   const top=mapScreen(-SIZE/2,-SIZE/2);c.imageSmoothingEnabled=true;
-  c.drawImage(courseCache,top.x,top.y,MAP_RES*mapZoom,MAP_RES*mapZoom);
+  c.drawImage(courseCache,top.x,top.y,SIZE*mapPixelsPerMetre(),SIZE*mapPixelsPerMetre());
  }
  if($('mapGrid').checked){
-  const step=mapGridStep(),span=MAP_RES/mapPixelsPerMetre();
-  const left=mapCenterX-span/2,right=mapCenterX+span/2,topZ=mapCenterZ-span/2,bottom=mapCenterZ+span/2;
+  const step=mapGridStep(),spanX=W/mapPixelsPerMetre(),spanZ=H/mapPixelsPerMetre();
+  const left=mapCenterX-spanX/2,right=mapCenterX+spanX/2,topZ=mapCenterZ-spanZ/2,bottom=mapCenterZ+spanZ/2;
   c.save();c.strokeStyle=$('mapView').value==='diagram'?'#6b93ac55':'#16394866';c.lineWidth=1;
   c.fillStyle='#ecf7f6';c.font='11px ui-monospace,monospace';
-  for(let x=Math.ceil(left/step)*step;x<=right;x+=step){const px=mapScreen(x,0).x;c.beginPath();c.moveTo(px,0);c.lineTo(px,MAP_RES);c.stroke();c.fillText(x+'m',px+3,13)}
-  for(let z=Math.ceil(topZ/step)*step;z<=bottom;z+=step){const py=mapScreen(0,z).y;c.beginPath();c.moveTo(0,py);c.lineTo(MAP_RES,py);c.stroke();c.fillText(z+'m',6,py-4)}
+  for(let x=Math.ceil(left/step)*step;x<=right;x+=step){const px=mapScreen(x,0).x;c.beginPath();c.moveTo(px,0);c.lineTo(px,H);c.stroke();c.fillText(x+'m',px+3,13)}
+  for(let z=Math.ceil(topZ/step)*step;z<=bottom;z+=step){const py=mapScreen(0,z).y;c.beginPath();c.moveTo(0,py);c.lineTo(W,py);c.stroke();c.fillText(z+'m',6,py-4)}
   c.restore();
  }
  for(const o of cfg.courseObjects||[])drawMapFootprint(c,o,o.id===selectedCourseId);
@@ -4553,7 +4742,7 @@ function drawMinimap(){
   c.fillStyle='#ffe68b';c.strokeStyle='#06151a';c.lineWidth=2.5;
   c.beginPath();c.moveTo(0,13);c.lineTo(-8,-10);c.lineTo(8,-10);c.closePath();c.fill();c.stroke();c.restore();
  }
- c.save();c.fillStyle='#f2f8fa';c.font='bold 13px ui-monospace,monospace';c.fillText('N ↑',MAP_RES-46,20);c.restore();
+ c.save();c.fillStyle='#f2f8fa';c.font='bold 13px ui-monospace,monospace';c.fillText('N ↑',W-46,20);c.restore();
 }
 function setMapTool(kind){$('mapTool').value=kind;
  for(const btn of $('mapToolRail').querySelectorAll('button[data-map-tool]'))btn.setAttribute('aria-pressed',String(btn.dataset.mapTool===kind));
@@ -4568,7 +4757,7 @@ $('mapCenter').onclick=()=>{courseFollow=true;$('mapFollowBtn').setAttribute('ar
 $('mapObjectAdd').onclick=()=>openAddPalette();
 $('mapView').onchange=()=>{updateMinimapBackground();drawMinimap()};$('mapGrid').onchange=drawMinimap;
 courseCanvas.addEventListener('wheel',e=>{e.preventDefault();const r=courseCanvas.getBoundingClientRect();
- setMapZoom(mapZoom*Math.exp(-e.deltaY*.0015),{x:(e.clientX-r.left)/r.width*MAP_RES,y:(e.clientY-r.top)/r.height*MAP_RES});},{passive:false});
+ setMapZoom(mapZoom*Math.exp(-e.deltaY*.0015),{x:(e.clientX-r.left)/r.width*courseCanvas.width,y:(e.clientY-r.top)/r.height*courseCanvas.height});},{passive:false});
 function objectFromFreehand(points,kind){
  const isPath=$('mapStrokeMode').value==='path';
  const smooth=smoothFreehandPoints(points,!isPath);
@@ -4601,6 +4790,9 @@ function findMapObject(pt){
  }
  return null;
 }
+let mapPaintRequested=false;
+function requestMinimapPaint(){if(mapPaintRequested)return;mapPaintRequested=true;
+ requestAnimationFrame(()=>{mapPaintRequested=false;drawMinimap()});}
 const activeTouches=new Map();
 courseCanvas.addEventListener('pointerdown',e=>{
  if(e.button!==0&&e.button!==1&&e.button!==2)return;
@@ -4634,8 +4826,8 @@ courseCanvas.addEventListener('pointermove',e=>{
   setMapZoom(courseDrag.zoom*dist/initial);return;
  }
  if(courseDrag.mode==='pan'){
-  mapCenterX=courseDrag.cx-(e.clientX-courseDrag.x)/courseCanvas.getBoundingClientRect().width*MAP_RES/mapPixelsPerMetre();
-  mapCenterZ=courseDrag.cz-(e.clientY-courseDrag.y)/courseCanvas.getBoundingClientRect().height*MAP_RES/mapPixelsPerMetre();
+  mapCenterX=courseDrag.cx-(e.clientX-courseDrag.x)/courseCanvas.getBoundingClientRect().width*courseCanvas.width/mapPixelsPerMetre();
+  mapCenterZ=courseDrag.cz-(e.clientY-courseDrag.y)/courseCanvas.getBoundingClientRect().height*courseCanvas.height/mapPixelsPerMetre();
  }else if(courseDrag.mode==='move'){
   const o=cfg.courseObjects.find(item=>item.id===courseDrag.id);if(!o)return;
   const dx=pt.x-courseDrag.start.x,dz=pt.z-courseDrag.start.z;
@@ -4647,7 +4839,7 @@ courseCanvas.addEventListener('pointermove',e=>{
   if(courseDrag.points){const arr=courseDrag.points;
    if(arr.length<170&&Math.hypot(arr[arr.length-1].x-pt.x,arr[arr.length-1].z-pt.z)>.32)arr.push(pt)}
  }
- drawMinimap();
+ requestMinimapPaint();
 });
 const finishMapPointer=e=>{
  activeTouches.delete(e.pointerId);
@@ -4664,13 +4856,21 @@ $('mapHeight').oninput=e=>$('mapHeightValue').textContent=Number(e.target.value)
 $('mapUndo').onclick=()=>undo();
 $('mapRedo').onclick=()=>redo();
 $('mapClear').onclick=()=>{cfg.courseObjects=[];selectCourseObject(null);void refreshEnvironmentForMap()};
+function syncCannonObstacle(o){
+ const mesh=courseMeshes.get(o.id);if(!mesh)return;
+ for(const body of coursePhysicsBodies){if(body.userData?.courseId!==o.id)continue;
+  body.position.copy(mesh.position);body.quaternion.copy(mesh.quaternion);
+  body.velocity.set(0,0,0);body.angularVelocity.set(0,0,0);
+  body.aabbNeedsUpdate=true;body.wakeUp();}
+ drawMinimap();
+}
 function selectCourseObject(id,openEditor=false){
  selectedCourseId=id;const obj=cfg.courseObjects.find(o=>o.id===id);
  $('mapSelected').hidden=!obj;
  if(obj){$('mapSelectedName').textContent=(obj.name||obj.kind)+' · '+(obj.physics||'static');
   if(openEditor)renderCourseInspector()}
  if(objectGizmo){objectGizmo.detach();
-  if(obj&&mode==='build'&&courseMeshes.has(id))objectGizmo.attach(courseMeshes.get(id));}
+  if(obj&&courseMeshes.has(id))objectGizmo.attach(courseMeshes.get(id));}
  drawMinimap();
 }
 $('mapEditObject').onclick=()=>renderCourseInspector();
@@ -4720,7 +4920,15 @@ function focusSelectedCourse(direction){
  camera.lookAt(t);orbit.update();
 }
 window.addEventListener('keydown',e=>{
- if(!selectedCourseId||mode!=='build'||['INPUT','TEXTAREA','SELECT'].includes(document.activeElement?.tagName)||e.metaKey||e.ctrlKey||e.altKey)return;
+ if(!selectedCourseId||['INPUT','TEXTAREA','SELECT'].includes(document.activeElement?.tagName)||e.metaKey||e.ctrlKey||e.altKey)return;
+ if(e.shiftKey&&e.code==='KeyD'){
+  e.preventDefault();e.stopImmediatePropagation();duplicateSelectedCourse();return;
+ }
+ if(!e.shiftKey){
+  const action={KeyG:'translate',KeyR:'rotate',KeyE:'scale'}[e.code];
+  if(action){e.preventDefault();e.stopImmediatePropagation();objectGizmo?.setMode(action);renderCourseInspector();return;}
+  if(e.code==='KeyX'||e.code==='Delete'){e.preventDefault();e.stopImmediatePropagation();deleteSelectedCourse();return;}
+ }
  const n=Number(e.key);if(n>=1&&n<=7){focusSelectedCourse(n);e.preventDefault();return;}
  if(['+','=','-','_'].includes(e.key)){
   const offset=camera.position.clone().sub(orbit.target).multiplyScalar(['+','='].includes(e.key)?.83:1.2);
@@ -4741,10 +4949,21 @@ function renderCourseInspector(){const o=cfg.courseObjects.find(item=>item.id===
     // Signed-distance polygon terrain nodes are never stretched implicitly.
     if(prop!=='color'&&o.points)o.points=null;
    }
-   void refreshEnvironmentForMap();scheduleHistory('Edit course object '+prop);};
+   // Transform-only edits update the visual object immediately without rebuilding terrain.
+   const mesh=courseMeshes.get(o.id);
+   if(mesh){if(prop==='x'||prop==='z')mesh.position[prop]=o[prop];
+    else if(prop==='angle')mesh.rotation.y=o.angle*Math.PI/180;
+    else if(prop==='color'&&mesh.material?.color)mesh.material.color.set(o.color);
+   }
+   if(['x','z','angle','y'].includes(prop)&&simulator.engine==='cannon')syncCannonObstacle(o);
+   else void refreshEnvironmentForMap();
+   scheduleHistory('Edit course object '+prop);};
  }
  const y=$('objectY');y.value=Number.isFinite(o.y)?o.y:(heightAt(o.x,o.z)+o.h/2);
- y.onchange=()=>{o.y=Number(y.value);void refreshEnvironmentForMap();scheduleHistory('Course object Y')};
+ y.onchange=()=>{o.y=Number(y.value);
+  const mesh=courseMeshes.get(o.id);if(mesh)mesh.position.y=o.y;
+  if(simulator.engine==='cannon')syncCannonObstacle(o);
+  else void refreshEnvironmentForMap();scheduleHistory('Course object Y')};
  bindObjectSlider(selectedObjectSlider);
  $('objectPhysics').value=o.physics||'static';$('objectPhysics').onchange=e=>{o.physics=e.target.value;void refreshEnvironmentForMap()};
  for(const button of $('objectGizmoModes').querySelectorAll('button'))
@@ -4759,7 +4978,13 @@ scene.add(objectGizmo.getHelper());objectGizmo.setSize(.85);
 objectGizmo.addEventListener('dragging-changed',e=>{
  transformDragging=!!e.value;orbit.enabled=!e.value;
  if(e.value){const o=cfg.courseObjects.find(x=>x.id===selectedCourseId);objectScaleStart=o?{w:o.w,h:o.h,d:o.d}:null;}
- if(!e.value&&selectedCourseId){void refreshEnvironmentForMap();scheduleHistory('3D gizmo transform')}
+ if(!e.value&&selectedCourseId){
+  const obj=cfg.courseObjects.find(o=>o.id===selectedCourseId);
+  if(obj&&simulator.engine==='cannon'&&objectGizmo.getMode()!=='scale'){
+   syncCannonObstacle(obj);
+  }else void refreshEnvironmentForMap();
+  scheduleHistory('3D gizmo transform')
+ }
 });
 objectGizmo.addEventListener('objectChange',()=>{
  const m=objectGizmo.object,o=cfg.courseObjects.find(item=>item.id===selectedCourseId);
@@ -4772,7 +4997,7 @@ objectGizmo.addEventListener('objectChange',()=>{
  drawMinimap();
 });
 renderer.domElement.addEventListener('pointerup',e=>{
- if(mode!=='build'||transformDragging||e.button!==0)return;
+ if(transformDragging||e.button!==0)return;
  const r=renderer.domElement.getBoundingClientRect(),p=new THREE.Vector2((e.clientX-r.left)/r.width*2-1,1-(e.clientY-r.top)/r.height*2);
  const rc=new THREE.Raycaster();rc.setFromCamera(p,camera);
  const hits=rc.intersectObject(courseRoot,true);
@@ -4788,12 +5013,23 @@ const OBJECT_CHOICES=[
  ['Hill','hill'],['Dune','dune'],['Water patch','puddle'],['Grass patch','grass'],
  ['Tree cluster','trees'],['Hedge','hedge'],['Sand patch','sand']
 ];
+let latestPointer={x:innerWidth/2,y:innerHeight/2};
+window.addEventListener('pointermove',event=>{if(!event.target.closest('#addObjectOverlay'))latestPointer={x:event.clientX,y:event.clientY}},{passive:true});
 function openAddPalette(){
- $('addObjectOverlay').hidden=false;$('addObjectSearch').value='';renderAddPalette();$('addObjectSearch').focus();
+ const overlay=$('addObjectOverlay'),popup=overlay.querySelector('.add-palette');
+ overlay.hidden=false;$('addObjectSearch').value='';renderAddPalette();
+ // Blender-style ephemeral menu immediately next to the invocation pointer.
+ const width=Math.min(270,innerWidth-22),height=Math.min(350,innerHeight-26);
+ popup.style.left=clamp(latestPointer.x+7,8,innerWidth-width-8)+'px';
+ popup.style.top=clamp(latestPointer.y+7,8,innerHeight-height-8)+'px';
+ $('addObjectSearch').focus();
 }
 function closeAddPalette(){$('addObjectOverlay').hidden=true}
 $('closeAddObject').onclick=closeAddPalette;
 $('addObjectOverlay').onclick=e=>{if(e.target===$('addObjectOverlay'))closeAddPalette()};
+document.addEventListener('pointerdown',event=>{
+ if(!$('addObjectOverlay').hidden&&!event.target.closest('.add-palette')&&!event.target.closest('#mapObjectAdd'))closeAddPalette();
+},true);
 function renderAddPalette(){const text=$('addObjectSearch').value.trim().toLowerCase(),root=$('addObjectResults');root.replaceChildren();
  for(const [label,kind] of OBJECT_CHOICES.filter(([name])=>name.toLowerCase().includes(text))){
   const b=document.createElement('button');b.type='button';b.textContent=label;b.onclick=()=>{
@@ -4857,8 +5093,16 @@ async function refreshMapList(){const list=$('mapSaved');list.replaceChildren();
  for(const name of Object.keys(testMapPresets))list.add(new Option('Preset · '+name,'preset:'+name));
  const saved=await mapTransaction('readonly','getAll');for(const map of saved.sort((a,b)=>b.modified-a.modified))list.add(new Option('Mine · '+map.name,map.id));
 }
-$('mapSave').onclick=async()=>{const name=$('mapName').value.trim().slice(0,90);
- if(!name){note('Enter a map name.',true);return}
+const mapSaveDialog=document.createElement('dialog');mapSaveDialog.id='mapSaveDialog';
+mapSaveDialog.innerHTML='<form method="dialog" class="mini-save-form"><strong>Save drive test map</strong><input name="mapName" maxlength="90" placeholder="Map title" required aria-label="Map title"><div><button value="cancel" type="submit">Cancel</button><button value="save" type="submit">Save map</button></div></form>';
+document.body.append(mapSaveDialog);
+async function requestMapName(){return new Promise(resolve=>{
+ const input=mapSaveDialog.querySelector('input');input.value=cfg.courseName||'New course';
+ mapSaveDialog.onclose=()=>resolve(mapSaveDialog.returnValue==='save'?input.value.trim().slice(0,90):null);
+ mapSaveDialog.showModal();input.select();
+ });}
+$('mapSave').onclick=async()=>{const name=await requestMapName();
+ if(!name)return;cfg.courseName=name;$('mapName').value=name;
  const id=crypto.randomUUID();await mapTransaction('readwrite','put',{id,name,objects:structuredClone(cfg.courseObjects),terrain:cfg.terrainProfile,ground:cfg.groundSurface,modified:Date.now()});
  await refreshMapList();$('mapSaved').value=id;note('Saved precision test map in IndexedDB.')};
 $('mapLoad').onclick=async()=>{const id=$('mapSaved').value;
@@ -4890,8 +5134,8 @@ $('mapTool').closest('label').after(patchSelector);
 updateMapZoomUI();let mapFrame=0;
 
 // Workspace windows: pointer dragging + native CSS resize + minimize.
-const WINDOW_IDS=['toolbarWindow','toolsWindow','catalogWindow','galleryWindow','paramsWindow','logWindow','paletteWindow','wheelWindow','mapWindow','objectWindow'];
-const WINDOW_NAMES=['Actions','Tools','Library','Gallery','Parameters','Logs','Materials','Wheel workshop','Test map','Object'];
+const WINDOW_IDS=['toolbarWindow','toolsWindow','catalogWindow','galleryWindow','paramsWindow','logWindow','paletteWindow','wheelWindow','mapWindow','objectWindow','fleetWindow'];
+const WINDOW_NAMES=['Actions','Tools','Library','Gallery','Parameters','Logs','Materials','Wheel workshop','Test map','Object','Scene vehicles'];
 let highestZ=18;
 const safeStore=(name,value)=>{try{localStorage.setItem(name,value)}catch(e){}};
 const safeRead=name=>{try{return localStorage.getItem(name)}catch(e){return null}};
@@ -4902,11 +5146,13 @@ function snapshotWindow(win){
   height:win.style.height,min:win.classList.contains('is-minimized')};
  safeStore('vehiclelab.windows.v1',JSON.stringify(old));
 }
-function setWindowVisible(id,show){
+function setWindowVisible(id,show,restore=false){
  const win=$(id);if(!win)return;
  if(id==='logWindow')win.classList.toggle('is-visible',show);
  else win.style.display=show?'flex':'none';
- if(show){win.classList.remove('is-minimized');win.style.zIndex=String(++highestZ)}
+ // Showing a hidden panel must never expand its minimized state.
+ if(show){win.style.zIndex=String(++highestZ);}
+ if(!restore)snapshotWindow(win);
  refreshWindowButtons();
 }
 function refreshWindowButtons(){
@@ -5467,6 +5713,7 @@ function makeGalleryCard(item){
   buttons.append(b);
  };
  appendBtn('Open',()=>openGalleryItem(item));
+ appendBtn('＋',()=>addGalleryVehicle(item));
  if(item.source==='local'){
   appendBtn('Edit',()=>editLocalMetadata(item));
   appendBtn('Copy',()=>duplicateLocal(item));
@@ -5477,6 +5724,100 @@ function makeGalleryCard(item){
  else appendBtn('Copy',async()=>{await openGalleryItem(item);await saveServer(true)});
  card.append(buttons);return card;
 }
+// Scene instances: one actively editable vehicle; other vehicles remain independent visible
+// meshes with static collision during test driving. Geometry/material are deep-cloned so
+// regenerating the active vehicle cannot dispose another vehicle's GPU resources.
+const fleetRecords=[];
+let activeFleetId=null;
+function snapshotActiveCar(){return {
+ config:structuredClone(cfg),mods:structuredClone(mods),seatPresence:structuredClone(seatPresence),
+ seatBindings:{...seatBindings},occupants,modelSource,modelBlob,modelName,
+ position:car.position.clone(),rotation:car.quaternion.clone(),
+ description:vehicleDescription,category:vehicleCategory
+};}
+function cloneFleetVisual(source,id){
+ const cloned=cloneSkeleton(source);cloned.name='Parked '+source.name;
+ cloned.traverse(o=>{
+  if(o.isMesh||o.isSkinnedMesh){if(o.geometry)o.geometry=o.geometry.clone();
+   if(o.material)o.material=Array.isArray(o.material)?o.material.map(m=>m.clone()):o.material.clone();}
+ });
+ cloned.userData.fleetId=id;cloned.updateMatrixWorld(true);
+ return cloned;
+}
+function storeActiveFleet(){
+ const row=fleetRecords.find(x=>x.id===activeFleetId);if(!row||!car)return;
+ if(row.visual){scene.remove(row.visual);disposeTree(row.visual);}
+ Object.assign(row,snapshotActiveCar());row.visual=cloneFleetVisual(car,row.id);scene.add(row.visual);
+}
+function removeParkedVisual(row){if(row.visual){scene.remove(row.visual);disposeTree(row.visual);row.visual=null;}}
+function renderFleetList(){const root=$('fleetList');root.replaceChildren();
+ for(const item of fleetRecords){const line=document.createElement('div');line.className='fleet-row';
+  const select=document.createElement('button');select.type='button';select.textContent=item.config?.name||'Vehicle';
+  select.title=item.id===activeFleetId?'Currently controlled':'Click to edit or drive this vehicle';
+  select.setAttribute('aria-pressed',String(item.id===activeFleetId));
+  select.onclick=()=>activateFleetVehicle(item.id);
+  const remove=document.createElement('button');remove.type='button';remove.textContent='×';remove.title='Remove from scene';
+  remove.disabled=fleetRecords.length<=1;
+  remove.onclick=()=>removeFleetVehicle(item.id);
+  line.append(select,remove);root.append(line);}
+}
+function ensureFleet(){if(activeFleetId||!car)return;
+ const id=crypto.randomUUID();fleetRecords.push({id,...snapshotActiveCar(),visual:null});activeFleetId=id;
+ renderFleetList();}
+async function activateFleetVehicle(id){
+ if(id===activeFleetId)return;
+ const chosen=fleetRecords.find(x=>x.id===id);if(!chosen)return;
+ if(mode==='drive')leaveDrive();
+ storeActiveFleet();removeParkedVisual(chosen);
+ cfg=structuredClone(chosen.config);mods=structuredClone(chosen.mods);
+ seatPresence=structuredClone(chosen.seatPresence);occupants=chosen.occupants;
+ for(const key of Object.keys(seatBindings))delete seatBindings[key];Object.assign(seatBindings,chosen.seatBindings);
+ modelSource=chosen.modelSource;modelBlob=chosen.modelBlob;modelName=chosen.modelName;
+ vehicleDescription=chosen.description;vehicleCategory=chosen.category;
+ activeFleetId=id;resumeDrivePose=null;
+ buildVehicle();car.position.copy(chosen.position);car.quaternion.copy(chosen.rotation);
+ setupGUI();renderPresets();renderFleetList();preserveCameraOrbit();
+ note('Controlling '+cfg.name+' · '+fleetRecords.length+' vehicles in scene.');
+}
+async function addGalleryVehicle(item){
+ if(fleetRecords.length>=12)throw Error('Scene supports up to 12 vehicle instances');
+ if(mode==='drive')leaveDrive();ensureFleet();storeActiveFleet();
+ const previous=fleetRecords.find(x=>x.id===activeFleetId);
+ try{await openGalleryItem(item)}catch(error){removeParkedVisual(previous);previous.visual=null;throw error}
+ resumeDrivePose=null;
+ const shift=previous?.position?.x??0;
+ car.position.set(clamp(shift+Math.max(4,cfg.W+2),-SIZE/2+5,SIZE/2-5),heightAt(shift+5,0)+cfg.radius+.65,previous?.position?.z??0);
+ const id=crypto.randomUUID();fleetRecords.push({id,...snapshotActiveCar(),visual:null});activeFleetId=id;
+ renderFleetList();preserveCameraOrbit();setWindowVisible('fleetWindow',true);
+ note('Added '+cfg.name+' · click any parked car or select it in Scene vehicles.');
+}
+function duplicateActiveFleet(){
+ ensureFleet();if(fleetRecords.length>=12){note('Maximum 12 vehicles.',true);return}
+ if(mode==='drive')leaveDrive();storeActiveFleet();const old=fleetRecords.find(x=>x.id===activeFleetId);
+ const id=crypto.randomUUID(),newConfig=structuredClone(cfg);newConfig.name=(cfg.name+' copy').slice(0,96);
+ cfg=newConfig;resumeDrivePose=null;
+ buildVehicle();car.position.copy(old.position).add(new THREE.Vector3(Math.max(3,cfg.W+1.8),0,1));
+ car.position.y=heightAt(car.position.x,car.position.z)+cfg.radius+.65;
+ fleetRecords.push({id,...snapshotActiveCar(),visual:null});activeFleetId=id;
+ renderFleetList();preserveCameraOrbit();scheduleHistory('Duplicated scene vehicle');
+}
+async function removeFleetVehicle(id){
+ if(fleetRecords.length<=1)return;
+ const entry=fleetRecords.find(x=>x.id===id);if(!entry)return;
+ if(id===activeFleetId){const other=fleetRecords.find(x=>x.id!==id);await activateFleetVehicle(other.id)}
+ removeParkedVisual(entry);fleetRecords.splice(fleetRecords.indexOf(entry),1);renderFleetList();
+}
+$('fleetDuplicate').onclick=duplicateActiveFleet;
+$('fleetViewGallery').onclick=()=>setWindowVisible('galleryWindow',true);
+renderer.domElement.addEventListener('pointerup',event=>{
+ if(event.button!==0||transformDragging||mode==='drive'&&Math.abs(inputForStep().throttle)>.1)return;
+ const box=renderer.domElement.getBoundingClientRect();
+ const coords=new THREE.Vector2((event.clientX-box.left)/box.width*2-1,1-(event.clientY-box.top)/box.height*2);
+ const ray=new THREE.Raycaster();ray.setFromCamera(coords,camera);
+ for(const entry of fleetRecords){if(entry.id===activeFleetId||!entry.visual)continue;
+  if(ray.intersectObject(entry.visual,true).length){void activateFleetVehicle(entry.id);return;}
+ }
+});
 async function openGalleryItem(item){
  if(item.source==='local')return loadLayout(item.original);
  if(item.source==='cloud')return loadServer(item.id);
@@ -5565,6 +5906,13 @@ $('galleryRefreshBtn').onclick=refreshGallery;
 $('layoutPublic').onchange=()=>{serverVisibility=$('layoutPublic').checked?'public':'private'};
 
 const RELEASE_NOTES=[
+ {v:'0.3.4',date:'2026-11-09',title:'Workspace performance, scene vehicles, map and audio',items:[
+  'Preserve minimized windows after DRIVE and BUILD; compact map controls, tool rail, floating Shift+A palette and responsive viewport.',
+  'Faster map/object edits: cached 256px terrain relief, frame-limited redraws, no terrain/vegetation rebuild for plain obstacles, Cannon live collider updates.',
+  'Object G/R/E and Shift+D / X shortcuts; scene fleet manager with duplicate/select and add-from-gallery, parked-car collision bodies.',
+  'Live engine sound tuning, portable sound preset JSON and impact/rollover/collision cues; map title requested only when saving.',
+  'Wheel workshop: quicker grid, three parameter columns and one-click AI image generation after key configuration.'
+ ]},
  {v:'0.3.3',date:'2026-11-09',title:'Rapier compatibility, cockpit edits, WebAudio and wheel AI',items:[
   'Rapier controller switched to a pinned compatible module with staged diagnostics and corrected wheel matrices; real browser physics verification is still required.',
   'Changing wheel styles now swaps visuals without resetting the driver. Improved body-only reference capture and full-vehicle preview.',
@@ -5846,6 +6194,7 @@ window.addEventListener('keydown',e=>{
 
 $('wheelEditorBtn').onclick=()=>{renderWheelStudio();setWindowVisible('wheelWindow',true)};
 $('mapEditorBtn').onclick=()=>setWindowVisible('mapWindow',true);
+$('fleetBtn').onclick=()=>{renderFleetList();setWindowVisible('fleetWindow',true)};
 $('cameraBtn').onclick=cycleCamera;$('uprightBtn').onclick=resetUpright;
 initWorkspace();initTheme();renderMaterialPalette();initReleaseHistory();
  buildCourse();buildVegetation();
@@ -5862,6 +6211,7 @@ try{const view=JSON.parse(safeRead('vehiclelab.camera.v1')||'null');
   const v=new THREE.Vector3(...view.offset);if(v.length()>2&&v.length()<130){camera.position.copy(orbit.target).add(v);orbit.update()}}}
 catch(e){}
 initializeHistory();
+ensureFleet();
 updateRotationButton();
 updateLightsButton();
 refreshSaved().catch(e=>note('IndexedDB: '+e.message,true));

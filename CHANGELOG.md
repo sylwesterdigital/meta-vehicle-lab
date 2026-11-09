@@ -1,3 +1,15 @@
+# v0.3.4 — Compact map UI, responsive edits, scene vehicles, sound presets (2026-11-09)
+
+- Preserve each floating window's minimized state while entering and leaving DRIVE. Reduce header/tool rail sizes, compress map controls to icons, and dock editable map settings above the bottom edge with collapsible panel.
+- Make Shift+A a pointer-near, searchable object palette rather than a full-screen modal. Add Shift+D duplicate, X delete, G move, R rotate, and E scale for selected objects; changes to numeric Y may position static geometry below terrain.
+- Separate lightweight map-object collider updates from terrain/vegetation regeneration, and throttle minimap redraws. Resizing the map changes the visible area while retaining world scale; zoom remains explicit.
+- Add engine sound preset import/export JSON and immediately update active WebAudio voices when editing lil-gui parameters. Include additional impact/damage cues based on vehicle motion.
+- Add a selectable scene-vehicle list and plus action on gallery cards. Multiple vehicles can be placed visibly; **only one is actively driven** while others have static collision representations. Simultaneous multi-driver simulation is not implemented.
+- Tighten gallery overlays, compact wheel workshop field layout and AI entry point, add button hover feedback; document known limits. Full browser driving, multiple vehicles, GPU rendering, and audio still require live acceptance testing.
+- Regression gate: 38 local tests (12 Flask-dependent tests skipped), Node JavaScript syntax, archive checks and release watcher dry-run. No live server deployment claimed.
+
+---
+
 # v0.3.3 — Rapier/driver-state repairs, audio, AI wheel workflow and editor ergonomics (2026-11-09)
 
 - Use a pinned compatible Rapier ESM build, correct up/forward axes, wheel-local/world transforms and wheel force tuning; include staged failure messages. Real Rapier drive behavior remains **browser-unverified**.

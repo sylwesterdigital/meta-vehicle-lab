@@ -1,6 +1,6 @@
 # Vehicle Lab — procedural 3D vehicle studio
 
-**Version 0.3.3 (2026-11-09)**. Browser-native modular vehicle editor built with Three.js, lil-gui, three alternative physics engines, optional GLB imports, Flask and SQLite. Project: https://github.com/sylwesterdigital/meta-vehicle-lab. Website: https://vehiclelab.xyz/.
+**Version 0.3.4 (2026-11-09)**. Browser-native modular vehicle editor built with Three.js, lil-gui, three alternative physics engines, optional GLB imports, Flask and SQLite. Project: https://github.com/sylwesterdigital/meta-vehicle-lab. Website: https://vehiclelab.xyz/.
 
 This README deliberately contains the **About, Install, Roadmap, Ideas and LLM Handover** sections in a single allowed release file. The current watcher validates an exact 15-file manifest, so adding standalone documentation to a watcher release without first migrating its manifest schema would reject the ZIP. A separate optional documentation archive contains those sections as individual Markdown files.
 
@@ -8,7 +8,7 @@ This README deliberately contains the **About, Install, Roadmap, Ideas and LLM H
 
 Vehicle Lab is a prototype for procedurally assembling visually plausible city cars, buses, municipal vehicles, heavy trucks, construction equipment, agricultural machinery and warehouse vehicles from parameterized hull modules and equipment. Parameters cover width/height/depth/scale/rotation/offset, body materials, wheels, axles, doors/windows, passenger slots, engines and driving physics. Modules can later be transferred into a shared 3D world as an independent blueprint generator. This is **not** an engineering-grade physics simulator.
 
-## Features through v0.3.3
+## Features through v0.3.4
 
 - Full-size Three.js canvas. Draggable, resizable, minimizable actions/tools/catalog/gallery/parameters/log windows. Right-side configuration and profile drawers, custom theme/typography and text/icon button modes.
 - Circular uploaded/webcam profile picture, optional passwordless identity, bearer-secret JSON backup. Credentials must remain private. Public gallery is **opt-in**; private layouts remain owner-scoped.
@@ -18,6 +18,15 @@ Vehicle Lab is a prototype for procedurally assembling visually plausible city c
 - Mobile-friendly Save modal with metadata and five deterministic JPEG camera views. Local/cloud/public gallery with search, XL/M/S, edit/copy/delete and dock left/right/bottom. JSON/GLB exports include profile/vehicle/time/version in filenames.
 - Terrain profiles flat, bumps, hills, extreme, moon and beach, selectable tiled procedural ground maps (asphalt/grass/dirt/gravel/sand/snow/moon), FBM animated cloud/night shader, water shader, puddles, wheel marks, splashes, and **approximate water drag/buoyancy**. Water is not a fluid solver.
 - Local IndexedDB and private/public Flask/SQLite persistence, versioned release watcher, health endpoint and scoped logs.
+
+## v0.3.4 interaction and scope notes
+
+- Windows keep their own minimized state across BUILD and DRIVE. The test map uses compact icon controls, a bottom-overlay settings dock and constant map-scale projection when resizing its window; mouse wheel/pinch or +/- changes zoom explicitly.
+- Shift+A opens a small pointer-positioned searchable object palette. Selected scene objects support Shift+D duplicate, X remove, G move, R rotate and E scale; static object Y may be below ground elevation. Static obstacle edits avoid expensive terrain and vegetation rebuilds. Hills/dunes still require rebuilding terrain colliders, and Rapier/Ammo may briefly reconstruct the active physics adapter.
+- The audio inspector supports live engine-sound changes and independent JSON import/export of sound presets, with collision and rollover sound cues. Audio must be enabled by browser user interaction.
+- Multiple cars can be visible in one scene via gallery **＋** and the Scene vehicles panel. One car is active for BUILD/DRIVE; parked cars use static collision-box approximations. Independent simultaneous active vehicle physics, ownership synchronization and multiplayer are future work.
+- A wheel AI Create tile uses a configured provider key when available. Paid provider tasks remain explicit and authorization is required; missing keys must be configured before generation. No AI generation is automatically billed on selection alone.
+- This remains a procedural prototype. Browser graphics, drive physics, audio and remote AI integrations have not been verified in this release environment. Do not present it as production-ready.
 
 ## v0.2.8 material, terrain, avatar and XR architecture
 
@@ -30,9 +39,9 @@ Vehicle Lab is a prototype for procedurally assembling visually plausible city c
 
 ## Run / install
 
-Place exactly **`META_VEHICLE_LAB_UPDATE_v0.3.3.zip`** in:
+Place exactly **`META_VEHICLE_LAB_UPDATE_v0.3.4.zip`** in:
 
-`/Users/smielniczuk/Documents/works/meta-vehicle-lab/updates/META_VEHICLE_LAB_UPDATE_v0.3.3.zip`
+`/Users/smielniczuk/Documents/works/meta-vehicle-lab/updates/META_VEHICLE_LAB_UPDATE_v0.3.4.zip`
 
 From repository root:
 
