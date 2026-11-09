@@ -1,3 +1,14 @@
+# v0.3.2 — Precision terrain and physics object editing (2026-11-09)
+
+- 1:1 square precision map now supports wheel zoom centered at pointer, pinch-to-zoom, explicit +/- and Fit, right/middle drag and hand pan, selectable and movable objects, dynamic coordinate grid and vector-outline footprints. Relief/contour raster is a background; geometry stays vector-precise.
+- Blender-inspired **Shift+A** searchable primitive palette places objects on the camera-visible terrain, checks the chassis and other obstacle footprints, and opens a floating object inspector. Click mapped or 3D objects to select; Three.js TransformControls offers position/rotation/scale. Explicit inspector fields include XYZ, dimensions, angle, color, texture, mass, friction and bounce.
+- A shared course-object record drives visual geometry, topographic map and physics adapters. Static/dynamic/no-collision modes are reflected in Cannon-es, Rapier and Ammo/Bullet. Non-box objects use documented box collision approximations. Dynamic positions are captured when leaving DRIVE, and vehicle pose is preserved while editing a map during DRIVE.
+- Area/freehand polygon and open smoothed line modes create sculpted hills, dunes, grass/sand patches, water outlines, tree clusters and hedges. Puddle detection and surface grip use the actual edited polygon/path footprint rather than a generic circle.
+- Test-map JSON upgraded to `vehiclelab-testmap/v2`, with backward-compatible v1 import. Existing layouts and Flask/SQLite storage are unchanged. Undo/Redo history retains course object descriptions.
+- Tests: JS syntax, local Python storage/deploy regression suite and Node geometry/projection assertions, headless Chromium offline layout checks at desktop/tablet/mobile widths. **Full WebGL engine driving and server deployment have not been independently tested.**
+
+---
+
 # v0.3.1 — Lux3D reference workflows, direct GLB import, and precision test maps (2026-11-09)
 
 - Lux3D chassis generator now offers an explicit isolated body-only 3/4 reference capture (no wheels or passengers), photo upload, preview, clearing, and a clearly controlled include-reference checkbox. Capture uses an offscreen render target without resizing the main stage.

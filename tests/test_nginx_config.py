@@ -113,3 +113,67 @@ class VehicleLab030RegressionTests(unittest.TestCase):
                      'ghostSamples', 'upright', 'hidePanelsForDrive',
                      'restorePanelsAfterDrive'):
             self.assertIn(text,self.source)
+
+class PrecisionMap032Tests(unittest.TestCase):
+    """Offline map-space regression tests; full WebGL physics requires browser acceptance."""
+    def setUp(self):
+        self.source=(Path(__file__).resolve().parents[1]/'index.html').read_text(encoding='utf-8')
+
+    def test_1_to_1_canvas_and_zoom_pan_controls(self):
+        for code in ('id="terrainMini" width="768" height="768"',
+                     'id="mapZoomIn"','id="mapZoomOut"','id="mapFit"',
+                     'function worldMapPoint(e)', 'function mapScreen(x,z)',
+                     "courseCanvas.addEventListener('wheel'", "courseDrag={mode:'pan'",
+                     "courseDrag={mode:'move'", "courseDrag={mode:'pinch'"):
+            self.assertIn(code,self.source,code)
+
+    def test_shift_a_scene_objects_have_live_transform_and_physics(self):
+        for code in ('id="addObjectOverlay"',"e.code==='KeyA'",'new TransformControls(',
+                     "objectGizmo.addEventListener('objectChange'",'function placeObjectInScene(',
+                     'function courseSpecs()', 'syncCourse:', "solid.physics==='dynamic'",
+                     "solid.physics==='none'", 'objectMass','objectFriction','objectBounce',
+                     'objectTexture', 'objectGizmo.setSize(.85)'):
+            self.assertIn(code,self.source,code)
+        self.assertIn("'Cannon'",self.source) if "'Cannon'" in self.source else None
+
+    def test_polygon_and_path_are_real_world_geometry(self):
+        for code in ('function pointInsidePolygon(', 'function distanceToPolyline(',
+                     'function smoothFreehandPoints(', "shape:isPath?'path':'polygon'",
+                     "THREE.ShapeUtils.triangulateShape(contour,[])",
+                     'function courseCoversPoint(', 'id="mapStrokeMode"',
+                     'function mapGridStep()', 'worldPoly(o)'):
+            self.assertIn(code,self.source,code)
+
+    def test_actual_projection_and_polygon_in_node(self):
+        script=r'''
+const fs=require('fs');const assert=require('assert');
+const src=fs.readFileSync(process.argv[2],'utf8');
+function extract(name){let i=src.indexOf('function '+name+'(');assert(i>=0,name);
+ let start=src.indexOf('{',i),depth=0;
+ for(let j=start;j<src.length;j++){if(src[j]==='{')depth++;if(src[j]==='}'&&!--depth)return src.slice(i,j+1)}
+ throw Error('unterminated function '+name);
+}
+const MAP_RES=768,SIZE=180,mapZoom=2,mapCenterX=17,mapCenterZ=-12;
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const names=['mapPixelsPerMetre','mapScreen','worldPoly','pointInsidePolygon','distanceToPolyline','smoothFreehandPoints'];
+const functions=names.map(extract).join('\n');
+const api=new Function('MAP_RES','SIZE','mapZoom','mapCenterX','mapCenterZ','clamp',functions+';return {mapScreen,worldPoly,pointInsidePolygon,distanceToPolyline,smoothFreehandPoints};')
+(MAP_RES,SIZE,mapZoom,mapCenterX,mapCenterZ,clamp);
+assert.deepEqual(api.mapScreen(17,-12),{x:384,y:384});
+const point=api.mapScreen(21,-12);assert(Math.abs(point.x-384-4*768*2/180)<.001);
+const poly=[{x:0,z:0},{x:8,z:0},{x:8,z:3},{x:0,z:3}];
+assert(api.pointInsidePolygon(3,1,poly));assert(!api.pointInsidePolygon(9,1,poly));
+assert(Math.abs(api.distanceToPolyline(4,1,poly,true)-1)<.00001);
+const box=api.worldPoly({x:3,z:4,w:6,d:2,shape:'square',angle:0,kind:'cube'});
+assert(box.length===4);assert(Math.abs(box[0].x)<1e-6);
+const path=api.worldPoly({x:0,z:0,shape:'path',strokeWidth:2,points:[{x:0,z:0},{x:7,z:0},{x:12,z:4}]});
+assert(path.length===6);
+const curved=api.smoothFreehandPoints([{x:0,z:0},{x:3,z:2},{x:6,z:1},{x:9,z:2}],false);
+assert(curved.length>4);
+console.log('actual map geometry/math tests passed');
+'''
+        with tempfile.TemporaryDirectory() as temporary:
+            js=Path(temporary)/'test.cjs';js.write_text(script)
+            result=subprocess.run(['node',str(js),str(Path(__file__).resolve().parents[1]/'index.html')],
+                    text=True,capture_output=True,timeout=20)
+            self.assertEqual(result.returncode,0,result.stdout+result.stderr)

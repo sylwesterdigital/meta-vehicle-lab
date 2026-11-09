@@ -1,6 +1,6 @@
 # Vehicle Lab — procedural 3D vehicle studio
 
-**Version 0.3.1 (2026-11-09)**. Browser-native modular vehicle editor built with Three.js, lil-gui, three alternative physics engines, optional GLB imports, Flask and SQLite. Project: https://github.com/sylwesterdigital/meta-vehicle-lab. Website: https://vehiclelab.xyz/.
+**Version 0.3.2 (2026-11-09)**. Browser-native modular vehicle editor built with Three.js, lil-gui, three alternative physics engines, optional GLB imports, Flask and SQLite. Project: https://github.com/sylwesterdigital/meta-vehicle-lab. Website: https://vehiclelab.xyz/.
 
 This README deliberately contains the **About, Install, Roadmap, Ideas and LLM Handover** sections in a single allowed release file. The current watcher validates an exact 15-file manifest, so adding standalone documentation to a watcher release without first migrating its manifest schema would reject the ZIP. A separate optional documentation archive contains those sections as individual Markdown files.
 
@@ -8,7 +8,7 @@ This README deliberately contains the **About, Install, Roadmap, Ideas and LLM H
 
 Vehicle Lab is a prototype for procedurally assembling visually plausible city cars, buses, municipal vehicles, heavy trucks, construction equipment, agricultural machinery and warehouse vehicles from parameterized hull modules and equipment. Parameters cover width/height/depth/scale/rotation/offset, body materials, wheels, axles, doors/windows, passenger slots, engines and driving physics. Modules can later be transferred into a shared 3D world as an independent blueprint generator. This is **not** an engineering-grade physics simulator.
 
-## Features through v0.3.1
+## Features through v0.3.2
 
 - Full-size Three.js canvas. Draggable, resizable, minimizable actions/tools/catalog/gallery/parameters/log windows. Right-side configuration and profile drawers, custom theme/typography and text/icon button modes.
 - Circular uploaded/webcam profile picture, optional passwordless identity, bearer-secret JSON backup. Credentials must remain private. Public gallery is **opt-in**; private layouts remain owner-scoped.
@@ -30,9 +30,9 @@ Vehicle Lab is a prototype for procedurally assembling visually plausible city c
 
 ## Run / install
 
-Place exactly **`META_VEHICLE_LAB_UPDATE_v0.3.1.zip`** in:
+Place exactly **`META_VEHICLE_LAB_UPDATE_v0.3.2.zip`** in:
 
-`/Users/smielniczuk/Documents/works/meta-vehicle-lab/updates/META_VEHICLE_LAB_UPDATE_v0.2.8.zip`
+`/Users/smielniczuk/Documents/works/meta-vehicle-lab/updates/META_VEHICLE_LAB_UPDATE_v0.3.2.zip`
 
 From repository root:
 
@@ -124,7 +124,7 @@ The last command writes `optimized.glb` and five 960x720 PNG renders (hero, fron
 6. Generate five previews; verify the full stage and orbit camera remain intact. Check private/public gallery visibility and cross-user ownership.
 7. Verify the offline Blender asset tool separately with a trusted, sufficiently small GLB before considering any public processing service.
 
-## Vehicle Lab 0.3.1 — operator guide
+## Vehicle Lab 0.3.2 — operator guide
 
 **Aerodynamics:** BUILD → Parameters → `01b · Aerodynamic glazing / roof`. `Front windshield rake m` and `Rear windshield rake m` independently change the front and back top-edge insets (positive Z is forward). `Upper cabin width ratio` tapers side windows. `Door opening type` selects outward `swing` or `gullwing`. Current doors are surface-level procedural geometry and animation rather than physically hinged rigid bodies or cut-through vehicle apertures. Exported blueprint uses `procedural-vehicle/v3` with new config keys.
 
@@ -143,6 +143,16 @@ The last command writes `optimized.glb` and five 960x720 PNG renders (hero, fron
 ## Outstanding production acceptance tests
 
 Test on actual HTTPS/WebGL hardware before deploying as a verified feature: wheel GLB imports using Draco/Meshopt, selection raycasts and rebuilt axle meshes, repeated BUILD ↔ DRIVE on Cannon/Rapier/Ammo, contact with each map obstacle, webcam/identity, public JPEG/PNG previews, browser viewport recovery after 5 captures, iOS/Android window dragging, profile backup recovery and WebXR headset teleport. This package has not been run with an external AI billing account and cannot confirm provider credit usage. Run server `python -m unittest discover -s tests -v` in the pinned Flask venv and watcher `--dry-run` before production installation.
+
+
+### v0.3.2 — Precision world editing workflow
+
+- Open **Test map** from Tools or the workspace controls. Wheel/pinch to zoom at the cursor, use **+ / −** or Fit. Use the hand tool or drag with the middle/right mouse button to pan; grid labels remain in world metres. The map stays 1:1 even when the window is resized.
+- Use the left rail to choose a hill, puddle, traffic cone, tree cluster, hedge, dunes, grass or sand. Draw rectangles/ellipses or choose **Freehand** with **Closed polygon** for areas and **Open curve / ribbon** for paths. Height controls sculpt hills/dunes into the shared terrain collider; water and vegetation patches are meshes/instances, not particle-only approximations.
+- **Shift+A** opens a searchable add-object menu (as in Blender). Enter adds the first matching object to the visible ground near the camera target, with basic overlap checks. Click any authored obstacle in BUILD or in the map to open **Object inspector**. Change translation/rotation/scale with Three.js gizmos or exact numeric inputs. Set static/dynamic/no physics, mass, friction, bounce, material color and texture.
+- Select and drag on the map to move an object; grab empty map space to pan. Physics collider changes during DRIVE rebuild the selected solver while preserving vehicle position, heading and velocity. This is not a continuous collaborative map-authoring engine, and dynamic object trajectories are not replayable across sessions.
+- Save maps to browser IndexedDB or export `vehiclelab-testmap/v2`. Import accepts v1 and v2. Vehicle blueprints carry authored objects, and editor Undo/Redo includes course-object changes.
+- **Limits:** non-box colliders use approximate box shapes; trees are instanced visuals; bridges and balance beams are static prototypes rather than articulated hinges; water patches are approximate shader surfaces, not full fluid dynamics. Physics/transform interactions require an actual browser acceptance pass on each supported engine.
 
 ### v0.3.1 — Reference and map workflows
 
