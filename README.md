@@ -249,3 +249,19 @@ instead of writing the getter-only `indexForwardAxis` field. **Ammo:** corrected
 engine-force convention to positive forward (+Z) and moderated braking impulse. Browser
 road-test calibration of the three engines is still required; a successful syntax test
 is not a proof of driving parity.
+
+
+### v0.3.11 — AI body shell alignment and persistence
+
+The chassis workshop has vehicle-local X/Y/Z positional offsets, X/Y/Z rotation,
+a uniform size control, reset-to-wheel-plane fitting, and direct downloads of
+imported GLBs and studio/reference images. Body alignment updates visual geometry
+without reconstructing the vehicle or driver. Generated concept prompts request
+a pure-white front-left three-quarter automotive studio view.
+
+Cloud layout loading now retrieves and checks the linked binary GLB before
+replacing the active vehicle. Successful downloads and uploads are cached in
+IndexedDB under the server asset ID; remote failures may fall back to that cache.
+Old cloud layouts missing `asset_id` cannot recover a GLB automatically and must
+be resaved with the original binary. JSON exports still contain references, not
+GLB bytes. Network and live-provider rendering require browser verification.

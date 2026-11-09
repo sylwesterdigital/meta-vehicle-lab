@@ -1,3 +1,13 @@
+
+
+## v0.3.11 — Editable generated-shell alignment, white references and cloud GLB recovery (2026-11-09)
+
+- Replace the fixed imported-body offset with front/rear compatible local transforms: X/Y/Z position and orientation, uniform scale and reset to wheel-plane fit.
+- Add direct GLB and reference-image downloads without stage resizing; request a clean white seamless front-left three-quarter AI reference.
+- Read and validate cloud GLB **before** switching the active vehicle; preserve a local IndexedDB cache keyed by the private server asset ID, with explicit network failure diagnostics.
+- Preserve existing Flask/SQLite blueprints, private/public library data, binary files and physics separation.
+- Local source and database tests pass; production CDN, large-model streaming and actual browser rendering are not independently verified.
+
 # v0.3.10 — Avatar scale 2.0 and Lux3D large-reference handling (2026-11-09)
 
 - Increase imported avatar scale control maximum from 1.6 to 2.0.

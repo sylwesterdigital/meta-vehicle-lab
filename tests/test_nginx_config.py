@@ -374,3 +374,83 @@ class VersionAndAvatarLimitsTests(unittest.TestCase):
         self.assertIn("'/api/providers/lux3d/optimize-reference'",html)
         self.assertLess(html.index("'/api/providers/lux3d/optimize-reference'"),
                         html.index("'/api/providers/lux3d/create'",html.index("const RELEASE_NOTES=[")))
+
+
+"""Regression gates for independently editable shell alignment and cloud-asset persistence.
+
+The browser physics stack requires a live WebGL acceptance test. These tests
+cover the source-level contracts and the SQLite asset references offline.
+"""
+import re
+import tempfile
+import unittest
+import uuid
+from pathlib import Path
+from backend.storage import Storage, InvalidLayout
+
+CHASSIS_HTML=Path(__file__).resolve().parents[1]/'index.html'
+
+class ChassisAssetRegression(unittest.TestCase):
+    def test_shell_transform_ui_does_not_require_vehicle_rebuild(self):
+        text=CHASSIS_HTML.read_text(encoding='utf8')
+        for ident in ('bodyOffsetX','bodyOffsetY','bodyOffsetZ','bodyRotX','bodyRotY',
+                      'bodyRotZ','bodyFitScale','chassisDownloadGLB','chassisReferenceDownload'):
+            self.assertIn('id="'+ident+'"',text)
+        fit=re.search(r'function fitImportedShell\(\)\{(.*?)\n \}',text,re.S)
+        self.assertIsNotNone(fit)
+        self.assertIn('bodyBottom',fit.group(1))
+        self.assertNotIn('buildVehicle(',fit.group(1))
+        self.assertIn('fitImportedShell();',text)
+        self.assertNotIn('cfg.H*.35-center.y*s',text)
+
+    def test_cloud_binary_is_fetched_before_any_vehicle_state_reset(self):
+        text=CHASSIS_HTML.read_text(encoding='utf8')
+        loader=re.search(r'async function loadServer\(id\)\{(.*?)\n\}',text,re.S)
+        self.assertIsNotNone(loader)
+        src=loader.group(1)
+        self.assertLess(src.index('await cloudModelBlob(assetId,'),src.index('await loadLayout('))
+        self.assertIn('serverAssetBlob=blob',src)
+        self.assertIn("kind:'cloud-cache'",text)
+        self.assertIn("entry.kind==='chassis'&&entry.name===localName",text)
+        self.assertIn("if(data.kind==='cloud-cache')continue",text)
+        self.assertIn('verifiedGLB',text)
+        self.assertIn('loaded',text.lower())
+
+    def test_white_studio_and_downloadable_references(self):
+        text=CHASSIS_HTML.read_text(encoding='utf8')
+        self.assertIn("clean.background=new THREE.Color('#ffffff')",text)
+        self.assertIn('PURE WHITE (#FFFFFF)',text)
+        self.assertIn('downloadCurrentChassisReference',text)
+        self.assertIn("const VERSION='0.3.11'",text)
+        self.assertIn('name="vehicle-lab-version" content="0.3.11"',text)
+
+    def test_sqlite_preserves_imported_shell_transform_and_asset_pointer(self):
+        with tempfile.TemporaryDirectory() as d:
+            store=Storage(d)
+            profile, _=store.create_guest('Shell Maker')
+            asset_id=str(uuid.uuid4())
+            # Persist the same metadata shape returned by /api/me/assets.
+            store.add_asset(identifier=asset_id,filename='body.glb',size=20,
+                            sha256='0'*64,owner_id=profile['id'])
+            layout_id=str(uuid.uuid4())
+            original={
+                'schema':'procedural-vehicle/v3',
+                'vehicle':{'name':'Shell A','modelOffsetX':.1,'modelOffsetY':-.7,
+                           'modelOffsetZ':-.25,'modelPitch':0,'modelRotation':90,
+                           'modelRoll':0,'modelScale':1.12},
+                'modules':{'front':{},'cabin':{},'rear':{}},
+                'bodyAsset':{'name':'body.glb','kind':'glb','serverAssetId':asset_id},
+                'modelName':'body.glb',
+            }
+            saved=store.user_save_layout(profile['id'],layout_id,'Shell A',original,asset_id=asset_id)
+            record=store.own_layout(profile['id'],layout_id)
+            self.assertEqual(record['asset_id'],asset_id)
+            self.assertEqual(record['blueprint']['vehicle']['modelOffsetY'],-.7)
+            self.assertEqual(record['blueprint']['vehicle']['modelRotation'],90)
+            self.assertEqual(saved['asset_id'],asset_id)
+            # A second identity must not be able to link the first user's GLB.
+            second,_=store.create_guest('Other')
+            with self.assertRaises(InvalidLayout):
+                store.user_save_layout(second['id'],str(uuid.uuid4()),'Not mine',original,asset_id=asset_id)
+
+

@@ -5,7 +5,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Vehicle Lab — Procedural Studio</title>
-  <meta name="vehicle-lab-version" content="0.3.10">
+  <meta name="vehicle-lab-version" content="0.3.11">
   <style>
     :root {
       color-scheme:dark;
@@ -552,6 +552,21 @@
 #chassisWindow .chassis-3d-title{border-top:1px solid #526e83;margin:12px 0 7px;padding-top:10px;font-weight:700}
 #chassisWindow .chassis-main-action{width:100%;font-weight:700!important;background:#265b78!important}
 @media(max-width:540px){#chassisWindow .chassis-compact-row{grid-template-columns:1fr 1fr}#chassisWindow .chassis-compact-row button{min-width:0}#chassisWindow .chassis-3d-options{grid-template-columns:repeat(3,minmax(0,1fr))}}
+
+/* v0.3.11 · editable imported-shell fit, small controls and clear download UX */
+#chassisFitPanel{margin:8px 0;padding:8px;background:#162d3c;border:1px solid #63879e;border-radius:8px;color:#e9f5ff}
+#chassisFitPanel[hidden]{display:none!important}
+#chassisFitPanel .chassis-fit-title{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:7px;font-size:11px}
+#chassisFitPanel .chassis-fit-title button{font-size:10px;padding:4px 7px;min-height:26px;background:#244c63;color:white;border:1px solid #6b9db2;border-radius:5px}
+#chassisFitPanel .chassis-xyz{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px;margin:5px 0}
+#chassisFitPanel .chassis-xyz label{font-size:10px;display:flex;gap:4px;align-items:center;min-width:0;color:#d6ebf6}
+#chassisFitPanel .chassis-xyz input{min-width:0;width:100%;padding:5px 3px;border-radius:5px;background:#0d1b29;border:1px solid #6a8ba0;color:white;font-size:11px}
+#chassisFitPanel .chassis-fit-scale{display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:center;margin:7px 0;font-size:10px}
+#chassisFitPanel .chassis-fit-scale input{width:100%;min-width:0}
+#chassisFitPanel .drawer-actions{margin:8px 0;display:flex;gap:5px;flex-wrap:wrap}
+#chassisFitPanel .drawer-actions button{color:white;background:#23445a;border:1px solid #628ca2;font-size:10px;padding:5px 9px;border-radius:6px;min-height:30px}
+#chassisFitPanel small{display:block;font-size:10px;color:#b9d7e9;line-height:1.5}
+#chassisWindow{min-width:330px}
 </style>
 
  <script type="importmap">
@@ -748,7 +763,7 @@
         </form>
         <div class="chassis-reference-panel">
           <button type="button" id="chassisCapture">Capture body only</button><button type="button" id="chassisUpload">Upload reference</button>
-          <button type="button" id="chassisReferenceClear">Clear</button>
+          <button type="button" id="chassisReferenceClear">Clear</button><button type="button" id="chassisReferenceDownload">↓ Image</button>
           <label class="chassis-check"><input id="chassisUseReference" type="checkbox"> Refine from image</label>
         </div>
         <div class="chassis-preview-row">
@@ -768,6 +783,22 @@
         <label class="chassis-check"><input id="chassisSpendAck" type="checkbox"> Authorize potentially billable 3D generation</label>
         <button type="button" id="chassisGenerate3D" class="chassis-main-action">Generate wheel-free GLB · import automatically</button>
         <output id="chassis3DStatus" aria-live="polite" role="status">Not started.</output>
+      </section>
+      <section id="chassisFitPanel" aria-label="Imported chassis fit and alignment" hidden>
+        <div class="chassis-fit-title"><strong>Imported GLB · fit &amp; alignment</strong><button type="button" id="chassisFitReset" title="Restore auto-fit coordinates">Reset fit</button></div>
+        <div class="chassis-xyz" role="group" aria-label="Vehicle-local body position in metres">
+          <label>X <input type="number" id="bodyOffsetX" step=".05" min="-12" max="12"></label>
+          <label>Y <input type="number" id="bodyOffsetY" step=".05" min="-12" max="12"></label>
+          <label>Z <input type="number" id="bodyOffsetZ" step=".05" min="-12" max="12"></label>
+        </div>
+        <div class="chassis-xyz" role="group" aria-label="Imported body orientation in degrees">
+          <label>Pitch X° <input type="number" id="bodyRotX" step="5" min="-180" max="180"></label>
+          <label>Yaw Y° <input type="number" id="bodyRotY" step="5" min="-180" max="180"></label>
+          <label>Roll Z° <input type="number" id="bodyRotZ" step="5" min="-180" max="180"></label>
+        </div>
+        <div class="chassis-fit-scale"><label for="bodyFitScale">Relative size</label><input id="bodyFitScale" type="range" min=".2" max="4" step=".01"><output id="bodyFitScaleValue">1.00×</output></div>
+        <div class="drawer-actions"><button id="chassisDownloadGLB" type="button" title="Download the currently loaded GLB binary">↓ Download GLB</button><button id="chassisDownloadReference" type="button" title="Save the current studio reference image">↓ Reference PNG/JPEG</button></div>
+        <small>Only the imported shell moves. Wheels, colliders, camera and passengers are unchanged. Values are saved in the vehicle blueprint.</small>
       </section>
       <div class="body-controls"><label>Front rake <input id="bodyRakeFront" type="number" step=".02" min=".04" max="1.8"></label>
         <label>Rear rake <input id="bodyRakeRear" type="number" step=".02" min=".04" max="1.8"></label>
@@ -1013,7 +1044,8 @@
    roughness:.34,metalness:.45,glassOpacity:.48,
    glassRoughness:.12,pattern:'solid',seed:21,
    headlights:true,rearWindow:true,maxSpeed:90,
-   modelScale:1,modelRotation:0,
+   modelScale:1,modelRotation:0,modelPitch:0,modelRoll:0,
+   modelOffsetX:0,modelOffsetY:0,modelOffsetZ:0,
    hills:true,cameraDistance:12,terrainProfile:'hills',terrainSize:180,skyStyle:'gradient',
    wheelWidth:.23,wheelOutset:0,axleFrontOffset:0,axleRearOffset:0,
    frontWheelRadius:.34,rearWheelRadius:.34,frontWheelWidth:.23,rearWheelWidth:.23,
@@ -1117,14 +1149,14 @@ let ghostObject=null,ghostSamples=[],ghostElapsed=0,ghostTick=0;
  const FIXED_STEP=1/60;
  const catalogExpanded=new Set();
  let catalogGUI=null;
- let modelSource=null,modelBlob=null,modelName=null;
+ let modelSource=null,modelBlob=null,modelName=null,importedShell=null;
  let layoutId=null,gui=null,queued=false;
  let vehicleDescription='',vehicleCategory='Urban',galleryImages=[];
  let serverLayoutId=null,serverRevision=null,serverAssetId=null,serverAssetBlob=null;
  const serverAccess={token:''};
  let activeProfile=null,guestToken='',serverVisibility='private',adminLogToken='';
  const appEvents=[];
- const VERSION='0.3.10';
+ const VERSION='0.3.11';
  document.getElementById('appVersionBadge').textContent='v'+VERSION;
  let imageReference=null,busyAI=false;
 
@@ -2230,7 +2262,7 @@ function clearVehicle(){
  for(const w of wheels)if(w.parent===scene)disposeTree(w);
    wheels=[];
  if(car)disposeTree(car);
- car=null;doorHinges=[];partGroups={};passengerFigures=[];rigs.length=0;
+ car=null;importedShell=null;doorHinges=[];partGroups={};passengerFigures=[];rigs.length=0;
  for(const figure of outsideRigs)disposeTree(figure);outsideRigs.clear();passengersGroup=null;steeringWheel=null;
  passengerMixers.forEach(m=>m.stopAllAction());passengerMixers=[];
  headMaterials=[];brakeMaterials=[];headlights=[];
@@ -2317,20 +2349,46 @@ function updateSeatAnimations(dt){
  if(steeringWheel){const steer=inputForStep().steer||0;steeringWheel.rotation.z=lerp(steeringWheel.rotation.z,-steer*.55,1-Math.exp(-8*dt))}
 }
 
+ // Imported shell fitting is independent of car physics and wheel geometry.
+ // A generated 3D shell often has arbitrary units, origin and forward axis.
+ // User offsets are vehicle-local metres, and can be adjusted without rebuilding
+ // the driver, seat rigs or camera.  +Z is forward, Y is up.
+ function shellBoundsAfterRotation(source,rotation){
+  const raw=new THREE.Box3().setFromObject(source);
+  const rotated=new THREE.Box3().makeEmpty(),point=new THREE.Vector3();
+  const matrix=new THREE.Matrix4().makeRotationFromEuler(rotation);
+  for(const x of [raw.min.x,raw.max.x])for(const y of [raw.min.y,raw.max.y])
+   for(const z of [raw.min.z,raw.max.z])rotated.expandByPoint(point.set(x,y,z).applyMatrix4(matrix));
+  return rotated;
+ }
+ function fitImportedShell(){
+  if(!modelSource||!importedShell)return;
+  const rotation=new THREE.Euler(rad(cfg.modelPitch||0),rad(cfg.modelRotation||0),rad(cfg.modelRoll||0),'XYZ');
+  const bounds=shellBoundsAfterRotation(modelSource,rotation);
+  const size=bounds.getSize(new THREE.Vector3()),center=bounds.getCenter(new THREE.Vector3());
+  if(size.x<.0001||size.y<.0001||size.z<.0001)return;
+  const uniformFit=Math.min(cfg.W/size.x,cfg.H/size.y,cfg.L/size.z);
+  const scale=uniformFit*clamp(Number(cfg.modelScale)||1,.2,4);
+  importedShell.rotation.copy(rotation);importedShell.scale.setScalar(scale);
+  // Unlike the old +H*.35 centre placement, fit the bottom of the shell down
+  // around the wheel centres, leaving real access to the cabin for occupants.
+  const bodyBottom=-Math.min(cfg.H*.42,.78);
+  importedShell.position.set(-center.x*scale+(Number(cfg.modelOffsetX)||0),
+    bodyBottom-bounds.min.y*scale+(Number(cfg.modelOffsetY)||0),
+    -center.z*scale+(Number(cfg.modelOffsetZ)||0));
+  importedShell.updateMatrix();
+ }
+ function resetImportedShellFit(){
+  Object.assign(cfg,{modelScale:1,modelRotation:0,modelPitch:0,modelRoll:0,
+   modelOffsetX:0,modelOffsetY:0,modelOffsetZ:0});
+  fitImportedShell();syncBodyFitInputs();scheduleHistory('Reset chassis GLB alignment');
+ }
  function addImportedModel(){
-   if(!modelSource)return;
-   const clone=modelSource.clone(true);
-   clone.traverse(o=>o.userData.externalModel=true);
-   const bounds=new THREE.Box3().setFromObject(clone);
-   const size=bounds.getSize(new THREE.Vector3());
-   const center=bounds.getCenter(new THREE.Vector3());
-   if(Math.min(size.x,size.y,size.z)<=0)return;
-   const s=Math.min(cfg.W/size.x,cfg.H/size.y,cfg.L/size.z)*cfg.modelScale;
-   clone.scale.setScalar(s);
-   clone.position.set(-center.x*s,cfg.H*.35-center.y*s,-center.z*s);
-   clone.rotation.y=rad(cfg.modelRotation);
-   car.add(clone);
-   bodyRoot.visible=false;
+  if(!modelSource)return;
+  importedShell=modelSource.clone(true);
+  importedShell.traverse(o=>o.userData.externalModel=true);
+  importedShell.userData.externalModel=true;
+  car.add(importedShell);fitImportedShell();bodyRoot.visible=false;
  }
 
  function buildVehicle(){
@@ -3616,10 +3674,12 @@ function renderChassisAssets(){
  }
  for(const [id,input] of [['bodyRakeFront','frontRake'],['bodyRakeRear','rearRake'],['bodyRoofWidth','roofWidth']])$(id).value=cfg[input];
  $('chassisAssetInfo').textContent=(modelName?'Using '+modelName+'. ':'Procedural body. ')+chassisAssets.size+' imported shell(s). Wheels and simulation remain procedural.';
+ syncBodyFitInputs();
 }
 async function loadAvatarLibrary(){
  const saved=await avatarStore('readonly','getAll');
  for(const data of saved){try{
+  if(data.kind==='cloud-cache')continue;
   if(data.kind==='wheel'||data.kind==='cap')await parseWheelAsset(data);
   else if(data.kind==='chassis'){
    const url=URL.createObjectURL(data.blob);
@@ -3643,7 +3703,8 @@ async function loadAvatarLibrary(){
     simulation:{backend:simulator.engine,fixedStepHz:60},
     occupants,seatOccupancy:structuredClone(seatPresence),
     avatarBindings:structuredClone(seatBindings),avatarClipMappings:structuredClone(avatarClips),
-    modelName,passengerModelName:passengerName,passengerAnimationNames:passengerAnimations.map(c=>c.name),
+    modelName,bodyAsset: modelBlob ? {name:modelName,kind:'glb',serverAssetId:serverAssetId||null} : null,
+    passengerModelName:passengerName,passengerAnimationNames:passengerAnimations.map(c=>c.name),
     metadata:{description:vehicleDescription,category:vehicleCategory,images:galleryImages},
     note:'Imported GLB binary is not embedded in JSON. IndexedDB layout saves retain it.'
   };
@@ -3878,23 +3939,62 @@ async function refreshServer(){
   if(!root.children.length)root.textContent='No layouts in SQLite yet.';
  }catch(error){root.textContent='SQLite unavailable: '+error.message;throw error}
 }
+// Cloud GLB files are transferred separately from the JSON blueprint. Fetch
+// BEFORE resetting the current vehicle: a failed transfer must never silently
+// turn an AI vehicle into an old procedural car. Cache the verified binary in
+// IndexedDB so a previously opened model remains recoverable offline.
+async function verifiedGLB(blob,description='model'){
+ if(!(blob instanceof Blob)||blob.size<20||blob.size>80*1024*1024)
+  throw Error(description+' is missing or outside the GLB size limit');
+ const header=new DataView(await blob.slice(0,12).arrayBuffer());
+ if(header.getUint32(0,true)!==0x46546c67||header.getUint32(4,true)!==2||header.getUint32(8,true)!==blob.size)
+  throw Error(description+' has an invalid binary GLB header/size');
+ return blob;
+}
+async function cloudModelBlob(id,localName=''){
+ const cacheKey='cloud-glb:'+id;
+ const cached=await avatarStore('readonly','get',cacheKey).catch(()=>null);
+ let lastError=null;
+ for(let i=0;i<2;i++){
+  try{
+   const url=resolvedServerPath('/api/assets/'+encodeURIComponent(id));
+   const response=await fetch(url,{method:'GET',
+    headers:{Authorization:'Bearer '+(guestServerMode()?guestToken:serverAccess.token.trim())},
+    credentials:'same-origin',cache:'no-store'});
+   if(!response.ok){const result=await response.json().catch(()=>({}));throw Error('HTTP '+response.status+': '+(result.error||'asset unavailable'))}
+   const blob=await verifiedGLB(await response.blob(),'Cloud asset '+id);
+   try{await avatarStore('readwrite','put',{id:cacheKey,kind:'cloud-cache',blob,name:'Cached GLB',created:Date.now()})}
+   catch(error){recordEvent('WARN','GLB offline cache: '+error.message)}
+   return blob;
+  }catch(error){lastError=error;recordEvent('WARN','Cloud GLB request '+(i+1)+' failed: '+error.message)}
+ }
+ if(cached?.blob){recordEvent('WARN','Cloud unavailable: restored previously downloaded GLB from IndexedDB.');return verifiedGLB(cached.blob,'Cached GLB')}
+ // Backward compatibility: releases before v0.3.11 saved successful Lux3D
+ // imports in the local chassis library, but did not cache cloud asset IDs.
+ if(localName){
+  const all=await avatarStore('readonly','getAll').catch(()=>[]);
+  const matching=all.find(entry=>entry.kind==='chassis'&&entry.name===localName&&entry.blob);
+  if(matching){recordEvent('WARN','Cloud GLB download failed; recovered '+localName+' from local 3D chassis library. Re-save this layout to repair the remote asset.');
+   return verifiedGLB(matching.blob,'Locally recovered GLB');}
+ }
+ throw Error('Cloud GLB '+id+' could not be downloaded: '+(lastError?.message||'network error')+'. Layout unchanged.');
+}
 async function loadServer(id){
  const data=await serverRequest('GET','/api/layouts/'+encodeURIComponent(id));
  const item=data.layout;
+ const assetId=item.asset_id;
+ if(!assetId&&item.blueprint?.modelName)throw Error('This cloud layout references a 3D shell but has no linked GLB asset. The current vehicle has not been replaced.');
+ const blob=assetId?await cloudModelBlob(assetId,item.blueprint?.modelName||''):null;
  await loadLayout({...item.blueprint,id:item.id,name:item.name});
+ if(blob){
+  try{await loadGLB(blob,item.blueprint.modelName||'Cloud chassis.glb',false);buildVehicle();renderChassisAssets();}
+  catch(error){throw Error('Cloud GLB was retrieved but cannot be decoded: '+error.message)}
+ }
  serverVisibility=item.visibility||'private';$('layoutPublic').checked=serverVisibility==='public';
  layoutId=null;serverLayoutId=item.id;serverRevision=item.revision;
- serverAssetId=item.asset_id;serverAssetBlob=null;
- if(item.asset_id){
-  const blobResponse=await fetch(resolvedServerPath('/api/assets/'+encodeURIComponent(item.asset_id)),{
-   headers:{Authorization:'Bearer '+(guestServerMode()?guestToken:serverAccess.token.trim())},credentials:'same-origin',cache:'no-store'
-  });
-  if(!blobResponse.ok)throw Error('Server GLB download failed: '+blobResponse.status);
-  const blob=await blobResponse.blob();
-  await loadGLB(blob,item.blueprint.modelName||'Server model.glb');
-  serverAssetBlob=blob;
- }
- scheduleHistory('Loaded cloud layout: '+item.name);note('Loaded from Flask / SQLite: '+item.name);
+ serverAssetId=assetId;serverAssetBlob=blob;
+ scheduleHistory('Loaded cloud layout: '+item.name);
+ note('Loaded from Flask / SQLite: '+item.name+(blob?' · verified GLB '+(blob.size/1048576).toFixed(1)+' MiB':''));
 }
 async function saveServer(copy=false){
  const candidate=cfg.name+(modelName?' · GLB':'');
@@ -3919,6 +4019,9 @@ async function saveServer(copy=false){
   '/api/layouts'+(updating?'/'+encodeURIComponent(id):''),body);
  serverLayoutId=result.layout.id;serverRevision=result.layout.revision;
  serverAssetId=assetId;serverAssetBlob=modelBlob;
+ if(assetId&&modelBlob)try{await avatarStore('readwrite','put',{
+  id:'cloud-glb:'+assetId,kind:'cloud-cache',blob:modelBlob,name:modelName||'Cloud GLB',created:Date.now()})}
+ catch(error){recordEvent('WARN','GLB offline cache save: '+error.message)}
  serverVisibility=body.visibility;
  commitHistory('Cloud save: '+details.name);
  await refreshServer();await refreshVehicleGallery();
@@ -4084,7 +4187,7 @@ function captureReference(){
 // size / camera / viewport are preserved (no thumbnail resizing regression).
 function captureChassisReference(includeWheels=false){
  if(!car||!bodyRoot)throw Error('Build a vehicle before taking its reference.');
- const clean=new THREE.Scene();clean.background=new THREE.Color('#edf3f8');
+ const clean=new THREE.Scene();clean.background=new THREE.Color('#ffffff');
  clean.add(new THREE.HemisphereLight(0xffffff,0x8e9daa,3.8));
  for(const [x,y,z,power] of [[-8,12,8,280],[9,7,1,190],[2,11,-10,200]]){
   const light=new THREE.PointLight(0xffffff,power,0,1.4);light.position.set(x,y,z);clean.add(light);
@@ -6413,13 +6516,19 @@ async function openGalleryItem(item){
  if(item.source==='cloud')return loadServer(item.id);
  const response=await fetch('/api/gallery/'+encodeURIComponent(item.id),{cache:'no-store'});
  const data=await response.json();if(!response.ok)throw Error(data.error||'Public layout not found');
- const record=data.layout;await loadLayout({...record.blueprint,name:record.name});
+ const record=data.layout;
+ const glb=record.asset_id?await (async()=>{
+  let response;
+  try{response=await fetch('/api/gallery/'+encodeURIComponent(item.id)+'/asset',{cache:'no-store'})}
+  catch(error){throw Error('Public GLB download failed: '+error.message)}
+  if(!response.ok)throw Error('Public GLB unavailable: HTTP '+response.status);
+  return verifiedGLB(await response.blob(),'Public GLB');
+ })():null;
+ if(!glb&&record.blueprint?.modelName)throw Error('Published vehicle has no downloadable GLB; keeping current vehicle unchanged.');
+ await loadLayout({...record.blueprint,name:record.name});
  serverLayoutId=null;layoutId=null;
- if(record.asset_id){
-  const asset=await fetch('/api/gallery/'+encodeURIComponent(item.id)+'/asset');
-  if(asset.ok)await loadGLB(await asset.blob(),'Gallery model.glb');
- }
- note('Loaded public vehicle by '+record.creator_name);
+ if(glb){await loadGLB(glb,record.blueprint.modelName||'Gallery model.glb',false);buildVehicle();}
+ note('Loaded public vehicle by '+record.creator_name+(glb?' · GLB ready':''));
 }
 async function editLocalMetadata(item){
  const details=await askVehicleDetails(item.name);if(!details)return;
@@ -6496,6 +6605,12 @@ $('galleryRefreshBtn').onclick=refreshGallery;
 $('layoutPublic').onchange=()=>{serverVisibility=$('layoutPublic').checked?'public':'private'};
 
 const RELEASE_NOTES=[
+ {v:'0.3.11',date:'2026-11-09',title:'Fit imported 3D chassis accurately and restore cloud GLBs',items:[
+  'Imported body shells have independent X/Y/Z offset, pitch/yaw/roll and relative size controls, with reset-to-wheel-plane alignment.',
+  'Chassis image concepts request a clean white-background front-left three-quarter studio reference; GLB and image downloads are available.',
+  'Cloud GLB binaries load before the active car changes. Verified downloads are cached locally for later recovery when the server is unreachable.',
+  'Old layouts without a linked model asset require the original GLB to be uploaded again.'
+ ]},
  {v:'0.3.10',date:'2026-11-09',title:'Oversized AI references optimized safely and avatar scale 2.0',items:[
   'Raised imported avatar scale control to 2.0.',
   'Large image-model PNG/JPEG/WebP references are resized and JPEG/WebP quantized by Vehicle Lab Python/Pillow before Lux3D submits a charged task.',
@@ -6882,7 +6997,7 @@ $('chassisGenerateImage').onclick=async()=>{
  if(!keys[provider]){$('chassisImageStatus').textContent='Enter a '+provider+' image API key first.';return}
  const brief=$('chassisPrompt').value.trim();if(brief.length<12){$('chassisImageStatus').textContent='Describe the body shape first.';return}
  ai.provider=provider;
- ai.prompt='Photorealistic three-quarter automotive industrial design studio render. A single isolated exterior car BODY SHELL, no wheels, tyres, axles, chassis rails, people, seats or ground. Fully visible, perfectly framed, controlled studio lighting, clean background. '+brief;
+ ai.prompt='Automotive OEM engineering catalog photography, front-LEFT three-quarter view (front and the left side both clearly visible), slightly elevated camera looking down 12 degrees, fully visible vehicle body occupying about 76 percent of the frame. A single isolated EMPTY exterior CAR BODY SHELL, with realistic open wheel-arch cutouts, open windshield and side-window apertures, hollow interior cavity, no wheels, no tyres, no axles, no chassis rails, no people, no seats, no ground, no scenery, no lettering and no watermark. Entire uninterrupted PURE WHITE (#FFFFFF) seamless studio background, high-key neutral lighting, soft contact shadows, accurate body proportions, crisp panel edges and architectural orthographic-like perspective. '+brief;
  imageEditMode=$('chassisUseReference').checked&&!!imageReference;
  $('chassisImageStatus').textContent='Generating '+provider+' concept…';
  const button=$('chassisGenerateImage');button.disabled=true;
@@ -6926,6 +7041,37 @@ new MutationObserver(()=>{
 for(const [id,field] of [['bodyRakeFront','frontRake'],['bodyRakeRear','rearRake'],['bodyRoofWidth','roofWidth']]){
  $(id).addEventListener('change',()=>{cfg[field]=clamp(Number($(id).value),field==='roofWidth'?.3:.04,field==='roofWidth'?1:1.8);if(!modelSource){buildVehicle()}scheduleHistory('Chassis '+field)});
 }
+function syncBodyFitInputs(){
+ for(const [id,key] of [
+  ['bodyOffsetX','modelOffsetX'],['bodyOffsetY','modelOffsetY'],['bodyOffsetZ','modelOffsetZ'],
+  ['bodyRotX','modelPitch'],['bodyRotY','modelRotation'],['bodyRotZ','modelRoll']])$(id).value=Number(cfg[key]||0).toFixed(2);
+ $('bodyFitScale').value=Number(cfg.modelScale)||1;
+ $('bodyFitScaleValue').textContent=(Number(cfg.modelScale)||1).toFixed(2)+'×';
+ $('chassisFitPanel').hidden=!modelSource;
+ $('chassisDownloadGLB').disabled=!modelBlob;
+}
+for(const [id,key,min,max] of [
+ ['bodyOffsetX','modelOffsetX',-12,12],['bodyOffsetY','modelOffsetY',-12,12],['bodyOffsetZ','modelOffsetZ',-12,12],
+ ['bodyRotX','modelPitch',-180,180],['bodyRotY','modelRotation',-180,180],['bodyRotZ','modelRoll',-180,180]]){
+ $(id).oninput=()=>{const n=Number($(id).value);if(!Number.isFinite(n))return;cfg[key]=clamp(n,min,max);fitImportedShell()};
+ $(id).onchange=()=>scheduleHistory('Imported body '+key);
+}
+$('bodyFitScale').oninput=()=>{cfg.modelScale=Number($('bodyFitScale').value);fitImportedShell();$('bodyFitScaleValue').textContent=cfg.modelScale.toFixed(2)+'×'};
+$('bodyFitScale').onchange=()=>scheduleHistory('Imported body size');
+$('chassisFitReset').onclick=resetImportedShellFit;
+$('chassisDownloadGLB').onclick=()=>{
+ if(!modelBlob){note('Load a chassis GLB before downloading.',true);return}
+ download(modelBlob,exportFileName('glb'),'model/gltf-binary');
+};
+function downloadCurrentChassisReference(){
+ const data=chassisConceptImage||imageReference;
+ if(!data){note('Capture or generate a body reference first.',true);return}
+ const a=document.createElement('a');a.href=data;
+ a.download=exportFileName(data.startsWith('data:image/png')?'png':data.startsWith('data:image/webp')?'webp':'jpg');
+ document.body.append(a);a.click();a.remove();
+}
+$('chassisDownloadReference').onclick=downloadCurrentChassisReference;
+$('chassisReferenceDownload').onclick=downloadCurrentChassisReference;
 $('mapEditorBtn').onclick=()=>setWindowVisible('mapWindow',true);
 $('fleetBtn').onclick=()=>{renderFleetList();setWindowVisible('fleetWindow',true)};
 $('cameraBtn').onclick=cycleCamera;$('uprightBtn').onclick=resetUpright;
