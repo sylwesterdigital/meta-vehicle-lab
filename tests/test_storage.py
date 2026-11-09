@@ -64,6 +64,21 @@ class StorageTests(unittest.TestCase):
         with self.assertRaises(InvalidLayout):
             self.store.save_layout(identifier=str(uuid.uuid4()),name='Oversize',blueprint=invalid)
 
+    def test_custom_course_and_transparent_preview_roundtrip(self):
+        data=blueprint()
+        data['vehicle'].update({'frontRake':0.75,'rearRake':0.35,'roofWidth':0.73,
+             'doorStyle':'gullwing','courseObjects':[{'kind':'jump','x':2.0,'z':14.0,
+             'w':5.0,'d':7.0,'h':2.5}]})
+        transparent='data:image/png;base64,'+'AAAABBBB'*60
+        data['metadata']={'category':'Urban','images':[{'label':'Hero','data':transparent}]}
+        profile,_=self.store.create_guest('Studio Preview')
+        ident=str(uuid.uuid4())
+        self.store.user_save_layout(profile['id'],ident,'Aerodynamic Concept',data,visibility='public')
+        restored=self.store.gallery_layout(ident)
+        self.assertEqual(restored['blueprint']['vehicle']['doorStyle'],'gullwing')
+        self.assertEqual(restored['blueprint']['vehicle']['courseObjects'][0]['kind'],'jump')
+        self.assertEqual(self.store.gallery()[0]['preview'],transparent)
+
     def test_no_asset_outside_store(self):
         with self.assertRaises(InvalidLayout):
             self.store.save_layout(identifier=str(uuid.uuid4()),name='x',blueprint=blueprint(),asset_id=str(uuid.uuid4()))

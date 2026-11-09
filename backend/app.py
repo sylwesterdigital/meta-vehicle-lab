@@ -470,6 +470,8 @@ def create_app(config=None):
             'rear-bumper':'A SINGLE removable REAR bumper assembly ONLY. No body shell, tyres or complete car.',
             'headlight':'A SINGLE standalone automotive FRONT headlight module ONLY. No body shell or wheels.',
             'taillight':'A SINGLE standalone automotive REAR taillight module ONLY. No body shell or wheels.',
+            'wheel':('ONE isolated automotive wheel assembly only. Accurate circular tyre with tread and alloy rim, '
+                     'without any car chassis or body. Axis horizontal, centered and suitable for separate modular attachment.'),
         }
         if component not in component_prompts:
             return jsonify(error='Unsupported vehicle component'),400

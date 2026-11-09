@@ -1,3 +1,15 @@
+# v0.3.0 — Aerodynamic vehicle geometry, wheel workbench, terrain maps and drive cinematics (2026-11-08)
+
+- Aerodynamic cabin loft: independent front/rear windshield rake and narrower upper roof, tapered side glazing, side window divisions and dedicated front/back glass panels; two explicit outward-opening door modes (side-hinged and gullwing). Procedural modules remain parametric.
+- Click-to-select front/rear wheels. Floating wheel workbench with six geometrical rim styles, independent axle radius/thickness/outset/spokes/sidewall/alloy settings; GLB wheel and optional hubcap imports stored in IndexedDB with fitting to the current wheel envelope and Draco/Meshopt support. 3D model geometry is **not** a new physical wheel collider; radius/width remain the collider blueprint.
+- Five offscreen studio previews use temporary bright key/fill/hemisphere lighting and restored renderer state. Backdrops: studio, gradient, rainbow, solid, white, black or transparent PNG. Preview images are bounded for the 256-KiB SQLite blueprint limit. This is browser-based preview rendering, not the Blender render service.
+- Drive cameras: orbit/chase/cinematic/overhead/in-cab camera, terrain-aware camera altitude, C to cycle. Driving mode can hide editing windows and restore them on return. Optional same-car *visual* ghost following a recorded trajectory 3 seconds late. Upright recovery is implemented per Cannon/Rapier/Ammo adapter; U button/shortcut.
+- Visual instanced shader grass (wind and vehicle-proximity bending), shrubs and scattered rocks with adjustable instance budgets and seeded placement; ground terrain and weather are retained. No vertex-by-vertex CPU grass animation.
+- Floating topographic test-map editor: place custom hills, puddles, cones, stones, barriers, cuboids, pyramids, ramps, raised bridges and a **static** balance beam, save/load map presets or IndexedDB maps, import/export `vehiclelab-testmap/v1` JSON. Obstacles use a shared collider specification across the three physics adapters. Static beam does **not** tilt; a physics hinge is a future milestone.
+- Selected theme buttons now derive foreground ink from the active accent and expose keyboard focus. Add Lux3D isolated-wheel component prompt and allow public gallery JPEG or PNG heroes.
+- Extend map/preview state preservation across history, saved blueprints and old-layout load. No database migration beyond IndexedDB `test-maps` object store v3. Server SQLite schema is unchanged.
+- Validation: Node parser, stdlib SQLite regression suite, watcher dry-run, ZIP hashes and static interaction checks. In-browser WebGL rendering, real Rapier/Ammo contact behavior, imported wheel orientation and WebXR/AI jobs require manual device/account acceptance tests. No production installation claimed.
+
 # v0.2.9 — Lux3D key diagnostics and component-oriented 3D generation (2026-11-08)
 
 - Add a dedicated Lux3D testing and generation page inside the AI configuration drawer; select international or China region, test key, inspect recent task count/status.

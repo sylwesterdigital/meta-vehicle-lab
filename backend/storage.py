@@ -324,7 +324,7 @@ class Storage:
                 metadata=blueprint.get('metadata') or {}
                 images=metadata.get('images') or []
                 hero=images[0].get('data') if images and isinstance(images[0],dict) else None
-                value['preview']=hero if isinstance(hero,str) and len(hero)<65000 and hero.startswith('data:image/jpeg;base64,') else None
+                value['preview']=hero if isinstance(hero,str) and len(hero)<65000 and hero.startswith(('data:image/jpeg;base64,','data:image/png;base64,')) else None
                 value['category']=metadata.get('category') or (blueprint.get('vehicle') or {}).get('category') or 'Vehicle'
                 results.append(value)
             return results

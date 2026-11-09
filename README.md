@@ -1,6 +1,6 @@
 # Vehicle Lab — procedural 3D vehicle studio
 
-**Version 0.2.8 (2026-11-08)**. Browser-native modular vehicle editor built with Three.js, lil-gui, three alternative physics engines, optional GLB imports, Flask and SQLite. Project: https://github.com/sylwesterdigital/meta-vehicle-lab. Website: https://vehiclelab.xyz/.
+**Version 0.3.0 (2026-11-08)**. Browser-native modular vehicle editor built with Three.js, lil-gui, three alternative physics engines, optional GLB imports, Flask and SQLite. Project: https://github.com/sylwesterdigital/meta-vehicle-lab. Website: https://vehiclelab.xyz/.
 
 This README deliberately contains the **About, Install, Roadmap, Ideas and LLM Handover** sections in a single allowed release file. The current watcher validates an exact 15-file manifest, so adding standalone documentation to a watcher release without first migrating its manifest schema would reject the ZIP. A separate optional documentation archive contains those sections as individual Markdown files.
 
@@ -8,7 +8,7 @@ This README deliberately contains the **About, Install, Roadmap, Ideas and LLM H
 
 Vehicle Lab is a prototype for procedurally assembling visually plausible city cars, buses, municipal vehicles, heavy trucks, construction equipment, agricultural machinery and warehouse vehicles from parameterized hull modules and equipment. Parameters cover width/height/depth/scale/rotation/offset, body materials, wheels, axles, doors/windows, passenger slots, engines and driving physics. Modules can later be transferred into a shared 3D world as an independent blueprint generator. This is **not** an engineering-grade physics simulator.
 
-## Features in v0.2.8
+## Features through v0.3.0
 
 - Full-size Three.js canvas. Draggable, resizable, minimizable actions/tools/catalog/gallery/parameters/log windows. Right-side configuration and profile drawers, custom theme/typography and text/icon button modes.
 - Circular uploaded/webcam profile picture, optional passwordless identity, bearer-secret JSON backup. Credentials must remain private. Public gallery is **opt-in**; private layouts remain owner-scoped.
@@ -30,7 +30,7 @@ Vehicle Lab is a prototype for procedurally assembling visually plausible city c
 
 ## Run / install
 
-Place exactly **`META_VEHICLE_LAB_UPDATE_v0.2.8.zip`** in:
+Place exactly **`META_VEHICLE_LAB_UPDATE_v0.3.0.zip`** in:
 
 `/Users/smielniczuk/Documents/works/meta-vehicle-lab/updates/META_VEHICLE_LAB_UPDATE_v0.2.8.zip`
 
@@ -123,3 +123,23 @@ The last command writes `optimized.glb` and five 960x720 PNG renders (hero, fron
 5. Edit octaves, lacunarity, noise scale, texture tiling and terrain normal strength and confirm visibly different material results.
 6. Generate five previews; verify the full stage and orbit camera remain intact. Check private/public gallery visibility and cross-user ownership.
 7. Verify the offline Blender asset tool separately with a trusted, sufficiently small GLB before considering any public processing service.
+
+## Vehicle Lab 0.3.0 — operator guide
+
+**Aerodynamics:** BUILD → Parameters → `01b · Aerodynamic glazing / roof`. `Front windshield rake m` and `Rear windshield rake m` independently change the front and back top-edge insets (positive Z is forward). `Upper cabin width ratio` tapers side windows. `Door opening type` selects outward `swing` or `gullwing`. Current doors are surface-level procedural geometry and animation rather than physically hinged rigid bodies or cut-through vehicle apertures. Exported blueprint uses `procedural-vehicle/v3` with new config keys.
+
+**Wheel workshop:** While in BUILD mode click a wheel on the canvas or select Tools → Wheel workshop. Pick front or rear axle, choose a procedural rim card and modify axle geometry. Importing a wheel GLB or optional cap GLB stores the bytes under the browser's IndexedDB `avatar-assets` object store (`kind=wheel/cap`), separate from avatar records. The viewer scales GLB geometry to the axle's specified diameter and width; this does not inspect hub bolt patterns, generate an accurately matched collision mesh or guarantee that a generated tire has the correct mechanical topology. A wheel can be restored to procedural. The `AI wheel asset pipeline` delegates to existing image/Tripo/Lux3D components and requires real API endpoints and explicit paid-generation consent; Tripo image-to-3D remains a backend placeholder. Import the resulting wheel GLB directly using Wheel workshop.
+
+**Gallery:** Five preview captures are rendered with temporarily brighter studio lights. Customize scene-independent backdrop and exposure under Parameters → `02b · Gallery render studio`. Transparent uses PNG; other backdrops produce JPEG. The canvas renderer state and full-size viewport are restored after capture. Gallery previews are compressed to fit the bounded SQLite blueprint payload; use server-side Blender separately for high-quality production render output.
+
+**Drive world:** Parameters → `08 · Physics solver & camera` selects orbit, chase, cinematic, top or driver, optional terrain clearance, a delayed visual ghost, and panel auto-hide. Tools/Actions → Camera cycles with `C`, Upright restores a flipped car with `U`; in-camera free-orbit still works in `orbit` mode. The ghost is intentionally translucent playback of prior positions, not a second physical car.
+
+**Procedural vegetation:** Parameters → `09b · Instanced grass / shrubs / rocks`. The grass shader bends in wind and near the car, with one instanced draw call, bounded blade count and no per-blade JavaScript updates. Shrubs and rocks are visual scatter; to create **collidable** rocks, place them using Test map.
+
+**Drive test map:** Tools → Test map. Drag from a starting point to a destination on the overhead canvas after selecting a placement tool. `Hill` modifies terrain heightfield for every physics engine; `Puddle` contributes a water shader and grip/splash checks; solid obstacles have static collision descriptions reused by Cannon/Rapier/Ammo. Choose a named preset or save maps locally to IndexedDB. Export/import schema: `vehiclelab-testmap/v1`. Editing a map in DRIVE returns safely to BUILD before rebuilding the physics heightfield. The beam is static, not a torque-driven seesaw. Race-track racing barriers, multi-segment drawing, buoyancy research and tilting beam hinges remain next milestones.
+
+**UI accessibility:** accent-colored selected buttons use computed foreground ink, rather than hard-coded dark text. User profile/gallery endpoints and earlier private/public authorization rules are unchanged.
+
+## Outstanding production acceptance tests
+
+Test on actual HTTPS/WebGL hardware before deploying as a verified feature: wheel GLB imports using Draco/Meshopt, selection raycasts and rebuilt axle meshes, repeated BUILD ↔ DRIVE on Cannon/Rapier/Ammo, contact with each map obstacle, webcam/identity, public JPEG/PNG previews, browser viewport recovery after 5 captures, iOS/Android window dragging, profile backup recovery and WebXR headset teleport. This package has not been run with an external AI billing account and cannot confirm provider credit usage. Run server `python -m unittest discover -s tests -v` in the pinned Flask venv and watcher `--dry-run` before production installation.

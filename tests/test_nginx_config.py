@@ -85,3 +85,31 @@ class VehicleStudioRegressionTests(unittest.TestCase):
         self.assertIn('bpy.ops.export_scene.gltf', BLENDER_WORKER_SOURCE)
         self.assertIn('bpy.ops.render.render(write_still=True)', BLENDER_WORKER_SOURCE)
         self.assertIsInstance(check_blender() is None or bool(check_blender()), bool)
+
+class VehicleLab030RegressionTests(unittest.TestCase):
+    """Release-level wiring smoke checks (not a replacement for WebGL browser tests)."""
+    def setUp(self):
+        self.source=(Path(__file__).resolve().parents[1]/'index.html').read_text(encoding='utf-8')
+
+    def test_clickable_wheel_workbench_and_glb_decoder(self):
+        for text in ('wheelWindow', 'wheelAssetList', 'selectedWheelAxle',
+                     'wheelBodyModels', 'wheelCapModels', 'decodeGLB(',
+                     'wheelUpload', 'wheelCapUpload'):
+            self.assertIn(text,self.source)
+
+    def test_aerodynamics_and_outward_doors(self):
+        for text in ('frontRake','rearRake','roofWidth','gullwing','doorStyle'):
+            self.assertIn(text,self.source)
+
+    def test_gallery_render_and_map_persistence(self):
+        for text in ('galleryBackdrop', 'galleryExposure', 'captureVehicleGallery',
+                     'test-maps', 'buildCourse()', 'updateMinimapBackground',
+                     'vehiclelab-testmap/v1'):
+            self.assertIn(text,self.source)
+        self.assertNotIn("$('welcomeAvatarPreview')", self.source)
+
+    def test_drive_mode_cameras_ghost_and_recovery(self):
+        for text in ('CAMERA_MODES','cameraClearance','ghostMode',
+                     'ghostSamples', 'upright', 'hidePanelsForDrive',
+                     'restorePanelsAfterDrive'):
+            self.assertIn(text,self.source)

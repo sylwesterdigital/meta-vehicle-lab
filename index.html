@@ -5,7 +5,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Vehicle Lab — Procedural Studio</title>
-  <meta name="vehicle-lab-version" content="0.2.9">
+  <meta name="vehicle-lab-version" content="0.3.0">
   <style>
     :root {
       color-scheme:dark;
@@ -284,7 +284,28 @@
     .font-controls,.theme-generator{display:flex;align-items:center;gap:5px}
     .theme-generator button{min-height:32px}
     @media(max-width:700px){#paletteWindow{left:8vw;top:12vh;width:min(340px,84vw);height:55vh}}
- </style>
+     #mapWindow{left:390px;top:95px;width:370px;height:540px}
+    #terrainMini{width:100%;max-width:100%;aspect-ratio:1;touch-action:none;cursor:crosshair;border:1px solid var(--pane-border);border-radius:8px}
+    .map-top{display:flex;align-items:center;gap:6px;margin-bottom:7px}
+    .map-top input,.map-top select{flex:1;min-width:0;background:#132839;color:#f2f8fb;padding:7px;border-radius:6px}
+    .map-top label{flex:1;min-width:0;display:grid;gap:3px;font-size:10px}
+    #mapWindow .window-body>label{display:flex;align-items:center;gap:8px}
+    #mapWindow small{color:var(--muted);font-size:10px}
+    #wheelWindow{left:260px;top:130px;width:340px;height:465px}
+    .wheel-top{display:flex;justify-content:space-between;align-items:center;gap:8px}
+    .wheel-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px;margin:7px 0}
+    .wheel-style-card{padding:4px!important;display:grid;gap:2px;text-transform:capitalize;text-align:center;justify-items:center}
+    .wheel-style-card img{display:block;width:100%;max-width:78px;aspect-ratio:1}
+    .wheel-style-card[aria-pressed=true]{outline:2px solid var(--accent)}
+    .wheel-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;margin:10px 0}
+    .wheel-fields label{display:grid;gap:3px;font-size:11px}.wheel-fields input{width:100%;padding:6px;border-radius:5px;border:1px solid var(--pane-border)}
+    #wheelWindow textarea{width:100%;background:#142635;color:#edf8fa;border:1px solid var(--pane-border);border-radius:7px;padding:8px}
+    .wheel-asset-list{display:flex;flex-wrap:wrap;gap:5px;margin:6px 0}.wheel-asset-list button[aria-pressed=true]{outline:2px solid var(--accent)}
+    /* WCAG selection contrast: foreground is chosen from real accent luminance, never fixed dark ink. */
+  .pill-row button[aria-pressed="true"],.gallery-topline button[aria-pressed="true"],
+  button.active,button[aria-pressed="true"]{background:var(--accent)!important;color:var(--accent-ink,#0d1821)!important}
+  button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid var(--accent)!important;outline-offset:2px}
+</style>
 
  <script type="importmap">
   {
@@ -302,7 +323,7 @@
 
   <div id="stage">
   <div id="hud">
-    <div class="stage-badge"><strong>Vehicle Lab</strong><small>v0.2.7</small></div>
+    <div class="stage-badge"><strong>Vehicle Lab</strong><small>v0.3.0</small></div>
     <p id="vehicleName">City Car</p><p id="vehicleInfo">Procedural vehicle</p>
     <div id="speedHud"><strong id="speed">0</strong><div>km/h</div></div>
     <div id="physicsHud"><strong id="engineName">Cannon-es</strong> · <span id="physicsMode">BUILD</span>
@@ -314,7 +335,7 @@
     <div class="window-head"><strong>01 / Actions</strong><button class="mini-btn minimize" title="Minimize">−</button></div>
     <div class="window-body"><div class="actions">
       <button id="buildBtn" class="active">BUILD</button><button id="driveBtn">DRIVE</button><button id="undoBtn" title="Undo (Cmd/Ctrl+Z)">Undo</button><button id="redoBtn" title="Redo (Cmd/Ctrl+Shift+Z)">Redo</button>
-      <button id="rotateBtn">Rotation</button><button id="lightsBtn">Lights on</button>
+      <button id="cameraBtn" title="Cycle driving cameras (C)">Camera</button><button id="uprightBtn" title="Recover flipped car (U)">Upright</button><button id="rotateBtn">Rotation</button><button id="lightsBtn">Lights on</button>
       <button id="paletteBtn" title="Material palette">Materials</button><button id="saveBtn">Save</button><button id="serverSaveBtn">Save cloud</button>
       <button id="exportBtn">Export JSON</button><button id="importBtn">Import JSON</button><button id="shortcutsBtn" title="Keyboard shortcuts (⌘ /)">Shortcuts</button>
     </div></div>
@@ -322,7 +343,7 @@
   <section id="toolsWindow" class="float-window" aria-label="Vehicle tools">
     <div class="window-head"><strong>02 / Vehicle tools</strong><button class="mini-btn minimize" title="Minimize">−</button></div>
     <div class="window-body"><div id="boarding"><button type="button" id="openOccupants" title="Choose driver and passenger 3D models">Driver / passengers</button>
-      <button id="exitBtn">Exit −</button><button id="boardBtn">Board +</button><button id="doorsBtn">Open doors</button><button id="xrBtn" title="WebXR immersive VR">Enter XR</button><button id="xrSeatBtn" title="Teleport into the cabin (XR only)">Cabin</button>
+      <button id="exitBtn">Exit −</button><button id="boardBtn">Board +</button><button id="doorsBtn">Open doors</button><button id="wheelEditorBtn" title="Wheel styles / GLB models">Wheel workshop</button><button id="mapEditorBtn" title="Test track / obstacles / hills">Test map</button><button id="xrBtn" title="WebXR immersive VR">Enter XR</button><button id="xrSeatBtn" title="Teleport into the cabin (XR only)">Cabin</button>
     </div></div>
   </section>
   <section id="catalogWindow" class="float-window" aria-label="Vehicle library">
@@ -358,6 +379,40 @@
       <div class="palette-tools"><label>Body texture<select id="materialPattern"><option value="solid">Gloss / solid</option><option value="speckle">Speckle</option><option value="cloud">Cloud noise</option><option value="camo">Camo</option><option value="brushed">Brushed metal</option></select></label>
       <label>Seed<input id="materialSeed" type="number" min="0" max="99999" step="1" value="21"></label></div>
       <div class="drawer-actions"><button id="materialRandom">New palette</button><button id="materialReset">Reset colors</button></div>
+    </div>
+  </section>
+  <section id="mapWindow" class="float-window" aria-label="Drive test map editor" style="display:none">
+   <div class="window-head"><strong>09 / Drive test map</strong><button class="mini-btn minimize" title="Minimize">−</button></div>
+   <div class="window-body">
+    <div class="map-top"><input id="mapName" maxlength="90" placeholder="Course name" value="Open practice ground"><button type="button" id="mapCenter">Follow car</button></div>
+    <canvas id="terrainMini" width="320" height="320" aria-label="Editable topographic map. Drag to place obstacles or hills."></canvas>
+    <div class="map-top"><label>Tool<select id="mapTool"><option value="select">Pan / inspect</option><option value="hill">Draw hill</option><option value="puddle">Draw puddle</option><option value="cone">Traffic cone</option><option value="rock">Physical boulder</option><option value="barrier">Race barrier</option><option value="cube">Cube obstacle</option><option value="pyramid">Pyramid obstacle</option><option value="bridge">Raised bridge</option><option value="jump">Rally jump</option><option value="beam">Balance beam (static)</option></select></label>
+      <label>Footprint<select id="mapShape"><option value="ellipse">Oval</option><option value="circle">Circle</option><option value="square">Square</option><option value="line">Line</option></select></label></div>
+    <label>Height (m) <input id="mapHeight" type="range" min=".2" max="7" step=".1" value="2"><output id="mapHeightValue">2m</output></label>
+    <div class="drawer-actions"><button id="mapUndo">Remove last</button><button id="mapClear">Clear objects</button><button id="mapSave">Save map</button><button id="mapExport">Export JSON</button><button id="mapImport">Import JSON</button></div>
+    <div class="map-top"><select id="mapSaved" aria-label="Saved test map"><option>Loading maps...</option></select><button id="mapLoad">Load</button></div>
+    <small id="mapStatus">Draw on the map. Course obstacles have matching static physics colliders.</small>
+   </div>
+  </section>
+  <section id="wheelWindow" class="float-window" aria-label="Selected wheel editor" style="display:none">
+    <div class="window-head"><strong>08 / Wheel workshop</strong><button class="mini-btn minimize" title="Minimize">−</button></div>
+    <div class="window-body">
+      <div class="wheel-top"><strong id="wheelTargetTitle">Front wheel</strong><div class="pill-row" id="wheelAxleSwitch"><button data-axle="front">Front</button><button data-axle="rear">Rear</button></div></div>
+      <div class="wheel-grid" id="wheelStyles"></div>
+      <div class="wheel-fields"><label>Radius (m)<input id="wheelRadiusEdit" type="number" min=".12" max="1.8" step=".01"></label>
+        <label>Thickness (m)<input id="wheelThicknessEdit" type="number" min=".08" max="1.5" step=".01"></label>
+        <label>Lateral outset<input id="wheelOutsetEdit" type="number" min="-.5" max="1" step=".01"></label>
+        <label>Spoke count<input id="wheelSpokesEdit" type="number" min="3" max="32" step="1"></label>
+        <label>Sidewall<input id="wheelSidewallEdit" type="color"></label>
+        <label>Alloy<input id="wheelAlloyEdit" type="color"></label></div>
+      <div class="drawer-actions"><button type="button" id="wheelUpload">Import wheel GLB</button><button type="button" id="wheelCapUpload">Import optional cap GLB</button><button type="button" id="wheelRemove">Use procedural wheel</button></div>
+      <div id="wheelAssetList" class="wheel-asset-list"></div>
+      <details><summary>AI wheel asset pipeline</summary>
+        <p>Text/image → image provider → optional refinement → Lux3D or Tripo 3D. Paid generation requires confirmation in provider controls.</p>
+        <textarea id="wheelPrompt" rows="3" placeholder="Forged 10-spoke alloy rim, isolated wheel assembly, no vehicle"></textarea>
+        <div class="drawer-actions"><button type="button" id="wheelTextImage">Text → image</button><button type="button" id="wheelEditImage">Reference → refined image</button><button type="button" id="wheelImage3D">Image → Tripo 3D</button><button type="button" id="wheelLux3D">Lux3D generation</button></div>
+        <button type="button" id="wheelReferenceFile">Upload reference image</button>
+      </details>
     </div>
   </section>
   <section id="paramsWindow" class="float-window" aria-label="Vehicle parameters">
@@ -422,7 +477,7 @@
     <a class="lux-account" href="https://labs.aholo.ai/" target="_blank" rel="noopener noreferrer">Open Lux3D account / credits dashboard</a>
     <div class="lux-divider"></div>
     <form id="lux3dCreateForm">
-      <label>Component <select id="lux3dComponent"><option value="chassis">Car body shell (no wheels / tyres)</option><option value="bumper">Front bumper</option><option value="rear-bumper">Rear bumper</option><option value="headlight">Headlight assembly</option><option value="taillight">Rear light assembly</option></select></label>
+      <label>Component <select id="lux3dComponent"><option value="chassis">Car body shell (no wheels / tyres)</option><option value="bumper">Front bumper</option><option value="rear-bumper">Rear bumper</option><option value="headlight">Headlight assembly</option><option value="taillight">Rear light assembly</option><option value="wheel">Isolated wheel / tyre / alloy component</option></select></label>
       <label>Model <select id="lux3dModel"><option value="G1">G1 · high quality GLB + ZIP</option><option value="G1-Turbo">G1-Turbo · fast GLB</option></select></label>
       <label>Style <select id="lux3dStyle"><option value="photorealistic">Photorealistic</option><option value="cartoon">Cartoon</option><option value="hand_painted">Hand painted</option><option value="cyberpunk">Cyberpunk</option><option value="anime">Anime</option><option value="fantasy">Fantasy</option></select></label>
       <label>Design instructions <textarea id="lux3dPrompt" rows="4" maxlength="1000" placeholder="Aerodynamic compact hatchback shell with a low nose, muscular shoulders, and clean wheel arches."></textarea></label>
@@ -493,6 +548,9 @@
 <input id="importJSON" type="file" accept=".json" hidden>
 <input id="importGLB" type="file" accept=".glb" hidden>
 <input id="importPassenger" type="file" accept=".glb,model/gltf-binary" hidden>
+<input id="wheelGLBFile" type="file" accept=".glb,model/gltf-binary" hidden>
+<input id="wheelCapFile" type="file" accept=".glb,model/gltf-binary" hidden>
+<input id="mapImportFile" type="file" accept=".json,application/json" hidden>
 <input id="importImage" type="file" accept="image/png,image/jpeg,image/webp" hidden>
 <input id="profileBackupFile" type="file" accept=".json,application/json" hidden>
 <input id="themeFile" type="file" accept=".json,application/json" hidden>
@@ -588,10 +646,17 @@
    cloudCoverage:.48,windSpeed:.4,waterOpacity:.68,
    noiseScale:26,noiseOctaves:5,noiseLacunarity:2.02,noiseGain:.5,
    noiseWarp:.33,noiseContrast:1.25,noiseDetail:.24,
-   noiseTiling:2.2,terrainNormalStrength:.55,terrainTextureScale:.11
+   noiseTiling:2.2,terrainNormalStrength:.55,terrainTextureScale:.11,
+   frontRake:.64,rearRake:.42,roofWidth:.76,roofArch:.045,
+   doorStyle:'swing',galleryBackdrop:'studio',galleryBackdropColor:'#eff4fa',
+   galleryExposure:1.65,driveHidePanels:true,
+   grassDensity:8000,grassHeight:.25,shrubs:60,rocks:40,vegetationWind:.65,
+   courseName:'Open practice ground',courseObjects:[],ghostMode:'off',cameraMode:'orbit',cameraClearance:true
  };
 
  let cfg=structuredClone(defaults);
+let vegetationRoot=null,grassMaterial=null,courseRoot=null;
+const coursePhysicsBodies=[],courseSolidSpecs=[];
 // Pre-v0.2.7 IndexedDB and server layouts can lack wheel/texture properties.
 // lil-gui fails while creating a numeric controller for an absent property.
 function normalizeVehicleConfig(){
@@ -622,6 +687,8 @@ function normalizeVehicleConfig(){
  let mode='build',autoRotate=(()=>{try{return localStorage.getItem('vehiclelab.rotation.v1')!=='off'}catch{return true}})(),doorsOpen=false,braking=false;
  let car=null,bodyRoot=null,highlight=null;
  let wheels=[],doorHinges=[],partGroups={},passengerFigures=[];
+const wheelAssets=new Map();let selectedWheelAxle='front',wheelUploadKind='wheel';
+const wheelBodyModels={front:null,rear:null},wheelCapModels={front:null,rear:null};
  let passengerGLB=null,passengerSource=null,passengerName=null,passengerAnimations=[],passengerMixers=[];
 const occupantModels=new Map(),seatBindings={},avatarClips={},rigs=[];
 const avatarEdit={seat:1,model:'Procedural',sitting:'Auto',driving:'Auto',walking:'Auto',entering:'Auto',exiting:'Auto',openDoor:'Auto',closeDoor:'Auto'};
@@ -630,6 +697,8 @@ const outsideRigs=new Set();
 
  let headMaterials=[],brakeMaterials=[],headlights=[];
  let physics=null,previousYaw=null;
+const CAMERA_MODES=['orbit','chase','cinematic','top','driver'];let drivePanelVisibility=new Map();
+let ghostObject=null,ghostSamples=[],ghostElapsed=0,ghostTick=0;
  const ENGINE_LABELS={cannon:'Cannon-es',rapier:'Rapier (WASM)',ammo:'Ammo.js / Bullet'};
  const simulator={engine:'cannon',benchmarkSeconds:10};
  const telemetry={frames:0,frameTime:0,stepCount:0,stepMs:0,lastDisplay:0,history:[],active:null};
@@ -644,7 +713,7 @@ const outsideRigs=new Set();
  const serverAccess={token:''};
  let activeProfile=null,guestToken='',serverVisibility='private',adminLogToken='';
  const appEvents=[];
- const VERSION='0.2.9';
+ const VERSION='0.3.0';
  let imageReference=null,busyAI=false;
 
  // Keys remain in volatile memory. Never place credentials in a blueprint or IndexedDB.
@@ -686,7 +755,7 @@ xrTeleportMark.rotation.x=-Math.PI/2;xrTeleportMark.visible=false;scene.add(xrTe
 
 
  const renderer=new THREE.WebGLRenderer({
-   antialias:true,preserveDrawingBuffer:true
+   antialias:true,alpha:true,preserveDrawingBuffer:true
  });
  renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.7));
  renderer.xr.enabled=true;renderer.xr.setReferenceSpaceType('local-floor');
@@ -739,10 +808,17 @@ xrTeleportMark.rotation.x=-Math.PI/2;xrTeleportMark.visible=false;scene.add(xrTe
  ];
  function heightAt(x,z){
    const profile=cfg.terrainProfile||(cfg.hills?'hills':'flat');
-   if(profile==='flat')return 0;
+   let heightOffset=0;
+   for(const o of cfg.courseObjects||[]){if(o.kind!=='hill')continue;
+    const dx=(x-o.x)/Math.max(.4,(o.w||5)/2),dz=(z-o.z)/Math.max(.4,(o.d||5)/2);
+    const metric=o.shape==='square'?Math.max(Math.abs(dx),Math.abs(dz)):dx*dx+dz*dz;
+    const falloff=o.shape==='square'?Math.max(0,1-metric):Math.exp(-2.8*metric);
+    heightOffset=Math.max(heightOffset,(o.h||2)*falloff);
+   }
+   if(profile==='flat')return heightOffset;
    if(profile==='beach'){
      // Sloping shoreline: negative elevation towards positive world Z.
-     return .38- .042*z + .08*Math.sin(x*.17)*Math.cos(z*.11);
+     return .38- .042*z + .08*Math.sin(x*.17)*Math.cos(z*.11)+heightOffset;
    }
    let h=0;
    const size=profile==='extreme'?1.95:profile==='bumps'?.23:profile==='moon'?1.35:1;
@@ -762,7 +838,7 @@ xrTeleportMark.rotation.x=-Math.PI/2;xrTeleportMark.visible=false;scene.add(xrTe
      }
    }
    if(profile==='bumps')h+=.12*Math.sin(x*.38)*Math.cos(z*.35);
-   return h;
+   return h+heightOffset;
 }
 
 let terrain=null,terrainBody=null;
@@ -868,6 +944,7 @@ function terrainMaps(style='grass',seed=21){
 let waterPatches=[],waterUniforms=[],skyUniforms=null;
 const puddleCenters=[[7,-2,3,2],[-8,5,2.7,1.9],[15,13,3.8,2.5],[-13,-12,3,2.5],[22,-19,4,2.1],[-27,8,3,3],[-4,24,2,1.7],[26,21,2.5,1.8]];
 function puddleAt(x,z){if(!cfg.puddles||cfg.terrainProfile==='moon')return false;
+ if((cfg.courseObjects||[]).some(o=>o.kind==='puddle'&&((x-o.x)/Math.max(.2,o.w/2))**2+((z-o.z)/Math.max(.2,o.d/2))**2<1))return true;
  return puddleCenters.some(([px,pz,rx,rz])=>((x-px)/rx)**2+((z-pz)/rz)**2<.89)}
 const waterShader={
  vertexShader:`varying vec2 vUv;varying vec3 vWorld;uniform float uTime;uniform float uWaves;
@@ -936,13 +1013,118 @@ function updateEnvironment(){
   seaSurface=buildWaterMesh(new THREE.PlaneGeometry(SIZE*1.4,SIZE*1.4,80,80),0,cfg.waterLevel||0,0);
   waterPatches.push(seaSurface);seaSurface=null;
  }else if(cfg.puddles){
-  for(const [x,z,rx,rz] of puddleCenters){
+  for(const [x,z,rx,rz] of [...puddleCenters,...(cfg.courseObjects||[]).filter(o=>o.kind==='puddle').map(o=>[o.x,o.z,o.w/2,o.d/2])]){
    const mesh=buildWaterMesh(new THREE.CircleGeometry(1,64),x,heightAt(x,z)+.035,z,true);
    mesh.scale.set(rx,rz,1);waterPatches.push(mesh);
   }
  }
 }
 buildTerrain();
+
+
+// Course primitives: one immutable descriptor list drives Three.js visualization,
+// Cannon, Rapier and Ammo static collision shapes; not three separate maps.
+function courseSpecs(){
+ const solids=[];
+ const append=(o,w,h,d,dy=0,rot=0,dz=0)=>{
+  const x=o.x||0,z=(o.z||0)+dz;
+  solids.push({kind:o.kind,x,z,y:heightAt(x,z)+h/2+dy,w,h,d,
+   rx:rot,ry:(o.angle||0)*Math.PI/180,rz:0});
+ };
+ for(const o of cfg.courseObjects||[]){
+  const w=clamp(Number(o.w)||2,.25,18),d=clamp(Number(o.d)||2,.25,18),h=clamp(Number(o.h)||1,.2,7);
+  if(['hill','puddle'].includes(o.kind))continue;
+  if(o.kind==='bridge'){
+   append(o,w,.28,d,2.1);
+   append(o,w,.22,3,.88,-.25,-d*.5-1.5);
+   append(o,w,.22,3,.88,.25,d*.5+1.5);
+  }else if(o.kind==='jump')append(o,w,.30,d,Math.max(.2,h*.44),-Math.atan2(h,d)*.7);
+  else if(o.kind==='beam')append(o,Math.min(w,1.6),.25,Math.max(3,d),1.1);
+  else append(o,o.kind==='cone'?.4:w,o.kind==='cone'?.65:h,o.kind==='cone'?.4:d);
+ }
+ return solids;
+}
+function buildCourse(){
+ if(courseRoot){scene.remove(courseRoot);disposeTree(courseRoot)}
+ for(const body of coursePhysicsBodies)world.removeBody(body);coursePhysicsBodies.length=0;
+ courseRoot=new THREE.Group();courseRoot.name='Physical test course';scene.add(courseRoot);
+ courseSolidSpecs.splice(0,courseSolidSpecs.length,...courseSpecs());
+ for(const spec of courseSolidSpecs){
+  const o=cfg.courseObjects.find(c=>Math.abs((c.x||0)-spec.x)<.05&&c.kind===spec.kind)||{};
+  let geo;
+  if(spec.kind==='rock')geo=new THREE.DodecahedronGeometry(spec.w*.59,1);
+  else if(spec.kind==='cone')geo=new THREE.ConeGeometry(spec.w*.55,spec.h,10);
+  else if(spec.kind==='pyramid')geo=new THREE.ConeGeometry(spec.w*.65,spec.h,4);
+  else geo=new THREE.BoxGeometry(spec.w,spec.h,spec.d);
+  const colors={rock:0x7d8588,cone:0xe96224,barrier:0xf4f4ed,cube:0x718ca2,pyramid:0xc4a27e,bridge:0x6e8997,jump:0xa77850,beam:0xdfb878};
+  const mesh=new THREE.Mesh(geo,mat(colors[spec.kind]||0xbba98b,.02,.86));
+  mesh.position.set(spec.x,spec.y,spec.z);mesh.rotation.set(spec.rx,spec.ry,spec.rz);
+  mesh.castShadow=true;mesh.receiveShadow=true;courseRoot.add(mesh);
+  const body=new CANNON.Body({mass:0,position:new CANNON.Vec3(spec.x,spec.y,spec.z)});
+  const q=new THREE.Quaternion().setFromEuler(new THREE.Euler(spec.rx,spec.ry,spec.rz));
+  body.quaternion.set(q.x,q.y,q.z,q.w);
+  body.addShape(new CANNON.Box(new CANNON.Vec3(spec.w/2,spec.h/2,spec.d/2)));
+  world.addBody(body);coursePhysicsBodies.push(body);
+ }
+ updateMinimapBackground();
+}
+function buildVegetation(){
+ if(vegetationRoot){scene.remove(vegetationRoot);disposeTree(vegetationRoot)}
+ vegetationRoot=new THREE.Group();vegetationRoot.name='GPU instanced vegetation';scene.add(vegetationRoot);
+ grassMaterial=null;
+ const style=cfg.groundSurface||'grass';
+ if(!['grass','dirt','gravel'].includes(style)||cfg.terrainProfile==='moon')return;
+ const positions=[-.05,0,0,.05,0,0,0,1,0,0,1,0,0,0,-.05,0,0,.05,0,1,0];
+ // Double crossed low-poly blades. Shader deformation is per-instance on the GPU.
+ const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute([
+ -.08,0,0,.08,0,0,0,1,0, -.06,0,0,.06,0,0,0,1,0,
+ 0,0,-.08,0,0,.08,0,1,0, 0,0,-.06,0,0,.06,0,1,0
+ ],3));g.computeVertexNormals();
+ const uniform={uTime:{value:0},uWind:{value:cfg.vegetationWind||.65},uCar:{value:new THREE.Vector3(10000,0,10000)}};
+ const material=new THREE.ShaderMaterial({side:THREE.DoubleSide,uniforms:uniform,
+  vertexShader:`uniform float uTime,uWind;uniform vec3 uCar;varying float vHeight;varying float vInteraction;
+   void main(){vec4 local=vec4(position,1.);vec3 center=(modelMatrix*instanceMatrix*vec4(0.,0.,0.,1.)).xyz;
+    float dist=distance(center.xz,uCar.xz);
+    float flatten=1.-.74*(1.-smoothstep(1.4,3.6,dist));
+    float sway=(sin(uTime*1.6+center.x*.48+center.z*.17)+.43*sin(uTime*2.4+center.z*.72))*uWind;
+    local.x+=position.y*position.y*.13*sway;
+    local.y*=flatten;local.z+=position.y*position.y*.08*sway;
+    vInteraction=flatten;vHeight=position.y;
+    gl_Position=projectionMatrix*viewMatrix*modelMatrix*instanceMatrix*local;}`, 
+  fragmentShader:`varying float vHeight,vInteraction;void main(){vec3 dark=vec3(.085,.22,.072);vec3 light=vec3(.37,.61,.22);
+   vec3 color=mix(dark,light,clamp(vHeight*.68+.16,0.,1.));color*=.77+.23*vInteraction;
+   gl_FragColor=vec4(color,1.);}`});
+ const count=clamp(Math.round(cfg.grassDensity??8000),0,24000),batch=new THREE.InstancedMesh(g,material,count);
+ const object=new THREE.Object3D();let rendered=0;
+ for(let i=0;i<count*2&&rendered<count;i++){
+  const rx=hash(i*7,i*13,cfg.seed),rz=hash(i*11,i*23,cfg.seed+37);
+  const x=(rx-.5)*SIZE*.95,z=(rz-.5)*SIZE*.95;
+  if(cfg.terrainProfile==='beach'||(Math.abs(x)<4&&Math.abs(z)<8))continue;
+  const y=heightAt(x,z),base=(cfg.grassHeight||.25)*(.6+hash(i,29,cfg.seed));
+  object.position.set(x,y+.015,z);object.rotation.set(0,hash(i,i*23,cfg.seed)*Math.PI*2,0);
+  object.scale.set(.7+rx*.6,base,.7+rz*.6);object.updateMatrix();batch.setMatrixAt(rendered++,object.matrix);
+ }
+ batch.count=rendered;batch.instanceMatrix.needsUpdate=true;batch.frustumCulled=false;vegetationRoot.add(batch);grassMaterial=material;
+ const shrubN=clamp(Math.round(cfg.shrubs||0),0,450),rockN=clamp(Math.round(cfg.rocks||0),0,350);
+ const shrub=new THREE.InstancedMesh(new THREE.IcosahedronGeometry(1,1),mat(0x466a35,0,.92),shrubN);
+ const rocks=new THREE.InstancedMesh(new THREE.DodecahedronGeometry(1,0),mat(0x7b8583,.04,.9),rockN);
+ for(const [mesh,n,mode] of [[shrub,shrubN,'shrub'],[rocks,rockN,'rock']]){
+  for(let i=0;i<n;i++){
+   const x=(hash(i*19,i*11,cfg.seed+359)-.5)*SIZE*.89,z=(hash(i*17,i*13,cfg.seed+937)-.5)*SIZE*.89;
+   const radius=(mode==='shrub'?.45:.33)*(0.65+hash(i,8,cfg.seed));
+   object.position.set(x,heightAt(x,z)+radius*.7,z);object.scale.set(radius,radius*(mode==='shrub'?.85:.55),radius);
+   object.rotation.set(hash(i,32,17)*.12,hash(i,29,74)*Math.PI*2,0);object.updateMatrix();mesh.setMatrixAt(i,object.matrix);
+  }
+  mesh.instanceMatrix.needsUpdate=true;mesh.castShadow=false;mesh.receiveShadow=true;vegetationRoot.add(mesh);
+ }
+}
+function updateVegetation(dt){if(grassMaterial){grassMaterial.uniforms.uTime.value=performance.now()*.001;
+ grassMaterial.uniforms.uWind.value=cfg.vegetationWind??.65;
+ if(car)grassMaterial.uniforms.uCar.value.copy(car.position)}}
+function refreshEnvironmentForMap(){
+ if(mode==='drive')leaveDrive();buildTerrain();buildCourse();buildVegetation();clearTracks();
+ buildVehicle();scheduleHistory('Test map edit');
+}
 
 const grid=new THREE.GridHelper(180,90,0x61757f,0x314a57);
 grid.position.y=.06;
@@ -1218,10 +1400,36 @@ function human(parent,x,y,z){
  box(root,.10,.12,.26,dark,.08,.14,.1);
  return root;
 }
+function widthSafe(v){return clamp(Number(v)||.23,.08,1.5)}
+function addWheelCapVisual(root,prefix,r,width){
+ const model=wheelAssets.get(cfg[prefix+'CapModel']);if(!model?.source)return;
+ for(const sign of [-1,1]){
+  const clone=cloneSkeleton(model.source);clone.traverse(o=>o.userData.externalModel=true);
+  const bounds=new THREE.Box3().setFromObject(clone),d=bounds.getSize(new THREE.Vector3()),center=bounds.getCenter(new THREE.Vector3());
+  const s=Math.min(r*.96/Math.max(.001,d.y),r*.96/Math.max(.001,d.z));
+  clone.scale.set(.03/Math.max(.001,d.x),s,s);
+  clone.position.set(sign*(width*.52)-center.x*clone.scale.x,-center.y*s,-center.z*s);
+  root.add(clone);
+ }
+}
 // Wheel mesh is a reusable independent component. Cylindrical tire, sidewall,
 // spoke / disk / turbine rim and instanced 3-D tread all follow axle settings.
 function makeWheel(parent,x,y,z,r,axle=0){
- const root=new THREE.Group();root.name=`${axle===0?'Front':'Rear'} wheel`;root.position.set(x,y,z);parent.add(root);
+ const root=new THREE.Group();root.name=`${axle===0?'Front':'Rear'} wheel`;
+ root.position.set(x,y,z);root.userData.wheelAxle=axle===0?'front':'rear';parent.add(root);
+ const which=axle===0?'front':'rear';
+ const asset=wheelAssets.get(cfg[which+'WheelModel']);
+ if(asset?.source){
+  const visual=cloneSkeleton(asset.source);
+  visual.traverse(o=>o.userData.externalModel=true);
+  visual.rotation.y=(asset.rotation||0)*Math.PI/180;
+  const bounds=new THREE.Box3().setFromObject(visual),d=bounds.getSize(new THREE.Vector3()),c=bounds.getCenter(new THREE.Vector3());
+  visual.scale.set(widthSafe(cfg[which+'WheelWidth'])/Math.max(.001,d.x),2*r/Math.max(.001,d.y),2*r/Math.max(.001,d.z));
+  visual.position.set(-c.x*visual.scale.x,-c.y*visual.scale.y,-c.z*visual.scale.z);
+  root.add(visual);
+  addWheelCapVisual(root,which,r,cfg[which+'WheelWidth']);
+  return root;
+ }
  const prefix=axle===0?'front':'rear';
  const width=clamp(cfg[prefix+'WheelWidth'],.08,1.25);
  const rimStyle=cfg[prefix+'WheelStyle'];
@@ -1271,6 +1479,7 @@ function makeWheel(parent,x,y,z,r,axle=0){
   }
   tread.instanceMatrix.needsUpdate=true;tread.castShadow=true;root.add(tread);
  }
+ addWheelCapVisual(root,prefix,r,width);
  return root;
 }
 function equipment(parent,L,W,H,paint){
@@ -1434,7 +1643,7 @@ function updateSeatAnimations(dt){
  }
  const desired=doorsOpen?1:0;
  doorMotion=lerp(doorMotion,desired,1-Math.exp(-7*dt));
- for(const {hinge,side} of doorHinges)hinge.rotation.y=side*.95*doorMotion;
+ for(const {hinge,side,wing} of doorHinges){hinge.rotation.y=wing?0:-side*1.13*doorMotion;hinge.rotation.z=wing?side*1.15*doorMotion:0;}
  if(steeringWheel){const steer=inputForStep().steer||0;steeringWheel.rotation.z=lerp(steeringWheel.rotation.z,-steer*.55,1-Math.exp(-8*dt))}
 }
 
@@ -1484,30 +1693,80 @@ function updateSeatAnimations(dt){
 
   const cabin=part('cabin',L/2-a-b/2),cm=mods.cabin;
   const cw=W*cm.width,ch=H*cm.height,cd=b*cm.depth;
+  // Aerodynamic roof/windshield loft: bottom edges remain wide, the top is
+  // independently inset at both ends and tapered in X. +Z is the nose.
+  const roofTop=-.43+ch*.96,glassBase=-.43+ch*.41;
+  const roofHalf=cw*.5*cfg.roofWidth,bodyHalf=cw*.485;
+  const frontTop=cd*.48-clamp(cfg.frontRake,.03,Math.max(.05,cd*.48));
+  const rearTop=-cd*.48+clamp(cfg.rearRake,.03,Math.max(.05,cd*.48));
+  const frontBottom=cd*.48,rearBottom=-cd*.48;
+  const roofFront=Math.max(rearTop+.12,frontTop),roofBack=Math.min(roofFront-.12,rearTop);
+  const roofZ=()=>({front:roofFront,rear:roofBack});
   add(cabin,hull(cw,ch*.42,cd,'cabin',cm.radius),paint);
-  box(cabin,cw*.78,.10,cd*.95,paint,0,-.43+ch*.96,0);
+  const panel=(parent,corners,material,extrude=0)=>{
+    const pts=corners.map(q=>new THREE.Vector3(...q));
+    const geometry=new THREE.BufferGeometry();
+    const vertices=pts.flatMap(v=>v.toArray());
+    geometry.setAttribute('position',new THREE.Float32BufferAttribute(vertices,3));
+    geometry.setIndex([0,1,2,0,2,3]);geometry.computeVertexNormals();
+    return add(parent,geometry,material);
+  };
+  const Lf=[-bodyHalf,glassBase,frontBottom],Rf=[bodyHalf,glassBase,frontBottom];
+  const Lr=[-bodyHalf,glassBase,rearBottom],Rr=[bodyHalf,glassBase,rearBottom];
+  const Ltf=[-roofHalf,roofTop,roofFront],Rtf=[roofHalf,roofTop,roofFront];
+  const Ltr=[-roofHalf,roofTop,roofBack],Rtr=[roofHalf,roofTop,roofBack];
+  const frame=detailMaterial(cfg.trimColor,cfg.trimPattern,.44,.38);
+  panel(cabin,[Ltf,Rtf,Rtr,Ltr],paint);
+  panel(cabin,[Lf,Rf,Rtf,Ltf],glass);
+  if(cfg.rearWindow)panel(cabin,[Lr,Rr,Rtr,Ltr],glass);
+  else panel(cabin,[Lr,Rr,Rtr,Ltr],paint);
+  // Side glazing follows the narrowing roof rather than remaining vertical.
   for(const side of [-1,1]){
-    for(const z of [-cd*.43,cd*.43])
-     box(cabin,.065,ch*.5,.09,paint,side*cw*.38,-.43+ch*.67,z);
-   const ws=cd*.86/cfg.windows;
-   for(let i=0;i<cfg.windows;i++){
-     const z=-cd*.43+ws*(i+.5);
-     box(cabin,.025,ch*.34,ws*.9,glass,side*cw*.45,-.43+ch*.69,z);
+   const lo=side<0?[...Lr]:[...Rr],hi=side<0?[...Ltr]:[...Rtr];
+   const farLo=side<0?[...Lf]:[...Rf],farHi=side<0?[...Ltf]:[...Rtf];
+   const divisions=Math.max(1,Math.round(cfg.windows));
+   const margin=.013;
+   for(let i=0;i<divisions;i++){
+     const t0=(i+margin)/divisions,t1=(i+1-margin)/divisions;
+     const lerpArr=(a,b,t)=>a.map((v,j)=>lerp(v,b[j],t));
+     panel(cabin,[lerpArr(lo,farLo,t0),lerpArr(lo,farLo,t1),
+       lerpArr(hi,farHi,t1),lerpArr(hi,farHi,t0)],glass);
    }
-   const ds=cd*.86/cfg.doors;
-   for(let i=0;i<cfg.doors;i++){
-     const z=-cd*.43+ds*(i+.5);
-     const hinge=new THREE.Group();
-     hinge.position.set(side*cw*.48,-.13,z+ds*.43);
-     cabin.add(hinge);
-     box(hinge,.028,ch*.38,ds*.85,paint,0,0,-ds*.43);
-     box(hinge,.04,.035,.12,trim,side*.02,.06,-ds*.47);
-     doorHinges.push({hinge,side});
+   // Flush narrow pillars complete the continuous glazing outline.
+   for(let i=0;i<=divisions;i++){
+    const t=i/divisions;
+    const f=new THREE.Vector3(...lo).lerp(new THREE.Vector3(...farLo),t);
+    const to=new THREE.Vector3(...hi).lerp(new THREE.Vector3(...farHi),t);
+    const d=to.clone().sub(f),post=box(cabin,.035,d.length(),.042,frame);
+    post.position.copy(f).addScaledVector(d,.5);
+    post.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),d.normalize());
    }
- }
- box(cabin,cw*.74,ch*.34,.02,glass,0,-.43+ch*.69,cd*.485);
- if(cfg.rearWindow)box(cabin,cw*.72,ch*.31,.02,glass,
-  0,-.43+ch*.69,-cd*.485);
+   // Door skin is hinged on the FRONT edge (swing) or the ROOF edge (gullwing).
+   const number=Math.max(1,Math.round(cfg.doors)),step=cd*.86/number;
+   for(let i=0;i<number;i++){
+    const centerZ=-cd*.43+step*(i+.5);
+    const wing=cfg.doorStyle==='gullwing';
+    const hinge=new THREE.Group();
+    hinge.position.set(side*(wing?roofHalf:bodyHalf),wing?roofTop:glassBase*.5,centerZ+(wing?0:step*.42));
+    cabin.add(hinge);
+    if(wing){
+     const slab=box(hinge,.035,ch*.50,step*.88,paint,
+      side*(bodyHalf-roofHalf)*.5,-ch*.25,0);
+     slab.rotation.z=side*.10;
+    }else{
+     box(hinge,.035,ch*.43,step*.86,paint,0,-ch*.18,-step*.42);
+    }
+    box(hinge,.05,.032,.12,frame,side*.024,-ch*.17,wing?0:-step*.49);
+    doorHinges.push({hinge,side,wing});
+   }
+  }
+  // Lighting and thin A/C pillars make the rake visible in oblique views.
+  for(const [from,to] of [[Lf,Ltf],[Rf,Rtf],[Lr,Ltr],[Rr,Rtr]]){
+   const a=new THREE.Vector3(...from),b=new THREE.Vector3(...to),dir=b.clone().sub(a);
+   const post=box(cabin,.047,dir.length(),.05,frame);
+   post.position.copy(a).addScaledVector(dir,.5);
+   post.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),dir.normalize());
+  }
 
    const rear=part('rear',-L/2+c/2),rm=mods.rear;
  add(rear,hull(W*rm.width,H*.62*rm.height,c*rm.depth,'rear',rm.radius),paint);
@@ -1570,8 +1829,7 @@ for(let i=0;i<cfg.seats;i++){
   }
   figure.visible=seatPresence[i];passengerFigures.push(figure);
 }
-for(const {hinge,side} of doorHinges)
-  hinge.rotation.y=side*.95*doorMotion;
+for(const {hinge,side,wing} of doorHinges){hinge.rotation.y=wing?0:-side*1.13*doorMotion;hinge.rotation.z=wing?side*1.15*doorMotion:0;}
 addImportedModel();
 updateLights();
 
@@ -1617,20 +1875,91 @@ function resetCamera(){
 }
 function followCamera(dt){
  if(!car)return;
+ const modeCam=cfg.cameraMode||'orbit';
  const yaw=new THREE.Euler().setFromQuaternion(car.quaternion,'YXZ').y;
- if(previousYaw!==null){
-  let dy=yaw-previousYaw;
-  dy=Math.atan2(Math.sin(dy),Math.cos(dy));
-  const offset=camera.position.clone().sub(orbit.target);
-  offset.applyAxisAngle(new THREE.Vector3(0,1,0),dy);
-  camera.position.copy(orbit.target).add(offset);
+ const target=car.position.clone().add(new THREE.Vector3(0,cfg.H*.32,0));
+ const smoothing=1-Math.exp(-6*dt);
+ if(modeCam==='orbit'){
+  if(previousYaw!==null){let dy=Math.atan2(Math.sin(yaw-previousYaw),Math.cos(yaw-previousYaw));
+   const offset=camera.position.clone().sub(orbit.target);
+   offset.applyAxisAngle(new THREE.Vector3(0,1,0),dy);
+   camera.position.copy(orbit.target).add(offset)}
+  const old=orbit.target.clone();orbit.target.lerp(target,1-Math.exp(-10*dt));
+  camera.position.add(orbit.target.clone().sub(old));
+ }else{
+  let offset;
+  if(modeCam==='driver'){
+   offset=new THREE.Vector3(-cfg.W*.22,cfg.H*.38,cfg.L*.11);
+  }else if(modeCam==='top'){
+   offset=new THREE.Vector3(0,Math.max(cfg.L*2,10),.02);
+  }else if(modeCam==='cinematic'){
+   offset=new THREE.Vector3(cfg.W*2.1,Math.max(cfg.H*1.75,3.8),-cfg.L*2.3);
+  }else offset=new THREE.Vector3(0,Math.max(cfg.H*1.4,2.6),-Math.max(cfg.L*2.25,7));
+  offset.applyAxisAngle(new THREE.Vector3(0,1,0),yaw);
+  const requested=car.position.clone().add(offset);
+  if(cfg.cameraClearance&&modeCam!=='driver'){
+   // Sample the sightline against the same heightfield used by the physics scene.
+   // Raise an occluded camera with inertia rather than snapping through a hill.
+   for(let i=1;i<=14;i++){
+    const point=target.clone().lerp(requested,i/14);
+    requested.y=Math.max(requested.y,heightAt(point.x,point.z)+1.4+(i/14)*1.2);
+   }
+  }
+  camera.position.lerp(requested,smoothing);
+  orbit.target.lerp(modeCam==='driver'?car.position.clone().add(new THREE.Vector3(0,cfg.H*.43,cfg.L*.5).applyAxisAngle(new THREE.Vector3(0,1,0),yaw)):target,smoothing);
+ }
+ previousYaw=yaw;orbit.update();
 }
-previousYaw=yaw;
-const desired=car.position.clone().add(new THREE.Vector3(0,cfg.H*.33,0));
-const before=orbit.target.clone();
-orbit.target.lerp(desired,1-Math.exp(-10*dt));
-camera.position.add(orbit.target.clone().sub(before));
-orbit.update();
+function cycleCamera(){const i=CAMERA_MODES.indexOf(cfg.cameraMode);cfg.cameraMode=CAMERA_MODES[(i+1+CAMERA_MODES.length)%CAMERA_MODES.length];
+ note('Camera: '+cfg.cameraMode);scheduleHistory('Camera mode')}
+function resetUpright(){
+ if(mode!=='drive'||!physics){note('Enter DRIVE to reset a flipped vehicle.');return}
+ if(typeof physics.upright!=='function'){note('Upright recovery unavailable in this solver.',true);return}
+ physics.upright();note('Vehicle upright recovery applied.');
+}
+function makeGhost(){
+ if(ghostObject){scene.remove(ghostObject);ghostObject.traverse(o=>{if(o.isMesh&&o.material?.userData?.ghost)o.material.dispose()});ghostObject=null}
+ ghostSamples=[];ghostElapsed=0;ghostTick=0;
+ if(cfg.ghostMode==='off'||!car)return;
+ ghostObject=car.clone(true);ghostObject.name='Recorded ghost · visual only';
+ ghostObject.traverse(o=>{
+  if(o.isLight){o.visible=false;return}
+  if(o.isMesh){const old=Array.isArray(o.material)?o.material:[o.material];
+   const copies=old.filter(Boolean).map(m=>{const n=m.clone();n.userData.ghost=true;
+    n.transparent=true;n.opacity=cfg.ghostMode==='solid'?.72:.23;n.depthWrite=false;
+    n.wireframe=cfg.ghostMode==='wireframe';return n});
+   if(copies.length)o.material=Array.isArray(o.material)?copies:copies[0];
+  }
+ });scene.add(ghostObject);ghostObject.visible=false;
+}
+function recordGhost(dt){
+ if(!ghostObject||mode!=='drive'||!car)return;
+ ghostElapsed+=dt;ghostTick+=dt;
+ if(ghostTick>=1/20){ghostTick=0;ghostSamples.push({t:ghostElapsed,p:car.position.clone(),q:car.quaternion.clone()})}
+ while(ghostSamples.length&&ghostSamples[0].t<ghostElapsed-7)ghostSamples.shift();
+ const desired=ghostElapsed-3;
+ let first=null,second=null;
+ for(let i=0;i<ghostSamples.length;i++){
+  if(ghostSamples[i].t<=desired)first=ghostSamples[i];
+  if(ghostSamples[i].t>desired){second=ghostSamples[i];break}
+ }
+ if(!first){ghostObject.visible=false;return}
+ ghostObject.visible=true;ghostObject.position.copy(first.p);ghostObject.quaternion.copy(first.q);
+ if(second){const f=clamp((desired-first.t)/(second.t-first.t),0,1);
+  ghostObject.position.lerp(second.p,f);ghostObject.quaternion.slerp(second.q,f)}
+}
+const DRIVE_DEFAULT_VISIBLE=['toolbarWindow'];
+function hidePanelsForDrive(){
+ if(!cfg.driveHidePanels)return;
+ drivePanelVisibility=new Map();
+ for(const id of WINDOW_IDS){if(DRIVE_DEFAULT_VISIBLE.includes(id))continue;
+  const win=$(id),visible=id==='logWindow'?win.classList.contains('is-visible'):win.style.display!=='none';
+  drivePanelVisibility.set(id,visible);if(visible)setWindowVisible(id,false)
+ }
+}
+function restorePanelsAfterDrive(){
+ for(const [id,visible] of drivePanelVisibility){if(visible)setWindowVisible(id,true)}
+ drivePanelVisibility.clear();
 }
 
 // Engine-agnostic drive adapters. Physics engines use their own raycast
@@ -1681,6 +2010,11 @@ function makeCannonAdapter(){
    return chassis.velocity.dot(direction);
   },
   setMass:value=>{chassis.mass=value;chassis.updateMassProperties()},
+  upright:()=>{const q=new THREE.Quaternion(chassis.quaternion.x,chassis.quaternion.y,chassis.quaternion.z,chassis.quaternion.w);
+   const yaw=new THREE.Euler().setFromQuaternion(q,'YXZ').y;
+   chassis.quaternion.setFromAxisAngle(new CANNON.Vec3(0,1,0),yaw);
+   chassis.position.y=Math.max(chassis.position.y,heightAt(chassis.position.x,chassis.position.z)+cfg.H*.55+1);
+   chassis.angularVelocity.set(0,0,0);chassis.wakeUp();},
   step:(dt,input)=>{
    const power=input.throttle*input.power*surfaceGrip(chassis.position.x,chassis.position.z);
    for(let i=0;i<vehicle.wheelInfos.length;i++){
@@ -1731,6 +2065,10 @@ async function makeRapierAdapter(){
   const positions=new Float32Array(attr.array);
   const indices=new Uint32Array(terrain.geometry.index.array);
   rw.createCollider(R.ColliderDesc.trimesh(positions,indices).setFriction(.85));
+  for(const solid of courseSolidSpecs){const q=new THREE.Quaternion().setFromEuler(new THREE.Euler(solid.rx,solid.ry,solid.rz));
+   rw.createCollider(R.ColliderDesc.cuboid(solid.w/2,solid.h/2,solid.d/2)
+    .setTranslation(solid.x,solid.y,solid.z).setRotation({x:q.x,y:q.y,z:q.z,w:q.w}).setFriction(.93));}
+
   rw.integrationParameters.dt=FIXED_STEP;
   const desc=R.RigidBodyDesc.dynamic()
    .setTranslation(0,heightAt(0,0)+cfg.radius+.85,0)
@@ -1764,6 +2102,11 @@ async function makeRapierAdapter(){
       new THREE.Quaternion(q.x,q.y,q.z,q.w));
     return forward.x*v.x+forward.y*v.y+forward.z*v.z;
    },
+   upright:()=>{const q=chassis.rotation(),yaw=new THREE.Euler().setFromQuaternion(
+    new THREE.Quaternion(q.x,q.y,q.z,q.w),'YXZ').y;
+    chassis.setRotation({x:0,y:Math.sin(yaw/2),z:0,w:Math.cos(yaw/2)},true);
+    const p=chassis.translation();chassis.setTranslation({x:p.x,y:Math.max(p.y,heightAt(p.x,p.z)+cfg.H*.55+1),z:p.z},true);
+    chassis.setAngvel({x:0,y:0,z:0},true);},
    setMass:value=>{
     // Scale the same collider density, preserving geometry and center of mass.
     chassisCollider.setDensity(density*value/originalMass);
@@ -1857,6 +2200,16 @@ async function makeAmmoAdapter(){
   const zero=v(0,0,0);
   ground=own(new A.btRigidBody(own(new A.btRigidBodyConstructionInfo(0,gm,groundShape,zero))));
   dynamics.addRigidBody(ground);
+  const staticObstacles=[];
+  for(const solid of courseSolidSpecs){
+   const sc=own(new A.btBoxShape(v(solid.w/2,solid.h/2,solid.d/2)));
+   const t=own(new A.btTransform());t.setIdentity();t.setOrigin(v(solid.x,solid.y,solid.z));
+   const q=new THREE.Quaternion().setFromEuler(new THREE.Euler(solid.rx,solid.ry,solid.rz));
+   t.setRotation(own(new A.btQuaternion(q.x,q.y,q.z,q.w)));
+   const ms=own(new A.btDefaultMotionState(t));
+   const rb=own(new A.btRigidBody(own(new A.btRigidBodyConstructionInfo(0,ms,sc,v(0,0,0)))));
+   dynamics.addRigidBody(rb);staticObstacles.push(rb);
+  }
   const shape=own(new A.btBoxShape(v(cfg.W*.44,Math.max(.23,cfg.H*.24),cfg.L*.44)));
   const transform=own(new A.btTransform());transform.setIdentity();
   transform.setOrigin(v(0,heightAt(0,0)+cfg.radius+.85,0));
@@ -1890,6 +2243,13 @@ async function makeAmmoAdapter(){
     const q=rotation(),vel=velocity();
     const forward=new THREE.Vector3(0,0,1).applyQuaternion(new THREE.Quaternion(q.x(),q.y(),q.z(),q.w()));
     return forward.x*vel.x()+forward.y*vel.y()+forward.z*vel.z();
+   },
+   upright:()=>{const p=origin(),q=rotation();
+     const yaw=new THREE.Euler().setFromQuaternion(new THREE.Quaternion(q.x(),q.y(),q.z(),q.w()),'YXZ').y;
+     const t=chassis.getWorldTransform();
+     t.setRotation(own(new A.btQuaternion(0,Math.sin(yaw/2),0,Math.cos(yaw/2))));
+     t.setOrigin(v(p.x(),Math.max(p.y(),heightAt(p.x(),p.z())+cfg.H*.55+1),p.z()));
+     chassis.setWorldTransform(t);chassis.setAngularVelocity(v(0,0,0));chassis.activate();
    },
    setMass:value=>{
     if(Math.abs(value-latestMass)<1)return;
@@ -1926,6 +2286,7 @@ async function makeAmmoAdapter(){
    },
    destroy:()=>{
     dynamics.removeAction(rayVehicle);dynamics.removeRigidBody(chassis);dynamics.removeRigidBody(ground);
+    for(const body of staticObstacles)dynamics.removeRigidBody(body);
     for(const item of owned.reverse())try{A.destroy(item)}catch(e){console.warn('Ammo cleanup',e)}
    }
   };
@@ -1961,6 +2322,7 @@ async function enterDrive(){
   $('joystick').style.display='block';
   $('brake').style.display='block';
   orbit.autoRotate=false;
+  hidePanelsForDrive();makeGhost();
   if(highlight){highlight.dispose();scene.remove(highlight);highlight=null}
   for(const w of wheels)scene.attach(w);
   telemetry.stepCount=0;telemetry.stepMs=0;
@@ -1986,6 +2348,7 @@ function leaveDrive(){
  $('brake').style.display='none';
  $('speed').textContent='0';
  orbit.autoRotate=autoRotate;
+ if(ghostObject){scene.remove(ghostObject);ghostObject=null}restorePanelsAfterDrive();
  buildVehicle();preserveCameraOrbit();updatePhysicsHud();
  if(wheels.length!==cfg.axles*2)note('Vehicle axle mesh count mismatch after returning to BUILD.',true);
 }
@@ -2076,7 +2439,7 @@ function stepVehicle(dt){
  car.position.set(p.position.x,p.position.y,p.position.z);
  car.quaternion.set(p.rotation.x,p.rotation.y,p.rotation.z,p.rotation.w);
  physics.syncWheels();
- updateLights();followCamera(dt);
+ updateLights();followCamera(dt);recordGhost(dt);
  leaveWheelTracks(p,dt);
  if(cfg.waterEffect&&physics.getSpeed()>1.5){
   for(let i=0;i<wheels.length;i++){
@@ -2141,11 +2504,12 @@ let dbPromise=null;
 
 function database(){
  if(!dbPromise)dbPromise=new Promise((resolve,reject)=>{
-  const req=indexedDB.open(DB_NAME,2);
+  const req=indexedDB.open(DB_NAME,3);
   req.onupgradeneeded=()=>{
    if(!req.result.objectStoreNames.contains(STORE))
     req.result.createObjectStore(STORE,{keyPath:'id'});
    if(!req.result.objectStoreNames.contains(AVATAR_STORE))req.result.createObjectStore(AVATAR_STORE,{keyPath:'id'});
+   if(!req.result.objectStoreNames.contains('test-maps'))req.result.createObjectStore('test-maps',{keyPath:'id'});
 };
 req.onsuccess=()=>resolve(req.result);
 req.onerror=()=>reject(req.error);
@@ -2183,9 +2547,29 @@ async function parseAvatarAsset(data){
   occupantModels.set(data.id,{...data,source:gltf.scene,animations:gltf.animations||[]});
  }finally{URL.revokeObjectURL(url)}
 }
+async function parseWheelAsset(data){
+ const url=URL.createObjectURL(data.blob);
+ try{const result=await decodeGLB(url);
+  if(!result.scene||new THREE.Box3().setFromObject(result.scene).isEmpty())throw Error('Wheel GLB has no geometry');
+  wheelAssets.set(data.id,{...data,source:result.scene});
+ }finally{URL.revokeObjectURL(url)}
+}
+async function storeWheelAsset(file,kind){
+ if(!file||file.size>35*1024*1024||file.size<12)throw Error('Wheel GLB must be 12 bytes to 35 MB');
+ const magic=new TextDecoder().decode(new Uint8Array(await file.slice(0,4).arrayBuffer()));
+ if(magic!=='glTF')throw Error('Wheel asset must be a valid binary GLB');
+ const data={id:crypto.randomUUID(),name:file.name.slice(0,110),kind,blob:file,created:Date.now(),rotation:0};
+ await parseWheelAsset(data);await avatarStore('readwrite','put',data);
+ cfg[selectedWheelAxle+(kind==='cap'?'CapModel':'WheelModel')]=data.id;
+ if(mode==='drive')leaveDrive();buildVehicle();renderWheelStudio();scheduleHistory('Wheel model imported');
+ note('Imported '+kind+' GLB. Geometry fits selected axle radius and width.');
+}
 async function loadAvatarLibrary(){
  const saved=await avatarStore('readonly','getAll');
- for(const data of saved){try{await parseAvatarAsset(data)}catch(e){recordEvent('WARN','Avatar '+data.name+': '+e.message)}}
+ for(const data of saved){try{
+  if(data.kind==='wheel'||data.kind==='cap')await parseWheelAsset(data);
+  else await parseAvatarAsset(data);
+ }catch(e){recordEvent('WARN','3D asset '+data.name+': '+e.message)}}
  if(saved.length){setupGUI();buildVehicle()}
 }
  async function allLayouts(){
@@ -2216,53 +2600,76 @@ const PREVIEW_ANGLES=[
 function captureVehicleGallery(){
  if(mode==='drive')leaveDrive();
  if(!car)throw Error('No vehicle to capture');
- const width=288,height=192;
- const rt=new THREE.WebGLRenderTarget(width,height,{depthBuffer:true});
- const shot=new THREE.PerspectiveCamera(48,width/height,.05,240);
- const center=car.position.clone().add(new THREE.Vector3(0,cfg.H*.28,0));
- const distance=Math.max(cfg.L*1.35,cfg.W*2.8,cfg.H*2.7,5.5);
- const pixels=new Uint8Array(width*height*4),canvas=document.createElement('canvas');
- canvas.width=width;canvas.height=height;
- const ctx=canvas.getContext('2d'),image=ctx.createImageData(width,height);
- const hidden=[terrain,grid,highlight,skyDome,seaSurface,...waterPatches,trackMesh,splash].filter(Boolean);
+ const width=320,height=214;
+ const rt=new THREE.WebGLRenderTarget(width,height,{depthBuffer:true,format:THREE.RGBAFormat});
+ const shot=new THREE.PerspectiveCamera(40,width/height,.05,260);
+ const center=car.position.clone().add(new THREE.Vector3(0,cfg.H*.26,0));
+ const distance=Math.max(cfg.L*1.3,cfg.W*3.25,cfg.H*3.2,6.5);
+ const pixels=new Uint8Array(width*height*4);
+ const fg=document.createElement('canvas'),out=document.createElement('canvas');
+ fg.width=out.width=width;fg.height=out.height=height;
+ const fctx=fg.getContext('2d'),ctx=out.getContext('2d'),image=fctx.createImageData(width,height);
+ const hidden=[terrain,grid,highlight,skyDome,seaSurface,...waterPatches,trackMesh,splash,vegetationRoot,courseRoot,ghostObject].filter(Boolean);
  const oldVisibility=hidden.map(x=>x.visible),oldBackground=scene.background;
  const oldTarget=renderer.getRenderTarget(),images=[];
  const oldViewport=renderer.getViewport(new THREE.Vector4()).clone();
  const oldScissor=renderer.getScissor(new THREE.Vector4()).clone();
- const oldScissorTest=renderer.getScissorTest();
- const oldClear=renderer.autoClear;
+ const oldScissorTest=renderer.getScissorTest(),oldClear=renderer.autoClear;
+ const oldExposure=renderer.toneMappingExposure;
+ const key=new THREE.DirectionalLight(0xffffff,4.8),fill=new THREE.DirectionalLight(0xbedcff,2.5),hemi=new THREE.HemisphereLight(0xffffff,0x8290a2,2.7);
+ key.position.set(7,11,10);fill.position.set(-9,5,-7);
+ const oldClearColor=renderer.getClearColor(new THREE.Color()).clone(),oldClearAlpha=renderer.getClearAlpha();
  try{
-  hidden.forEach(x=>x.visible=false);scene.background=new THREE.Color('#304456');
+  hidden.forEach(x=>x.visible=false);
+  scene.background=null;scene.add(key,fill,hemi);
+  renderer.toneMappingExposure=clamp(cfg.galleryExposure||1.6,.6,3);
+  renderer.setClearColor(0x000000,0);
   for(const [label,coord] of PREVIEW_ANGLES){
    const v=new THREE.Vector3(...coord).normalize();
    shot.position.copy(center).addScaledVector(v,distance);
-   shot.up.set(0,1,0);
-   if(label==='Top')shot.up.set(0,0,-1);
+   shot.up.set(0,1,0);if(label==='Top')shot.up.set(0,0,-1);
    shot.lookAt(center);
    renderer.setRenderTarget(rt);renderer.setScissorTest(false);renderer.setViewport(0,0,width,height);
-   renderer.clear();renderer.render(scene,shot);
+   renderer.clear(true,true,true);renderer.render(scene,shot);
    renderer.readRenderTargetPixels(rt,0,0,width,height,pixels);
    for(let y=0;y<height;y++){
     const from=(height-y-1)*width*4,to=y*width*4;
     image.data.set(pixels.subarray(from,from+width*4),to);
    }
-   ctx.putImageData(image,0,0);
-   images.push({label,data:canvas.toDataURL('image/jpeg',.66)});
+   fctx.putImageData(image,0,0);ctx.clearRect(0,0,width,height);
+   const type=cfg.galleryBackdrop||'studio';
+   if(type==='solid'||type==='white'||type==='black'){
+    ctx.fillStyle=type==='white'?'#ffffff':type==='black'?'#000000':cfg.galleryBackdropColor||'#e7eff4';
+    ctx.fillRect(0,0,width,height);
+   }else if(type!=='transparent'){
+    const gradient=ctx.createLinearGradient(0,0,width,height);
+    if(type==='rainbow'){
+     for(let i=0;i<=6;i++)gradient.addColorStop(i/6,`hsl(${i*60},78%,${i%2?79:91}%)`);
+    }else if(type==='gradient'){
+     gradient.addColorStop(0,cfg.galleryBackdropColor||'#dfeefb');gradient.addColorStop(1,'#536d86');
+    }else{
+     gradient.addColorStop(0,'#ebf3fa');gradient.addColorStop(.52,'#94abbf');gradient.addColorStop(1,'#394f68');
+    }
+    ctx.fillStyle=gradient;ctx.fillRect(0,0,width,height);
+    if(type==='studio'){const glow=ctx.createRadialGradient(width*.52,height*.68,10,width*.52,height*.68,width*.8);
+     glow.addColorStop(0,'#ffffff8a');glow.addColorStop(1,'#ffffff00');ctx.fillStyle=glow;ctx.fillRect(0,0,width,height)}
+   }
+   ctx.drawImage(fg,0,0);
+   let data=out.toDataURL(type==='transparent'?'image/png':'image/jpeg',.72);
+   if(data.length>39000){const compact=document.createElement('canvas');compact.width=224;compact.height=150;
+    compact.getContext('2d').drawImage(out,0,0,224,150);
+    data=compact.toDataURL(type==='transparent'?'image/png':'image/jpeg',.59);
+   }
+   images.push({label,data});
   }
  }finally{
-  hidden.forEach((obj,i)=>obj.visible=oldVisibility[i]);
-  scene.background=oldBackground;
-  renderer.setRenderTarget(oldTarget);
-  renderer.setViewport(oldViewport);
-  renderer.setScissor(oldScissor);
-  renderer.setScissorTest(oldScissorTest);
-  renderer.autoClear=oldClear;
-  const viewportRect=$('stage').getBoundingClientRect();
-  if(viewportRect.width>1&&viewportRect.height>1){
-   renderer.setSize(viewportRect.width,viewportRect.height,false);
-   camera.aspect=viewportRect.width/viewportRect.height;camera.updateProjectionMatrix();
-  }
-  // A render target changes the viewport; resetting only the target leaves a 288x192 3D stage.
+  hidden.forEach((obj,i)=>obj.visible=oldVisibility[i]);scene.remove(key,fill,hemi);
+  scene.background=oldBackground;renderer.toneMappingExposure=oldExposure;
+  renderer.setRenderTarget(oldTarget);renderer.setViewport(oldViewport);
+  renderer.setScissor(oldScissor);renderer.setScissorTest(oldScissorTest);
+  renderer.setClearColor(oldClearColor,oldClearAlpha);renderer.autoClear=oldClear;
+  const rect=$('stage').getBoundingClientRect();
+  if(rect.width>1&&rect.height>1){renderer.setSize(rect.width,rect.height,false);camera.aspect=rect.width/rect.height;camera.updateProjectionMatrix()}
   rt.dispose();
  }
  return images;
@@ -2363,7 +2770,7 @@ if(item.passengerBlob){
  try{await loadPassengerGLB(item.passengerBlob,item.passengerModelName||'Occupant GLB',false)}
  catch(e){note('Occupant GLB unavailable: '+e.message,true)}
 }
-renderPresets();setupGUI();buildVehicle();preserveCameraOrbit();
+buildTerrain();buildCourse();buildVegetation();renderPresets();setupGUI();buildVehicle();preserveCameraOrbit();
 scheduleHistory('Loaded layout: '+item.name);note('Loaded layout: '+item.name);
 }
 // SQLite-backed Flask library. All credentials are kept in memory and sent
@@ -2741,7 +3148,7 @@ function restoreEditState(entry){
   Object.assign(avatarClips,entry.state.avatarClips||{});
   if('modelSource' in entry.state){modelSource=entry.state.modelSource;modelBlob=entry.state.modelBlob;modelName=entry.state.modelName;}
   if('passengerSource' in entry.state){passengerSource=entry.state.passengerSource;passengerGLB=entry.state.passengerGLB;passengerName=entry.state.passengerName;passengerAnimations=entry.state.passengerAnimations||[];}
-  buildTerrain();renderPresets();setupGUI();buildVehicle();preserveCameraOrbit();
+  buildTerrain();buildCourse();buildVegetation();renderPresets();setupGUI();buildVehicle();preserveCameraOrbit();
   updateRotationButton();updateLightsButton();refreshHistoryUI();
  }finally{replayingHistory=false}
 }
@@ -2802,6 +3209,12 @@ function setupGUI(){
  vehicleFolder.add(cfg,'doors',1,6,1).name('Doors / side').onChange(changed);
  vehicleFolder.add(cfg,'windows',1,14,1).name('Windows / side').onChange(changed);
  vehicleFolder.add(cfg,'rearWindow').name('Rear window').onChange(changed);
+ const aero=gui.addFolder('01b · Aerodynamic glazing / roof');
+ aero.add(cfg,'frontRake',.02,1.6,.01).name('Front windshield rake m').onChange(changed);
+ aero.add(cfg,'rearRake',.02,1.6,.01).name('Rear windshield rake m').onChange(changed);
+ aero.add(cfg,'roofWidth',.5,.98,.01).name('Upper cabin width ratio').onChange(changed);
+ aero.add(cfg,'doorStyle',['swing','gullwing']).name('Door opening type').onChange(changed);
+ aero.close();
  vehicleFolder.add(cfg,'engine',['electric','petrol','diesel','hybrid','hydrogen'])
  .name('Engine').onChange(changed);
  vehicleFolder.add(cfg,'drive',['FWD','RWD','AWD'])
@@ -2823,11 +3236,16 @@ function setupGUI(){
  appearance.add(cfg,'pattern',['solid','speckle','cloud','camo','brushed'])
  .name('Texture').onChange(changed);
  appearance.add(cfg,'seed',0,99999,1).name('Noise seed').onChange(changed);
+ const previewFolder=gui.addFolder('02b · Gallery render studio');
+ previewFolder.add(cfg,'galleryBackdrop',['studio','transparent','gradient','rainbow','solid','white','black']).name('Backdrop').onChange(()=>scheduleHistory('Preview style'));
+ previewFolder.addColor(cfg,'galleryBackdropColor').name('Backdrop color').onChange(()=>scheduleHistory('Preview color'));
+ previewFolder.add(cfg,'galleryExposure',.65,3,.05).name('Studio exposure').onChange(()=>scheduleHistory('Preview lighting'));
+ previewFolder.close();
  appearance.close();
  const noiseFolder=gui.addFolder('03 · Procedural noise / texture lab');
  const rebuildNoise=()=>{
   if(mode==='drive')leaveDrive();
-  textureCanvasCache.clear();buildTerrain();scheduleBuild();scheduleHistory('Procedural texture controls');
+  textureCanvasCache.clear();buildTerrain();buildCourse();buildVegetation();scheduleBuild();scheduleHistory('Procedural texture controls');
  };
  noiseFolder.add(cfg,'seed',0,999999,1).name('Seed').onFinishChange(rebuildNoise);
  noiseFolder.add(cfg,'noiseScale',4,180,1).name('Base feature scale').onFinishChange(rebuildNoise);
@@ -2874,6 +3292,7 @@ folder.close();
   folder.close();
  }
  wheelsFolder.add({colors:()=>openMaterialEditor('tireColor')},'colors').name('Tyre / rim materials');
+ wheelsFolder.add({studio:()=>{selectedWheelAxle='front';renderWheelStudio();setWindowVisible('wheelWindow',true)}},'studio').name('Open clickable wheel workshop');
  wheelsFolder.add(cfg,'axleFrontOffset',-1.6,1.6,.01).name('Front axle Z').onChange(changed);
  wheelsFolder.add(cfg,'axleRearOffset',-1.6,1.6,.01).name('Rear axle Z').onChange(changed);
  wheelsFolder.open();
@@ -2894,6 +3313,12 @@ const driving=gui.addFolder('08 · Physics solver & camera');
  driving.add({run:()=>startBenchmark()},'run').name('Run controlled drive test');
  driving.add({csv:exportBenchmarks},'csv').name('Export benchmark CSV');
 driving.add(cfg,'maxSpeed',15,180,5).name('Max speed km/h');
+ driving.add(cfg,'cameraMode',CAMERA_MODES).name('Drive camera mode').onChange(()=>{previousYaw=null;scheduleHistory('Camera mode')});
+ driving.add({cycle:cycleCamera},'cycle').name('Cycle cameras (C)');
+ driving.add(cfg,'cameraClearance').name('Terrain collision clearance').onChange(()=>scheduleHistory('Camera clearance'));
+ driving.add(cfg,'ghostMode',['off','transparent','wireframe','solid']).name('Recorded ghost / 3s').onChange(()=>{if(mode==='drive')makeGhost();scheduleHistory('Ghost')});
+ driving.add(cfg,'driveHidePanels').name('Hide editor panels on drive').onChange(()=>scheduleHistory('Drive panels'));
+ driving.add({recover:resetUpright},'recover').name('Recover upright (U)');
 driving.add(cfg,'cameraDistance',3,65,.5).name('Camera distance')
 .onChange(value=>{
  const direction=camera.position.clone().sub(orbit.target).normalize();
@@ -2904,10 +3329,10 @@ driving.add(cfg,'headlights').name('Headlights').onChange(()=>{
   updateLights();updateLightsButton();
 });
 const environment=gui.addFolder('09 · Terrain & sky');
- environment.add(cfg,'terrainProfile',['flat','bumps','hills','extreme','moon','beach']).name('Terrain').onChange(()=>{if(mode==='drive')leaveDrive();if(cfg.terrainProfile==='beach')cfg.groundSurface='sand';if(cfg.terrainProfile==='moon')cfg.groundSurface='moon';buildTerrain();clearTracks();buildVehicle();scheduleHistory('Terrain')});
- environment.add(cfg,'terrainSize',90,300,30).name('Terrain width').onFinishChange(()=>{if(mode==='drive')leaveDrive();buildTerrain();clearTracks();scheduleHistory('Terrain size')});
+ environment.add(cfg,'terrainProfile',['flat','bumps','hills','extreme','moon','beach']).name('Terrain').onChange(()=>{if(mode==='drive')leaveDrive();if(cfg.terrainProfile==='beach')cfg.groundSurface='sand';if(cfg.terrainProfile==='moon')cfg.groundSurface='moon';buildTerrain();buildCourse();buildVegetation();clearTracks();buildVehicle();scheduleHistory('Terrain')});
+ environment.add(cfg,'terrainSize',90,300,30).name('Terrain width').onFinishChange(()=>{if(mode==='drive')leaveDrive();buildTerrain();buildCourse();buildVegetation();clearTracks();scheduleHistory('Terrain size')});
  environment.add(cfg,'skyStyle',['solid','gradient','clouds','night']).name('Sky').onChange(()=>{updateEnvironment();scheduleHistory('Sky')});
- environment.add(cfg,'groundSurface',['asphalt','grass','dirt','gravel','sand','snow','moon']).name('Ground material').onChange(()=>{buildTerrain();clearTracks();scheduleHistory('Terrain texture')});
+ environment.add(cfg,'groundSurface',['asphalt','grass','dirt','gravel','sand','snow','moon']).name('Ground material').onChange(()=>{buildTerrain();buildCourse();buildVegetation();clearTracks();scheduleHistory('Terrain texture')});
  environment.add(cfg,'puddles').name('Puddles').onChange(()=>{updateEnvironment();scheduleHistory('Puddles')});
  environment.add(cfg,'waterLevel',-.9,1.2,.05).name('Sea level (m)').onChange(()=>{updateEnvironment();scheduleHistory('Sea level')});
  environment.add(cfg,'waterOpacity',.2,.95,.01).name('Water transparency').onChange(()=>{for(const u of waterUniforms)u.uOpacity.value=cfg.waterOpacity;scheduleHistory('Water opacity')});
@@ -2915,8 +3340,16 @@ const environment=gui.addFolder('09 · Terrain & sky');
  environment.add(cfg,'waterEffect').name('Water splashes').onChange(()=>scheduleHistory('Splashes'));
  environment.add(cfg,'cloudCoverage',0,1,.05).name('Cloud coverage').onChange(()=>scheduleHistory('Clouds'));
  environment.add(cfg,'windSpeed',0,2,.05).name('Cloud wind').onChange(()=>scheduleHistory('Wind'));
+ const flora=gui.addFolder('09b · Instanced grass / shrubs / rocks');
+ flora.add(cfg,'grassDensity',0,24000,500).name('Grass blade budget').onFinishChange(()=>{buildVegetation();scheduleHistory('Vegetation density')});
+ flora.add(cfg,'grassHeight',.05,1.1,.02).name('Grass height').onFinishChange(()=>{buildVegetation();scheduleHistory('Grass height')});
+ flora.add(cfg,'vegetationWind',0,2,.05).name('Grass sway').onChange(()=>scheduleHistory('Grass wind'));
+ flora.add(cfg,'shrubs',0,450,10).name('Instanced shrubs').onFinishChange(()=>{buildVegetation();scheduleHistory('Shrubs')});
+ flora.add(cfg,'rocks',0,350,10).name('Decoration stones').onFinishChange(()=>{buildVegetation();scheduleHistory('Stones')});
+ flora.close();
+ environment.add({map:()=>setWindowVisible('mapWindow',true)},'map').name('Open drive test map');
  environment.add({clearTracks},'clearTracks').name('Clear tyre tracks');
- environment.add({reset:()=>{cfg.terrainProfile='hills';cfg.skyStyle='gradient';cfg.terrainSize=180;buildTerrain();updateEnvironment();setupGUI();scheduleHistory('Terrain reset')}},'reset').name('Reset terrain');
+ environment.add({reset:()=>{cfg.terrainProfile='hills';cfg.skyStyle='gradient';cfg.terrainSize=180;buildTerrain();buildCourse();buildVegetation();updateEnvironment();setupGUI();scheduleHistory('Terrain reset')}},'reset').name('Reset terrain');
  environment.close();
 driving.add({resetCamera},'resetCamera').name('Reset camera');
 driving.open();
@@ -3069,7 +3502,7 @@ function choosePreset(p){
  layoutId=null;doorsOpen=false;
  serverLayoutId=null;serverRevision=null;serverAssetId=null;serverAssetBlob=null;
  catalogExpanded.add(p.category);
- renderPresets();setupGUI();buildVehicle();preserveCameraOrbit();
+ buildTerrain();buildCourse();buildVegetation();renderPresets();setupGUI();buildVehicle();preserveCameraOrbit();
  scheduleHistory('Selected preset: '+p.name);
 }
 
@@ -3244,7 +3677,8 @@ const clock=new THREE.Clock();
 function animate(){
  const frameDelta=clock.getDelta();
  const dt=Math.min(frameDelta,.05);
- for(const mixer of passengerMixers)mixer.update(dt);updateSeatAnimations(dt);tickEnvironment(dt);
+ if($('mapWindow').style.display!=='none'&&++mapFrame%7===0)drawMinimap();
+ for(const mixer of passengerMixers)mixer.update(dt);updateSeatAnimations(dt);tickEnvironment(dt);updateVegetation(dt);
  telemetry.frames++;
  telemetry.frameTime+=frameDelta;
  if(mode==='drive')stepVehicle(dt);
@@ -3267,9 +3701,174 @@ function animate(){
  }
 }
 
+
+// On-vehicle wheel selection and responsive wheel asset library.
+const wheelStylesAvailable=['alloy','mesh','turbine','steel','disc','beadlock'];
+const wheelRaycaster=new THREE.Raycaster(),wheelPointer=new THREE.Vector2();let pointerOrigin=null;
+renderer.domElement.addEventListener('pointerdown',e=>{if(e.button===0)pointerOrigin={x:e.clientX,y:e.clientY}},true);
+renderer.domElement.addEventListener('pointerup',e=>{
+ if(mode!=='build'||!pointerOrigin||Math.hypot(e.clientX-pointerOrigin.x,e.clientY-pointerOrigin.y)>7)return;
+ pointerOrigin=null;if(!car)return;
+ const r=renderer.domElement.getBoundingClientRect();
+ wheelPointer.set((e.clientX-r.left)/r.width*2-1,-((e.clientY-r.top)/r.height*2-1));
+ wheelRaycaster.setFromCamera(wheelPointer,camera);
+ for(const hit of wheelRaycaster.intersectObject(car,true)){
+  let n=hit.object;while(n&&n!==car&&!n.userData.wheelAxle)n=n.parent;
+  if(n?.userData.wheelAxle){selectedWheelAxle=n.userData.wheelAxle;renderWheelStudio();setWindowVisible('wheelWindow',true);return}
+ }
+},true);
+function wheelStyleSVG(style){
+ const spokes={alloy:8,mesh:16,turbine:10,steel:5,beadlock:8,disc:0}[style];
+ const lines=Array.from({length:spokes},(_,i)=>{const a=2*Math.PI*i/spokes,x=60+Math.sin(a)*29,y=60+Math.cos(a)*29;
+  return `<line x1="60" y1="60" x2="${x.toFixed(1)}" y2="${y.toFixed(1)}" stroke="#a9bbc5" stroke-width="${style==='mesh'?2.5:5}"/>`}).join('');
+ const svg=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120"><circle cx="60" cy="60" r="55" fill="#151a1f" stroke="#293741" stroke-width="5"/><circle cx="60" cy="60" r="40" fill="#33414e" stroke="#a5b8c6" stroke-width="4"/>${lines}<circle cx="60" cy="60" r="9" fill="#dbebf2"/></svg>`;
+ return 'data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svg);
+}
+function renderWheelStudio(){
+ const prefix=selectedWheelAxle;const target=$('wheelStyles');target.replaceChildren();
+ $('wheelTargetTitle').textContent=prefix==='front'?'Front wheels · selectable':'Rear wheels · selectable';
+ for(const button of $('wheelAxleSwitch').querySelectorAll('button'))button.setAttribute('aria-pressed',String(button.dataset.axle===prefix));
+ for(const style of wheelStylesAvailable){
+  const button=document.createElement('button');button.className='wheel-style-card';button.title=style;
+  button.setAttribute('aria-pressed',String(cfg[prefix+'WheelStyle']===style&&!cfg[prefix+'WheelModel']));
+  const img=document.createElement('img');img.alt=style+' wheel';img.src=wheelStyleSVG(style);
+  const name=document.createElement('small');name.textContent=style;
+  button.append(img,name);button.onclick=()=>{cfg[prefix+'WheelModel']=null;cfg[prefix+'WheelStyle']=style;
+   buildVehicle();renderWheelStudio();scheduleHistory('Wheel design '+style)};target.append(button);
+ }
+ for(const [id,value] of Object.entries({RadiusEdit:'WheelRadius',ThicknessEdit:'WheelWidth',OutsetEdit:'WheelOutset',SpokesEdit:'Spokes',SidewallEdit:'TireSidewall',AlloyEdit:'RimColor'})){
+  const elem=$('wheel'+id);elem.value=cfg[prefix+value];
+  elem.onchange=()=>{cfg[prefix+value]=elem.type==='color'?elem.value:Number(elem.value);
+   normalizeVehicleConfig();if(mode==='drive')leaveDrive();buildVehicle();setupGUI();scheduleHistory('Wheel geometry')};
+ }
+ const assets=$('wheelAssetList');assets.replaceChildren();
+ for(const [id,item] of wheelAssets){const button=document.createElement('button');
+  button.textContent=`${item.kind==='cap'?'CAP':'WHEEL'} · ${item.name}`;
+  button.setAttribute('aria-pressed',String(cfg[prefix+(item.kind==='cap'?'CapModel':'WheelModel')]===id));
+  button.onclick=()=>{cfg[prefix+(item.kind==='cap'?'CapModel':'WheelModel')]=id;
+   buildVehicle();renderWheelStudio();scheduleHistory('Selected wheel asset')};assets.append(button)}
+}
+for(const button of $('wheelAxleSwitch').querySelectorAll('button'))button.onclick=()=>{selectedWheelAxle=button.dataset.axle;renderWheelStudio()};
+$('wheelUpload').onclick=()=>$('wheelGLBFile').click();$('wheelCapUpload').onclick=()=>$('wheelCapFile').click();
+for(const [id,kind] of [['wheelGLBFile','wheel'],['wheelCapFile','cap']])$(id).onchange=async e=>{
+ try{await storeWheelAsset(e.target.files?.[0],kind)}catch(err){note(err.message,true)}finally{e.target.value=''}
+};
+$('wheelRemove').onclick=()=>{cfg[selectedWheelAxle+'WheelModel']=null;cfg[selectedWheelAxle+'CapModel']=null;
+ buildVehicle();renderWheelStudio();scheduleHistory('Restored procedural wheels')};
+$('wheelReferenceFile').onclick=()=>$('importImage').click();
+const wheelAiPrompt=()=>{ai.prompt=$('wheelPrompt').value.trim()||'Photorealistic isolated alloy wheel, studio product shot, clean white background';};
+$('wheelTextImage').onclick=()=>{wheelAiPrompt();void generateImage()};
+$('wheelEditImage').onclick=()=>{if(!imageReference){$('importImage').click();note('Select an image first; then run the refinement with a prompt.');return}
+ wheelAiPrompt();void generateImage()};
+$('wheelImage3D').onclick=()=>{wheelAiPrompt();void generateTripo()};
+$('wheelLux3D').onclick=()=>{wheelAiPrompt();showDrawer('config');$('lux3dSection').open=true;
+ $('lux3dPrompt').value=ai.prompt;$('lux3dComponent').value='wheel';$('lux3dSection').scrollIntoView({block:'start'})};
+
+
+// Map canvas: 2D topographic drawing, common descriptor format and IndexedDB gallery.
+const MAP_STORE='test-maps',courseCanvas=$('terrainMini'),courseContext=courseCanvas.getContext('2d');
+let courseCache=null,courseDrag=null,courseFollow=true;
+function worldMapPoint(e){const r=courseCanvas.getBoundingClientRect();
+ return {x:clamp((e.clientX-r.left)/r.width,0,1)*SIZE-SIZE/2,
+ z:clamp((e.clientY-r.top)/r.height,0,1)*SIZE-SIZE/2};}
+function mapScreen(x,z){return {x:(x/SIZE+.5)*courseCanvas.width,y:(z/SIZE+.5)*courseCanvas.height}}
+function updateMinimapBackground(){courseCache=null}
+function drawMinimap(){
+ if(!courseContext||!courseCanvas)return;
+ if(!courseCache){const off=document.createElement('canvas');off.width=off.height=128;
+  const c=off.getContext('2d'),image=c.createImageData(128,128);
+  for(let y=0;y<128;y++)for(let x=0;x<128;x++){
+   const wx=(x/127-.5)*SIZE,wz=(y/127-.5)*SIZE,h=heightAt(wx,wz);
+   const base=cfg.groundSurface==='sand'?[193,166,110]:cfg.groundSurface==='asphalt'?[72,81,90]:[63,113,77];
+   const strength=clamp(h/10,0,1);const p=(y*128+x)*4;
+   image.data[p]=base[0]+strength*80;image.data[p+1]=base[1]+strength*55;
+   image.data[p+2]=base[2]+strength*70;image.data[p+3]=255;
+  }c.putImageData(image,0,0);courseCache=off;
+ }
+ const c=courseContext,w=courseCanvas.width;c.clearRect(0,0,w,w);c.drawImage(courseCache,0,0,w,w);
+ for(const obj of cfg.courseObjects||[]){const center=mapScreen(obj.x,obj.z);
+  const rw=obj.w/SIZE*w,rh=obj.d/SIZE*w;
+  c.beginPath();c.ellipse(center.x,center.y,Math.max(3,rw/2),Math.max(3,rh/2),0,0,Math.PI*2);
+  c.fillStyle=obj.kind==='puddle'?'#207d9f9c':obj.kind==='hill'?'#d8bd73a8':'#d8e7f3c2';c.fill();
+  c.strokeStyle='#132d38';c.stroke();
+ }
+ if(car&&courseFollow){const point=mapScreen(car.position.x,car.position.z),yaw=new THREE.Euler().setFromQuaternion(car.quaternion,'YXZ').y;
+  c.save();c.translate(point.x,point.y);c.rotate(yaw);c.fillStyle='#ffe293';
+  c.beginPath();c.moveTo(0,9);c.lineTo(-6,-7);c.lineTo(6,-7);c.closePath();c.fill();c.restore();
+ }
+ if(courseDrag){const center=mapScreen((courseDrag.start.x+courseDrag.end.x)/2,(courseDrag.start.z+courseDrag.end.z)/2);
+  c.strokeStyle='#ffffff';c.lineWidth=2;c.setLineDash([5,3]);c.strokeRect(center.x-Math.abs(courseDrag.end.x-courseDrag.start.x)/SIZE*w/2,
+   center.y-Math.abs(courseDrag.end.z-courseDrag.start.z)/SIZE*w/2,
+   Math.abs(courseDrag.end.x-courseDrag.start.x)/SIZE*w,Math.abs(courseDrag.end.z-courseDrag.start.z)/SIZE*w);c.setLineDash([]);
+ }
+}
+function applyCourseDraw(a,b){
+ const kind=$('mapTool').value;if(kind==='select')return;
+ const w=Math.max(kind==='cone'?.6:1.5,Math.abs(b.x-a.x)),d=Math.max(kind==='cone'?.6:1.5,Math.abs(b.z-a.z));
+ const x=(a.x+b.x)/2,z=(a.z+b.z)/2,h=Number($('mapHeight').value)||2;
+ const o={id:crypto.randomUUID(),kind,x,z,w,d,h,shape:$('mapShape').value,angle:0};
+ if(kind==='barrier'||kind==='jump'||kind==='beam'){
+  if(w>d*1.5){o.angle=90;o.w=d;o.d=w}
+ }
+ if((cfg.courseObjects||[]).length>=140){note('Maximum 140 course objects.',true);return}
+ cfg.courseObjects.push(o);refreshEnvironmentForMap();
+ $('mapStatus').textContent=`Placed ${kind} at ${x.toFixed(1)}, ${z.toFixed(1)} · ${cfg.courseObjects.length} objects.`;
+}
+courseCanvas.addEventListener('pointerdown',e=>{if(e.button!==0)return;
+ courseDrag={start:worldMapPoint(e),end:worldMapPoint(e)};courseCanvas.setPointerCapture(e.pointerId);drawMinimap()});
+courseCanvas.addEventListener('pointermove',e=>{if(!courseDrag)return;courseDrag.end=worldMapPoint(e);drawMinimap()});
+courseCanvas.addEventListener('pointerup',e=>{if(!courseDrag)return;const {start}=courseDrag,end=worldMapPoint(e);
+ courseDrag=null;applyCourseDraw(start,end);drawMinimap()});
+courseCanvas.addEventListener('pointercancel',()=>courseDrag=null);
+$('mapHeight').oninput=e=>$('mapHeightValue').textContent=Number(e.target.value).toFixed(1)+'m';
+$('mapUndo').onclick=()=>{cfg.courseObjects.pop();refreshEnvironmentForMap()};
+$('mapClear').onclick=()=>{cfg.courseObjects=[];refreshEnvironmentForMap()};
+$('mapCenter').onclick=()=>{courseFollow=!courseFollow;$('mapStatus').textContent=courseFollow?'Vehicle indicator enabled':'Static map';drawMinimap()};
+async function mapTransaction(mode,method,value){const db=await database();return new Promise((resolve,reject)=>{
+ const q=db.transaction(MAP_STORE,mode).objectStore(MAP_STORE)[method](value);
+ q.onsuccess=()=>resolve(q.result);q.onerror=()=>reject(q.error)
+})}
+const testMapPresets={
+ 'Practice ground':[],
+ 'Rally jumps':[{kind:'jump',x:0,z:18,w:6,d:8,h:3},{kind:'cone',x:3,z:10,w:1,d:1,h:.8},{kind:'cone',x:-3,z:10,w:1,d:1,h:.8}],
+ 'Bridge & barriers':[{kind:'bridge',x:0,z:20,w:5,d:9,h:3},{kind:'barrier',x:8,z:18,w:1,d:7,h:1.2},{kind:'barrier',x:-8,z:18,w:1,d:7,h:1.2}],
+ 'Rocky hills':[{kind:'hill',x:18,z:12,w:28,d:24,h:5},{kind:'rock',x:-10,z:16,w:2,d:2,h:2},{kind:'rock',x:-14,z:22,w:1.5,d:1.5,h:1.3}],
+ 'Puddle slalom':Array.from({length:6},(_,i)=>({kind:i%2?'cone':'puddle',x:i%2?-4:4,z:-20+i*10,w:3,d:3,h:1}))
+};
+async function refreshMapList(){const list=$('mapSaved');list.replaceChildren();
+ for(const name of Object.keys(testMapPresets)){const o=new Option('Preset · '+name,'preset:'+name);list.add(o)}
+ const saved=await mapTransaction('readonly','getAll');for(const map of saved.sort((a,b)=>b.modified-a.modified))
+  list.add(new Option('Mine · '+map.name,map.id));
+}
+$('mapSave').onclick=async()=>{const name=$('mapName').value.trim().slice(0,90);
+ if(!name){note('Enter a map name.',true);return}
+ const id=crypto.randomUUID();await mapTransaction('readwrite','put',{id,name,objects:structuredClone(cfg.courseObjects),
+  terrain:cfg.terrainProfile,ground:cfg.groundSurface,modified:Date.now()});
+ await refreshMapList();$('mapSaved').value=id;note('Saved test map in IndexedDB.');
+};
+$('mapLoad').onclick=async()=>{const id=$('mapSaved').value;
+ const data=id.startsWith('preset:')?{name:id.slice(7),objects:testMapPresets[id.slice(7)]}:
+  await mapTransaction('readonly','get',id);
+ if(!data)return;cfg.courseName=data.name;cfg.courseObjects=structuredClone(data.objects||[]);
+ if(data.terrain)cfg.terrainProfile=data.terrain;if(data.ground)cfg.groundSurface=data.ground;
+ $('mapName').value=cfg.courseName;refreshEnvironmentForMap();note('Loaded test map: '+data.name);
+};
+$('mapExport').onclick=()=>download(JSON.stringify({schema:'vehiclelab-testmap/v1',name:$('mapName').value,
+ terrainProfile:cfg.terrainProfile,groundSurface:cfg.groundSurface,objects:cfg.courseObjects},null,2),
+ 'vehiclelab-testmap-'+new Date().toISOString().slice(0,10)+'.json','application/json');
+$('mapImport').onclick=()=>$('mapImportFile').click();
+$('mapImportFile').onchange=async e=>{try{const file=e.target.files?.[0];if(!file)return;
+ const data=JSON.parse(await file.text());if(data.schema!=='vehiclelab-testmap/v1'||!Array.isArray(data.objects)||data.objects.length>140)throw Error('Invalid map document');
+ for(const o of data.objects){if(!['hill','puddle','cone','rock','barrier','cube','pyramid','bridge','jump','beam'].includes(o.kind)||
+  !['x','z','w','d','h'].every(k=>Number.isFinite(o[k])&&Math.abs(o[k])<400))throw Error('Invalid map object');}
+ cfg.courseObjects=data.objects.map(o=>({...o}));cfg.courseName=String(data.name||'Imported').slice(0,90);
+ $('mapName').value=cfg.courseName;refreshEnvironmentForMap();note('Imported test map.');
+ }catch(error){note(error.message,true)}finally{e.target.value=''}};
+let mapFrame=0;
+
 // Workspace windows: pointer dragging + native CSS resize + minimize.
-const WINDOW_IDS=['toolbarWindow','toolsWindow','catalogWindow','galleryWindow','paramsWindow','logWindow','paletteWindow'];
-const WINDOW_NAMES=['Actions','Tools','Library','Gallery','Parameters','Logs','Materials'];
+const WINDOW_IDS=['toolbarWindow','toolsWindow','catalogWindow','galleryWindow','paramsWindow','logWindow','paletteWindow','wheelWindow','mapWindow'];
+const WINDOW_NAMES=['Actions','Tools','Library','Gallery','Parameters','Logs','Materials','Wheel workshop','Test map'];
 let highestZ=18;
 const safeStore=(name,value)=>{try{localStorage.setItem(name,value)}catch(e){}};
 const safeRead=name=>{try{return localStorage.getItem(name)}catch(e){return null}};
@@ -3367,7 +3966,7 @@ const fontNames={system:'System UI',mono:'Monospace',rounded:'Rounded'};
 const themeLabels={dark:'Midnight',light:'Studio light',graphite:'Graphite',amber:'Amber'};
 // Purely presentational buttons: icons do not alter action semantics.
 const ACTION_ICONS={
- buildBtn:'▣',driveBtn:'▶',undoBtn:'↶',redoBtn:'↷',rotateBtn:'⟳',lightsBtn:'☀',
+ cameraBtn:'◉',uprightBtn:'↥',buildBtn:'▣',driveBtn:'▶',undoBtn:'↶',redoBtn:'↷',rotateBtn:'⟳',lightsBtn:'☀',
  paletteBtn:'◈',saveBtn:'▾',serverSaveBtn:'☁',exportBtn:'⇩',importBtn:'⇧',shortcutsBtn:'⌘',
  exitBtn:'⇤',boardBtn:'⇥',doorsBtn:'◧',xrBtn:'⌁',xrSeatBtn:'⌂'
 };
@@ -3720,9 +4319,6 @@ $('welcomeForm').onsubmit=async e=>{
 };
 $('welcomeAvatar').onchange=e=>{
  const file=e.target.files?.[0];if(!file)return;
- $('welcomeAvatarPreview').hidden=false;
- const objectURL=URL.createObjectURL(file);$('welcomeAvatarPreview').src=objectURL;
- $('welcomeAvatarPreview').onload=()=>URL.revokeObjectURL(objectURL);
  capturedWelcomeAvatar=null;paintAvatarPreview('welcomePortrait',file);
 };
 $('profileEditForm').onsubmit=async e=>{
@@ -3818,7 +4414,7 @@ function gallerySelection(){
 }
 function galleryImage(images,index=0){
  const image=images?.[index];
- return image&&typeof image.data==='string'&&/^data:image\/jpeg;base64,/.test(image.data)?image.data:null;
+ return image&&typeof image.data==='string'&&/^data:image\/(?:jpeg|png);base64,/.test(image.data)?image.data:null;
 }
 
 function vehicleFallbackImage(item){
@@ -4045,6 +4641,7 @@ const lux3dComponentPrompts={
  chassis:'An aerodynamic passenger car exterior body shell without any wheels, tyres, axles or suspension; sculpted roof, wheel arches, windows and doors.',
  bumper:'A standalone front bumper for a modular passenger car, no whole car or wheels, clean attachment interface.',
  'rear-bumper':'A standalone rear bumper for a modular passenger car, no whole car or wheels, clean attachment interface.',
+ wheel:'An isolated automotive alloy wheel with tyre tread and realistic rim surface, no vehicle body, centered front three-quarter view.',
  headlight:'A single front headlamp assembly for a modular passenger car, transparent lens, accurate mounting points, no car body.',
  taillight:'A single red rear taillamp assembly for a modular passenger car, molded lens, accurate mounting points, no car body.'
 };
@@ -4125,7 +4722,7 @@ const SHORTCUTS=[
  ['Close dialog','Escape','close'],['Drive or exit drive','D','drive'],
  ['Reset camera to default','R','reset'],['Save locally','⌘/Ctrl + S','save'],
  ['Accelerate / reverse','↑ / ↓','drive'],['Steer','← / →','drive'],
- ['Brake','Space','drive'],['Orbit camera','Drag canvas','camera'],
+ ['Cycle drive cameras','C','camera'],['Upright recovery','U','drive'],['Brake','Space','drive'],['Orbit camera','Drag canvas','camera'],
  ['Zoom camera','Mouse wheel / pinch','camera'],['Open settings','Top-right cog','configuration'],
  ['Open profile','Top-right avatar','profile'],['Minimize window','− in title bar','workspace'],
  ['Resize window','Bottom-right grip','workspace'],['WebXR VR session','Enter XR in Tools','XR'],['XR teleport','Point controller and select','XR']
@@ -4162,11 +4759,18 @@ window.addEventListener('keydown',e=>{
  if(!modifier&&!e.altKey&&!e.shiftKey){
   if(e.code==='KeyD'){e.preventDefault();if(mode==='drive')leaveDrive();else void enterDrive()}
   if(e.code==='KeyR'){e.preventDefault();resetCamera()}
+  if(e.code==='KeyC'){e.preventDefault();cycleCamera()}
+  if(e.code==='KeyU'){e.preventDefault();resetUpright()}
  }
 });
 
+$('wheelEditorBtn').onclick=()=>{renderWheelStudio();setWindowVisible('wheelWindow',true)};
+$('mapEditorBtn').onclick=()=>setWindowVisible('mapWindow',true);
+$('cameraBtn').onclick=cycleCamera;$('uprightBtn').onclick=resetUpright;
 initWorkspace();initTheme();renderMaterialPalette();initReleaseHistory();
+ buildCourse();buildVegetation();
 void initIdentity();void refreshGallery();void refreshVehicleGallery();
+void refreshMapList().catch(e=>recordEvent('WARN','Map library: '+e.message));
 recordEvent('INFO','Vehicle Lab v'+VERSION+' initialized. Profile and backend status pending.');
 
 renderPresets();

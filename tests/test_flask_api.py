@@ -138,6 +138,22 @@ class Lux3DTests(unittest.TestCase):
         self.assertEqual(captured[0].get_method(),'POST')
         self.assertEqual(captured[1].get_method(),'GET')
 
+    def test_wheel_component_uses_isolated_glb_prompt(self):
+        from unittest.mock import patch
+        import json
+        captured=[]
+        def fake(req,timeout):
+            captured.append(json.loads(req.data))
+            return _FakeLuxResponse({'c':'0','d':8787878})
+        with patch('backend.app.urllib.request.urlopen',side_effect=fake):
+            result=self.client.post('/api/providers/lux3d/create',headers=self.headers,json={
+                'key':'wheel-test-secret','region':'international',
+                'prompt':'A forged performance alloy wheel with deep offset and mesh spokes',
+                'component':'wheel','style':'photorealistic','version':'G1-Turbo','spend_ack':True})
+        self.assertEqual(result.status_code,202,result.json)
+        self.assertIn('isolated automotive wheel',captured[0]['prompt'])
+        self.assertIn('without any car chassis',captured[0]['prompt'])
+
     def test_wrong_region_and_missing_profile_are_rejected(self):
         bad=self.client.post('/api/providers/lux3d/test',headers=self.headers,
             json={'key':'very-secret-test-key','region':'http://internal.invalid'})
