@@ -61,7 +61,7 @@ class VehicleStudioRegressionTests(unittest.TestCase):
             self.assertIn(name,self.source)
         self.assertIn('normalizeVehicleConfig();',self.source)
         self.assertIn('function makeWheel(',self.source)
-        self.assertIn('wheelsFolder.open();',self.source)
+        self.assertIn('wheelsFolder.close();',self.source)
 
     def test_physics_engines_and_driving_state(self):
         self.assertIn('makeRapierAdapter()',self.source)
@@ -259,3 +259,57 @@ class WheelUIContractTests(unittest.TestCase):
                'wheelGeneratedPreview','wheelStyles','wheelAISection']
         for name in names:
             self.assertEqual(len(re.findall(r'id="'+re.escape(name)+r'"',self.page)),1,name)
+
+class VehicleLab036RegressionTests(unittest.TestCase):
+    """Pure geometry and interface invariants; not a substitute for a GPU acceptance run."""
+    def setUp(self):
+        self.path=Path(__file__).resolve().parents[1]/'index.html'
+        self.source=self.path.read_text(encoding='utf-8')
+
+    def test_camera_and_control_wiring(self):
+        for snippet in ("'smart'", "'free'", 'function followCamera(dt)',
+                        'function resetDriveOrigin()', 'function autopilotInput()',
+                        'id="autopilotBtn"', 'id="resetOriginBtn"',
+                        'id="cameraModeReadout"'):
+            self.assertIn(snippet,self.source)
+        self.assertNotIn("'cinematic','top','driver'", self.source)
+
+    def test_live_parked_vehicle_physics_and_vehicle_wheels(self):
+        for snippet in ("physics:'dynamic'", 'function syncPhysicsObjectPose(',
+                        'for(const b of parkedBodies)', 'wheelSpinAngles[i]',
+                        'for(const o of movingCourse)', 'for(const o of dynamicCourse)',
+                        'if(x>0)visual.rotation.y+=Math.PI'):
+            self.assertIn(snippet,self.source)
+
+    def test_inspector_persistence_and_chassis_library(self):
+        for snippet in ('id="chassisWindow"', 'id="chassisAssets"',
+                        "data.kind==='chassis'", 'function createChassisPreview(',
+                        "for(const folder of gui.folders)folder.close()",
+                        'function syncCannonObstacle(o)', 'keepPanels.includes',
+                        "'objectWindow'", 'coursePointerTransform',
+                        'function updateNearGrass('):
+            self.assertIn(snippet,self.source)
+        self.assertIn('const height=Number.isFinite(o.y)?',self.source)
+
+    def test_bridge_group_preserves_y_and_rotates_ramps(self):
+        script=r'''
+const fs=require('fs');const assert=require('assert');
+const source=fs.readFileSync(process.argv[1],'utf8');
+function extract(name){let a=source.indexOf('function '+name+'(');assert(a>=0);
+ const start=source.indexOf('{',a);let depth=0;
+ for(let i=start;i<source.length;i++){if(source[i]==='{')depth++;else if(source[i]==='}'&&--depth===0)return source.slice(a,i+1)}
+ throw Error('Unclosed '+name);
+}
+const clamp=(x,a,b)=>Math.min(b,Math.max(a,x));
+const heightAt=(x,z)=>0;
+const cfg={courseObjects:[{id:'b',kind:'bridge',x:10,z:20,y:5,angle:90,w:6,d:8,h:3,
+ physics:'static',mass:35,friction:.8,bounce:.2},{id:'p',kind:'cube',x:0,z:0,y:-2,w:2,d:2,h:2}]};
+const func=new Function('cfg','heightAt','clamp',extract('courseSpecs')+'; return courseSpecs();');
+const specs=func(cfg,heightAt,clamp);
+assert.strictEqual(specs.length,4);
+assert(Math.abs(specs[0].y-5)<1e-6, 'bridge deck Y must not jump on edits');
+assert(Math.abs(specs[1].x-15.5)<1e-6,'bridge ramp position rotates with yaw');
+assert.strictEqual(specs[3].y,-2,'static object may sink below terrain');
+'''
+        process=subprocess.run(['node','-e',script,str(self.path)],capture_output=True,text=True,timeout=20)
+        self.assertEqual(process.returncode,0,process.stdout+process.stderr)

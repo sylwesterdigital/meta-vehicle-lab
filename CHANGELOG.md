@@ -1,3 +1,17 @@
+# v0.3.6 — camera controls, dynamic parked vehicles, object editing, chassis library (2026-11-09)
+
+- Add stationary/free camera, terrain-aware following camera with orbit+zoom and mode label; remove top camera. Restore full vehicle pose at world origin on demand.
+- Autopilot scripted oval/figure-eight/wander routes with manual interruption and bounded target area; not a navigation/obstacle-avoidance engine.
+- Give non-controlled scene vehicles true dynamic collider masses in Cannon, Rapier and Ammo and synchronize their poses after impacts. Only the selected car accepts input.
+- Correct wheel spin visual direction and flip right-side imported GLB wheel display; preserve solver suspension positions.
+- Chassis workshop: imported shell library with isolated GLB previews and IndexedDB persistence, procedural restoration, configurable rake and roof width.
+- Per-seat XYZ rig offsets and sitting clip priority; hollow floor / chassis sill for visible legroom.
+- Fix split server-log layout, lil-gui defaults, header hover and resize grips; preserve drive-map/inspector visibility after collider rebuilds; bridge parts selected as a group; cursor-based G/R/E transforms and Esc cancel.
+- GPU-instanced near-field grass with distant culling and configurable ground roughness.
+- No database migration. Offline validation only; physics simulations and avatar positions require real browser acceptance.
+
+---
+
 # v0.3.5 — wheel GLB previews, alignment and physics API correction (2026-11-09)
 
 - Fix Rapier initialization crash: use the documented `setIndexForwardAxis` setter rather than a getter-only property.

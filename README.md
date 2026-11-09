@@ -1,6 +1,6 @@
 # Vehicle Lab — procedural 3D vehicle studio
 
-**Version 0.3.4 (2026-11-09)**. Browser-native modular vehicle editor built with Three.js, lil-gui, three alternative physics engines, optional GLB imports, Flask and SQLite. Project: https://github.com/sylwesterdigital/meta-vehicle-lab. Website: https://vehiclelab.xyz/.
+**Version 0.3.6 (2026-11-09)**. Browser-native modular vehicle editor built with Three.js, lil-gui, three alternative physics engines, optional GLB imports, Flask and SQLite. Project: https://github.com/sylwesterdigital/meta-vehicle-lab. Website: https://vehiclelab.xyz/.
 
 This README deliberately contains the **About, Install, Roadmap, Ideas and LLM Handover** sections in a single allowed release file. The current watcher validates an exact 15-file manifest, so adding standalone documentation to a watcher release without first migrating its manifest schema would reject the ZIP. A separate optional documentation archive contains those sections as individual Markdown files.
 
@@ -8,7 +8,7 @@ This README deliberately contains the **About, Install, Roadmap, Ideas and LLM H
 
 Vehicle Lab is a prototype for procedurally assembling visually plausible city cars, buses, municipal vehicles, heavy trucks, construction equipment, agricultural machinery and warehouse vehicles from parameterized hull modules and equipment. Parameters cover width/height/depth/scale/rotation/offset, body materials, wheels, axles, doors/windows, passenger slots, engines and driving physics. Modules can later be transferred into a shared 3D world as an independent blueprint generator. This is **not** an engineering-grade physics simulator.
 
-## Features through v0.3.5
+## Features through v0.3.6
 
 - Full-size Three.js canvas. Draggable, resizable, minimizable actions/tools/catalog/gallery/parameters/log windows. Right-side configuration and profile drawers, custom theme/typography and text/icon button modes.
 - Circular uploaded/webcam profile picture, optional passwordless identity, bearer-secret JSON backup. Credentials must remain private. Public gallery is **opt-in**; private layouts remain owner-scoped.
@@ -18,6 +18,19 @@ Vehicle Lab is a prototype for procedurally assembling visually plausible city c
 - Mobile-friendly Save modal with metadata and five deterministic JPEG camera views. Local/cloud/public gallery with search, XL/M/S, edit/copy/delete and dock left/right/bottom. JSON/GLB exports include profile/vehicle/time/version in filenames.
 - Terrain profiles flat, bumps, hills, extreme, moon and beach, selectable tiled procedural ground maps (asphalt/grass/dirt/gravel/sand/snow/moon), FBM animated cloud/night shader, water shader, puddles, wheel marks, splashes, and **approximate water drag/buoyancy**. Water is not a fluid solver.
 - Local IndexedDB and private/public Flask/SQLite persistence, versioned release watcher, health endpoint and scoped logs.
+
+## v0.3.6 — camera, fleet collisions, chassis and spatial editing
+
+- New camera options: **Orbit follow, Smart terrain-aware orbit follow, Chase, Cinematic, Driver, Free/stationary**. During orbit-follow the user can rotate and zoom the camera. Smart mode lifts the camera above obstructing terrain with smoothing. The current camera mode is labeled on stage; the earlier fixed top camera is removed.
+- **Reset 0,0,0** repositions and reorients the active car and restarts the selected physics adapter if DRIVE was active. **Autopilot** (P) supports bounded oval, figure-eight and wandering *scripted routes*. Manual arrow control cancels autopilot. This is not pathfinding and cannot guarantee avoidance of every obstacle.
+- Parked vehicles now use mass-bearing dynamic collider bodies in Cannon-es, Rapier and Ammo, and their visual transforms are synchronized back. Only one car receives keyboard input at a time; multiple independent user drivers are not provided.
+- Visual wheels now roll in the direction of the vehicle's signed forward speed, with right-side imported wheel model facing corrected. Physics still owns wheel contact and suspension positions.
+- Imported GLB chassis shells have a dedicated workshop and persistent IndexedDB preview gallery, alongside front/rear glass-rake and roof-width controls. The existing procedural physics and independent wheels remain in place.
+- User-editable driver/passenger seat X/Y/Z offsets are stored in vehicle settings; sitting clips are prioritized over idle clips where available. The cabin floor is hollowed to leave legroom rather than filling the compartment with a solid block.
+- Bridges consist of one selectable scene group, while keeping three separate physics collider elements. The map and object inspector remain visible during drive-time physics rebuilds, and selected objects can be manipulated with pointer-driven G/R/E actions (click to confirm, Escape to cancel).
+- Logs use a fixed-height toolbar and full-height scrollable text. Window headers, minimize sizes, corner resize indicators and color controls have improved contrast/affordance. All lil-gui folders initialize closed; near-field grass is denser while far grass fragments are culled.
+
+**Verification:** static DOM/JavaScript tests and selected offline UI tests, plus the existing storage/deployment Python tests. Full Rapier/Ammo/Cannon contact behavior, terrain occlusion and GLB animation must still be verified in a live browser with CDN dependencies. Dynamic parked vehicles use box colliders, not full mesh collisions. API services and SQLite schema are unchanged.
 
 ## v0.3.5 interaction and scope notes
 
