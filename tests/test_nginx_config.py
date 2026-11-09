@@ -354,3 +354,23 @@ class ChassisImageTests(unittest.TestCase):
         self.assertIn("payload['images']=[{'image_url':reference}]",self.backend)
         self.assertIn("keys={meta:''",self.html)
         self.assertIn("id=\"wheelAIProvider\"",self.html)
+
+
+class VersionAndAvatarLimitsTests(unittest.TestCase):
+    def test_badge_meta_and_runtime_version_are_one_value(self):
+        root=Path(__file__).resolve().parents[1]
+        import json
+        version=json.loads((root/'version.json').read_text())['version']
+        html=(root/'index.html').read_text()
+        self.assertIn(f'<meta name="vehicle-lab-version" content="{version}">',html)
+        self.assertIn(f"const VERSION='{version}';",html)
+        self.assertIn("document.getElementById('appVersionBadge').textContent='v'+VERSION",html)
+        self.assertIn("{v:'"+version+"'",html)
+    def test_avatar_gui_maximum_is_two(self):
+        html=(Path(__file__).resolve().parents[1]/'index.html').read_text()
+        self.assertIn("passengerFolder.add(selectedAvatarAsset,'scale',.25,2,.01)",html)
+    def test_lux3d_creation_preflights_billed_image(self):
+        html=(Path(__file__).resolve().parents[1]/'index.html').read_text()
+        self.assertIn("'/api/providers/lux3d/optimize-reference'",html)
+        self.assertLess(html.index("'/api/providers/lux3d/optimize-reference'"),
+                        html.index("'/api/providers/lux3d/create'",html.index("const RELEASE_NOTES=[")))

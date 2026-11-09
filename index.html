@@ -5,7 +5,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Vehicle Lab — Procedural Studio</title>
-  <meta name="vehicle-lab-version" content="0.3.8">
+  <meta name="vehicle-lab-version" content="0.3.10">
   <style>
     :root {
       color-scheme:dark;
@@ -570,7 +570,7 @@
 
   <div id="stage">
   <div id="hud">
-    <div class="stage-badge"><strong>Vehicle Lab</strong><small>v0.3.7</small></div>
+    <div class="stage-badge"><strong>Vehicle Lab</strong><small id="appVersionBadge">v0.3.9</small></div>
     <p id="vehicleName">City Car</p><p id="vehicleInfo">Procedural vehicle</p>
     <div id="speedHud"><strong id="speed">0</strong><div>km/h</div></div>
     <div id="cameraModeReadout" style="padding:3px 6px;margin-top:4px;width:max-content;max-width:260px;border-radius:5px;background:#132d3cc0;color:#e9f5fc;font:10px ui-monospace,monospace">Camera · Orbit follow</div>
@@ -1124,7 +1124,8 @@ let ghostObject=null,ghostSamples=[],ghostElapsed=0,ghostTick=0;
  const serverAccess={token:''};
  let activeProfile=null,guestToken='',serverVisibility='private',adminLogToken='';
  const appEvents=[];
- const VERSION='0.3.8';
+ const VERSION='0.3.10';
+ document.getElementById('appVersionBadge').textContent='v'+VERSION;
  let imageReference=null,busyAI=false;
 
  // Keys remain in volatile memory. Never place credentials in a blueprint or IndexedDB.
@@ -4592,7 +4593,7 @@ if(selectedAvatarAsset){
    const rig=rigs[avatarEdit.seat-1];if(rig){rig.activeAction?.stop();rig.activeAction=null;chooseRigAction(rig,rig.state)}scheduleHistory('Clip mapping');
   });
  }
- passengerFolder.add(selectedAvatarAsset,'scale',.25,1.6,.01).name('Avatar scale').onFinishChange(()=>{
+ passengerFolder.add(selectedAvatarAsset,'scale',.25,2,.01).name('Avatar scale').onFinishChange(()=>{
   void avatarStore('readwrite','put',{id:selectedAvatarAsset.id,name:selectedAvatarAsset.name,blob:selectedAvatarAsset.blob,scale:selectedAvatarAsset.scale,created:selectedAvatarAsset.created});
   buildVehicle();scheduleHistory('Avatar scale');
  });
@@ -6495,6 +6496,20 @@ $('galleryRefreshBtn').onclick=refreshGallery;
 $('layoutPublic').onchange=()=>{serverVisibility=$('layoutPublic').checked?'public':'private'};
 
 const RELEASE_NOTES=[
+ {v:'0.3.10',date:'2026-11-09',title:'Oversized AI references optimized safely and avatar scale 2.0',items:[
+  'Raised imported avatar scale control to 2.0.',
+  'Large image-model PNG/JPEG/WebP references are resized and JPEG/WebP quantized by Vehicle Lab Python/Pillow before Lux3D submits a charged task.',
+  'The optimized image replaces the source in the preview; unsupported or uncompressible files produce an error without invoking Lux3D.',
+  'Release badge and version metadata verified together.'
+ ]},
+ {v:'0.3.9',date:'2026-11-09',title:'Release badge synced with application version',items:[
+  'Fixed the hardcoded version label so the badge uses the same VERSION constant as the release overlay and current app.',
+  'Corrected the missing v0.3.8 release note in the in-app history; no vehicle, profile or database changes.'
+ ]},
+ {v:'0.3.8',date:'2026-11-09',title:'Meta Muse Image and AI Chassis Workshop',items:[
+  'Meta Muse Image generation and reference-guided editing plus chassis prompts, references, and previews.',
+  'In-workshop Lux3D image-to-3D task creation with user authorization and imported GLB replacements.'
+ ]},
  {v:'0.3.7',date:'2026-11-09',title:'Smooth camera following and stable streamed grass',items:[
   'Fixed orbit-follow camera translation: target and camera now move together with preserved mouse/touch orbit angle and zoom.',
   'Interpolated vehicle/wheel visuals between physics steps to reduce 60 FPS micro-jitter.',
@@ -6678,12 +6693,24 @@ $('lux3dCreateForm').onsubmit=async e=>{
  const description=$('lux3dPrompt').value.trim();
  const prompt=(lux3dComponentPrompts[component]||lux3dComponentPrompts.chassis)+' '+description;
  if($('lux3dUseReference').checked&&!imageReference){$('lux3dTaskStatus').textContent='Capture or upload a reference before generating.';return;}
- const reference=$('lux3dUseReference').checked?imageReference:null;
+ let reference=$('lux3dUseReference').checked?imageReference:null;
  const submit=$('lux3dGenerate');submit.disabled=true;busyAI=true;
- $('lux3dTaskStatus').textContent='Submitting potentially billable Lux3D task…';
+ $('lux3dTaskStatus').textContent=reference?'Validating 3D reference (no credits used)…':'Submitting potentially billable Lux3D task…';
  $('lux3dDownloads').hidden=true;$('lux3dDownloads').replaceChildren();
   $('lux3dImportResult').hidden=true;lux3dCompleted=null;
  try{
+  if(reference && reference.length>2*1024*1024-4096){
+   const original=reference;
+   const prepared=await lux3dPost('/api/providers/lux3d/optimize-reference',{reference_image:reference});
+   reference=prepared.reference_image;
+   if(imageReference===original)imageReference=reference;
+   if(chassisConceptImage===original)chassisConceptImage=reference;
+   if($('wheelGeneratedPreview').src===original)$('wheelGeneratedPreview').src=reference;
+   updateLuxReferencePreview('Lux3D-ready '+prepared.width+'×'+prepared.height+' · '+(prepared.output_bytes/1048576).toFixed(2)+' MiB');
+   syncChassisPreview('Optimized reference ready for Lux3D (before paid task).');
+   note('Lux3D reference optimized locally on Vehicle Lab server: '+(prepared.original_bytes/1048576).toFixed(2)+' → '+(prepared.output_bytes/1048576).toFixed(2)+' MiB.');
+  }
+  $('lux3dTaskStatus').textContent='Submitting authorized Lux3D task…';
   const task=await lux3dPost('/api/providers/lux3d/create',{key,region:$('lux3dRegion').value,
    prompt,component,style:$('lux3dStyle').value,version:$('lux3dModel').value,reference_image:reference,
    spend_ack:true});

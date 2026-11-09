@@ -1,8 +1,15 @@
 # Vehicle Lab — procedural 3D vehicle studio
 
-**Version 0.3.8 (2026-11-09)**. Browser-native modular vehicle editor built with Three.js, lil-gui, three alternative physics engines, optional GLB imports, Flask and SQLite. Project: https://github.com/sylwesterdigital/meta-vehicle-lab. Website: https://vehiclelab.xyz/.
+**Version 0.3.10 (2026-11-09)**. Browser-native modular vehicle editor built with Three.js, lil-gui, three alternative physics engines, optional GLB imports, Flask and SQLite. Project: https://github.com/sylwesterdigital/meta-vehicle-lab. Website: https://vehiclelab.xyz/.
 
 This README deliberately contains the **About, Install, Roadmap, Ideas and LLM Handover** sections in a single allowed release file. The current watcher validates an exact 15-file manifest, so adding standalone documentation to a watcher release without first migrating its manifest schema would reject the ZIP. A separate optional documentation archive contains those sections as individual Markdown files.
+
+## v0.3.10 — image-reference normalization and avatar scale
+
+- Imported rigged avatar scale control now extends from 0.25 to 2.00.
+- Lux3D image-to-3D uses a no-charge, profile-authenticated Pillow preflight for references larger than 2 MiB. High-resolution AI-generated PNGs can be compressed using JPEG quality quantization and progressive downscaling; transparent images use WebP when available. The compressed file is previewed before submitting the already-authorized potentially billable task. The backend independently validates/normalizes every Lux3D create request.
+- No reference images, API keys, or temporary image files are stored in SQLite or application logs by this conversion. Source must be PNG/JPEG/WebP, at most 20 MiB encoded and 24 megapixels. Images unable to fit under 2 MiB are rejected before the provider call. This does not increase the Lux3D service's image-size limits.
+- The app meta tag, runtime version badge, release notes and version.json must equal the versioned ZIP manifest.
 
 ## About / product scope
 
@@ -66,9 +73,9 @@ Vehicle Lab is a prototype for procedurally assembling visually plausible city c
 
 ## Run / install
 
-Place exactly **`META_VEHICLE_LAB_UPDATE_v0.3.7.zip`** in:
+Place exactly **`META_VEHICLE_LAB_UPDATE_v0.3.10.zip`** in:
 
-`/Users/smielniczuk/Documents/works/meta-vehicle-lab/updates/META_VEHICLE_LAB_UPDATE_v0.3.7.zip`
+`/Users/smielniczuk/Documents/works/meta-vehicle-lab/updates/META_VEHICLE_LAB_UPDATE_v0.3.10.zip`
 
 From repository root:
 

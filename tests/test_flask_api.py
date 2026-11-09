@@ -160,6 +160,38 @@ class Lux3DTests(unittest.TestCase):
         self.assertIn('/global/lux3d/v1/generate/task/list?',captured[0].full_url)
         self.assertNotIn('very-secret-test-key',str(response.json))
 
+    def test_large_ai_reference_preflight_and_safe_generation(self):
+        import base64,io,json,random
+        from PIL import Image
+        from unittest.mock import patch
+        rng=random.Random(9)
+        source=Image.frombytes('RGB',(900,900),rng.randbytes(900*900*3))
+        buffer=io.BytesIO();source.save(buffer,format='PNG')
+        reference='data:image/png;base64,'+base64.b64encode(buffer.getvalue()).decode()
+        self.assertGreater(len(reference),2*1024*1024)
+        without_auth=self.client.post('/api/providers/lux3d/optimize-reference',json={'reference_image':reference})
+        self.assertEqual(without_auth.status_code,401)
+        with patch('backend.app.urllib.request.urlopen') as upstream:
+            preflight=self.client.post('/api/providers/lux3d/optimize-reference',
+                headers=self.headers,json={'reference_image':reference})
+            self.assertEqual(preflight.status_code,200,preflight.json)
+            self.assertTrue(preflight.json['optimized'])
+            self.assertLess(len(preflight.json['reference_image']),2*1024*1024)
+            upstream.assert_not_called()  # No provider charges in preflight.
+        captured=[]
+        def fake(req,timeout):
+            captured.append(json.loads(req.data))
+            return _FakeLuxResponse({'c':'0','d':11223344})
+        with patch('backend.app.urllib.request.urlopen',side_effect=fake):
+            response=self.client.post('/api/providers/lux3d/create',headers=self.headers,json={
+                'key':'large-image-reference-key','region':'international',
+                'prompt':'A low aerodynamic compact car body shell with clean wheel arches',
+                'component':'chassis','style':'photorealistic','version':'G1',
+                'spend_ack':True,'reference_image':reference})
+        self.assertEqual(response.status_code,202,response.json)
+        self.assertTrue(response.json['reference_info']['optimized'])
+        self.assertLess(len(captured[0]['img']),2*1024*1024)
+
     def test_generation_requires_explicit_spend_permission(self):
         from unittest.mock import patch
         with patch('backend.app.urllib.request.urlopen') as request_mock:

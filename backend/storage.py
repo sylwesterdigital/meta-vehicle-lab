@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import io
 import math
 import sqlite3
 import time
@@ -10,6 +11,84 @@ import hashlib
 import re
 import secrets
 from pathlib import Path
+
+# Lux3D accepts small image data URLs. Image models often return multi-megabyte PNGs.
+# Normalize those on our own server BEFORE a billable provider task is started.
+# No provider key, source image, or returned image content is logged or persisted.
+_LUX_REFERENCE_LIMIT=2*1024*1024
+_LUX_REFERENCE_INPUT_LIMIT=20*1024*1024
+_LUX_REFERENCE_MIMES={'image/png':'PNG','image/jpeg':'JPEG','image/webp':'WEBP'}
+
+def prepare_lux_reference(reference):
+    import base64
+    import binascii
+    from PIL import Image, ImageOps, features, UnidentifiedImageError
+
+    if not isinstance(reference,str) or len(reference)>_LUX_REFERENCE_INPUT_LIMIT:
+        raise ValueError('Reference image is too large to process (maximum 20 MiB encoded)')
+    header,sep,encoded=reference.partition(',')
+    if not sep or not header.startswith('data:') or not header.endswith(';base64'):
+        raise ValueError('Reference must be a PNG/JPEG/WebP base64 data URL')
+    mime=header[5:-7]
+    if mime not in _LUX_REFERENCE_MIMES:
+        raise ValueError('Reference format must be PNG, JPEG or WebP')
+    try:
+        binary=base64.b64decode(encoded,validate=True)
+    except (ValueError,binascii.Error) as exc:
+        raise ValueError('Reference image is not valid base64') from exc
+    if not binary or len(binary)>15*1024*1024:
+        raise ValueError('Reference decoded image exceeds 15 MiB')
+    try:
+        with Image.open(io.BytesIO(binary)) as original:
+            if original.format!=_LUX_REFERENCE_MIMES[mime]:
+                raise ValueError('Reference MIME type does not match image data')
+            if original.width*original.height>24_000_000:
+                raise ValueError('Reference exceeds 24 megapixels')
+            original.load()
+            width,height=original.size
+            if len(reference)<=_LUX_REFERENCE_LIMIT:
+                return reference,{'optimized':False,'original_bytes':len(binary),'output_bytes':len(binary),
+                                  'width':width,'height':height,'format':mime}
+            image=ImageOps.exif_transpose(original)
+            has_alpha='A' in image.getbands() or 'transparency' in image.info
+            if has_alpha:
+                image=image.convert('RGBA')
+                if not features.check('webp'):
+                    background=Image.new('RGBA',image.size,(239,244,247,255))
+                    background.alpha_composite(image)
+                    image=background.convert('RGB')
+                    has_alpha=False
+            else:
+                image=image.convert('RGB')
+            # Reduce color detail first, then dimensions; never upscale.
+            for maximum in (2560,2048,1792,1536,1280,1024,896,768,640):
+                ratio=min(1.0,maximum/max(image.size))
+                size=(max(1,round(image.width*ratio)),max(1,round(image.height*ratio)))
+                trial=image if size==image.size else image.resize(size,Image.Resampling.LANCZOS)
+                for quality in (92,86,79,70,60,48):
+                    output=io.BytesIO()
+                    if has_alpha:
+                        trial.save(output,format='WEBP',quality=quality,method=5)
+                        output_mime='image/webp'
+                    else:
+                        try:
+                            trial.save(output,format='JPEG',quality=quality,optimize=True,progressive=True,
+                                       subsampling=0 if quality>=86 else 2)
+                        except OSError:
+                            # libjpeg may reject optimize+progressive scans of
+                            # high-entropy images; use a portable baseline encode.
+                            output=io.BytesIO()
+                            trial.save(output,format='JPEG',quality=quality,subsampling=2)
+                        output_mime='image/jpeg'
+                    optimized=base64.b64encode(output.getvalue()).decode('ascii')
+                    normalized='data:'+output_mime+';base64,'+optimized
+                    if len(normalized)<=_LUX_REFERENCE_LIMIT-4096:
+                        return normalized,{'optimized':True,'original_bytes':len(binary),
+                            'output_bytes':output.tell(),'width':trial.width,'height':trial.height,
+                            'format':output_mime}
+    except (UnidentifiedImageError,OSError,Image.DecompressionBombError) as exc:
+        raise ValueError('Reference image cannot be decoded safely') from exc
+    raise ValueError('Reference could not be optimized below the Lux3D 2 MiB limit')
 
 MAX_BLUEPRINT_BYTES = 256 * 1024
 SCHEMAS = {'procedural-vehicle/v1', 'procedural-vehicle/v2', 'procedural-vehicle/v3'}

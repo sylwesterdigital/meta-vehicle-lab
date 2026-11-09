@@ -22,7 +22,7 @@ from pathlib import Path
 from flask import Flask, jsonify, request, send_file, g
 from werkzeug.exceptions import RequestEntityTooLarge
 
-from .storage import InvalidLayout, StaleLayout, Storage, validate_uuid
+from .storage import InvalidLayout, StaleLayout, Storage, validate_uuid, prepare_lux_reference
 
 PROJECT_ROOT=Path(__file__).resolve().parents[1]
 MAX_ASSET=80*1024*1024
@@ -517,6 +517,20 @@ def create_app(config=None):
                        balance=None,balance_available=False,
                        balance_note='Lux3D OpenAPI does not document a read-only account balance endpoint.'),200
 
+    @app.post('/api/providers/lux3d/optimize-reference')
+    def lux3d_optimize_reference():
+        # No provider request or credits spent. The authenticated creator sees
+        # the exact resized/quantized reference before opting into a 3D task.
+        member,error=guest_or_error()
+        if error:return error
+        obj=request.get_json(silent=True)
+        if not isinstance(obj,dict):return jsonify(error='Expected reference image JSON'),400
+        try:
+            result,info=prepare_lux_reference(obj.get('reference_image'))
+        except ValueError as exc:
+            return jsonify(error=str(exc)),400
+        return jsonify(ok=True,reference_image=result,**info)
+
     @app.post('/api/providers/lux3d/create')
     def lux3d_create_chassis():
         member, key, region, error = lux3d_credential()
@@ -536,9 +550,10 @@ def create_app(config=None):
         if now-lux3d_last_create.get(member['id'],0)<35:
             return jsonify(error='Wait at least 35 seconds between Lux3D generation requests'),429
         reference=obj.get('reference_image')
-        if reference is not None and (not isinstance(reference,str) or len(reference)>2*1024*1024
-             or not reference.startswith(('data:image/png;base64,','data:image/jpeg;base64,','data:image/webp;base64,'))):
-            return jsonify(error='Reference must be a PNG/JPEG/WebP data URL below 2 MB'),400
+        reference_info=None
+        if reference is not None:
+            try:reference,reference_info=prepare_lux_reference(reference)
+            except ValueError as exc:return jsonify(error=str(exc)),400
         component=obj.get('component','chassis')
         component_prompts={
             'chassis':('A single isolated automotive EXTERIOR BODY SHELL ONLY. No wheels, tyres, rims, '
@@ -565,7 +580,7 @@ def create_app(config=None):
         if not isinstance(task_id,(int,str)) or not str(task_id).isdigit():
             return jsonify(error='Unexpected Lux3D task identifier'),502
         app.logger.info('lux3d user generation submitted (no key or prompt logged)')
-        return jsonify(ok=True,task_id=str(task_id),region=region,potentially_billable=True),202
+        return jsonify(ok=True,task_id=str(task_id),region=region,potentially_billable=True,reference_info=reference_info),202
 
     @app.post('/api/providers/lux3d/status')
     def lux3d_status():

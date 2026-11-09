@@ -1,3 +1,18 @@
+# v0.3.10 — Avatar scale 2.0 and Lux3D large-reference handling (2026-11-09)
+
+- Increase imported avatar scale control maximum from 1.6 to 2.0.
+- Automatically validate and resize/quantize large generated chassis-reference images on the Flask server, using Pillow, before triggering any potentially billable Lux3D task. Retain a preview of the exact optimized reference. Allow PNG/JPEG/WebP source images up to 20 MiB encoded, enforce 24 MP and 2 MiB output limits.
+- Add non-billable, profile-authenticated Lux3D reference-optimization endpoint. Recheck on the backend at paid task creation; never log or persist API keys or image payloads.
+- Add regression coverage for image formats, oversized source, color transparency and invalid input, plus explicit release-version consistency check.
+
+# v0.3.9 — Version badge consistency (2026-11-09)
+
+- Fix hardcoded v0.3.7 badge in v0.3.8 release. Display the same current version constant used elsewhere in the app.
+- Restore v0.3.8 in the application release-history overlay.
+- No functional vehicle, profile, backend or database changes.
+
+---
+
 # v0.3.8 — Meta Muse Image and self-contained chassis AI studio (2026-11-09)
 
 - Enable official Meta Muse Image (`muse-image-1.0`) image generation and reference-guided editing via the same Meta Model API bearer key used by the successful model-list test. Keep image requests profile-scoped and the credential in memory only.

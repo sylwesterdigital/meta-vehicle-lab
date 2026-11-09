@@ -115,3 +115,64 @@ class StorageTests(unittest.TestCase):
         self.assertFalse(store.gallery())
 
 if __name__=='__main__':unittest.main()
+
+# Direct image normalization tests run without Flask; Pillow is pinned in the
+# production requirements and exercised by this release's deployment gate.
+class Lux3dReferenceImageTests(unittest.TestCase):
+    @staticmethod
+    def data_url(image, fmt):
+        import base64, io
+        buffer=io.BytesIO()
+        image.save(buffer,format=fmt)
+        mime={'PNG':'image/png','JPEG':'image/jpeg','WEBP':'image/webp'}[fmt]
+        return 'data:'+mime+';base64,'+base64.b64encode(buffer.getvalue()).decode('ascii')
+
+    def test_small_image_is_not_changed(self):
+        from PIL import Image
+        from backend.storage import prepare_lux_reference
+        original=self.data_url(Image.new('RGB',(150,90),'#acc4dd'),'PNG')
+        result,info=prepare_lux_reference(original)
+        self.assertEqual(result,original)
+        self.assertFalse(info['optimized'])
+        self.assertEqual((info['width'],info['height']),(150,90))
+
+    def test_generated_large_png_optimizes_under_provider_limit(self):
+        import base64,io,random
+        from PIL import Image
+        from backend.storage import prepare_lux_reference
+        rng=random.Random(17)
+        raw=rng.randbytes(1400*1200*3)
+        original=self.data_url(Image.frombytes('RGB',(1400,1200),raw),'PNG')
+        self.assertGreater(len(original),2*1024*1024)
+        result,info=prepare_lux_reference(original)
+        self.assertTrue(info['optimized'])
+        self.assertLessEqual(len(result),2*1024*1024-4096)
+        mime,encoded=result.split(',',1)
+        decoded=Image.open(io.BytesIO(base64.b64decode(encoded)))
+        self.assertEqual(decoded.format,'JPEG')
+        self.assertLessEqual(decoded.width,1400)
+        self.assertLessEqual(decoded.height,1200)
+
+    def test_large_transparent_png_preserves_alpha_if_webp_available(self):
+        import random
+        from PIL import Image,features
+        from backend.storage import prepare_lux_reference
+        if not features.check('webp'):self.skipTest('WebP not installed in Pillow')
+        rng=random.Random(25)
+        original=self.data_url(Image.frombytes('RGBA',(1300,1000),rng.randbytes(1300*1000*4)),'PNG')
+        self.assertGreater(len(original),2*1024*1024)
+        result,info=prepare_lux_reference(original)
+        self.assertTrue(info['optimized'])
+        self.assertEqual(info['format'],'image/webp')
+        self.assertLess(len(result),2*1024*1024)
+
+    def test_bad_mime_and_untrusted_base64_rejected(self):
+        from PIL import Image
+        from backend.storage import prepare_lux_reference
+        png=self.data_url(Image.new('RGB',(3,3)),'PNG')
+        with self.assertRaisesRegex(ValueError,'MIME'):
+            prepare_lux_reference(png.replace('data:image/png','data:image/jpeg'))
+        with self.assertRaisesRegex(ValueError,'base64'):
+            prepare_lux_reference('data:image/png;base64,!notimage')
+        with self.assertRaisesRegex(ValueError,'maximum 20 MiB'):
+            prepare_lux_reference('data:image/png;base64,'+'A'*(21*1024*1024))
