@@ -291,3 +291,30 @@ class RadioFrontEndContract(unittest.TestCase):
             self.assertIn(text,html)
         self.assertNotIn('hls.js',html) # Native byte-range playback by design.
 
+
+class PrivateMediaPreviewTests(unittest.TestCase):
+    def setUp(self):
+        self.tmp=tempfile.TemporaryDirectory();self.addCleanup(self.tmp.cleanup)
+        self.store=Storage(self.tmp.name)
+
+    def test_owner_cloud_cards_have_saved_preview(self):
+        owner,_=self.store.create_guest('Gallery Creator')
+        other,_=self.store.create_guest('Unrelated Creator')
+        thumb='data:image/jpeg;base64,'+'AAEC'*90
+        payload=blueprint()
+        payload['metadata']={'category':'Sport','images':[{'label':'Hero','data':thumb}]}
+        self.store.user_save_layout(owner['id'],str(uuid.uuid4()),'Race concept',payload)
+        result=self.store.own_layouts(owner['id'])
+        self.assertEqual(result[0]['preview'],thumb)
+        self.assertEqual(result[0]['category'],'Sport')
+        self.assertNotIn('blueprint',result[0])
+        self.assertEqual(self.store.own_layouts(other['id']),[])
+
+    def test_generated_image_privacy_is_not_public(self):
+        one,_=self.store.create_guest('Image Creator')
+        two,_=self.store.create_guest('Another Creator')
+        picture=self.store.save_media(one['id'],'image','AI concept · Meta',b'\xff\xd8\xff'+b'a'*128,'image/jpeg')
+        self.assertEqual(len(self.store.own_media_list(one['id'],kind='image')),1)
+        self.assertEqual(self.store.own_media_list(two['id'],kind='image'),[])
+        self.assertIsNone(self.store.own_media(two['id'],picture['id']))
+        self.assertEqual(self.store.gallery(),[])

@@ -1,3 +1,13 @@
+# Vehicle Lab — v0.3.15 — AI media, batch queue and workspace modes (2026-11-09)
+
+- **Private AI image library:** Successfully generated concepts are optimized and saved to the authenticated creator's private SQLite media library (`My Media → Images → My cloud`). The original provider image remains in the current editor for reference. Files are not published publicly and prompts/keys are not persisted; media storage may fail if the profile's 250-item quota is full.
+- **AI progress:** Buttons show a processing state and reject duplicate taps. Lux3D supports explicitly authorized 1–3-job sequential batches, status per job, and cancellation of jobs not yet submitted. Each job may incur a separate charge. Queues run while the browser tab remains open; there is no server-side durable job worker or automatic restart recovery.
+- **Independent workspace visibility:** Configuration → Windows & workspace has `BUILD layout` and `DRIVE layout` presets. Each mode remembers visible and minimized panels separately. Preserve the previous `Hide editor panels on drive` behavior by leaving that setting enabled.
+- **Cloud car thumbnails:** The private layout-list API returns the saved first gallery preview and category, enabling real vehicle images in `My Media → Cars → My cloud`. Legacy layouts without an image retain the schematic fallback.
+- **World edge:** `Drive Test Map → World edge` now has five modes: physical bounce, steep uphill, opposite-side wrap, connected editable 3×3 cells, and legacy cliff. The original lil-gui control remains under `Terrain & sky → World boundaries`.
+- **Version:** UI badge, version constant, meta tag, release notes, version.json, and archive manifest use `0.3.15`.
+- **Validation limits:** JavaScript, SQLite and packaging tests run locally. Flask integration tests remain a required release gate on the server. Live browser/provider/paid-generation behavior not independently verified.
+
 # Vehicle Lab — v0.3.14 — Radio, profile media, public gallery and path-aware driving (2026-11-09)
 
 - **Radio:** draggable music player, per-profile audio uploads (MP3/WAV/M4A/OGG/FLAC/Opus, browser support varying), track metadata/embedded album covers via Mutagen, personally curated playlists and four playback modes: sequence, shuffle tracks, shuffle playlists, repeat one. Uploads are validated and limited to 35 MB each, 150 tracks/500 MB per profile; codec support is checked by Mutagen. Audio files live outside webroot; SQLite `radio.sqlite3` tracks owner relationships and playlists. Native `HTMLAudioElement` HTTP Range (206) playback requests chunks on demand, with HMAC-signed 55-minute URLs and no bearer token in URLs. HLS/DASH transcoding is intentionally not included; range streaming meets the chunk-request requirement without ffmpeg or transcoding.
@@ -10,7 +20,7 @@
 
 # Vehicle Lab — procedural 3D vehicle studio
 
-**Version 0.3.14 (2026-11-09)**. Browser-native modular vehicle editor built with Three.js, lil-gui, three alternative physics engines, optional GLB imports, Flask and SQLite. Project: https://github.com/sylwesterdigital/meta-vehicle-lab. Website: https://vehiclelab.xyz/.
+**Version 0.3.15 (2026-11-09)**. Browser-native modular vehicle editor built with Three.js, lil-gui, three alternative physics engines, optional GLB imports, Flask and SQLite. Project: https://github.com/sylwesterdigital/meta-vehicle-lab. Website: https://vehiclelab.xyz/.
 
 This README deliberately contains the **About, Install, Roadmap, Ideas and LLM Handover** sections in a single allowed release file. The current watcher validates an exact 15-file manifest, so adding standalone documentation to a watcher release without first migrating its manifest schema would reject the ZIP. A separate optional documentation archive contains those sections as individual Markdown files.
 

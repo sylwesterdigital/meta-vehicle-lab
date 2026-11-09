@@ -5,7 +5,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Vehicle Lab — Procedural Studio</title>
-  <meta name="vehicle-lab-version" content="0.3.14">
+  <meta name="vehicle-lab-version" content="0.3.15">
   <style>
     :root {
       color-scheme:dark;
@@ -621,6 +621,24 @@
 #gallerySources button[data-source=public]{font-weight:700}
 #paletteWindow #materialHeading{max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 @media(max-width:700px){#radioWindow{left:3vw;top:20%;width:94vw}}
+
+/* v0.3.15: independent BUILD/DRIVE panel presets and AI request state */
+.workspace-mode-pills{display:grid;grid-template-columns:1fr 1fr;gap:5px;margin:7px 0 4px}
+.workspace-mode-pills button{min-height:30px;border:1px solid var(--pane-border);border-radius:8px;padding:5px 8px;background:#213d50;color:#f4fbff;cursor:pointer}
+.workspace-mode-pills button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink,#102029);font-weight:700}
+.workspace-note{display:block;line-height:1.45;color:var(--muted);margin-bottom:7px}
+.ai-running{position:relative;opacity:.82;cursor:progress!important;border-color:#bddefa!important;box-shadow:0 0 0 1px #81b8df inset,0 0 12px #58b5eb4c}
+.ai-running:after{content:"";position:absolute;right:7px;top:calc(50% - 7px);width:12px;height:12px;border:2px solid currentColor;border-top-color:transparent;border-radius:50%;animation:ai-ring .65s linear infinite;pointer-events:none}
+@keyframes ai-ring{to{transform:rotate(360deg)}}
+@media(prefers-reduced-motion:reduce){.ai-running:after{animation:none;border-style:dotted}}
+#aiActivity{margin:5px 0;padding:7px;border:1px solid #537c97;border-radius:7px;display:flex;align-items:center;gap:8px;background:#1b3242;color:#e8f4ff;min-height:30px;font-size:11px}
+#aiActivity[hidden]{display:none}
+#aiActivity .ai-dot{width:9px;height:9px;border-radius:50%;background:#8dd1ff;box-shadow:0 0 0 3px #8dd1ff35;flex-shrink:0}
+.map-edge-select{display:flex;gap:3px;align-items:center;font-size:10px}
+.map-edge-select select{min-width:90px;max-width:155px;font-size:11px;padding:5px}
+#lux3dBatchQueue{display:grid;gap:3px;background:#1b3345;border:1px solid #5285a4;border-radius:7px;padding:7px;margin:6px 0;color:#eef9ff;font:11px ui-monospace,monospace}
+#lux3dBatchQueue[hidden]{display:none}
+#lux3dBatchQueue .lux-queued-item{padding:4px 6px;border-bottom:1px solid #55718666}
 </style>
 
  <script type="importmap">
@@ -641,7 +659,7 @@
 
   <div id="stage">
   <div id="hud">
-    <div class="stage-badge"><strong>Vehicle Lab</strong><small id="appVersionBadge">v0.3.14</small></div>
+    <div class="stage-badge"><strong>Vehicle Lab</strong><small id="appVersionBadge">v0.3.15</small></div>
     <p id="vehicleName">City Car</p><p id="vehicleInfo">Procedural vehicle</p>
     <div id="speedHud"><strong id="speed">0</strong><div>km/h</div></div>
     <div id="cameraModeReadout" style="padding:3px 6px;margin-top:4px;width:max-content;max-width:260px;border-radius:5px;background:#132d3cc0;color:#e9f5fc;font:10px ui-monospace,monospace">Camera · Orbit follow</div>
@@ -704,7 +722,7 @@
    <div class="window-head"><strong>09 / Drive test map</strong><button class="mini-btn minimize" title="Minimize">−</button></div>
    <div class="window-body">
     <input id="mapName" maxlength="90" value="Open practice ground" hidden><button type="button" id="mapCenter" hidden aria-label="Center car on map">◎</button>
-    <div class="map-interactions"><button id="mapZoomOut" title="Zoom out (−)">−</button><output id="mapZoomValue">100%</output><button id="mapZoomIn" title="Zoom in (+)">+</button><button id="mapFit" title="Fit entire map">⛶</button><button id="mapFollowBtn" title="Follow vehicle" aria-label="Follow vehicle">◎</button><button id="mapObjectAdd" title="Add object · Shift+A" aria-label="Add object">＋</button><button id="mapViewCycle" title="Toggle contour / precision map" aria-label="Toggle map style">▤</button><button id="mapLibraryBtn" title="Saved maps gallery" aria-label="Open maps gallery">▦</button></div>
+    <div class="map-interactions"><label class="map-edge-select" title="What happens at the edge of the world">World edge<select id="mapEdgeMode" aria-label="World boundary behavior"><option value="barrier">Bounce barrier</option><option value="ramp">Steep uphill</option><option value="wrap">Wrap to opposite</option><option value="cells">Connected 3×3 cells</option><option value="cliff">Open edge</option></select></label><button id="mapZoomOut" title="Zoom out (−)">−</button><output id="mapZoomValue">100%</output><button id="mapZoomIn" title="Zoom in (+)">+</button><button id="mapFit" title="Fit entire map">⛶</button><button id="mapFollowBtn" title="Follow vehicle" aria-label="Follow vehicle">◎</button><button id="mapObjectAdd" title="Add object · Shift+A" aria-label="Add object">＋</button><button id="mapViewCycle" title="Toggle contour / precision map" aria-label="Toggle map style">▤</button><button id="mapLibraryBtn" title="Saved maps gallery" aria-label="Open maps gallery">▦</button></div>
     <div class="map-view-bar"><select id="mapView" aria-label="Map rendering mode"><option value="terrain">Relief / contours</option><option value="diagram">Precision plan / symbols</option></select><label><input type="checkbox" id="mapGrid" checked> Grid</label></div>
     <div id="worldCellControls" class="world-cells" hidden>
       <label>Cell<select id="worldCellChoice" aria-label="Choose map cell"><option value="-1,-1">−1,−1</option></select></label>
@@ -882,6 +900,7 @@
           <label>Region<select id="chassisLuxRegion"><option value="international">International</option><option value="china">China</option></select></label>
         </div>
         <form id="chassisLuxKeysForm" class="chassis-compact-row" autocomplete="off"><label>Lux3D key<input type="password" autocomplete="off" id="chassisLuxKey" placeholder="Paste if needed"></label><button type="button" id="chassisLuxUseKey">Use key</button><button type="button" id="chassisLuxTest">Test key · free</button></form>
+        <div class="chassis-compact-row"><label>3D batch size<select id="chassisBatchCount" aria-label="Number of paid Lux3D jobs"><option value="1">1 job</option><option value="2">2 sequential jobs</option><option value="3">3 sequential jobs</option></select></label><small>Each job may spend credits. Pending jobs can be cancelled.</small></div>
         <label class="chassis-check"><input id="chassis3DReference" type="checkbox" checked> Use preview image as 3D reference (when present)</label>
         <label class="chassis-check"><input id="chassisSpendAck" type="checkbox"> Authorize potentially billable 3D generation</label>
         <button type="button" id="chassisGenerate3D" class="chassis-main-action">Generate wheel-free GLB · import automatically</button>
@@ -945,6 +964,8 @@
 <aside id="configDrawer" class="side-drawer" aria-label="General configuration">
   <div class="drawer-title"><strong>Vehicle Lab / Configuration</strong><button class="drawer-close" aria-label="Close">×</button></div>
   <details open><summary>Windows & workspace</summary><p>Drag by the title bar, resize from the bottom-right corner, minimize with −.</p>
+    <div class="workspace-mode-pills" role="group" aria-label="Configure visible windows by editor mode"><button type="button" data-workspace-mode="build" aria-pressed="true">BUILD layout</button><button type="button" data-workspace-mode="drive" aria-pressed="false">DRIVE layout</button></div>
+    <small class="workspace-note">Choose the mode, then turn windows on or off. Settings are saved independently, including minimized state.</small>
     <div id="windowButtons" class="pill-row window-reopen"></div>
 <details><summary>Vehicle edit history (Undo / Redo)</summary><div id="historyList" class="history-list"></div></details>
     <div class="drawer-actions"><button id="resetWorkspace">Reset window positions</button><button id="openLogs">Application logs</button>
@@ -988,10 +1009,15 @@
       <div class="lux-reference"><img id="lux3dReferencePreview" alt="Optional chassis-only reference preview" hidden><small id="lux3dReferenceInfo">No reference selected. Capture a wheel-free three-quarter image, or upload an image.</small></div>
       <label class="lux-check"><input id="lux3dUseReference" type="checkbox"> Include this reference image with generation</label>
       <label class="lux-check"><input id="lux3dAutoImport" type="checkbox" checked> Automatically import finished GLB into the vehicle (replace visual shell only)</label>
-      <label class="lux-check"><input id="lux3dSpendAck" type="checkbox" required> I authorize starting a potentially billable 3D generation task.</label>
+      <label class="lux-check">Queue size <select id="lux3dBatchCount" title="Each job may consume Lux3D credits"><option value="1">1 design</option><option value="2">2 sequential jobs</option><option value="3">3 sequential jobs</option></select></label>
+      <small>Batch jobs run in sequence while this browser tab remains open. Every job can consume generation credits; choose 1 unless multiple variations are intended.</small>
+      <label class="lux-check"><input id="lux3dSpendAck" type="checkbox" required> I authorize each potentially billable 3D generation in this batch.</label>
       <button type="submit" id="lux3dGenerate">Generate selected 3D component</button>
+      <div id="aiActivity" hidden role="status" aria-live="polite"><span class="ai-dot" aria-hidden="true"></span><span id="aiActivityText">AI job pending…</span></div>
     </form>
     <div id="lux3dTaskStatus" class="lux-diagnostics" role="status" aria-live="polite">No task running.</div>
+    <div id="lux3dBatchQueue" class="lux-downloads" role="status" aria-live="polite" hidden></div>
+    <button id="lux3dCancelQueue" type="button" hidden>Cancel remaining queued jobs</button>
     <div id="lux3dDownloads" class="lux-downloads" hidden></div>
     <button id="lux3dImportResult" type="button" hidden>Import completed GLB into editor</button>
     <p>Generated files are downloaded directly from provider links. Import a downloaded GLB with Vehicle Tools → Import GLB. Generated body meshes remain visual replacements; wheels/physics stay procedural. External model output and charges require a real provider key.</p>
@@ -1276,7 +1302,7 @@ let ghostObject=null,ghostSamples=[],ghostElapsed=0,ghostTick=0;
     if(result&&typeof result.catch==='function')result.catch(()=>{});}}
   catch{/* analytics must never affect the app */}
  }
- const VERSION='0.3.14';
+ const VERSION='0.3.15';
  document.getElementById('appVersionBadge').textContent='v'+VERSION;
  let imageReference=null,busyAI=false;
 
@@ -3079,17 +3105,39 @@ function recordGhost(dt){
   ghostObject.position.lerp(second.p,f);ghostObject.quaternion.slerp(second.q,f)}
 }
 const DRIVE_DEFAULT_VISIBLE=['toolbarWindow'];
-function hidePanelsForDrive(){
- if(!cfg.driveHidePanels)return;
- drivePanelVisibility=new Map();
- for(const id of WINDOW_IDS){if(DRIVE_DEFAULT_VISIBLE.includes(id))continue;
-  const win=$(id),visible=id==='logWindow'?win.classList.contains('is-visible'):win.style.display!=='none';
-  drivePanelVisibility.set(id,visible);if(visible)setWindowVisible(id,false,true)
+const WORKSPACE_MODE_KEY='vehiclelab.window-presets.v2';
+let workspaceModeEdit='build',workspaceApplying=false;
+let workspaceModes={build:null,drive:null};
+function windowCurrentlyVisible(id){const w=$(id);return id==='logWindow'?w.classList.contains('is-visible'):w.style.display!=='none'}
+function readWorkspaceModes(){
+ try{const obj=JSON.parse(safeRead(WORKSPACE_MODE_KEY)||'{}');
+  for(const m of ['build','drive'])if(obj[m]&&typeof obj[m]==='object'&&!Array.isArray(obj[m]))workspaceModes[m]=obj[m];
+ }catch{}
+ if(!workspaceModes.build)workspaceModes.build=Object.fromEntries(WINDOW_IDS.map(id=>[id,{show:windowCurrentlyVisible(id),min:$(id).classList.contains('is-minimized')}]));
+ if(!workspaceModes.drive)workspaceModes.drive=Object.fromEntries(WINDOW_IDS.map(id=>[id,{show:DRIVE_DEFAULT_VISIBLE.includes(id),min:false}]));
+}
+function saveWorkspaceModes(){safeStore(WORKSPACE_MODE_KEY,JSON.stringify(workspaceModes))}
+function rememberModeWindows(which=mode){
+ if(workspaceApplying||!workspaceModes[which])return;
+ for(const id of WINDOW_IDS)workspaceModes[which][id]={show:windowCurrentlyVisible(id),min:$(id).classList.contains('is-minimized')};
+ saveWorkspaceModes();
+}
+function applyModeWindows(which){
+ if(!workspaceModes[which])return;
+ workspaceApplying=true;
+ for(const id of WINDOW_IDS){const record=workspaceModes[which][id];if(!record)continue;
+  $(id).classList.toggle('is-minimized',!!record.min);setWindowVisible(id,!!record.show,true);
  }
+ workspaceApplying=false;refreshWindowButtons();
+}
+function hidePanelsForDrive(){
+ rememberModeWindows('build');
+ if(cfg.driveHidePanels)applyModeWindows('drive');
+ workspaceModeEdit='drive';refreshWindowButtons();
 }
 function restorePanelsAfterDrive(){
- for(const [id,visible] of drivePanelVisibility){if(visible)setWindowVisible(id,true,true)}
- drivePanelVisibility.clear();
+ if(cfg.driveHidePanels){rememberModeWindows('drive');applyModeWindows('build')}
+ workspaceModeEdit='build';refreshWindowButtons();
 }
 
 function activeCarPose(){
@@ -4642,11 +4690,22 @@ async function api(path,method='GET',payload=null,key=''){
 return data;
 }
 let imageEditMode=false,pendingWheelImage=false;
+let aiActivityJobs=0;
+function setAIWorking(button,working,message='AI task in progress…'){
+ if(button){button.disabled=!!working;button.classList.toggle('ai-running',!!working);button.setAttribute('aria-busy',String(!!working))}
+ aiActivityJobs=Math.max(0,aiActivityJobs+(working?1:-1));
+ $('aiActivity').hidden=aiActivityJobs===0;
+ $('aiActivityText').textContent=message;
+}
+
 async function generateImage(){
  if(busyAI)return;
  const key=keys[ai.provider];
  if(!key){note('Enter the selected provider API key in AI / API Keys.',true);return}
  busyAI=true;
+ const button=$('chassisGenerateImage');setAIWorking(button,true,'Generating concept image · provider request…');
+ const wheelTile=pendingWheelImage?document.querySelector('.wheel-ai-tile'):null;
+ if(wheelTile){wheelTile.classList.add('ai-running');wheelTile.disabled=true;}
  try{
   note('Generating image...');
   const data=await api('/api/vehicle/generate-image','POST',{
@@ -4657,6 +4716,9 @@ async function generateImage(){
  },key);
   if(!data.image)throw Error('Backend returned no image');
   imageReference=data.image;
+  if(data.media?.id){note('Generated image saved to your private My Media → Images.');
+   if(mediaType==='images'&&mediaSource==='cloud')void refreshMediaBrowser();}
+  else recordEvent('WARN','Generated concept exists in this tab only: private media save was not confirmed.');
   if(pendingWheelImage){$('wheelGeneratedPreview').src=imageReference;$('wheelGeneratedPreview').hidden=false;pendingWheelImage=false;
    $('wheelAISection').open=true;$('wheelAIStatus').textContent='Image concept generated. Review it, then authorize 3D generation if desired.';}
   $('referenceImage').src=imageReference;
@@ -4664,7 +4726,7 @@ async function generateImage(){
   note('AI image generated. Ready for 3D conversion.');
   return imageReference;
 }catch(error){pendingWheelImage=false;note(error.message,true);return null}
-finally{busyAI=false}
+finally{busyAI=false;setAIWorking(button,false);if(wheelTile){wheelTile.classList.remove('ai-running');wheelTile.disabled=false}}
 }
 let pendingTripoComponent='chassis';
 async function generateTripo(){
@@ -5623,6 +5685,15 @@ mapBody.append(mapDock);
 const mapDockToggle=document.createElement('button');mapDockToggle.id='mapDockToggle';
 mapDockToggle.type='button';mapDockToggle.textContent='⌄';mapDockToggle.title='Collapse map controls';
 mapDock.prepend(mapDockToggle);mapDockToggle.onclick=()=>{mapDock.classList.toggle('is-collapsed');mapDockToggle.textContent=mapDock.classList.contains('is-collapsed')?'⌃':'⌄'};
+$('mapEdgeMode').onchange=async()=>{
+ const requested=$('mapEdgeMode').value;if(!['cliff','barrier','ramp','wrap','cells'].includes(requested))return;
+ if(mode==='drive'){resumeDrivePose=physics?.pose?.()||null;leaveDrive()}
+ cfg.worldEdgeMode=requested;if(requested==='cells')cfg.terrainSize=300;
+ await refreshEnvironmentForMap();showWorldCells();
+ if(resumeDrivePose)await enterDrive();
+ trackUsage('map_boundary_changed');scheduleHistory('World boundary mode');
+ note('World edge: '+$('mapEdgeMode').selectedOptions[0].textContent);
+};
 $('mapViewCycle').onclick=()=>{$('mapView').value=$('mapView').value==='diagram'?'terrain':'diagram';updateMinimapBackground();drawMinimap()};
 // Precision test-map editor: pan/zoom and world metre coordinates are not tied to CSS aspect ratio.
 const MAP_STORE='test-maps',courseCanvas=$('terrainMini'),courseContext=courseCanvas.getContext('2d');
@@ -6230,6 +6301,7 @@ const cellSelector=$('worldCellChoice');cellSelector.replaceChildren();
 for(let z=-1;z<=1;z++)for(let x=-1;x<=1;x++)cellSelector.add(new Option(`Cell ${x},${z}`,`${x},${z}`));
 cellSelector.value='0,0';
 function showWorldCells(){
+ if($('mapEdgeMode'))$('mapEdgeMode').value=cfg.worldEdgeMode;
  $('worldCellControls').hidden=cfg.worldEdgeMode!=='cells';
  $('worldCellElevation').value=Number(cfg.worldCells?.[cellSelector.value]?.elevation)||0;
 }
@@ -6316,20 +6388,33 @@ function setWindowVisible(id,show,restore=false){
  else win.style.display=show?'flex':'none';
  // Showing a hidden panel must never expand its minimized state.
  if(show){win.style.zIndex=String(++highestZ);}
- if(!restore)snapshotWindow(win);
+ if(!restore){snapshotWindow(win);
+  if(!workspaceApplying&&workspaceModes[mode]){
+   workspaceModes[mode][id]={show:show,min:win.classList.contains('is-minimized')};saveWorkspaceModes();
+  }
+ }
  refreshWindowButtons();
 }
 function refreshWindowButtons(){
  const root=$('windowButtons');root.replaceChildren();
+ for(const b of document.querySelectorAll('[data-workspace-mode]'))b.setAttribute('aria-pressed',String(b.dataset.workspaceMode===workspaceModeEdit));
  WINDOW_IDS.forEach((id,i)=>{
-  const w=$(id),button=document.createElement('button');
-  const visible=id==='logWindow'?w.classList.contains('is-visible'):w.style.display!=='none';
-  button.textContent=WINDOW_NAMES[i];button.setAttribute('aria-pressed',String(visible));
-  button.onclick=()=>setWindowVisible(id,!visible);root.append(button);
+  const button=document.createElement('button');
+  const visible=workspaceModes[workspaceModeEdit]?.[id]?.show??windowCurrentlyVisible(id);
+  button.textContent=WINDOW_NAMES[i]||id;button.setAttribute('aria-pressed',String(visible));
+  button.onclick=()=>{
+   const desired=!visible;
+   workspaceModes[workspaceModeEdit]??={};
+   workspaceModes[workspaceModeEdit][id]={show:desired,min:workspaceModes[workspaceModeEdit][id]?.min??$(id).classList.contains('is-minimized')};
+   saveWorkspaceModes();
+   if(workspaceModeEdit===mode)setWindowVisible(id,desired,true);
+   refreshWindowButtons();
+  };root.append(button);
  });
 }
 function resetWorkspace(){safeStore('vehiclelab.windows.v1','{}');location.reload()}
 function initWorkspace(){
+ for(const button of document.querySelectorAll('[data-workspace-mode]'))button.onclick=()=>{workspaceModeEdit=button.dataset.workspaceMode;refreshWindowButtons()};
  let saved={};try{saved=JSON.parse(safeRead('vehiclelab.windows.v1')||'{}')}catch(e){}
  WINDOW_IDS.forEach(id=>{
   const win=$(id),head=win.querySelector('.window-head');
@@ -6347,6 +6432,7 @@ function initWorkspace(){
   win.addEventListener('pointerdown',()=>win.style.zIndex=String(++highestZ));
   head.querySelector('.minimize').onclick=()=>{
     win.classList.toggle('is-minimized');snapshotWindow(win);
+    if(workspaceModes[mode]){workspaceModes[mode][id]={show:windowCurrentlyVisible(id),min:win.classList.contains('is-minimized')};saveWorkspaceModes()}
   };
   // Explicit resize handle works with touch and mouse; browser-native
   // CSS resize is unreliable on mobile and does not always persist dimensions.
@@ -6385,7 +6471,7 @@ function initWorkspace(){
   head.addEventListener('pointerup',end);head.addEventListener('pointercancel',end);
   new ResizeObserver(()=>{if(!drag&&!win.classList.contains('is-minimized')&&win.getClientRects().length)snapshotWindow(win)}).observe(win);
  });
- refreshWindowButtons();
+ readWorkspaceModes();refreshWindowButtons();
 }
 
 const THEME_STORAGE='vehiclelab.theme.v1';
@@ -7108,6 +7194,13 @@ $('galleryRefreshBtn').onclick=()=>{gallerySource='public';setWindowVisible('gal
 $('layoutPublic').onchange=()=>{serverVisibility=$('layoutPublic').checked?'public':'private'};
 
 const RELEASE_NOTES=[
+ {v:'0.3.15',date:'2026-11-09',title:'Persistent AI concepts, independent panel layouts and media thumbnails',items:[
+  'Generated reference images are stored in private My Media automatically, including a downsized thumbnail.',
+  'Workspace panel visibility and minimization are saved independently for BUILD and DRIVE.',
+  'Cloud vehicle cards display saved preview images instead of generic placeholders.',
+  '3D request activity is visible and duplicate submissions are disabled during dispatch.',
+  'World-boundary modes are accessible in the map toolbar as well as Terrain & sky settings.'
+ ]},
  {v:'0.3.14',date:'2026-11-09',title:'Radio, personal audio playlists, public galleries and terrain-aware autopilot',items:[
   'Private music uploads with metadata and album art, persistent playlists and native byte-range streaming playback.',
   'Repeat-one, shuffled tracks, shuffled playlists and a compact floating radio player with volume controls.',
@@ -7321,41 +7414,61 @@ $('lux3dTestForm').onsubmit=async e=>{
  finally{button.disabled=false}
 };
 $('lux3dForget').onclick=()=>{keys.lux3d='';$('lux3dKey').value='';lux3dStatus('Key cleared from browser memory.');};
+let cancelRemainingLuxJobs=false;
+$('lux3dCancelQueue').onclick=()=>{cancelRemainingLuxJobs=true;
+ $('lux3dCancelQueue').disabled=true;$('lux3dTaskStatus').textContent='Queued jobs will not start after the current task finishes. Submitted jobs cannot be cancelled here.';
+};
 $('lux3dCreateForm').onsubmit=async e=>{
  e.preventDefault();if(busyAI)return;
  const key=getLux3dKey();if(!key){$('lux3dTaskStatus').textContent='Enter and test a Lux3D key first.';return}
- if(!$('lux3dSpendAck').checked){$('lux3dTaskStatus').textContent='Explicit authorization required.';return}
+ if(!$('lux3dSpendAck').checked){$('lux3dTaskStatus').textContent='Explicit authorization required for each potentially billable task.';return}
  const component=$('lux3dComponent').value;
  const description=$('lux3dPrompt').value.trim();
  const prompt=(lux3dComponentPrompts[component]||lux3dComponentPrompts.chassis)+' '+description;
- if($('lux3dUseReference').checked&&!imageReference){$('lux3dTaskStatus').textContent='Capture or upload a reference before generating.';return;}
+ if($('lux3dUseReference').checked&&!imageReference){$('lux3dTaskStatus').textContent='Capture or upload a reference before generating.';return}
  let reference=$('lux3dUseReference').checked?imageReference:null;
- const submit=$('lux3dGenerate');submit.disabled=true;busyAI=true;
- $('lux3dTaskStatus').textContent=reference?'Validating 3D reference (no credits used)…':'Submitting potentially billable Lux3D task…';
+ const batchCount=Math.max(1,Math.min(3,Number($('lux3dBatchCount').value)||1));
+ const submit=$('lux3dGenerate');busyAI=true;
+ setAIWorking(submit,true,'Lux3D · '+batchCount+' queued job'+(batchCount>1?'s':''));
+ cancelRemainingLuxJobs=false;$('lux3dCancelQueue').hidden=batchCount<=1;$('lux3dCancelQueue').disabled=false;
  $('lux3dDownloads').hidden=true;$('lux3dDownloads').replaceChildren();
-  $('lux3dImportResult').hidden=true;lux3dCompleted=null;
+ $('lux3dImportResult').hidden=true;lux3dCompleted=null;
+ const queue=$('lux3dBatchQueue');queue.replaceChildren();queue.hidden=false;
+ const rows=[];
+ for(let i=0;i<batchCount;i++){
+  const line=document.createElement('div');line.className='lux-queued-item';line.textContent='Job '+(i+1)+'/'+batchCount+': queued';queue.append(line);rows.push(line);
+ }
  try{
-  if(reference && reference.length>2*1024*1024-4096){
+  if(reference&&reference.length>2*1024*1024-4096){
    const original=reference;
    const prepared=await lux3dPost('/api/providers/lux3d/optimize-reference',{reference_image:reference});
    reference=prepared.reference_image;
    if(imageReference===original)imageReference=reference;
    if(chassisConceptImage===original)chassisConceptImage=reference;
-   if($('wheelGeneratedPreview').src===original)$('wheelGeneratedPreview').src=reference;
    updateLuxReferencePreview('Lux3D-ready '+prepared.width+'×'+prepared.height+' · '+(prepared.output_bytes/1048576).toFixed(2)+' MiB');
-   syncChassisPreview('Optimized reference ready for Lux3D (before paid task).');
-   note('Lux3D reference optimized locally on Vehicle Lab server: '+(prepared.original_bytes/1048576).toFixed(2)+' → '+(prepared.output_bytes/1048576).toFixed(2)+' MiB.');
+   syncChassisPreview('Optimized reference ready for Lux3D.');
   }
-  $('lux3dTaskStatus').textContent='Submitting authorized Lux3D task…';
-  const task=await lux3dPost('/api/providers/lux3d/create',{key,region:$('lux3dRegion').value,
-   prompt,component,style:$('lux3dStyle').value,version:$('lux3dModel').value,reference_image:reference,
-   spend_ack:true});
   keys.lux3d=key;$('lux3dKey').value='';
-  lux3dTask={id:task.task_id,region:task.region,component};
-  $('lux3dTaskStatus').textContent='Created task '+task.task_id+'. Polling…';
-  await pollLux3d(task.task_id,task.region,key);
- }catch(err){$('lux3dTaskStatus').textContent='Lux3D: '+err.message;note('Lux3D: '+err.message,true)}
- finally{busyAI=false;submit.disabled=false;$('lux3dSpendAck').checked=false}
+  for(let i=0;i<batchCount;i++){
+   if(cancelRemainingLuxJobs){for(let j=i;j<batchCount;j++)rows[j].textContent='Job '+(j+1)+': cancelled before submission';break}
+   rows[i].textContent='Job '+(i+1)+'/'+batchCount+': submitting…';
+   $('aiActivityText').textContent='Lux3D job '+(i+1)+' of '+batchCount+' · submitted / polling';
+   try{
+    const task=await lux3dPost('/api/providers/lux3d/create',{key,region:$('lux3dRegion').value,
+     prompt,component,style:$('lux3dStyle').value,version:$('lux3dModel').value,reference_image:reference,spend_ack:true});
+    lux3dTask={id:task.task_id,region:task.region,component};
+    rows[i].textContent='Job '+(i+1)+' · '+task.task_id+' · processing…';
+    await pollLux3d(task.task_id,task.region,key);
+    rows[i].textContent='✓ Job '+(i+1)+' · '+task.task_id+' · completed';
+    for(const link of $('lux3dDownloads').querySelectorAll('a')){
+     const copy=link.cloneNode(true);copy.textContent=' · '+link.textContent;rows[i].append(copy);
+    }
+   }catch(error){rows[i].textContent='✕ Job '+(i+1)+' · '+error.message;
+    recordEvent('ERROR','Lux3D batch job '+(i+1)+': '+error.message)}
+  }
+  $('lux3dTaskStatus').textContent='Batch finished. Download/import the latest completed result above; imported GLBs are kept in your chassis/wheel library.';
+ }catch(err){$('lux3dTaskStatus').textContent='Lux3D batch: '+err.message;note('Lux3D: '+err.message,true)}
+ finally{busyAI=false;setAIWorking(submit,false);$('lux3dSpendAck').checked=false;$('lux3dCancelQueue').hidden=true;}
 };
 async function pollLux3d(taskId,region,key){
  lux3dPolling=true;
@@ -7521,10 +7634,10 @@ $('chassisGenerateImage').onclick=async()=>{
  ai.prompt='Automotive OEM engineering catalog photography, front-LEFT three-quarter view (front and the left side both clearly visible), slightly elevated camera looking down 12 degrees, fully visible vehicle body occupying about 76 percent of the frame. A single isolated EMPTY exterior CAR BODY SHELL, with realistic open wheel-arch cutouts, open windshield and side-window apertures, hollow interior cavity, no wheels, no tyres, no axles, no chassis rails, no people, no seats, no ground, no scenery, no lettering and no watermark. Entire uninterrupted PURE WHITE (#FFFFFF) seamless studio background, high-key neutral lighting, soft contact shadows, accurate body proportions, crisp panel edges and architectural orthographic-like perspective. '+brief;
  imageEditMode=$('chassisUseReference').checked&&!!imageReference;
  $('chassisImageStatus').textContent='Generating '+provider+' concept…';
- const button=$('chassisGenerateImage');button.disabled=true;
+ const button=$('chassisGenerateImage');button.disabled=true;button.classList.add('ai-running');button.setAttribute('aria-busy','true');
  try{const image=await generateImage();if(image){chassisConceptImage=image;syncChassisPreview(provider+' concept ready. Inspect the image, then optionally generate Lux3D model.');
  $('lux3dUseReference').checked=true;}else $('chassisImageStatus').textContent='Image request failed. See app logs.';}
- finally{button.disabled=false;imageEditMode=false;}
+ finally{button.disabled=false;button.classList.remove('ai-running');button.setAttribute('aria-busy','false');imageEditMode=false;}
 };
 $('chassisLuxUseKey').onclick=()=>{
  const k=$('chassisLuxKey').value.trim();if(k){keys.lux3d=k;$('chassisLuxKey').value='';}
@@ -7549,6 +7662,7 @@ $('chassisGenerate3D').onclick=()=>{
  $('lux3dKey').value=keys.lux3d;$('lux3dComponent').value='chassis';$('lux3dPrompt').value=brief;
  $('lux3dStyle').value=$('chassisLuxStyle').value;
  $('lux3dModel').value=$('chassisLuxModel').value;
+ $('lux3dBatchCount').value=$('chassisBatchCount').value;
  $('lux3dRegion').value=$('chassisLuxRegion').value;
  $('lux3dUseReference').checked=useImage;
  $('lux3dSpendAck').checked=true;$('lux3dAutoImport').checked=true;
@@ -7676,7 +7790,7 @@ async function refreshMediaBrowser(){
    if(!activeProfile||!guestToken)throw Error('Create or restore your profile to view private cloud media.');
    if(mediaType==='cars'){
     const result=await identityRequest('/api/me/layouts');
-    for(const item of result.layouts||[])entries.push({name:item.name,preview:vehicleFallbackImage(item),
+    for(const item of result.layouts||[])entries.push({name:item.name,preview:item.preview||vehicleFallbackImage(item),
      action:()=>{gallerySource='cloud';setWindowVisible('galleryWindow',true);refreshVehicleGallery()}});
    }else{
     const result=await identityRequest('/api/me/media');

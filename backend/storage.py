@@ -354,10 +354,23 @@ class Storage:
 
     def own_layouts(self,owner,limit=100):
         with self.connect() as db:
-            rows=db.execute('SELECT id,name,revision,asset_id,visibility,created_at,updated_at FROM user_layouts '
+            rows=db.execute('SELECT id,name,revision,asset_id,visibility,created_at,updated_at,blueprint FROM user_layouts '
                             'WHERE profile_id=? ORDER BY updated_at DESC LIMIT ?',
                             (validate_uuid(owner),min(100,max(1,int(limit))))).fetchall()
-            return [dict(row) for row in rows]
+            result=[]
+            for row in rows:
+                item=dict(row)
+                try:
+                    metadata=json.loads(item.pop('blueprint')).get('metadata') or {}
+                    images=metadata.get('images') or []
+                    hero=images[0].get('data') if images and isinstance(images[0],dict) else None
+                    item['preview']=hero if isinstance(hero,str) and len(hero)<125000 and hero.startswith((
+                        'data:image/jpeg;base64,','data:image/png;base64,')) else None
+                    item['category']=metadata.get('category') or 'Vehicle'
+                except (ValueError,TypeError,AttributeError,IndexError):
+                    item['preview']=None
+                result.append(item)
+            return result
 
     def own_layout(self,owner,identifier):
         with self.connect() as db:

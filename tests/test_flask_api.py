@@ -378,3 +378,39 @@ class RadioAPITests(unittest.TestCase):
     def sample_upload(self,headers,path='/api/radio/tracks'):
         return self.client.post(path,headers=headers,data={'file':(io.BytesIO(radio_api_test_tone()),'test.wav')},content_type='multipart/form-data')
 
+
+@unittest.skipIf(create_app is None,'Flask must be installed for API tests')
+class AIPrivateMediaTests(unittest.TestCase):
+    def setUp(self):
+        self.temp=tempfile.TemporaryDirectory();self.addCleanup(self.temp.cleanup)
+        self.client=create_app({'TESTING':True,'DATA_DIR':self.temp.name,'API_TOKEN':'admin-test'}).test_client()
+        guest=self.client.post('/api/identity/guest',json={'name':'AI Gallery'}).json
+        self.headers={'Authorization':'Bearer '+guest['token'],'X-Provider-Key':'provider-test-secret-123456'}
+        second=self.client.post('/api/identity/guest',json={'name':'Other'}).json
+        self.other={'Authorization':'Bearer '+second['token']}
+
+    def test_generated_image_is_persisted_and_private(self):
+        import io,base64,json
+        from PIL import Image
+        from unittest.mock import patch
+        image=Image.new('RGB',(512,512),'#e4e5df')
+        stream=io.BytesIO();image.save(stream,format='PNG')
+        encoded=base64.b64encode(stream.getvalue()).decode('ascii')
+        class Upstream(io.BytesIO):
+            headers={}
+            def __enter__(self):return self
+            def __exit__(self,*args):self.close()
+        def fake(req,timeout=0):
+            return Upstream(json.dumps({'data':[{'b64_json':encoded}]}).encode())
+        with patch('backend.app.urllib.request.urlopen',fake):
+            result=self.client.post('/api/vehicle/generate-image',headers=self.headers,
+                json={'provider':'meta','prompt':'A car shell on a seamless white background'})
+        self.assertEqual(result.status_code,200,result.json)
+        self.assertEqual(result.json['media']['kind'],'image')
+        media_id=result.json['media']['id']
+        own=self.client.get('/api/me/media',headers=self.headers)
+        self.assertIn(media_id,[item['id'] for item in own.json['media']])
+        thumbnail=self.client.get('/api/me/media/'+media_id+'/thumbnail',headers=self.headers)
+        self.assertEqual(thumbnail.status_code,200)
+        self.assertEqual(thumbnail.mimetype,'image/jpeg')
+        self.assertEqual(self.client.get('/api/me/media/'+media_id,headers=self.other).status_code,404)

@@ -844,8 +844,35 @@ def create_app(config=None):
               'image/jpeg' if bytes_image.startswith(b'\xff\xd8\xff') else
               'image/webp' if bytes_image[:4]==b'RIFF' and bytes_image[8:12]==b'WEBP' else None)
         if not mime or len(bytes_image)>14*1024*1024:return jsonify(error='Provider image format was invalid'),502
+        # A successful image generation is also a real, private media asset.
+        # Never store provider keys, prompts, task metadata or model outputs in
+        # a public gallery. Cap stored JPEGs to the same 2 MiB media quota.
+        media=None
+        try:
+            from PIL import Image, ImageOps
+            with Image.open(io.BytesIO(bytes_image)) as source:
+                if source.width * source.height > 48_000_000:
+                    raise ValueError('AI image too large for private library')
+                image=ImageOps.exif_transpose(source).convert('RGB')
+                image.thumbnail((1920,1920),Image.Resampling.LANCZOS)
+                for max_side in (1920,1600,1280,1024):
+                    if image.width>max_side or image.height>max_side:
+                        image.thumbnail((max_side,max_side),Image.Resampling.LANCZOS)
+                    for quality in (89,82,74,63):
+                        buffer=io.BytesIO()
+                        image.save(buffer,format='JPEG',quality=quality,subsampling=0,optimize=True)
+                        if buffer.tell() < 2*1024*1024:
+                            timestamp=time.strftime('%Y-%m-%d %H:%M',time.gmtime())
+                            media=store.save_media(member['id'],'image',
+                                'AI concept · '+provider+' · '+timestamp,buffer.getvalue(),'image/jpeg')
+                            break
+                    if media:break
+            if media:
+                app.logger.info('private AI image saved (provider=%s, bytes=%d)',provider,media['bytes'])
+        except Exception as exc:
+            app.logger.warning('private AI image could not be stored (%s)',type(exc).__name__)
         app.logger.info('reference image completed (provider=%s, bytes=%d)',provider,len(bytes_image))
-        return jsonify(ok=True,image='data:'+mime+';base64,'+encoded,provider=provider)
+        return jsonify(ok=True,image='data:'+mime+';base64,'+encoded,provider=provider,media=media)
 
     @app.post('/api/vehicle/tripo/start')
     @app.get('/api/vehicle/tripo/status/<task_id>')

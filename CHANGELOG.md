@@ -1,3 +1,12 @@
+## v0.3.15 — November 9, 2026
+- AI-generated reference images auto-save privately in optimized JPEG form with authenticated SQLite media IDs and thumbnails.
+- The My Media cloud car list returns saved hero previews rather than an unrelated SVG placeholder.
+- BUILD and DRIVE support separately persisted visible/minimized panel presets in Configuration.
+- The map exposes World edge mode in the toolbar (bounce/uphill/wrap/connected cells/cliff).
+- AI image and Lux3D buttons show running state; 3D jobs support explicit 1–3 sequential billed batches with in-page queue status and cancellation of pending tasks.
+- No user identities, API keys, paid prompts, or private media are published by these features.
+- Batch execution requires the browser tab to remain open; the queue is not a durable server worker.
+
 # v0.3.14 — Radio, personal media and terrain-aware autopilot (2026-11-09)
 
 - Personal audio library with validated uploads, ID3/MP4 metadata and cover art, SQLite playlists, native HTTP Range streaming, short-lived signed stream URLs, and owner isolation.
