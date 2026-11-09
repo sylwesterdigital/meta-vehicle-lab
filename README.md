@@ -1,3 +1,12 @@
+# Vehicle Lab — v0.3.16 — BUILD/DRIVE window visibility and workspace restoration (2026-11-09)
+
+- **Two mode pills:** Configuration → Windows & workspace has BUILD and DRIVE buttons. Select either to choose visibility for each of the 14 floating windows, including My media and Radio. Changing the active mode updates the windows immediately; changing the inactive mode only edits its saved preset until the next mode switch.
+- **Independent persistence:** Visible/minimized states are retained for BUILD and DRIVE in existing `vehiclelab.window-presets.v2` local storage and restored on startup and when changing modes. Current window positions/resizes remain shared by both modes.
+- **Legacy compatibility:** The previous `Hide editor panels on drive` control is retired so it cannot override user-defined DRIVE presets; the legacy `driveHidePanels` blueprint property is retained for fallback defaults where DRIVE has never been configured. Existing local layouts are retained, not cleared.
+- **Portable workspace:** JSON workspace export now includes visibility presets and geometry (`vehiclelab-workspace/v2`); imports continue to support old `vehiclelab-workspace/v1` files with positions only.
+- **Scope:** Frontend-only changes; no backend dependencies, API changes, SQLite migration, or changes to AI providers, physics, model assets, account credentials or published content.
+- **Validation:** Syntax, watcher-compatible archive checks, and local regression tests. Production browser/device and deployment smoke checks remain necessary.
+
 # Vehicle Lab — v0.3.15 — AI media, batch queue and workspace modes (2026-11-09)
 
 - **Private AI image library:** Successfully generated concepts are optimized and saved to the authenticated creator's private SQLite media library (`My Media → Images → My cloud`). The original provider image remains in the current editor for reference. Files are not published publicly and prompts/keys are not persisted; media storage may fail if the profile's 250-item quota is full.
@@ -20,7 +29,7 @@
 
 # Vehicle Lab — procedural 3D vehicle studio
 
-**Version 0.3.15 (2026-11-09)**. Browser-native modular vehicle editor built with Three.js, lil-gui, three alternative physics engines, optional GLB imports, Flask and SQLite. Project: https://github.com/sylwesterdigital/meta-vehicle-lab. Website: https://vehiclelab.xyz/.
+**Version 0.3.16 (2026-11-09)**. Browser-native modular vehicle editor built with Three.js, lil-gui, three alternative physics engines, optional GLB imports, Flask and SQLite. Project: https://github.com/sylwesterdigital/meta-vehicle-lab. Website: https://vehiclelab.xyz/.
 
 This README deliberately contains the **About, Install, Roadmap, Ideas and LLM Handover** sections in a single allowed release file. The current watcher validates an exact 15-file manifest, so adding standalone documentation to a watcher release without first migrating its manifest schema would reject the ZIP. A separate optional documentation archive contains those sections as individual Markdown files.
 

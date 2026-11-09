@@ -1,3 +1,9 @@
+## v0.3.16 — November 9, 2026
+- Configuration → Windows & workspace: BUILD and DRIVE selector pills, 14 named window visibility controls, and mode-specific visible/minimized state.
+- Apply saved BUILD layout on startup; apply DRIVE/BUILD layouts consistently when switching modes, no longer bypassed by the old hide-editor switch.
+- Include both mode presets in workspace JSON v2 export/import; accept existing position-only v1 exports.
+- Preserve prior window positions, blueprints, vehicle editor state, profile data, AI APIs, backend and SQLite without new requirements.
+
 ## v0.3.15 — November 9, 2026
 - AI-generated reference images auto-save privately in optimized JPEG form with authenticated SQLite media IDs and thumbnails.
 - The My Media cloud car list returns saved hero previews rather than an unrelated SVG placeholder.

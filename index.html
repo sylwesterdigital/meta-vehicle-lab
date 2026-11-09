@@ -5,7 +5,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Vehicle Lab — Procedural Studio</title>
-  <meta name="vehicle-lab-version" content="0.3.15">
+  <meta name="vehicle-lab-version" content="0.3.16">
   <style>
     :root {
       color-scheme:dark;
@@ -622,10 +622,11 @@
 #paletteWindow #materialHeading{max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 @media(max-width:700px){#radioWindow{left:3vw;top:20%;width:94vw}}
 
-/* v0.3.15: independent BUILD/DRIVE panel presets and AI request state */
+/* v0.3.16: independent BUILD/DRIVE window controls and persistent workspace state */
 .workspace-mode-pills{display:grid;grid-template-columns:1fr 1fr;gap:5px;margin:7px 0 4px}
-.workspace-mode-pills button{min-height:30px;border:1px solid var(--pane-border);border-radius:8px;padding:5px 8px;background:#213d50;color:#f4fbff;cursor:pointer}
-.workspace-mode-pills button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink,#102029);font-weight:700}
+.workspace-mode-pills button{min-height:36px;border:1px solid var(--pane-border);border-radius:999px;padding:7px 12px;background:#213d50;color:#f4fbff;cursor:pointer;font-weight:650;letter-spacing:.035em}
+.workspace-mode-pills button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink,#102029);font-weight:750}
+.workspace-mode-pills button:focus-visible,#windowButtons button:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
 .workspace-note{display:block;line-height:1.45;color:var(--muted);margin-bottom:7px}
 .ai-running{position:relative;opacity:.82;cursor:progress!important;border-color:#bddefa!important;box-shadow:0 0 0 1px #81b8df inset,0 0 12px #58b5eb4c}
 .ai-running:after{content:"";position:absolute;right:7px;top:calc(50% - 7px);width:12px;height:12px;border:2px solid currentColor;border-top-color:transparent;border-radius:50%;animation:ai-ring .65s linear infinite;pointer-events:none}
@@ -659,7 +660,7 @@
 
   <div id="stage">
   <div id="hud">
-    <div class="stage-badge"><strong>Vehicle Lab</strong><small id="appVersionBadge">v0.3.15</small></div>
+    <div class="stage-badge"><strong>Vehicle Lab</strong><small id="appVersionBadge">v0.3.16</small></div>
     <p id="vehicleName">City Car</p><p id="vehicleInfo">Procedural vehicle</p>
     <div id="speedHud"><strong id="speed">0</strong><div>km/h</div></div>
     <div id="cameraModeReadout" style="padding:3px 6px;margin-top:4px;width:max-content;max-width:260px;border-radius:5px;background:#132d3cc0;color:#e9f5fc;font:10px ui-monospace,monospace">Camera · Orbit follow</div>
@@ -964,9 +965,9 @@
 <aside id="configDrawer" class="side-drawer" aria-label="General configuration">
   <div class="drawer-title"><strong>Vehicle Lab / Configuration</strong><button class="drawer-close" aria-label="Close">×</button></div>
   <details open><summary>Windows & workspace</summary><p>Drag by the title bar, resize from the bottom-right corner, minimize with −.</p>
-    <div class="workspace-mode-pills" role="group" aria-label="Configure visible windows by editor mode"><button type="button" data-workspace-mode="build" aria-pressed="true">BUILD layout</button><button type="button" data-workspace-mode="drive" aria-pressed="false">DRIVE layout</button></div>
-    <small class="workspace-note">Choose the mode, then turn windows on or off. Settings are saved independently, including minimized state.</small>
-    <div id="windowButtons" class="pill-row window-reopen"></div>
+    <div class="workspace-mode-pills" role="group" aria-label="Choose window layout to edit"><button type="button" data-workspace-mode="build" aria-pressed="true">BUILD</button><button type="button" data-workspace-mode="drive" aria-pressed="false">DRIVE</button></div>
+    <small id="workspaceModeHint" class="workspace-note" role="status" aria-live="polite">Select BUILD or DRIVE to configure that mode's windows.</small>
+    <div id="windowButtons" class="pill-row window-reopen" role="group" aria-label="BUILD window visibility"></div>
 <details><summary>Vehicle edit history (Undo / Redo)</summary><div id="historyList" class="history-list"></div></details>
     <div class="drawer-actions"><button id="resetWorkspace">Reset window positions</button><button id="openLogs">Application logs</button>
       <button id="workspaceExport">Export workspace JSON</button><button id="workspaceImport">Import workspace JSON</button></div>
@@ -1302,7 +1303,7 @@ let ghostObject=null,ghostSamples=[],ghostElapsed=0,ghostTick=0;
     if(result&&typeof result.catch==='function')result.catch(()=>{});}}
   catch{/* analytics must never affect the app */}
  }
- const VERSION='0.3.15';
+ const VERSION='0.3.16';
  document.getElementById('appVersionBadge').textContent='v'+VERSION;
  let imageReference=null,busyAI=false;
 
@@ -3104,39 +3105,70 @@ function recordGhost(dt){
  if(second){const f=clamp((desired-first.t)/(second.t-first.t),0,1);
   ghostObject.position.lerp(second.p,f);ghostObject.quaternion.slerp(second.q,f)}
 }
+// Each mode owns an independent visibility/minimized snapshot. Keep the storage
+// key compatible with v0.3.15 and normalize malformed/partial local data.
 const DRIVE_DEFAULT_VISIBLE=['toolbarWindow'];
 const WORKSPACE_MODE_KEY='vehiclelab.window-presets.v2';
 let workspaceModeEdit='build',workspaceApplying=false;
 let workspaceModes={build:null,drive:null};
-function windowCurrentlyVisible(id){const w=$(id);return id==='logWindow'?w.classList.contains('is-visible'):w.style.display!=='none'}
+function windowCurrentlyVisible(id){
+ const win=$(id);
+ return id==='logWindow'?win.classList.contains('is-visible'):win.style.display!=='none';
+}
+function normalizeWorkspaceMode(value,fallback){
+ return Object.fromEntries(WINDOW_IDS.map(id=>{
+  const entry=value&&Object.prototype.hasOwnProperty.call(value,id)?value[id]:null;
+  return [id,{
+   show:typeof entry?.show==='boolean'?entry.show:fallback[id].show,
+   min:typeof entry?.min==='boolean'?entry.min:fallback[id].min
+  }];
+ }));
+}
 function readWorkspaceModes(){
- try{const obj=JSON.parse(safeRead(WORKSPACE_MODE_KEY)||'{}');
-  for(const m of ['build','drive'])if(obj[m]&&typeof obj[m]==='object'&&!Array.isArray(obj[m]))workspaceModes[m]=obj[m];
+ let stored={};
+ try{const parsed=JSON.parse(safeRead(WORKSPACE_MODE_KEY)||'{}');
+  if(parsed&&typeof parsed==='object'&&!Array.isArray(parsed))stored=parsed;
  }catch{}
- if(!workspaceModes.build)workspaceModes.build=Object.fromEntries(WINDOW_IDS.map(id=>[id,{show:windowCurrentlyVisible(id),min:$(id).classList.contains('is-minimized')}]));
- if(!workspaceModes.drive)workspaceModes.drive=Object.fromEntries(WINDOW_IDS.map(id=>[id,{show:DRIVE_DEFAULT_VISIBLE.includes(id),min:false}]));
+ const buildDefaults=Object.fromEntries(WINDOW_IDS.map(id=>[id,{
+  show:windowCurrentlyVisible(id),min:$(id).classList.contains('is-minimized')
+ }]));
+ workspaceModes.build=normalizeWorkspaceMode(stored.build,buildDefaults);
+ // Users who previously disabled automatic hiding keep their full layout
+ // until they explicitly customize DRIVE in the new mode selector.
+ const driveDefaults=Object.fromEntries(WINDOW_IDS.map(id=>[id,{
+  show:cfg.driveHidePanels===false?workspaceModes.build[id].show:DRIVE_DEFAULT_VISIBLE.includes(id),
+  min:cfg.driveHidePanels===false?workspaceModes.build[id].min:false
+ }]));
+ workspaceModes.drive=normalizeWorkspaceMode(stored.drive,driveDefaults);
 }
 function saveWorkspaceModes(){safeStore(WORKSPACE_MODE_KEY,JSON.stringify(workspaceModes))}
 function rememberModeWindows(which=mode){
  if(workspaceApplying||!workspaceModes[which])return;
- for(const id of WINDOW_IDS)workspaceModes[which][id]={show:windowCurrentlyVisible(id),min:$(id).classList.contains('is-minimized')};
+ for(const id of WINDOW_IDS)workspaceModes[which][id]={
+  show:windowCurrentlyVisible(id),min:$(id).classList.contains('is-minimized')
+ };
  saveWorkspaceModes();
 }
 function applyModeWindows(which){
  if(!workspaceModes[which])return;
  workspaceApplying=true;
- for(const id of WINDOW_IDS){const record=workspaceModes[which][id];if(!record)continue;
-  $(id).classList.toggle('is-minimized',!!record.min);setWindowVisible(id,!!record.show,true);
- }
- workspaceApplying=false;refreshWindowButtons();
+ try{
+  for(const id of WINDOW_IDS){
+   const record=workspaceModes[which][id];
+   $(id).classList.toggle('is-minimized',record.min);
+   setWindowVisible(id,record.show,true);
+  }
+ }finally{workspaceApplying=false}
+ refreshWindowButtons();
 }
 function hidePanelsForDrive(){
  rememberModeWindows('build');
- if(cfg.driveHidePanels)applyModeWindows('drive');
+ applyModeWindows('drive');
  workspaceModeEdit='drive';refreshWindowButtons();
 }
 function restorePanelsAfterDrive(){
- if(cfg.driveHidePanels){rememberModeWindows('drive');applyModeWindows('build')}
+ rememberModeWindows('drive');
+ applyModeWindows('build');
  workspaceModeEdit='build';refreshWindowButtons();
 }
 
@@ -4989,7 +5021,8 @@ driving.add(cfg,'maxSpeed',15,180,5).name('Max speed km/h');
  driving.add({cycle:cycleCamera},'cycle').name('Cycle cameras (C)');
  driving.add(cfg,'cameraClearance').name('Terrain collision clearance').onChange(()=>scheduleHistory('Camera clearance'));
  driving.add(cfg,'ghostMode',['off','transparent','wireframe','solid']).name('Recorded ghost / 3s').onChange(()=>{if(mode==='drive')makeGhost();scheduleHistory('Ghost')});
- driving.add(cfg,'driveHidePanels').name('Hide editor panels on drive').onChange(()=>scheduleHistory('Drive panels'));
+ // Window visibility is managed exclusively in Configuration → Windows & workspace.
+ // Keep cfg.driveHidePanels only for migrating older saved user preferences.
  driving.add({recover:resetUpright},'recover').name('Recover upright (U)');
  driving.add({reset:resetDriveOrigin},'reset').name('Reset to world origin (0,0,0)');
  driving.add(cfg,'autopilot').name('Autopilot (P)').onChange(value=>{autopilotState.enabled=!!value;autopilotState.anchor=null;autopilotState.time=0;updateAutopilotButton();scheduleHistory('Autopilot')});
@@ -6371,7 +6404,7 @@ updateMapZoomUI();let mapFrame=0;
 
 // Workspace windows: pointer dragging + native CSS resize + minimize.
 const WINDOW_IDS=['toolbarWindow','toolsWindow','catalogWindow','galleryWindow','paramsWindow','logWindow','paletteWindow','wheelWindow','mapWindow','objectWindow','fleetWindow','chassisWindow','mediaWindow','radioWindow'];
-const WINDOW_NAMES=['Actions','Tools','Library','Gallery','Parameters','Logs','Materials','Wheel workshop','Test map','Object','Scene vehicles','Chassis workshop'];
+const WINDOW_NAMES=['Actions','Tools','Library','Gallery','Parameters','Logs','Materials','Wheel workshop','Test map','Object','Scene vehicles','Chassis workshop','My media','Radio'];
 let highestZ=18;
 const safeStore=(name,value)=>{try{localStorage.setItem(name,value)}catch(e){}};
 const safeRead=name=>{try{return localStorage.getItem(name)}catch(e){return null}};
@@ -6393,25 +6426,41 @@ function setWindowVisible(id,show,restore=false){
    workspaceModes[mode][id]={show:show,min:win.classList.contains('is-minimized')};saveWorkspaceModes();
   }
  }
- refreshWindowButtons();
+ // Applying a 14-window preset refreshes the controls once after the batch.
+ if(!workspaceApplying)refreshWindowButtons();
 }
 function refreshWindowButtons(){
- const root=$('windowButtons');root.replaceChildren();
- for(const b of document.querySelectorAll('[data-workspace-mode]'))b.setAttribute('aria-pressed',String(b.dataset.workspaceMode===workspaceModeEdit));
+ const root=$('windowButtons'),selected=workspaceModeEdit;
+ root.replaceChildren();
+ for(const button of document.querySelectorAll('[data-workspace-mode]')){
+  button.setAttribute('aria-pressed',String(button.dataset.workspaceMode===selected));
+ }
+ const label=selected.toUpperCase(),active=selected===mode;
+ root.setAttribute('aria-label',label+' window visibility');
+ const total=WINDOW_IDS.filter(id=>workspaceModes[selected]?.[id]?.show).length;
+ $('workspaceModeHint').textContent=label+' · '+total+' of '+WINDOW_IDS.length+' windows visible. '+
+  (active?'Changes apply immediately.':'Changes apply when you switch to '+label+'.')+
+  ' Minimized windows are remembered separately.';
  WINDOW_IDS.forEach((id,i)=>{
   const button=document.createElement('button');
-  const visible=workspaceModes[workspaceModeEdit]?.[id]?.show??windowCurrentlyVisible(id);
-  button.textContent=WINDOW_NAMES[i]||id;button.setAttribute('aria-pressed',String(visible));
+  button.type='button';
+  const visible=workspaceModes[selected]?.[id]?.show??windowCurrentlyVisible(id);
+  const title=WINDOW_NAMES[i];
+  button.textContent=title;
+  button.setAttribute('aria-pressed',String(visible));
+  button.setAttribute('aria-label',(visible?'Hide ':'Show ')+title+' in '+label+' mode');
+  button.title=(visible?'Hide ':'Show ')+title+' in '+label+' mode';
   button.onclick=()=>{
    const desired=!visible;
-   workspaceModes[workspaceModeEdit]??={};
-   workspaceModes[workspaceModeEdit][id]={show:desired,min:workspaceModes[workspaceModeEdit][id]?.min??$(id).classList.contains('is-minimized')};
+   workspaceModes[selected][id].show=desired;
    saveWorkspaceModes();
-   if(workspaceModeEdit===mode)setWindowVisible(id,desired,true);
+   if(selected===mode)setWindowVisible(id,desired,true);
    refreshWindowButtons();
-  };root.append(button);
+  };
+  root.append(button);
  });
 }
+
 function resetWorkspace(){safeStore('vehiclelab.windows.v1','{}');location.reload()}
 function initWorkspace(){
  for(const button of document.querySelectorAll('[data-workspace-mode]'))button.onclick=()=>{workspaceModeEdit=button.dataset.workspaceMode;refreshWindowButtons()};
@@ -6471,7 +6520,7 @@ function initWorkspace(){
   head.addEventListener('pointerup',end);head.addEventListener('pointercancel',end);
   new ResizeObserver(()=>{if(!drag&&!win.classList.contains('is-minimized')&&win.getClientRects().length)snapshotWindow(win)}).observe(win);
  });
- readWorkspaceModes();refreshWindowButtons();
+ readWorkspaceModes();applyModeWindows(mode);
 }
 
 const THEME_STORAGE='vehiclelab.theme.v1';
@@ -6674,7 +6723,9 @@ for(const [id,field] of [['themeAccent','accent'],['themePanel','panel']]){
 $('resetWorkspace').onclick=resetWorkspace;
 $('workspaceExport').onclick=()=>{
  let windows={};try{windows=JSON.parse(safeRead('vehiclelab.windows.v1')||'{}')}catch(e){}
- download(JSON.stringify({schema:'vehiclelab-workspace/v1',windows},null,2),
+ // Export both window geometry and per-mode visibility/minimization.
+ rememberModeWindows(mode);
+ download(JSON.stringify({schema:'vehiclelab-workspace/v2',windows,modes:workspaceModes},null,2),
   'vehiclelab-workspace.json','application/json');
 };
 $('workspaceImport').onclick=()=>$('workspaceFile').click();
@@ -6683,16 +6734,36 @@ $('workspaceFile').onchange=async e=>{
   const file=e.target.files?.[0];if(!file)return;
   if(file.size>16384)throw Error('Workspace JSON exceeds 16 KiB');
   const record=JSON.parse(await file.text());
-  if(record.schema!=='vehiclelab-workspace/v1'||!record.windows||
-   typeof record.windows!=='object'||Array.isArray(record.windows)||
+  if(!['vehiclelab-workspace/v1','vehiclelab-workspace/v2'].includes(record.schema)||
+   !record.windows||typeof record.windows!=='object'||Array.isArray(record.windows)||
    Object.keys(record.windows).some(id=>!WINDOW_IDS.includes(id)))throw Error('Invalid workspace backup');
   for(const entry of Object.values(record.windows)){
    if(!entry||typeof entry!=='object'||typeof entry.min!=='boolean'||
     ['left','top','width','height'].some(key=>typeof entry[key]!=='string'||
       (entry[key]&&!/^\d+(\.\d+)?px$/.test(entry[key]))))throw Error('Invalid window coordinates');
   }
+  if(record.schema==='vehiclelab-workspace/v2'){
+   if(!record.modes||typeof record.modes!=='object'||Array.isArray(record.modes)||
+    Object.keys(record.modes).some(key=>!['build','drive'].includes(key))||
+    !record.modes.build||!record.modes.drive)throw Error('Invalid workspace layout presets');
+   for(const which of ['build','drive']){
+    const preset=record.modes[which];
+    if(typeof preset!=='object'||Array.isArray(preset)||
+     Object.keys(preset).some(id=>!WINDOW_IDS.includes(id)))throw Error('Invalid '+which+' layout');
+    for(const id of WINDOW_IDS){
+     const item=preset[id];
+     if(!item||typeof item!=='object'||Array.isArray(item)||
+      typeof item.show!=='boolean'||typeof item.min!=='boolean')throw Error('Invalid '+which+' window state');
+    }
+   }
+   safeStore(WORKSPACE_MODE_KEY,JSON.stringify({
+    build:normalizeWorkspaceMode(record.modes.build,workspaceModes.build),
+    drive:normalizeWorkspaceMode(record.modes.drive,workspaceModes.drive)
+   }));
+  }
+  // v1 imports restore positions only; existing visibility presets stay intact.
   safeStore('vehiclelab.windows.v1',JSON.stringify(record.windows));
-  note('Workspace imported. Reloading to apply window positions.');location.reload();
+  note('Workspace imported. Reloading to apply window positions and layouts.');location.reload();
  }catch(error){note(error.message,true)}e.target.value='';
 };
 $('openLogs').onclick=()=>{setWindowVisible('logWindow',true);showDrawer(null)};
@@ -7194,6 +7265,13 @@ $('galleryRefreshBtn').onclick=()=>{gallerySource='public';setWindowVisible('gal
 $('layoutPublic').onchange=()=>{serverVisibility=$('layoutPublic').checked?'public':'private'};
 
 const RELEASE_NOTES=[
+ {v:'0.3.16',date:'2026-11-09',title:'BUILD and DRIVE window visibility controls',items:[
+  'Two rounded BUILD and DRIVE buttons choose which workspace layout to configure.',
+  'All 14 windows can be shown or hidden independently; the active mode updates immediately.',
+  'Saved BUILD/DRIVE visibility now restores after a page reload and during mode changes.',
+  'Window workspace export/import includes both layouts, while older position-only imports remain valid.',
+  'The legacy drive-panel hiding switch no longer overrides explicit window choices.'
+ ]},
  {v:'0.3.15',date:'2026-11-09',title:'Persistent AI concepts, independent panel layouts and media thumbnails',items:[
   'Generated reference images are stored in private My Media automatically, including a downsized thumbnail.',
   'Workspace panel visibility and minimization are saved independently for BUILD and DRIVE.',

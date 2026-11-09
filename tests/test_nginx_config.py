@@ -422,8 +422,25 @@ class ChassisAssetRegression(unittest.TestCase):
         self.assertIn("clean.background=new THREE.Color('#ffffff')",text)
         self.assertIn('PURE WHITE (#FFFFFF)',text)
         self.assertIn('downloadCurrentChassisReference',text)
-        self.assertIn("const VERSION='0.3.15'",text)
-        self.assertIn('name="vehicle-lab-version" content="0.3.15"',text)
+        # Keep this asset regression aligned with the release manifest rather
+        # than hard-coding a version from an earlier release.
+        import json
+        version=json.loads((CHASSIS_HTML.parent/'version.json').read_text())['version']
+        self.assertIn(f"const VERSION='{version}'",text)
+        self.assertIn(f'name="vehicle-lab-version" content="{version}"',text)
+
+    def test_build_and_drive_window_layout_contract(self):
+        text=CHASSIS_HTML.read_text(encoding='utf8')
+        for which in ('build','drive'):
+            self.assertIn(f'data-workspace-mode="{which}"',text)
+        self.assertIn('function normalizeWorkspaceMode(value,fallback)',text)
+        self.assertIn('readWorkspaceModes();applyModeWindows(mode)',text)
+        self.assertIn("rememberModeWindows('build')",text)
+        self.assertIn("rememberModeWindows('drive')",text)
+        self.assertIn("'vehiclelab-workspace/v2',windows,modes:workspaceModes",text)
+        self.assertIn("['vehiclelab-workspace/v1','vehiclelab-workspace/v2']",text)
+        self.assertIn("'My media','Radio'",text)
+        self.assertNotIn("driving.add(cfg,'driveHidePanels')",text)
 
     def test_sqlite_preserves_imported_shell_transform_and_asset_pointer(self):
         with tempfile.TemporaryDirectory() as d:
