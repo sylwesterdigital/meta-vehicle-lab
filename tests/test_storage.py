@@ -176,3 +176,38 @@ class Lux3dReferenceImageTests(unittest.TestCase):
             prepare_lux_reference('data:image/png;base64,!notimage')
         with self.assertRaisesRegex(ValueError,'maximum 20 MiB'):
             prepare_lux_reference('data:image/png;base64,'+'A'*(21*1024*1024))
+
+class UserMediaTests(unittest.TestCase):
+    """Private maps/images must never leak across profile identities."""
+    def setUp(self):
+        self.tmp=tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        self.store=Storage(self.tmp.name)
+        self.first,self.first_token=self.store.create_guest('World Builder')
+        self.second,self.second_token=self.store.create_guest('Observer')
+
+    def test_private_map_roundtrip_and_owner_isolation(self):
+        import json
+        doc={'schema':'vehiclelab-testmap/v3','name':'Nine cells',
+             'edge':'cells','worldCells':{'0,0':{'elevation':2},'1,0':{'elevation':5}},
+             'objects':[{'kind':'bridge','x':1,'z':8,'w':6,'h':2,'d':9}]}
+        item=self.store.save_media(self.first['id'],'map','Nine-cell Playground',
+                                   json.dumps(doc).encode(),'application/json')
+        self.assertEqual(len(self.store.own_media_list(self.first['id'],'map')),1)
+        self.assertEqual(self.store.own_media_list(self.second['id']),[])
+        self.assertIsNone(self.store.own_media(self.second['id'],item['id']))
+        stored=self.store.own_media(self.first['id'],item['id'])
+        self.assertEqual(json.loads(stored['payload'])['worldCells']['1,0']['elevation'],5)
+        self.assertFalse(self.store.delete_media(self.second['id'],item['id']))
+        self.assertTrue(self.store.delete_media(self.first['id'],item['id']))
+        self.assertIsNone(self.store.own_media(self.first['id'],item['id']))
+
+    def test_media_limits_and_invalid_schema(self):
+        with self.assertRaises(InvalidLayout):
+            self.store.save_media(self.first['id'],'map','Invalid',b'{"schema":"wrong","objects":[]}',
+                                  'application/json')
+        with self.assertRaises(InvalidLayout):
+            self.store.save_media(self.first['id'],'image','Big picture',b'0'*(2*1024*1024+1),'image/jpeg')
+        record=self.store.save_media(self.first['id'],'image','Mock JPEG',b'JPEG test bytes','image/jpeg')
+        self.assertEqual(self.store.own_media(self.first['id'],record['id'])['mime'],'image/jpeg')
+        self.assertIsNone(self.store.own_media(self.second['id'],record['id']))

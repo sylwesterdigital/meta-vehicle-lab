@@ -421,8 +421,8 @@ class ChassisAssetRegression(unittest.TestCase):
         self.assertIn("clean.background=new THREE.Color('#ffffff')",text)
         self.assertIn('PURE WHITE (#FFFFFF)',text)
         self.assertIn('downloadCurrentChassisReference',text)
-        self.assertIn("const VERSION='0.3.12'",text)
-        self.assertIn('name="vehicle-lab-version" content="0.3.12"',text)
+        self.assertIn("const VERSION='0.3.13'",text)
+        self.assertIn('name="vehicle-lab-version" content="0.3.13"',text)
 
     def test_sqlite_preserves_imported_shell_transform_and_asset_pointer(self):
         with tempfile.TemporaryDirectory() as d:
@@ -454,3 +454,39 @@ class ChassisAssetRegression(unittest.TestCase):
                 store.user_save_layout(second['id'],str(uuid.uuid4()),'Not mine',original,asset_id=asset_id)
 
 
+
+"""Static source contracts; runtime WebXR acceptance still requires Quest hardware."""
+import unittest
+from pathlib import Path
+ROOT=Path(__file__).resolve().parents[1]
+SOURCE=(ROOT/'index.html').read_text('utf-8')
+
+class WorldMediaXRSourceTests(unittest.TestCase):
+    def test_umami_async_and_anonymous(self):
+        self.assertIn('async src="https://analytics.mielniczuk.com/script.js"',SOURCE)
+        self.assertIn('15fa1131-f0d3-49f1-95ec-b11df875bec2',SOURCE)
+        self.assertIn('function trackUsage(name)',SOURCE)
+        self.assertIn('const ANALYTICS_NAMES=new Set(',SOURCE)
+        self.assertIn('if(!ANALYTICS_NAMES.has(name))return;',SOURCE)
+
+    def test_boundaries_and_wrap_with_physics(self):
+        for marker in ("worldEdgeMode:'barrier'",'function worldBoundarySpecs()',
+                       "cfg.worldEdgeMode==='wrap'",'physics.teleport?.(',
+                       'function showWorldCells()',"cfg.worldEdgeMode==='cells'"):
+            self.assertIn(marker,SOURCE)
+        self.assertGreaterEqual(SOURCE.count('teleport:(pos,'),3)
+        self.assertIn('edge:cfg.worldEdgeMode',SOURCE)
+        self.assertIn('worldCells:cfg.worldCells',SOURCE)
+
+    def test_xr_mapping_and_seat_controls(self):
+        for marker in ('function updateXRDriving(dt)','source.handedness',"gp.mapping!=='xr-standard'",
+                       'buttons[0]?.value','buttons[1]?.pressed','buttons[3]?.pressed',
+                       "xrEdge('right-4'", "xrEdge('right-5'",'xrResetHold>1.1',
+                       'updateXRVehicleRig()',"trackUsage('xr_started')"):
+            self.assertIn(marker,SOURCE)
+
+    def test_media_owner_browsing(self):
+        for marker in ('id="mediaWindow"', 'id="mediaTabs"','id="mediaGrid"',
+                       "identityRequest('/api/me/media'",'function mapAssetPreview(',
+                       'async function refreshMediaBrowser()',"trackUsage('map_saved')"):
+            self.assertIn(marker,SOURCE)

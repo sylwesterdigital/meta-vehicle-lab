@@ -215,6 +215,14 @@ class Storage:
             );
             CREATE INDEX IF NOT EXISTS ix_user_layout_owner ON user_layouts(profile_id,updated_at DESC);
             CREATE INDEX IF NOT EXISTS ix_user_layout_gallery ON user_layouts(visibility,updated_at DESC);
+            CREATE TABLE IF NOT EXISTS user_media (
+              id TEXT PRIMARY KEY, profile_id TEXT NOT NULL,
+              kind TEXT NOT NULL CHECK(kind IN ('map','image')),
+              name TEXT NOT NULL, payload BLOB NOT NULL,
+              mime TEXT NOT NULL, created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL,
+              FOREIGN KEY (profile_id) REFERENCES profiles(id) ON DELETE CASCADE
+            );
+            CREATE INDEX IF NOT EXISTS ix_user_media_owner ON user_media(profile_id,kind,updated_at DESC);
             ''')
             cols={row['name'] for row in db.execute('PRAGMA table_info(assets)')}
             if 'owner_id' not in cols:db.execute('ALTER TABLE assets ADD COLUMN owner_id TEXT')
@@ -390,6 +398,88 @@ class Storage:
             if revision!=row['revision']:raise StaleLayout('Layout changed; reload before deleting')
             db.execute('DELETE FROM user_layouts WHERE id=?',(identifier,))
         return True
+
+    def own_media_list(self,owner,kind=None,limit=100):
+        owner=validate_uuid(owner)
+        if kind not in (None,'map','image'):raise InvalidLayout('Invalid media category')
+        with self.connect() as db:
+            if kind:
+                rows=db.execute('SELECT id,kind,name,mime,length(payload) AS bytes,created_at,updated_at '
+                                'FROM user_media WHERE profile_id=? AND kind=? '
+                                'ORDER BY updated_at DESC LIMIT ?',
+                                (owner,kind,min(max(int(limit),1),200))).fetchall()
+            else:
+                rows=db.execute('SELECT id,kind,name,mime,length(payload) AS bytes,created_at,updated_at '
+                                'FROM user_media WHERE profile_id=? '
+                                'ORDER BY updated_at DESC LIMIT ?',
+                                (owner,min(max(int(limit),1),200))).fetchall()
+            summaries=[dict(row) for row in rows]
+            # Small private vector-map previews, not full map payloads.
+            for item in summaries:
+                if item['kind']!='map':continue
+                row=db.execute('SELECT payload FROM user_media WHERE id=? AND profile_id=?',
+                               (item['id'],owner)).fetchone()
+                if not row:continue
+                try:
+                    raw=json.loads(row['payload'])
+                    item['preview']={'objects':[{k:o[k] for k in ('kind','x','z','w','d','angle') if k in o}
+                            for o in raw.get('objects',[])[:70]]}
+                except (ValueError,TypeError,KeyError):item['preview']={'objects':[]}
+            return summaries
+
+    def own_media(self,owner,identifier):
+        with self.connect() as db:
+            row=db.execute('SELECT id,kind,name,mime,payload FROM user_media WHERE profile_id=? AND id=?',
+                           (validate_uuid(owner),validate_uuid(identifier))).fetchone()
+            return dict(row) if row else None
+
+    def save_media(self,owner,kind,name,payload,mime,identifier=None):
+        owner=validate_uuid(owner)
+        if kind not in ('map','image'):raise InvalidLayout('Invalid media category')
+        name=validate_name(name)
+        if len(name)>100:raise InvalidLayout('Media name too long')
+        if not isinstance(payload,(bytes,bytearray)):raise InvalidLayout('Invalid media data')
+        maximum=256*1024 if kind=='map' else 2*1024*1024
+        if not 1<=len(payload)<=maximum:raise InvalidLayout('Media exceeds category size limit')
+        if kind=='map':
+            if mime!='application/json':raise InvalidLayout('Map must be JSON')
+            try:
+                obj=json.loads(payload)
+                if obj.get('schema') not in ('vehiclelab-testmap/v2','vehiclelab-testmap/v3'):
+                    raise InvalidLayout('Unsupported map schema')
+                if not isinstance(obj.get('objects'),list) or len(obj['objects'])>250:
+                    raise InvalidLayout('Invalid map objects')
+            except (ValueError,UnicodeError,AttributeError,TypeError) as e:
+                raise InvalidLayout('Invalid map JSON') from e
+        elif mime not in ('image/png','image/jpeg','image/webp'):
+            raise InvalidLayout('Unsupported image MIME')
+        identifier=validate_uuid(identifier) if identifier else str(uuid.uuid4())
+        now=int(time.time()*1000)
+        with self.connect() as db:
+            db.execute('BEGIN IMMEDIATE')
+            count=db.execute('SELECT count(*) FROM user_media WHERE profile_id=?',(owner,)).fetchone()[0]
+            exists=db.execute('SELECT id FROM user_media WHERE id=? AND profile_id=?',(identifier,owner)).fetchone()
+            if not exists and count>=250:raise InvalidLayout('Media library limit reached')
+            if exists:
+                db.execute('UPDATE user_media SET kind=?,name=?,mime=?,payload=?,updated_at=? WHERE id=? AND profile_id=?',
+                           (kind,name,mime,bytes(payload),now,identifier,owner))
+            else:
+                db.execute('INSERT INTO user_media(id,profile_id,kind,name,mime,payload,created_at,updated_at) '
+                           'VALUES(?,?,?,?,?,?,?,?)',(identifier,owner,kind,name,mime,bytes(payload),now,now))
+        return {'id':identifier,'kind':kind,'name':name,'bytes':len(payload),'updated_at':now}
+
+    def delete_media(self,owner,identifier):
+        with self.connect() as db:
+            cursor=db.execute('DELETE FROM user_media WHERE profile_id=? AND id=?',
+                              (validate_uuid(owner),validate_uuid(identifier)))
+            return cursor.rowcount>0
+
+    def own_models_list(self,owner,limit=100):
+        with self.connect() as db:
+            rows=db.execute('SELECT id,filename AS name,bytes,created_at FROM assets '
+                            'WHERE owner_id=? ORDER BY created_at DESC LIMIT ?',
+                            (validate_uuid(owner),min(100,max(1,int(limit))))).fetchall()
+            return [dict(row) for row in rows]
 
     def gallery(self,limit=40):
         with self.connect() as db:

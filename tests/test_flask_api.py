@@ -68,6 +68,35 @@ class FlaskAPITests(unittest.TestCase):
         self.assertEqual(self.client.post('/api/providers/test',headers=member_headers,
             json={'provider':'tripo','key':'some-secret'}).status_code,422)
 
+    def test_profile_media_gallery_private_cloud_isolation(self):
+        import io
+        from PIL import Image
+        a=self.client.post('/api/identity/guest',json={'name':'Media Maker'}).json
+        b=self.client.post('/api/identity/guest',json={'name':'Other Maker'}).json
+        ah={'Authorization':'Bearer '+a['token']}
+        bh={'Authorization':'Bearer '+b['token']}
+        mapdoc={'schema':'vehiclelab-testmap/v3','objects':[{'kind':'hill','x':3,'z':4,'w':9,'d':7}],
+                'edge':'cells','worldCells':{'0,0':{'elevation':4}}}
+        res=self.client.post('/api/me/media',json={'kind':'map','name':'Private Alps','data':mapdoc},headers=ah)
+        self.assertEqual(res.status_code,201,res.json)
+        ident=res.json['media']['id']
+        self.assertEqual(len(self.client.get('/api/me/media',headers=ah).json['media']),1)
+        self.assertEqual(self.client.get('/api/me/media',headers=bh).json['media'],[])
+        self.assertEqual(self.client.get('/api/me/media/'+ident,headers=bh).status_code,404)
+        restored=self.client.get('/api/me/media/'+ident,headers=ah).json['media']['data']
+        self.assertEqual(restored['worldCells']['0,0']['elevation'],4)
+        self.assertEqual(self.client.post('/api/me/media',headers={**ah,'Origin':'https://invalid.example'},
+                          json={'kind':'map','name':'X','data':mapdoc}).status_code,403)
+        out=io.BytesIO();Image.new('RGB',(30,30),(22,67,89)).save(out,'JPEG');out.seek(0)
+        uploaded=self.client.post('/api/me/media',data={'name':'Private image','file':(out,'test.jpg')},
+                                  content_type='multipart/form-data',headers=ah)
+        self.assertEqual(uploaded.status_code,201,uploaded.json)
+        image_id=uploaded.json['media']['id']
+        self.assertEqual(self.client.get('/api/me/media/'+image_id+'/thumbnail',headers=ah).status_code,200)
+        self.assertEqual(self.client.get('/api/me/media/'+image_id+'/thumbnail',headers=bh).status_code,404)
+        self.assertEqual(self.client.delete('/api/me/media/'+ident,headers=bh).status_code,404)
+        self.assertEqual(self.client.delete('/api/me/media/'+ident,headers=ah).status_code,204)
+
     def test_generation_endpoint_auth_schema_and_mocked_openai(self):
         import base64, io, json
         from unittest.mock import patch

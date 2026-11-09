@@ -1,3 +1,11 @@
+# v0.3.13 — Edge-safe worlds, optional Umami, personal media and Quest driving (2026-11-09)
+
+- Async, non-blocking Umami page/event analytics, fail-open with privacy-safe event names.
+- Configurable physical world borders, steep uphill limit, opposite-edge wrap, and an editable bounded nine-cell landscape. Save/reload cell maps privately; no claimed infinite streaming support.
+- Cars/Models/Images/Maps media window with search, local/device and authenticated SQLite personal storage. Thumbnail route for personal images; no public sharing without explicit vehicle publication.
+- WebXR Quest controller mapping for seated driving, analog controls, horn, exit, recenter, camera, reset; requires actual hardware acceptance testing.
+- Added local regression tests for owner isolation, map persistence, world/XR contracts. Existing blueprint and database files retained; SQLite adds `user_media` table.
+
 ## v0.3.12 — Deduplicate loaded chassis GLBs (2026-11-09)
 
 - Fix repeated reimports: every save/load or cloud restore used to assign a fresh random chassis-library ID, even when the GLB binary was unchanged.

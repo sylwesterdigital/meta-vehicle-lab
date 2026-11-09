@@ -381,6 +381,79 @@ def create_app(config=None):
         data=request.get_json(silent=True) or {}
         return ('',204) if store.user_delete_layout(member['id'],identifier,data.get('revision')) else (jsonify(error='Layout not found'),404)
 
+    @app.get('/api/me/media')
+    def member_media_list():
+        member,error=guest_or_error()
+        if error:return error
+        kind=request.args.get('kind') or None
+        return jsonify(media=store.own_media_list(member['id'],kind),models=store.own_models_list(member['id']))
+
+    @app.post('/api/me/media')
+    def member_media_save():
+        member,error=guest_or_error()
+        if error:return error
+        if request.content_length and request.content_length>3*1024*1024:
+            return jsonify(error='Media upload exceeds 3 MB'),413
+        if request.mimetype=='application/json':
+            data=request.get_json(silent=True)
+            if not isinstance(data,dict) or data.get('kind')!='map':
+                return jsonify(error='Expected map payload'),400
+            content=data.get('data')
+            if not isinstance(content,dict):return jsonify(error='Invalid map content'),400
+            payload=json.dumps(content,ensure_ascii=False,separators=(',',':')).encode('utf-8')
+            result=store.save_media(member['id'],'map',data.get('name') or 'Untitled map',payload,
+                                    'application/json',data.get('id'))
+        else:
+            file=request.files.get('file')
+            if not file:return jsonify(error='Image file required'),400
+            raw=file.read(2*1024*1024+1)
+            if len(raw)>2*1024*1024:return jsonify(error='Image exceeds 2 MB'),413
+            from PIL import Image,ImageOps
+            try:
+                with Image.open(io.BytesIO(raw)) as source:
+                    if source.format not in ('PNG','JPEG','WEBP') or source.width*source.height>12_000_000:
+                        raise ValueError('Unsupported or oversized image')
+                    source.verify()
+                with Image.open(io.BytesIO(raw)) as source:
+                    source.load()
+                    image=ImageOps.exif_transpose(source).convert('RGB')
+                    image.thumbnail((1600,1600))
+                    out=io.BytesIO();image.save(out,'JPEG',quality=83,optimize=True)
+            except Exception:
+                return jsonify(error='Invalid or oversized image'),400
+            result=store.save_media(member['id'],'image',request.form.get('name') or file.filename or 'Image',
+                                    out.getvalue(),'image/jpeg')
+        return jsonify(media=result),201
+
+    @app.get('/api/me/media/<identifier>')
+    def member_media_get(identifier):
+        member,error=guest_or_error()
+        if error:return error
+        data=store.own_media(member['id'],identifier)
+        if not data:return jsonify(error='Media not found'),404
+        if data['kind']=='map':return jsonify(media={'id':data['id'],'name':data['name'],
+             'kind':'map','data':json.loads(data['payload'])})
+        return send_file(io.BytesIO(data['payload']),mimetype=data['mime'],download_name='vehiclelab-image.jpg')
+
+    @app.get('/api/me/media/<identifier>/thumbnail')
+    def member_media_thumbnail(identifier):
+        member,error=guest_or_error()
+        if error:return error
+        data=store.own_media(member['id'],identifier)
+        if not data or data['kind']!='image':return jsonify(error='Image not found'),404
+        from PIL import Image
+        with Image.open(io.BytesIO(data['payload'])) as original:
+            image=original.convert('RGB');image.thumbnail((320,240))
+            output=io.BytesIO();image.save(output,'JPEG',quality=72,optimize=True)
+        output.seek(0)
+        return send_file(output,mimetype='image/jpeg')
+
+    @app.delete('/api/me/media/<identifier>')
+    def member_media_delete(identifier):
+        member,error=guest_or_error()
+        if error:return error
+        return ('',204) if store.delete_media(member['id'],identifier) else (jsonify(error='Media not found'),404)
+
     @app.get('/api/gallery')
     def gallery_list():
         return jsonify(layouts=store.gallery())

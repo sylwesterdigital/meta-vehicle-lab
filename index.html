@@ -5,7 +5,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Vehicle Lab — Procedural Studio</title>
-  <meta name="vehicle-lab-version" content="0.3.12">
+  <meta name="vehicle-lab-version" content="0.3.13">
   <style>
     :root {
       color-scheme:dark;
@@ -567,6 +567,30 @@
 #chassisFitPanel .drawer-actions button{color:white;background:#23445a;border:1px solid #628ca2;font-size:10px;padding:5px 9px;border-radius:6px;min-height:30px}
 #chassisFitPanel small{display:block;font-size:10px;color:#b9d7e9;line-height:1.5}
 #chassisWindow{min-width:330px}
+/* Vehicle Lab 0.3.13 */
+.world-cells:not([hidden]){display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding:4px;border:1px solid var(--pane-border);border-radius:5px;background:#112637}
+.world-cells label{display:flex;align-items:center;gap:5px;font-size:11px}
+.world-cells input{width:65px;max-width:65px}
+.world-cells select{max-width:130px}
+.world-cells button{padding:5px 8px}
+.world-cells small{font-size:10px}
+/* Owned media browser: floated, resizable, consistent cards and sizes. */
+#mediaWindow{left:calc(50% - 260px);top:14%;width:520px;height:480px;min-width:250px;min-height:130px}
+#mediaWindow .window-body{display:flex;flex-direction:column;gap:5px;overflow:hidden}
+.media-toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:4px}
+.media-toolbar #mediaTabs{display:flex;gap:2px}
+.media-toolbar button{min-height:26px;padding:4px 8px}
+.media-toolbar button[aria-pressed=true]{background:var(--accent);color:var(--accent-ink,#071522)}
+.media-toolbar select{max-width:110px;padding:5px}
+.media-toolbar input{flex:1;min-width:75px;width:100px;padding:6px}
+.media-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(105px,1fr));gap:5px;align-content:start;overflow-y:auto;flex:1}
+.media-card{border:1px solid var(--pane-border);border-radius:6px;background:#223947;color:#f1f9ff;padding:3px;min-width:0;position:relative}
+.media-card img{width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:4px;display:block;background:#d4e3ed}
+.media-card strong{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:10px;padding:4px 1px}
+.media-card .media-actions{display:flex;gap:2px;flex-wrap:wrap}
+.media-card button{font-size:10px;padding:3px 5px;min-height:25px;flex:1}
+#mediaFooter{font-size:10px;color:var(--muted);padding:4px}
+.drawer-media-button{width:100%;padding:9px;margin:10px 0}
 </style>
 
  <script type="importmap">
@@ -580,12 +604,14 @@
   }
 }
 </script>
+<!-- Optional analytics never gates Three.js, Flask, XR, or the render loop. -->
+<script async src="https://analytics.mielniczuk.com/script.js" data-website-id="15fa1131-f0d3-49f1-95ec-b11df875bec2" onerror="window.vehicleLabAnalyticsUnavailable=true"></script>
 </head>
 <body>
 
   <div id="stage">
   <div id="hud">
-    <div class="stage-badge"><strong>Vehicle Lab</strong><small id="appVersionBadge">v0.3.9</small></div>
+    <div class="stage-badge"><strong>Vehicle Lab</strong><small id="appVersionBadge">v0.3.13</small></div>
     <p id="vehicleName">City Car</p><p id="vehicleInfo">Procedural vehicle</p>
     <div id="speedHud"><strong id="speed">0</strong><div>km/h</div></div>
     <div id="cameraModeReadout" style="padding:3px 6px;margin-top:4px;width:max-content;max-width:260px;border-radius:5px;background:#132d3cc0;color:#e9f5fc;font:10px ui-monospace,monospace">Camera · Orbit follow</div>
@@ -606,7 +632,7 @@
   <section id="toolsWindow" class="float-window" aria-label="Vehicle tools">
     <div class="window-head"><strong>02 / Vehicle tools</strong><button class="mini-btn minimize" title="Minimize">−</button></div>
     <div class="window-body"><div id="boarding"><button type="button" id="openOccupants" title="Choose driver and passenger 3D models">Driver / passengers</button>
-      <button id="exitBtn">Exit −</button><button id="boardBtn">Board +</button><button id="doorsBtn">Open doors</button><button id="wheelEditorBtn" title="Wheel styles / GLB models">Wheel workshop</button><button id="chassisEditorBtn" title="3D chassis asset library">Body workshop</button><button id="fleetBtn" title="Scene vehicle instances">Fleet</button><button id="mapEditorBtn" title="Test track / obstacles / hills">Test map</button><button id="xrBtn" title="WebXR immersive VR">Enter XR</button><button id="xrSeatBtn" title="Teleport into the cabin (XR only)">Cabin</button>
+      <button id="exitBtn">Exit −</button><button id="boardBtn">Board +</button><button id="doorsBtn">Open doors</button><button id="wheelEditorBtn" title="Wheel styles / GLB models">Wheel workshop</button><button id="chassisEditorBtn" title="3D chassis asset library">Body workshop</button><button id="fleetBtn" title="Scene vehicle instances">Fleet</button><button id="mapEditorBtn" title="Test track / obstacles / hills">Test map</button><button id="mediaBrowserBtn" title="My cars, models, images, and maps">My media</button><button id="xrBtn" title="WebXR immersive VR">Enter XR</button><button id="xrSeatBtn" title="Teleport into the cabin (XR only)">Cabin</button>
     </div></div>
   </section>
   <section id="catalogWindow" class="float-window" aria-label="Vehicle library">
@@ -648,8 +674,14 @@
    <div class="window-head"><strong>09 / Drive test map</strong><button class="mini-btn minimize" title="Minimize">−</button></div>
    <div class="window-body">
     <input id="mapName" maxlength="90" value="Open practice ground" hidden><button type="button" id="mapCenter" hidden aria-label="Center car on map">◎</button>
-    <div class="map-interactions"><button id="mapZoomOut" title="Zoom out (−)">−</button><output id="mapZoomValue">100%</output><button id="mapZoomIn" title="Zoom in (+)">+</button><button id="mapFit" title="Fit entire map">⛶</button><button id="mapFollowBtn" title="Follow vehicle" aria-label="Follow vehicle">◎</button><button id="mapObjectAdd" title="Add object · Shift+A" aria-label="Add object">＋</button><button id="mapViewCycle" title="Toggle contour / precision map" aria-label="Toggle map style">▤</button></div>
+    <div class="map-interactions"><button id="mapZoomOut" title="Zoom out (−)">−</button><output id="mapZoomValue">100%</output><button id="mapZoomIn" title="Zoom in (+)">+</button><button id="mapFit" title="Fit entire map">⛶</button><button id="mapFollowBtn" title="Follow vehicle" aria-label="Follow vehicle">◎</button><button id="mapObjectAdd" title="Add object · Shift+A" aria-label="Add object">＋</button><button id="mapViewCycle" title="Toggle contour / precision map" aria-label="Toggle map style">▤</button><button id="mapLibraryBtn" title="Saved maps gallery" aria-label="Open maps gallery">▦</button></div>
     <div class="map-view-bar"><select id="mapView" aria-label="Map rendering mode"><option value="terrain">Relief / contours</option><option value="diagram">Precision plan / symbols</option></select><label><input type="checkbox" id="mapGrid" checked> Grid</label></div>
+    <div id="worldCellControls" class="world-cells" hidden>
+      <label>Cell<select id="worldCellChoice" aria-label="Choose map cell"><option value="-1,-1">−1,−1</option></select></label>
+      <label>Elevation (m)<input id="worldCellElevation" type="number" min="-8" max="15" step=".5" value="0"></label>
+      <button id="worldCellApply" type="button">Apply cell</button>
+      <small id="worldCellInfo">9 editable cells around 0,0</small>
+    </div>
     <div class="map-workspace"><nav id="mapToolRail" aria-label="Map drawing tools">
       <button data-map-tool="select" aria-label="Select / move map objects" title="Select and drag objects">⌖</button>
       <button data-map-tool="pan" aria-label="Pan map" title="Hand: pan map">✋</button>
@@ -678,6 +710,20 @@
     <div class="drawer-actions"><button id="mapUndo">Undo</button><button id="mapRedo">Redo</button><button id="mapClear">Clear objects</button><button id="mapSave">Save map</button><button id="mapExport">Export JSON</button><button id="mapImport">Import JSON</button></div>
     <div class="map-top"><select id="mapSaved" aria-label="Saved test map"><option>Loading maps...</option></select><button id="mapLoad">Load</button></div>
     <small id="mapStatus">Drag to draw the selected footprint. Edits in DRIVE rebuild physics at the car’s current position.</small>
+   </div>
+  </section>
+  <section id="mediaWindow" class="float-window" aria-label="My media library" style="display:none">
+   <div class="window-head"><strong>13 / My media · Cars / Models / Images / Maps</strong>
+    <button class="mini-btn minimize" title="Minimize media library" aria-label="Minimize">−</button></div>
+   <div class="window-body">
+    <div class="media-toolbar"><div id="mediaTabs" role="group" aria-label="Media category">
+     <button data-media-type="cars">Cars</button><button data-media-type="models">Models</button>
+     <button data-media-type="images">Images</button><button data-media-type="maps">Maps</button></div>
+     <select id="mediaSource" aria-label="Media location"><option value="local">This device</option><option value="cloud">My cloud</option></select>
+     <input id="mediaSearch" type="search" placeholder="Search my assets" aria-label="Search media">
+     <button id="mediaRefresh" title="Refresh media">↻</button><button id="mediaUpload" title="Upload an image privately" hidden>＋ Upload</button><input type="file" id="mediaUploadFile" accept="image/png,image/jpeg,image/webp" hidden></div>
+    <div id="mediaGrid" class="media-grid" role="list"></div>
+    <div id="mediaFooter" role="status">Your personal media library. Cloud assets are private.</div>
    </div>
   </section>
   <section id="objectWindow" class="float-window" aria-label="3D object transforms and physics" style="display:none">
@@ -913,6 +959,7 @@
     <label>Phone (unverified)<input id="profilePhone" type="tel" maxlength="40"></label>
     <button type="submit">Save profile</button>
   </form>
+  <button type="button" id="profileMediaBtn" class="drawer-media-button">My media · Cars / Models / Images / Maps</button>
   <details><summary>Identity backup & security</summary>
     <p>Your profile is protected by a random secret saved on this device, not by its UUID. Export the backup to transfer or recover access. Anyone with the backup can access this profile.</p>
     <div class="drawer-actions"><button id="backupProfile">Export private profile backup</button><button id="restoreProfile">Import profile backup</button><button id="switchGuest">Switch profile</button></div>
@@ -1046,6 +1093,7 @@
    headlights:true,rearWindow:true,maxSpeed:90,
    modelScale:1,modelRotation:0,modelPitch:0,modelRoll:0,
    modelOffsetX:0,modelOffsetY:0,modelOffsetZ:0,
+   worldEdgeMode:'barrier',worldBounce:.55,worldCells:{},
    hills:true,cameraDistance:12,terrainProfile:'hills',terrainSize:180,skyStyle:'gradient',
    wheelWidth:.23,wheelOutset:0,axleFrontOffset:0,axleRearOffset:0,
    frontWheelRadius:.34,rearWheelRadius:.34,frontWheelWidth:.23,rearWheelWidth:.23,
@@ -1085,6 +1133,9 @@ let objectGizmo=null;
 // Pre-v0.2.7 IndexedDB and server layouts can lack wheel/texture properties.
 // lil-gui fails while creating a numeric controller for an absent property.
 function normalizeVehicleConfig(){
+ if(!['cliff','barrier','ramp','wrap','cells'].includes(cfg.worldEdgeMode))cfg.worldEdgeMode='barrier';
+ if(!Number.isFinite(Number(cfg.worldBounce)))cfg.worldBounce=.55;
+ if(!cfg.worldCells||typeof cfg.worldCells!=='object'||Array.isArray(cfg.worldCells))cfg.worldCells={};
  const wheelKeys=['frontWheelRadius','rearWheelRadius','frontWheelWidth','rearWheelWidth',
   'frontWheelOutset','rearWheelOutset','axleFrontOffset','axleRearOffset'];
  for(const [key,value] of Object.entries(defaults)){
@@ -1156,7 +1207,19 @@ let ghostObject=null,ghostSamples=[],ghostElapsed=0,ghostTick=0;
  const serverAccess={token:''};
  let activeProfile=null,guestToken='',serverVisibility='private',adminLogToken='';
  const appEvents=[];
- const VERSION='0.3.12';
+ // Umami's legacy script.js supports track(name). No PII, usernames, prompts,
+ // tokens or object IDs are sent. Drop events if the tracker is unavailable.
+ const ANALYTICS_NAMES=new Set(['drive_started','drive_ended','xr_started','xr_ended',
+   'xr_seated','vehicle_saved','map_saved','map_loaded','map_exported',
+   'media_opened','map_boundary_changed','vehicle_preset_selected']);
+ function trackUsage(name){
+  if(!ANALYTICS_NAMES.has(name))return;
+  try{const fn=window.umami?.track;
+   if(typeof fn==='function'){const result=fn.call(window.umami,name);
+    if(result&&typeof result.catch==='function')result.catch(()=>{});}}
+  catch{/* analytics must never affect the app */}
+ }
+ const VERSION='0.3.13';
  document.getElementById('appVersionBadge').textContent='v'+VERSION;
  let imageReference=null,busyAI=false;
 
@@ -1191,7 +1254,24 @@ let ghostObject=null,ghostSamples=[],ghostElapsed=0,ghostTick=0;
  const camera=new THREE.PerspectiveCamera(48,1,.1,350);
  camera.position.set(9,6,11);
 // XR uses the same world and raycast floor; no second scene or duplicated chassis.
-let xrActive=false,xrSession=null;const xrRig=new THREE.Group();
+let xrActive=false,xrSession=null,xrSeated=false,xrOutside=false;
+const xrRig=new THREE.Group(),xrButtons=new Map();
+const xrDriving={throttle:0,steer:0,brake:false,handbrake:false};
+let xrResetHold=0,xrRightLook=0;
+function xrEdge(name,pressed){
+ const was=xrButtons.get(name)||false;xrButtons.set(name,!!pressed);
+ return !!pressed&&!was;
+}
+function xrHorn(){
+ try{const ctx=vehicleAudio.ctx;if(!ctx||!vehicleAudio.running)return;
+  const t=ctx.currentTime,osc=ctx.createOscillator(),gain=ctx.createGain();
+  osc.type='sawtooth';osc.frequency.setValueAtTime(355,t);osc.frequency.setValueAtTime(410,t+.085);
+  gain.gain.setValueAtTime(0,t);gain.gain.linearRampToValueAtTime(.07,t+.025);
+  gain.gain.exponentialRampToValueAtTime(.001,t+.27);
+  osc.connect(gain).connect(ctx.destination);osc.start(t);osc.stop(t+.3);
+  osc.onended=()=>{osc.disconnect();gain.disconnect()};
+ }catch{}
+}
 const xrPickRay=new THREE.Raycaster(),xrForward=new THREE.Vector3(),xrOrigin=new THREE.Vector3();
 const xrTeleportMark=new THREE.Mesh(new THREE.RingGeometry(.26,.33,32),
   new THREE.MeshBasicMaterial({color:0x9fffe1,transparent:true,opacity:.85,side:THREE.DoubleSide,depthWrite:false}));
@@ -1300,6 +1380,25 @@ xrTeleportMark.rotation.x=-Math.PI/2;xrTeleportMark.visible=false;scene.add(xrTe
     const metric=o.shape==='square'?Math.max(Math.abs(dx),Math.abs(dz)):dx*dx+dz*dz;
     const falloff=o.shape==='square'?Math.max(0,1-metric):Math.exp(-2.8*metric);
     heightOffset=Math.max(heightOffset,(o.h||2)*falloff);
+   }
+   const worldRadius=Math.max(45,Number(cfg.terrainSize)||180)/2;
+   if(cfg.worldEdgeMode==='ramp'){
+    const dist=Math.max(Math.abs(x),Math.abs(z));
+    const ratio=clamp((dist-worldRadius*.74)/(worldRadius*.26),0,1);
+    heightOffset+=ratio*ratio*(26+ratio*20);
+   }
+   if(cfg.worldEdgeMode==='cells'){
+    // Three-by-three editable terrain cells, blended on boundaries.
+    const cellSide=worldRadius*2/3;
+    let sum=0,weight=0;
+    for(let ix=-1;ix<=1;ix++)for(let iz=-1;iz<=1;iz++){
+     const cell=cfg.worldCells?.[`${ix},${iz}`];if(!cell)continue;
+     const u=Math.abs(x-ix*cellSide)/cellSide,v=Math.abs(z-iz*cellSide)/cellSide;
+     const wx=clamp((1.25-u)/.5,0,1),wz=clamp((1.25-v)/.5,0,1);
+     const w=wx*wx*(3-2*wx)*wz*wz*(3-2*wz);
+     sum+=(Number(cell.elevation)||0)*w;weight+=w;
+    }
+    if(weight)heightOffset+=sum/Math.max(1,weight);
    }
    if(profile==='flat')return heightOffset;
    if(profile==='beach'){
@@ -1563,6 +1662,21 @@ function makeObjectTexture(pattern,seed){
  const texture=new THREE.CanvasTexture(c);texture.colorSpace=THREE.SRGBColorSpace;
  texture.wrapS=texture.wrapT=THREE.RepeatWrapping;texture.repeat.set(2,2);return texture;
 }
+// Physical boundaries are derived from the same configuration for Cannon,
+// Rapier, and Ammo. Ramp mode also lifts the visible and collision terrain.
+function worldBoundarySpecs(){
+ const mode=cfg.worldEdgeMode;
+ if(!['barrier','ramp','cells'].includes(mode))return [];
+ const half=SIZE/2,thick=2.4,wallHeight=mode==='barrier'?12:55;
+ const bounce=clamp(Number(cfg.worldBounce)||0,.0,.95);
+ return [
+  {id:'world-north',x:0,y:wallHeight/2,z:-half+thick/2,w:SIZE,h:wallHeight,d:thick},
+  {id:'world-south',x:0,y:wallHeight/2,z:half-thick/2,w:SIZE,h:wallHeight,d:thick},
+  {id:'world-west',x:-half+thick/2,y:wallHeight/2,z:0,w:thick,h:wallHeight,d:SIZE},
+  {id:'world-east',x:half-thick/2,y:wallHeight/2,z:0,w:thick,h:wallHeight,d:SIZE}
+ ].map(o=>({...o,kind:'world-edge',name:'World collision barrier',physics:'static',
+  mass:1,friction:.8,bounce,rx:0,ry:0,rz:0,color:'#547c87'}));
+}
 function buildCourse(){
  normalizeCourseObjects();
  if(objectGizmo?.object)objectGizmo.detach();
@@ -1571,7 +1685,7 @@ function buildCourse(){
  for(const body of coursePhysicsBodies)world.removeBody(body);coursePhysicsBodies.length=0;
  courseRoot=new THREE.Group();courseRoot.name='Physical test course';scene.add(courseRoot);
  const courseGroups=new Map();
- courseSolidSpecs.splice(0,courseSolidSpecs.length,...courseSpecs());
+ courseSolidSpecs.splice(0,courseSolidSpecs.length,...courseSpecs(),...worldBoundarySpecs());
  for(const spec of courseSolidSpecs){
   const o=cfg.courseObjects.find(c=>Math.abs((c.x||0)-spec.x)<.05&&c.kind===spec.kind)||{};
   let geo;
@@ -1591,7 +1705,7 @@ function buildCourse(){
    baseMaterial.map=makeObjectTexture(o.texture,o.seed||42);baseMaterial.color.set('#ffffff');
   }
   const mesh=new THREE.Mesh(geo,baseMaterial);
-  mesh.userData.courseId=spec.id;mesh.userData.isCourseMesh=true;
+  mesh.userData.courseId=spec.id;mesh.userData.isCourseMesh=spec.kind!=='world-edge';
   if(spec.kind==='bridge'&&spec.id){
    let group=courseGroups.get(spec.id);
    if(!group){group=new THREE.Group();group.name='Bridge · grouped collision geometry';
@@ -1605,11 +1719,16 @@ function buildCourse(){
    mesh.position.copy(point);mesh.rotation.set(spec.rx,0,spec.rz);
    group.add(mesh);
   }else{
-   if(spec.id&&!courseMeshes.has(spec.id))courseMeshes.set(spec.id,mesh);
+   if(spec.kind!=='world-edge'&&spec.id&&!courseMeshes.has(spec.id))courseMeshes.set(spec.id,mesh);
    mesh.position.set(spec.x,spec.y,spec.z);mesh.rotation.set(spec.rx,spec.ry,spec.rz);
    courseRoot.add(mesh);
   }
-  mesh.castShadow=true;mesh.receiveShadow=true;
+  mesh.castShadow=spec.kind!=='world-edge';mesh.receiveShadow=true;
+  if(spec.kind==='world-edge'){
+   // Physical rail has a narrow legible translucent visualization.
+   mesh.material.dispose();mesh.material=new THREE.MeshStandardMaterial({
+    color:0x6e91a5,metalness:.1,roughness:.65,transparent:true,opacity:.16,depthWrite:false});
+  }
   if(spec.physics==='none')continue;
   const body=new CANNON.Body({mass:spec.physics==='dynamic'?spec.mass:0,
    material:new CANNON.Material({friction:spec.friction,restitution:spec.bounce}),
@@ -1747,8 +1866,8 @@ function updateVegetation(dt){updateNearGrass();if(grassMaterial){grassMaterial.
 // necessary for modified terrain triangle colliders (new hills). Do not reset to origin.
 let resumeDrivePose=null,mapUpdating=false,mapRefreshQueued=false;
 const terrainAffectingKinds=new Set(['hill','dune']);
-function heightfieldSignature(){return JSON.stringify((cfg.courseObjects||[])
- .filter(o=>terrainAffectingKinds.has(o.kind)).map(o=>[o.id,o.x,o.z,o.h,o.w,o.d,o.shape,o.points]));}
+function heightfieldSignature(){return JSON.stringify([cfg.worldEdgeMode,cfg.worldCells,cfg.terrainSize,cfg.terrainProfile,
+ (cfg.courseObjects||[]).filter(o=>terrainAffectingKinds.has(o.kind)).map(o=>[o.id,o.x,o.z,o.h,o.w,o.d,o.shape,o.points])]);}
 let previousHeightfieldSignature=null;
 async function refreshEnvironmentForMap(){
  if(mapUpdating){mapRefreshQueued=true;return;}
@@ -2909,6 +3028,10 @@ function makeCannonAdapter(){
    chassis.vectorToWorldFrame(new CANNON.Vec3(0,0,1),direction);
    return chassis.velocity.dot(direction);
   },
+  teleport:(pos,velocity)=>{chassis.position.set(pos.x,pos.y,pos.z);
+   chassis.velocity.set(velocity.x,velocity.y,velocity.z);chassis.angularVelocity.set(0,0,0);
+   chassis.previousPosition.copy(chassis.position);chassis.interpolatedPosition.copy(chassis.position);
+   chassis.wakeUp();},
   setMass:value=>{chassis.mass=value;chassis.updateMassProperties()},
   upright:()=>{const q=new THREE.Quaternion(chassis.quaternion.x,chassis.quaternion.y,chassis.quaternion.z,chassis.quaternion.w);
    const yaw=new THREE.Euler().setFromQuaternion(q,'YXZ').y;
@@ -3024,6 +3147,9 @@ async function makeRapierAdapter(){
     new THREE.Quaternion(q.x,q.y,q.z,q.w),'YXZ').y;
     chassis.setRotation({x:0,y:Math.sin(yaw/2),z:0,w:Math.cos(yaw/2)},true);
     const p=chassis.translation();chassis.setTranslation({x:p.x,y:Math.max(p.y,heightAt(p.x,p.z)+cfg.H*.55+1),z:p.z},true);
+    chassis.setAngvel({x:0,y:0,z:0},true);},
+   teleport:(pos,velocity)=>{
+    chassis.setTranslation(pos,true);chassis.setLinvel(velocity,true);
     chassis.setAngvel({x:0,y:0,z:0},true);},
    setMass:value=>{
     // Scale the same collider density, preserving geometry and center of mass.
@@ -3181,6 +3307,10 @@ async function makeAmmoAdapter(){
      t.setOrigin(v(p.x(),Math.max(p.y(),heightAt(p.x(),p.z())+cfg.H*.55+1),p.z()));
      chassis.setWorldTransform(t);chassis.setAngularVelocity(v(0,0,0));chassis.activate();
    },
+   teleport:(pos,vel)=>{
+    const t=chassis.getWorldTransform();t.setOrigin(v(pos.x,pos.y,pos.z));
+    chassis.setWorldTransform(t);chassis.getMotionState()?.setWorldTransform(t);
+    chassis.setLinearVelocity(v(vel.x,vel.y,vel.z));chassis.setAngularVelocity(v(0,0,0));chassis.activate();},
    setMass:value=>{
     if(Math.abs(value-latestMass)<1)return;
     const newInertia=v(0,0,0);shape.calculateLocalInertia(value,newInertia);
@@ -3265,7 +3395,7 @@ async function enterDrive(){
   for(const w of wheels)scene.attach(w);
   telemetry.stepCount=0;telemetry.stepMs=0;wheelSpinAngles.length=0;
   updatePhysicsHud();updateCameraLabel();updateAutopilotButton();
-  note(ENGINE_LABELS[simulator.engine]+': arrows / joystick to drive · Space / touch to brake · Orbit / pinch to follow');
+  trackUsage('drive_started');note(ENGINE_LABELS[simulator.engine]+': arrows / joystick to drive · Space / touch to brake · Orbit / pinch to follow');
  }catch(e){
   vehicleAudio.stop();physics=null;note('Physics backend failed: '+e.message+' — select Cannon-es or retry.',true);
   console.error('Vehicle physics initialisation failed',e);
@@ -3284,7 +3414,7 @@ function leaveDrive(){
   if(m&&o){o.x=m.position.x;o.z=m.position.z;o.y=m.position.y;o.angle=m.rotation.y*180/Math.PI;}
  }}
  try{physics?.destroy()}catch(e){console.warn('Physics cleanup',e)}
- vehicleAudio.stop();physics=null;mode='build';stepAccumulator=0;previousYaw=null;braking=false;
+ trackUsage('drive_ended');vehicleAudio.stop();physics=null;mode='build';stepAccumulator=0;previousYaw=null;braking=false;
  physicsVisual.previous=physicsVisual.current=null;clearFollowLift();orbit.enabled=!xrActive;
  $('buildBtn').classList.add('active');
  $('driveBtn').classList.remove('active');
@@ -3438,6 +3568,9 @@ function inputForStep(){
    steer:t>active.duration*.25&&t<active.duration*.65?.25:0,
    brake:t>=active.duration*.75};
  }
+ if(xrActive&&xrSeated&&mode==='drive')return {
+  throttle:xrDriving.throttle,steer:xrDriving.steer,
+  brake:xrDriving.brake||xrDriving.handbrake};
  if(cfg.autopilot&&mode==='drive')return autopilotInput();
  return {throttle:clamp((held.has('ArrowUp')?1:0)-
      (held.has('ArrowDown')?1:0)-joystick.y,-1,1),
@@ -3475,7 +3608,20 @@ function stepVehicle(dt){
   }
  }
  if(!physics)return;
- const p=physics.pose();
+  let p=physics.pose();
+  if(cfg.worldEdgeMode==='wrap'){
+   const half=SIZE/2,margin=3;
+   const x=p.position.x,z=p.position.z;
+   const wx=x>half-margin?x-2*(half-margin):x<-(half-margin)?x+2*(half-margin):x;
+   const wz=z>half-margin?z-2*(half-margin):z<-(half-margin)?z+2*(half-margin):z;
+   if(wx!==x||wz!==z){
+    const deltaY=heightAt(wx,wz)-heightAt(x,z);
+    physics.teleport?.({x:wx,y:p.position.y+deltaY,z:wz},p.velocity);
+    p=physics.pose();resetPhysicsInterpolation();
+    car.position.set(p.position.x,p.position.y,p.position.z);
+    followRig.initialized=false;
+   }
+  }
  if(!physicsVisual.current)resetPhysicsInterpolation();
  const alpha=clamp(stepAccumulator/FIXED_STEP,0,1);
  const prior=physicsVisual.previous||physicsVisual.current;
@@ -3852,7 +3998,7 @@ async function saveLayout(copy=false){
  await transaction('readwrite','put',record);
  layoutId=id;commitHistory('Saved layout: '+details.name);
  await refreshSaved();await refreshVehicleGallery();
- note('Saved '+details.name+' with five camera views to IndexedDB.');
+ trackUsage('vehicle_saved');note('Saved '+details.name+' with five camera views to IndexedDB.');
 }
 
 async function refreshSaved(){
@@ -4046,7 +4192,7 @@ async function saveServer(copy=false){
  serverVisibility=body.visibility;
  commitHistory('Cloud save: '+details.name);
  await refreshServer();await refreshVehicleGallery();
- note('Saved '+serverVisibility+' vehicle in SQLite with five previews (revision '+serverRevision+').');
+ trackUsage('vehicle_saved');note('Saved '+serverVisibility+' vehicle in SQLite with five previews (revision '+serverRevision+').');
 }
 
 function download(data,name,type){
@@ -4669,6 +4815,24 @@ $('audioPresetImport').onchange=async event=>{try{
 const environment=gui.addFolder('09 · Terrain & sky');
  environment.add(cfg,'terrainProfile',['flat','bumps','hills','extreme','moon','beach']).name('Terrain').onChange(()=>{if(mode==='drive')leaveDrive();if(cfg.terrainProfile==='beach')cfg.groundSurface='sand';if(cfg.terrainProfile==='moon')cfg.groundSurface='moon';buildTerrain();buildCourse();buildVegetation();clearTracks();buildVehicle();scheduleHistory('Terrain')});
  environment.add(cfg,'terrainSize',90,300,30).name('Terrain width').onFinishChange(()=>{if(mode==='drive')leaveDrive();buildTerrain();buildCourse();buildVegetation();clearTracks();scheduleHistory('Terrain size')});
+ const edges=environment.addFolder('World boundaries / connected cells');
+ edges.add(cfg,'worldEdgeMode',{
+  'Open edge (legacy cliff)':'cliff',
+  'Physical bounce barrier':'barrier',
+  'Steep uphill boundary':'ramp',
+  'Reappear on opposite edge':'wrap',
+  'Editable 3 × 3 cells':'cells'
+ }).name('World border').onChange(async()=>{
+  if(mode==='drive'){resumeDrivePose=physics?.pose?.()||null;leaveDrive();}
+  if(cfg.worldEdgeMode==='cells')cfg.terrainSize=300;
+  buildTerrain();buildCourse();buildVegetation();clearTracks();
+  await refreshEnvironmentForMap();
+  if(resumeDrivePose)await enterDrive();
+  trackUsage('map_boundary_changed');scheduleHistory('World boundary mode');
+ });
+ edges.add(cfg,'worldBounce',0,.95,.05).name('Barrier bounce').onFinishChange(()=>{buildCourse();scheduleHistory('Barrier bounce')});
+ edges.add({edit:()=>setWindowVisible('mapWindow',true)},'edit').name('Edit / save connected cells');
+ edges.close();
  environment.add(cfg,'skyStyle',['solid','gradient','clouds','night']).name('Sky').onChange(()=>{updateEnvironment();scheduleHistory('Sky')});
  environment.add(cfg,'groundSurface',['asphalt','grass','dirt','gravel','sand','snow','moon']).name('Ground material').onChange(()=>{buildTerrain();buildCourse();buildVegetation();clearTracks();scheduleHistory('Terrain texture')});
  environment.add(cfg,'groundRoughness',.08,1,.01).name('Ground PBR roughness').onChange(value=>{if(terrain?.material){terrain.material.roughness=value;terrain.material.needsUpdate=true}}).onFinishChange(()=>scheduleHistory('Ground roughness'));
@@ -4986,7 +5150,7 @@ const xrControllers=[0,1].map(index=>{
  const line=new THREE.Line(geom,new THREE.LineBasicMaterial({color:0x9fffe1,transparent:true,opacity:.7}));
  controller.add(line);
  controller.addEventListener('selectstart',()=>{
-  if(!xrActive)return;
+  if(!xrActive||xrSeated)return;
   xrPickRay.set(controller.getWorldPosition(xrOrigin),
    xrForward.set(0,0,-1).applyQuaternion(controller.getWorldQuaternion(new THREE.Quaternion())).normalize());
   xrPickRay.far=60;
@@ -4994,8 +5158,11 @@ const xrControllers=[0,1].map(index=>{
   const hit=xrPickRay.intersectObjects(meshes,true)[0];
   if(!hit)return;
   if(car&&car.getObjectById&&hit.object!==terrain){
-   // Controller interaction with vehicle body opens/closes procedural doors.
-   doorsOpen=!doorsOpen;doorAutomatic=false;return;
+   // First selection opens the doors; selecting again seats the XR driver.
+   // This can be done in-headset without touching an inaccessible HTML button.
+   if(!doorsOpen){doorsOpen=true;doorAutomatic=false;note('XR doors opened · select vehicle again to sit')}
+   else void xrEnterCabin().catch(e=>note('XR seat: '+e.message,true));
+   return;
   }
   xrTeleportTo(hit.point);
  });
@@ -5010,11 +5177,64 @@ function xrTeleportTo(position){
  xrRig.position.y+=position.y-(worldHead.y-1.58);
  note('WebXR teleport: '+position.x.toFixed(1)+', '+position.z.toFixed(1));
 }
-function xrEnterCabin(){
+async function xrEnterCabin(){
  if(!xrActive||!car){note('Start an immersive XR session before entering the cabin.',true);return}
- const p=new THREE.Vector3(-cfg.W*.22,cfg.H*.65,cfg.L*.15);
- car.localToWorld(p);xrTeleportTo(p);
- doorsOpen=true;
+ if(mode!=='drive')await enterDrive();
+ if(mode!=='drive'){note('Vehicle physics must be running before XR driving.',true);return}
+ xrSeated=true;xrOutside=false;xrResetHold=0;
+ cfg.autopilot=false;updateAutopilotButton();
+ xrButtons.clear();doorsOpen=false;
+ updateXRVehicleRig();trackUsage('xr_seated');
+ note('XR driving · left stick steer · right trigger accelerate · left trigger brake');
+}
+function updateXRVehicleRig(){
+ if(!xrActive||!xrSeated||!car)return;
+ const offset=xrOutside
+  ?new THREE.Vector3(0,cfg.H*1.75,-cfg.L*2.0)
+  :new THREE.Vector3(-cfg.W*.22,Math.max(.65,cfg.H*.70),cfg.L*.13);
+ const point=car.localToWorld(offset);
+ xrRig.position.copy(point);
+ xrRig.quaternion.copy(car.quaternion);
+ if(xrOutside){const q=new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,1,0),xrRightLook);
+  xrRig.quaternion.multiply(q)}
+}
+function updateXRDriving(dt){
+ if(!xrActive||!xrSession||!xrSeated||mode!=='drive')return;
+ let steer=0,throttle=0,brake=0,handbrake=false,resetPressed=false;
+ for(const source of xrSession.inputSources){
+  const gp=source.gamepad;if(!gp||gp.mapping!=='xr-standard')continue;
+  const buttons=gp.buttons||[],axes=gp.axes||[];
+  const stick=axes.length>=4?(axes[2]||0):(axes[0]||0);
+  if(source.handedness==='left'){
+   steer=Math.abs(stick)>.12?stick:0;
+   brake=clamp(buttons[0]?.value||0,0,1);
+   resetPressed=!!buttons[4]?.pressed;
+   if(xrEdge('left-5',buttons[5]?.pressed)){xrOutside=!xrOutside;xrRightLook=0;
+    note('XR camera: '+(xrOutside?'Exterior chase':'Seated cockpit'))}
+   if(xrEdge('left-3',buttons[3]?.pressed)){
+    xrRightLook=0;updateXRVehicleRig();note('XR orientation recentered.');}
+  }else if(source.handedness==='right'){
+   throttle=clamp(buttons[0]?.value||0,0,1);
+   handbrake=!!buttons[1]?.pressed;
+   if(xrEdge('right-4',buttons[4]?.pressed))xrHorn();
+   if(xrEdge('right-5',buttons[5]?.pressed)){
+    xrSeated=false;xrDriving.throttle=0;xrDriving.brake=true;
+    leaveDrive();note('Exited XR driving seat.');return;}
+   if(xrOutside&&Math.abs(stick)>.18)xrRightLook+=stick*dt*.8;
+  }
+ }
+ if(resetPressed){xrResetHold+=dt;if(xrResetHold>1.1){xrResetHold=-100;
+  void resetDriveOrigin().then(()=>updateXRVehicleRig());}}
+ else if(xrResetHold>=0)xrResetHold=0;
+ else xrResetHold=0;
+ // Smoother steering at speed to avoid nausea and wheel oscillation.
+ const speed=physics?.getSpeed?.()||0;
+ const limit=clamp(1-speed/75,.38,1);
+ xrDriving.steer+=(steer*limit-xrDriving.steer)*(1-Math.exp(-dt*12));
+ xrDriving.throttle=throttle;
+ xrDriving.handbrake=handbrake;
+ xrDriving.brake=brake>.10&&speed>.5;
+ if(brake>.15&&speed<=.5&&throttle<.10){xrDriving.throttle=-brake*.58;xrDriving.brake=false}
 }
 async function toggleXR(){
  if(xrSession){await xrSession.end();return}
@@ -5024,10 +5244,12 @@ async function toggleXR(){
  const offset=camera.position.clone().sub(orbit.target);
  try{
   const session=await navigator.xr.requestSession('immersive-vr',{optionalFeatures:['local-floor','bounded-floor']});
-  xrSession=session;xrActive=true;orbit.enabled=false;orbit.autoRotate=false;
+  xrSession=session;xrActive=true;xrSeated=false;xrOutside=false;xrButtons.clear();orbit.enabled=false;orbit.autoRotate=false;
+  trackUsage('xr_started');
   xrRig.position.set(0,0,0);xrRig.attach(camera);
   session.addEventListener('end',()=>{
-   xrActive=false;xrSession=null;xrTeleportMark.visible=false;
+   xrActive=false;xrSession=null;xrSeated=false;xrTeleportMark.visible=false;xrButtons.clear();
+   xrDriving.throttle=0;xrDriving.brake=false;trackUsage('xr_ended');
    scene.attach(camera);orbit.enabled=true;
    preserveCameraOrbit();camera.position.copy(orbit.target).add(offset);orbit.update();
    $('xrBtn').dataset.actionLabel='Enter XR';applyButtonMode();
@@ -5037,9 +5259,10 @@ async function toggleXR(){
  }catch(e){xrActive=false;xrSession=null;orbit.enabled=true;note('WebXR session: '+e.message,true)}
 }
 $('xrBtn').onclick=()=>void toggleXR().catch(e=>note('WebXR: '+e.message,true));
-$('xrSeatBtn').onclick=xrEnterCabin;
+$('xrSeatBtn').onclick=()=>void xrEnterCabin().catch(e=>note(e.message,true));
 function updateXRInteraction(){
  if(!xrActive)return;
+ if(xrSeated){xrTeleportMark.visible=false;updateXRVehicleRig();return}
  let found=null;
  for(const controller of xrControllers){
   xrPickRay.set(controller.getWorldPosition(xrOrigin),
@@ -5055,6 +5278,7 @@ const clock=new THREE.Clock();
 function animate(){
  const frameDelta=clock.getDelta();
  const dt=Math.min(frameDelta,.05);
+ updateXRDriving(dt);
  if(cfg.autopilot&&mode==='drive')autopilotState.time+=dt;
  if($('mapWindow').style.display!=='none'&&!$('mapWindow').classList.contains('is-minimized')&&++mapFrame%12===0)requestMinimapPaint();
  for(const mixer of passengerMixers)mixer.update(dt);updateSeatAnimations(dt);tickEnvironment(dt);updateVegetation(dt);
@@ -5802,7 +6026,22 @@ const testMapPresets={
  'Rally jumps':[{kind:'jump',x:0,z:18,w:6,d:8,h:3},{kind:'cone',x:3,z:10,w:1,d:1,h:.8},{kind:'cone',x:-3,z:10,w:1,d:1,h:.8}],
  'Bridge & barriers':[{kind:'bridge',x:0,z:20,w:5,d:9,h:3},{kind:'barrier',x:8,z:18,w:1,d:7,h:1.2},{kind:'barrier',x:-8,z:18,w:1,d:7,h:1.2}],
  'Rocky hills':[{kind:'hill',x:18,z:12,w:28,d:24,h:5},{kind:'rock',x:-10,z:16,w:2,d:2,h:2}],
- 'Puddle slalom':Array.from({length:6},(_,i)=>({kind:i%2?'cone':'puddle',x:i%2?-4:4,z:-20+i*10,w:3,d:3,h:1}))
+ 'Puddle slalom':Array.from({length:6},(_,i)=>({kind:i%2?'cone':'puddle',x:i%2?-4:4,z:-20+i*10,w:3,d:3,h:1})),
+ 'Canyon gateway':[
+  {kind:'hill',x:-17,z:0,w:35,d:82,h:7},{kind:'hill',x:18,z:4,w:36,d:85,h:7},
+  {kind:'bridge',x:0,z:24,w:5,d:10,h:3},{kind:'jump',x:0,z:-27,w:5,d:11,h:2.6}],
+ 'Island coast':[
+  {kind:'sand',x:0,z:0,w:75,d:65,h:.2},
+  {kind:'puddle',x:26,z:9,w:15,d:40,h:.4},{kind:'hill',x:-25,z:10,w:35,d:35,h:3},
+  {kind:'trees',x:-12,z:-25,w:25,d:10,h:2}],
+ 'Obstacle circuit':[
+  ...Array.from({length:8},(_,i)=>({kind:'barrier',x:Math.sin(i*.785)*28,z:Math.cos(i*.785)*28,
+    w:1.2,d:11,h:1.3,angle:i*45})),
+  ...Array.from({length:5},(_,i)=>({kind:'cone',x:(i-2)*3,z:7,w:.7,d:.7,h:.8})),
+  {kind:'jump',x:0,z:-22,w:5,d:10,h:2}],
+ 'Mud hills':[
+  ...Array.from({length:6},(_,i)=>({kind:'dune',x:Math.sin(i*1.17)*22,z:(i-3)*13,w:17,d:13,h:2+i*.45})),
+  {kind:'puddle',x:-9,z:4,w:21,d:9,h:.5}]
 };
 function normalizeCourseObjects(){
  if(!Array.isArray(cfg.courseObjects))cfg.courseObjects=[];
@@ -5826,26 +6065,66 @@ async function requestMapName(){return new Promise(resolve=>{
  mapSaveDialog.onclose=()=>resolve(mapSaveDialog.returnValue==='save'?input.value.trim().slice(0,90):null);
  mapSaveDialog.showModal();input.select();
  });}
+// Compact 3×3-cell terrain controls, persisted in map JSON and IndexedDB.
+const cellSelector=$('worldCellChoice');cellSelector.replaceChildren();
+for(let z=-1;z<=1;z++)for(let x=-1;x<=1;x++)cellSelector.add(new Option(`Cell ${x},${z}`,`${x},${z}`));
+cellSelector.value='0,0';
+function showWorldCells(){
+ $('worldCellControls').hidden=cfg.worldEdgeMode!=='cells';
+ $('worldCellElevation').value=Number(cfg.worldCells?.[cellSelector.value]?.elevation)||0;
+}
+cellSelector.onchange=showWorldCells;
+$('worldCellApply').onclick=async()=>{
+ const elevation=clamp(Number($('worldCellElevation').value)||0,-8,15);
+ cfg.worldCells[cellSelector.value]={elevation};
+ const driving=mode==='drive';if(driving){resumeDrivePose=physics?.pose?.()||null;leaveDrive();}
+ buildTerrain();buildCourse();buildVegetation();previousHeightfieldSignature=heightfieldSignature();
+ if(driving)await enterDrive();drawMinimap();scheduleHistory('Cell elevation');
+ note('Updated cell '+cellSelector.value+' · elevation '+elevation+' m');
+};
+showWorldCells();
 $('mapSave').onclick=async()=>{const name=await requestMapName();
  if(!name)return;cfg.courseName=name;$('mapName').value=name;
- const id=crypto.randomUUID();await mapTransaction('readwrite','put',{id,name,objects:structuredClone(cfg.courseObjects),terrain:cfg.terrainProfile,ground:cfg.groundSurface,modified:Date.now()});
- await refreshMapList();$('mapSaved').value=id;note('Saved precision test map in IndexedDB.')};
+ const id=crypto.randomUUID();await mapTransaction('readwrite','put',{id,name,objects:structuredClone(cfg.courseObjects),terrain:cfg.terrainProfile,ground:cfg.groundSurface,edge:cfg.worldEdgeMode,cells:structuredClone(cfg.worldCells),size:cfg.terrainSize,modified:Date.now()});
+ await refreshMapList();$('mapSaved').value=id;trackUsage('map_saved');note('Saved precision test map in IndexedDB.');
+ if(activeProfile&&guestToken){
+  const documentMap={schema:'vehiclelab-testmap/v3',name,
+   terrainProfile:cfg.terrainProfile,groundSurface:cfg.groundSurface,
+   objects:cfg.courseObjects,edge:cfg.worldEdgeMode,worldCells:cfg.worldCells,
+   terrainSize:cfg.terrainSize};
+  void identityRequest('/api/me/media','POST',{kind:'map',name,data:documentMap})
+   .then(()=>recordEvent('INFO','Map also saved privately in cloud.'))
+   .catch(e=>recordEvent('WARN','Cloud map backup: '+e.message));
+ }};
+async function applySavedTestMap(data){
+ if(!data)return;cfg.courseName=data.name;cfg.courseObjects=structuredClone(data.objects||[]);normalizeCourseObjects();selectCourseObject(null);
+ const terrain=data.terrainProfile||data.terrain,ground=data.groundSurface||data.ground;
+ if(terrain)cfg.terrainProfile=terrain;if(ground)cfg.groundSurface=ground;
+ if(['cliff','barrier','ramp','wrap','cells'].includes(data.edge))cfg.worldEdgeMode=data.edge;
+ const cells=data.worldCells||data.cells;
+ if(cells&&typeof cells==='object'&&!Array.isArray(cells))cfg.worldCells=structuredClone(cells);
+ const size=Number(data.terrainSize??data.size);
+ if(Number.isFinite(size)&&size>=90)cfg.terrainSize=clamp(size,90,300);showWorldCells();
+ $('mapName').value=cfg.courseName;await refreshEnvironmentForMap();trackUsage('map_loaded');note('Loaded test map: '+data.name)}
 $('mapLoad').onclick=async()=>{const id=$('mapSaved').value;
  const data=id.startsWith('preset:')?{name:id.slice(7),objects:testMapPresets[id.slice(7)]}:await mapTransaction('readonly','get',id);
- if(!data)return;cfg.courseName=data.name;cfg.courseObjects=structuredClone(data.objects||[]);normalizeCourseObjects();selectCourseObject(null);
- if(data.terrain)cfg.terrainProfile=data.terrain;if(data.ground)cfg.groundSurface=data.ground;
- $('mapName').value=cfg.courseName;await refreshEnvironmentForMap();note('Loaded test map: '+data.name)};
-$('mapExport').onclick=()=>download(JSON.stringify({schema:'vehiclelab-testmap/v2',name:$('mapName').value,
- terrainProfile:cfg.terrainProfile,groundSurface:cfg.groundSurface,objects:cfg.courseObjects},null,2),
- 'vehiclelab-testmap-'+new Date().toISOString().slice(0,10)+'.json','application/json');
+ await applySavedTestMap(data)};
+$('mapExport').onclick=()=>{trackUsage('map_exported');download(JSON.stringify({schema:'vehiclelab-testmap/v2',name:$('mapName').value,
+ terrainProfile:cfg.terrainProfile,groundSurface:cfg.groundSurface,edge:cfg.worldEdgeMode,worldCells:cfg.worldCells,terrainSize:cfg.terrainSize,objects:cfg.courseObjects},null,2),
+ 'vehiclelab-testmap-'+new Date().toISOString().slice(0,10)+'.json','application/json')};
 $('mapImport').onclick=()=>$('mapImportFile').click();
 $('mapImportFile').onchange=async e=>{try{const file=e.target.files?.[0];if(!file)return;
- const data=JSON.parse(await file.text());if(!['vehiclelab-testmap/v1','vehiclelab-testmap/v2'].includes(data.schema)||!Array.isArray(data.objects)||data.objects.length>220)throw Error('Invalid test map');
+ const data=JSON.parse(await file.text());if(!['vehiclelab-testmap/v1','vehiclelab-testmap/v2','vehiclelab-testmap/v3'].includes(data.schema)||!Array.isArray(data.objects)||data.objects.length>220)throw Error('Invalid test map');
  const allowed=new Set([...Object.values(OBJECT_CHOICES).map(pair=>pair[1])]);
  for(const o of data.objects){if(!allowed.has(o.kind)||!['x','z','w','d','h'].every(k=>Number.isFinite(o[k])&&Math.abs(o[k])<400)||
   o.points&&(!Array.isArray(o.points)||o.points.length>200||o.points.some(p=>!Number.isFinite(p.x)||!Number.isFinite(p.z))))throw Error('Invalid map object')}
  cfg.courseObjects=data.objects.map(o=>({...o}));normalizeCourseObjects();cfg.courseName=String(data.name||'Imported').slice(0,90);
- $('mapName').value=cfg.courseName;selectCourseObject(null);await refreshEnvironmentForMap();note('Imported test map')
+ if(data.terrainProfile||data.terrain)cfg.terrainProfile=data.terrainProfile||data.terrain;
+ if(data.groundSurface||data.ground)cfg.groundSurface=data.groundSurface||data.ground;
+ if(['cliff','barrier','ramp','wrap','cells'].includes(data.edge))cfg.worldEdgeMode=data.edge;
+ const cells=data.worldCells||data.cells;if(cells&&typeof cells==='object'&&!Array.isArray(cells))cfg.worldCells=structuredClone(cells);
+ const size=Number(data.terrainSize??data.size);if(Number.isFinite(size)&&size>=90)cfg.terrainSize=clamp(size,90,300);
+ showWorldCells();$('mapName').value=cfg.courseName;selectCourseObject(null);await refreshEnvironmentForMap();note('Imported test map')
  }catch(error){note(error.message,true)}finally{e.target.value=''}};
 // The freehand input can create closed area patches or smoothed open paths.
 const patchSettings=document.createElement('div');patchSettings.className='map-top';
@@ -5859,7 +6138,7 @@ $('mapTool').closest('label').after(patchSelector);
 updateMapZoomUI();let mapFrame=0;
 
 // Workspace windows: pointer dragging + native CSS resize + minimize.
-const WINDOW_IDS=['toolbarWindow','toolsWindow','catalogWindow','galleryWindow','paramsWindow','logWindow','paletteWindow','wheelWindow','mapWindow','objectWindow','fleetWindow','chassisWindow'];
+const WINDOW_IDS=['toolbarWindow','toolsWindow','catalogWindow','galleryWindow','paramsWindow','logWindow','paletteWindow','wheelWindow','mapWindow','objectWindow','fleetWindow','chassisWindow','mediaWindow'];
 const WINDOW_NAMES=['Actions','Tools','Library','Gallery','Parameters','Logs','Materials','Wheel workshop','Test map','Object','Scene vehicles','Chassis workshop'];
 let highestZ=18;
 const safeStore=(name,value)=>{try{localStorage.setItem(name,value)}catch(e){}};
@@ -6637,6 +6916,12 @@ $('galleryRefreshBtn').onclick=refreshGallery;
 $('layoutPublic').onchange=()=>{serverVisibility=$('layoutPublic').checked?'public':'private'};
 
 const RELEASE_NOTES=[
+ {v:'0.3.13',date:'2026-11-09',title:'World boundaries, private media and Quest driving',items:[
+  'Optional non-blocking Umami tracking with anonymous action events; no keys, prompts or names transmitted.',
+  'Physical world borders, uphill walls, wraparound and editable 3 × 3 connected world cells.',
+  'Private media browser for Cars, Models, Images and Maps, with SQLite map/image persistence.',
+  'WebXR Quest controller steering, triggers, handbrake, horn, seated camera and recenter controls.',
+  'Seamless unbounded streaming terrain, multiplayer driving and timed challenges remain later milestones.']},
  {v:'0.3.12',date:'2026-11-09',title:'Deduplicated chassis model library',items:[
   'Repeatedly opening the same GLB from a local layout or cloud no longer creates a new chassis library entry.',
   'Existing byte-identical chassis entries are collapsed into one gallery card using SHA-256; stored originals are preserved.',
@@ -7109,11 +7394,140 @@ function downloadCurrentChassisReference(){
 }
 $('chassisDownloadReference').onclick=downloadCurrentChassisReference;
 $('chassisReferenceDownload').onclick=downloadCurrentChassisReference;
+$('mapLibraryBtn').onclick=()=>openMediaBrowser('maps');
 $('mapEditorBtn').onclick=()=>setWindowVisible('mapWindow',true);
+$('mediaBrowserBtn').onclick=()=>openMediaBrowser();$('profileMediaBtn').onclick=()=>{showDrawer(null);openMediaBrowser()};
 $('fleetBtn').onclick=()=>{renderFleetList();setWindowVisible('fleetWindow',true)};
 $('cameraBtn').onclick=cycleCamera;$('uprightBtn').onclick=resetUpright;
 $('resetOriginBtn').onclick=()=>void resetDriveOrigin();
 $('autopilotBtn').onclick=()=>{cfg.autopilot=!cfg.autopilot;autopilotState.anchor=null;autopilotState.time=0;updateAutopilotButton();note('Autopilot '+(cfg.autopilot?'enabled':'disabled'));};
+// Media browser: owner-bound cloud APIs plus existing device-only libraries.
+let mediaType='cars',mediaSource='local',mediaRequest=0;
+let mediaObjectURLs=[];
+function mediaImageURL(blob){const url=URL.createObjectURL(blob);mediaObjectURLs.push(url);return url}
+function mapAssetPreview(m){
+ const canvas=document.createElement('canvas');canvas.width=canvas.height=208;
+ const g=canvas.getContext('2d');g.fillStyle='#d7e6d9';g.fillRect(0,0,208,208);
+ g.strokeStyle='#9bb6a3';g.lineWidth=.6;
+ for(let i=0;i<=208;i+=20){g.beginPath();g.moveTo(i,0);g.lineTo(i,208);g.moveTo(0,i);g.lineTo(208,i);g.stroke()}
+ const objects=m.objects||m.data?.objects||[];
+ for(const o of objects.slice(0,250)){
+  if(!Number.isFinite(o.x)||!Number.isFinite(o.z))continue;
+  g.save();g.translate(104+o.x*.48,104+o.z*.48);g.rotate(Number(o.angle||0)*Math.PI/180);
+  g.fillStyle=({hill:'#b9955e',dune:'#d6b777',puddle:'#3d93b8',bridge:'#71849e',
+     cone:'#e28e45',grass:'#548b52',sand:'#deb879',trees:'#21644c'})[o.kind]||'#758fa2';
+  const w=Math.max(2,(o.w||3)*.48),d=Math.max(2,(o.d||3)*.48);
+  if(['hill','puddle','dune'].includes(o.kind)){g.beginPath();g.ellipse(0,0,w/2,d/2,0,0,Math.PI*2);g.fill()}
+  else g.fillRect(-w/2,-d/2,w,d);
+  g.restore();
+ }
+ return canvas.toDataURL('image/png');
+}
+function openMediaBrowser(type='cars'){
+ mediaType=type;trackUsage('media_opened');setWindowVisible('mediaWindow',true);
+ void refreshMediaBrowser();
+}
+async function refreshMediaBrowser(){
+ const id=++mediaRequest,grid=$('mediaGrid');grid.replaceChildren();
+ for(const b of $('mediaTabs').querySelectorAll('button'))b.setAttribute('aria-pressed',String(b.dataset.mediaType===mediaType));
+ $('mediaSource').value=mediaSource;
+ $('mediaUpload').hidden=mediaType!=='images'||mediaSource!=='cloud';
+ for(const url of mediaObjectURLs)URL.revokeObjectURL(url);mediaObjectURLs=[];
+ const query=$('mediaSearch').value.trim().toLowerCase();
+ const entries=[];
+ try{
+  if(mediaSource==='local'){
+   if(mediaType==='cars')for(const item of await allLayouts()){
+    const images=item.metadata?.images||item.previews||[];
+    entries.push({name:item.name,preview:galleryImage(images)||vehicleFallbackImage(item),
+     action:()=>{gallerySource='local';setWindowVisible('galleryWindow',true);refreshVehicleGallery()}});
+   }
+   if(mediaType==='maps'){
+    for(const [name,objects] of Object.entries(testMapPresets))entries.push({name:'Preset · '+name,
+     preview:mapAssetPreview({objects}),action:()=>applySavedTestMap({name,objects})});
+    for(const item of await mapTransaction('readonly','getAll'))entries.push({name:item.name,
+     preview:mapAssetPreview(item),action:()=>applySavedTestMap(item)});
+   }
+   if(mediaType==='models'){
+    for(const row of [...chassisAssets.values(),...wheelAssets.values()])entries.push({name:row.name,
+     preview:row.preview||vehicleFallbackImage(row),
+     action:()=>{if(chassisAssets.has(row.id)){setWindowVisible('chassisWindow',true);void selectChassisAsset(row.id)}
+      else {setWindowVisible('wheelWindow',true);renderWheelStudio()}}});
+   }
+   if(mediaType==='images'){
+    for(const picture of galleryImages||[])if(picture.data)entries.push({name:picture.label||'Vehicle preview',preview:picture.data,
+     action:()=>{const a=document.createElement('a');a.href=picture.data;a.download='vehiclelab-preview.png';a.click()}});
+    if(imageReference)entries.push({name:'Current concept / reference',preview:imageReference,
+     action:()=>{ $('referenceImage').src=imageReference;$('referenceCard').hidden=false; }});
+   }
+  }else{
+   if(!activeProfile||!guestToken)throw Error('Create or restore your profile to view private cloud media.');
+   if(mediaType==='cars'){
+    const result=await identityRequest('/api/me/layouts');
+    for(const item of result.layouts||[])entries.push({name:item.name,preview:vehicleFallbackImage(item),
+     action:()=>{gallerySource='cloud';setWindowVisible('galleryWindow',true);refreshVehicleGallery()}});
+   }else{
+    const result=await identityRequest('/api/me/media');
+    if(mediaType==='maps')for(const row of result.media.filter(m=>m.kind==='map')){
+     entries.push({name:row.name,preview:mapAssetPreview(row.preview||{objects:[]}),action:async()=>{
+      const result=await identityRequest('/api/me/media/'+row.id);
+      await applySavedTestMap({...result.media.data,name:row.name,
+       terrain:result.media.data.terrainProfile,ground:result.media.data.groundSurface,
+       cells:result.media.data.worldCells,size:result.media.data.terrainSize});}});
+    }
+    if(mediaType==='images')for(const row of result.media.filter(m=>m.kind==='image')){
+     entries.push({name:row.name,preview:null,imageId:row.id,
+      action:async()=>{
+       const res=await fetch('/api/me/media/'+row.id,{headers:authHeaders()});
+       if(!res.ok)throw Error('Image unavailable');
+       const blob=await res.blob(),url=mediaImageURL(blob);
+       const a=document.createElement('a');a.href=url;a.download=row.name+'.jpg';a.click();}});
+    }
+    if(mediaType==='models')for(const row of result.models||[]){entries.push({name:row.name,
+     preview:vehicleFallbackImage(row),action:async()=>{
+      const response=await fetch('/api/me/assets/'+row.id,{headers:authHeaders()});
+      if(!response.ok)throw Error('Model download failed');
+      const blob=await response.blob();
+      const a=document.createElement('a');a.href=mediaImageURL(blob);a.download=row.name;a.click();}})}
+   }
+  }
+  if(id!==mediaRequest)return;
+  for(const entry of entries.filter(x=>x.name.toLowerCase().includes(query))){
+   const card=document.createElement('div');card.className='media-card';card.setAttribute('role','listitem');
+   const img=document.createElement('img');img.alt=entry.name+' thumbnail';img.loading='lazy';
+   img.src=entry.preview||vehicleFallbackImage(entry);card.append(img);
+   const title=document.createElement('strong');title.textContent=entry.name;title.title=entry.name;card.append(title);
+   const actions=document.createElement('div');actions.className='media-actions';
+   const open=document.createElement('button');open.textContent=mediaType==='images'?'View / save':'Open';
+   open.onclick=()=>void Promise.resolve(entry.action()).catch(e=>note(e.message,true));
+   actions.append(open);card.append(actions);grid.append(card);
+   if(entry.imageId){
+    const loadPicture=()=>void fetch('/api/me/media/'+entry.imageId+'/thumbnail',{headers:authHeaders()})
+     .then(x=>x.ok?x.blob():null)
+     .then(blob=>{if(blob&&id===mediaRequest)img.src=mediaImageURL(blob)}).catch(()=>{});
+    if('IntersectionObserver'in window){
+     const observer=new IntersectionObserver(entries=>{if(entries.some(x=>x.isIntersecting)){
+      observer.disconnect();loadPicture()}},{root:grid,rootMargin:'100px'});observer.observe(card);
+    }else loadPicture();
+   }
+  }
+  $('mediaFooter').textContent=grid.children.length+' '+mediaType+' · '+(mediaSource==='local'?'on this device':'private cloud');
+ }catch(e){if(id===mediaRequest){grid.textContent=e.message;recordEvent('WARN','Media: '+e.message)}}
+}
+for(const b of $('mediaTabs').querySelectorAll('button'))b.onclick=()=>{mediaType=b.dataset.mediaType;void refreshMediaBrowser()};
+$('mediaSource').onchange=()=>{mediaSource=$('mediaSource').value;void refreshMediaBrowser()};
+$('mediaSearch').oninput=()=>void refreshMediaBrowser();
+$('mediaRefresh').onclick=()=>void refreshMediaBrowser();
+$('mediaUpload').onclick=()=>$('mediaUploadFile').click();
+$('mediaUploadFile').onchange=async event=>{try{
+ const file=event.target.files?.[0];if(!file)return;
+ if(file.size>2*1024*1024)throw Error('Please compress the image below 2 MB before uploading.');
+ const form=new FormData();form.append('file',file,file.name);form.append('name',file.name);
+ await identityRequest('/api/me/media','POST',form);await refreshMediaBrowser();
+ note('Saved image privately to your cloud library.');
+ }catch(e){note('Image library upload: '+e.message,true)}finally{event.target.value=''};};
+
+
 initWorkspace();initTheme();renderMaterialPalette();renderChassisAssets();initReleaseHistory();
  buildCourse();buildVegetation();
 void initIdentity();void refreshGallery();void refreshVehicleGallery();
