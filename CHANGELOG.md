@@ -1,3 +1,8 @@
+## v0.3.21 — November 10, 2026
+- Fix a v0.3.20 3D sculpting pointer-state typo: the event handlers accessed undeclared `sculpt3DStroke` while the module declared `sculptStageStroke`. Use one correctly initialized state flag.
+- Restore normal canvas pointer handling and Command/Ctrl + left-drag sculpt interactions without repeated ReferenceError exceptions.
+- Add focused regression coverage for consistent event-state naming and pointerdown/move/up/cancel dispatch; no server dependency, migration or data changes.
+
 ## v0.3.20 — November 10, 2026
 - Scene object rotations retain X/Y/Z Euler angles when editing materials, duplicating, adding terrain objects or rebuilding physics. Inspector exposes X/Z tilt alongside yaw; legacy maps with yaw-only records remain valid.
 - Adding gallery vehicles and selecting existing scene vehicles keeps the current world, placed obstacles, sculpt grid, altitude and sea level instead of replacing them with the saved car's environment.

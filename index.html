@@ -5,7 +5,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Vehicle Lab — Procedural Studio</title>
-  <meta name="vehicle-lab-version" content="0.3.20">
+  <meta name="vehicle-lab-version" content="0.3.21">
   <style>
     :root {
       color-scheme:dark;
@@ -762,7 +762,7 @@ body.ui-no-shadows,body.ui-no-shadows *,body.ui-no-shadows *::before,body.ui-no-
 
   <div id="stage">
   <div id="hud">
-    <div class="stage-badge"><strong>Vehicle Lab</strong><small id="appVersionBadge">v0.3.20</small></div>
+    <div class="stage-badge"><strong>Vehicle Lab</strong><small id="appVersionBadge">v0.3.21</small></div>
     <p id="vehicleName">City Car</p><p id="vehicleInfo">Procedural vehicle</p>
     <div id="speedHud"><strong id="speed">0</strong><div>km/h</div></div>
     <div id="cameraModeReadout" style="padding:3px 6px;margin-top:4px;width:max-content;max-width:260px;border-radius:5px;background:#132d3cc0;color:#e9f5fc;font:10px ui-monospace,monospace">Camera · Orbit follow</div>
@@ -1470,7 +1470,7 @@ let ghostObject=null,ghostSamples=[],ghostElapsed=0,ghostTick=0;
     if(result&&typeof result.catch==='function')result.catch(()=>{});}}
   catch{/* analytics must never affect the app */}
  }
- const VERSION='0.3.20';
+ const VERSION='0.3.21';
  document.getElementById('appVersionBadge').textContent='v'+VERSION;
  let imageReference=null,busyAI=false;
 
@@ -6240,7 +6240,7 @@ function drawMinimap(){
 // Editable displacement layer. Brush samples are written at fixed world coordinates.
 // The preview updates the visible mesh immediately; physics adapters are rebuilt
 // once per completed stroke, preserving the active BUILD/DRIVE workspace.
-let sculptMapCursor=null,sculptStageStroke=false,sculpt3DPaint=false,sculptStagePointer=null;
+let sculptMapCursor=null,sculpt3DStroke=false,sculpt3DPaint=false,sculptStagePointer=null;
 const sculptChangedCells=new Set();
 let sculptRenderPending=false,sculptStrokeChanged=false,sculptStrokeLast=null,sculptStageOrbitWasEnabled=true;
 let sculptReliefDirty=null,lastSculptReliefPaint=-Infinity;
@@ -8081,6 +8081,11 @@ $('galleryRefreshBtn').onclick=()=>{gallerySource='public';setWindowVisible('gal
 $('layoutPublic').onchange=()=>{serverVisibility=$('layoutPublic').checked?'public':'private'};
 
 const RELEASE_NOTES=[
+ {v:'0.3.21',date:'2026-11-10',title:'3D sculpt pointer-state runtime fix',items:[
+  'Correct the sculpt3DStroke state declaration so the captured pointer handlers and canvas tools share an initialized flag.',
+  'Prevent repeated ReferenceError exceptions on canvas movement, clicks, start/end of terrain painting and pointer cancellation.',
+  'No change to saved terrain data, map history, physics parameters, camera navigation, backend or server dependencies.'
+ ]},
  {v:'0.3.20',date:'2026-11-10',title:'Persistent scene transforms and world · drive scene camera · 3D sculpt brush',items:[
   'Save full X/Y/Z object rotations across materials, duplication, terrain updates and physics; add inspector tilt controls.',
   'Keep world geometry and sculpted terrain when adding or switching gallery vehicles.',

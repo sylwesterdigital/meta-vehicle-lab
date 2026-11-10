@@ -39,6 +39,25 @@ class NginxTests(unittest.TestCase):
         with self.assertRaises(ValueError):insert_api_location('server { listen 80; server_name vehiclelab.xyz; }')
         with self.assertRaises(ValueError):insert_api_location(SAMPLE+SAMPLE)
 
+
+class VehicleLab0321SculptRuntimeTests(unittest.TestCase):
+    def setUp(self):
+        self.html=(Path(__file__).resolve().parents[1]/'index.html').read_text()
+
+    def test_3d_sculpt_stroke_state_is_initialized_once_and_shared(self):
+        declaration='let sculptMapCursor=null,sculpt3DStroke=false,sculpt3DPaint=false,sculptStagePointer=null;'
+        self.assertEqual(self.html.count(declaration),1)
+        self.assertNotIn('sculptStageStroke',self.html)
+        for usage in (
+            'if(sculpt3DStroke||mode',
+            'sculpt3DStroke=true;sculptStagePointer=e.pointerId',
+            'if(sculpt3DStroke&&e.pointerId===sculptStagePointer)',
+            'if(!sculpt3DStroke||e.pointerId!==sculptStagePointer)return;',
+            'sculpt3DStroke=false;sculptStagePointer=null',
+            'if(!sculpt3DStroke)sculptBrushSphere.visible=false',
+        ):
+            self.assertIn(usage,self.html)
+
 if __name__=='__main__':unittest.main()
 
 class VehicleStudioRegressionTests(unittest.TestCase):

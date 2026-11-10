@@ -1,3 +1,10 @@
+# Vehicle Lab — v0.3.21 — 3D sculpt pointer-state runtime fix (2026-11-10)
+
+- **Fix:** The 3D canvas event handlers use `sculpt3DStroke`, but v0.3.20 mistakenly declared the different, unused variable `sculptStageStroke`. Declare and initialize `sculpt3DStroke` so all pointer handlers share the same boolean state.
+- **Impact:** Stops repeated `ReferenceError: sculpt3DStroke is not defined` on pointer hover, sculpt start/move/end, object picking and canvas clicks. Keeps Command/Ctrl + left-drag painting and ordinary orbit controls independent.
+- **Compatibility:** Frontend-only change. No modifications to saved worlds, profiles, credentials, paid API integrations, backend, deployment watcher, database schema or dependencies.
+- **Verification:** Runtime event-dispatch regression, Node syntax, Python regression suite and watcher ZIP dry-run. Full live WebGL physics and browser-based user acceptance remain necessary.
+
 # Vehicle Lab — v0.3.20 — live world editing and 3D sculpt visibility (2026-11-10)
 
 - DRIVE: numpad angles and object selection temporarily detach from car following for scene editing. Car steering/accelerator arrow keys resume the prior camera mode; stationary camera restores its original view.
