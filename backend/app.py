@@ -395,6 +395,57 @@ def create_app(config=None):
         data=request.get_json(silent=True) or {}
         return ('',204) if store.user_delete_layout(member['id'],identifier,data.get('revision')) else (jsonify(error='Layout not found'),404)
 
+
+    # Private ideas / notes. No public endpoints or account-global notes.
+    @app.get('/api/me/notes')
+    def my_notes():
+        member,error=guest_or_error()
+        if error:return error
+        return jsonify(store.notes_snapshot(member['id']))
+
+    @app.post('/api/me/notes')
+    @app.put('/api/me/notes/<identifier>')
+    def save_note(identifier=None):
+        member,error=guest_or_error()
+        if error:return error
+        data=request.get_json(silent=True)
+        if not isinstance(data,dict):return jsonify(error='Expected note JSON'),400
+        saved=store.notes_upsert(member['id'],identifier or data.get('id') or str(uuid.uuid4()),
+                data.get('title'),data.get('body'),data.get('priority'),data.get('folder_id'),data.get('revision'))
+        return jsonify(note=saved),201 if identifier is None else 200
+
+    @app.delete('/api/me/notes/<identifier>')
+    def delete_note(identifier):
+        member,error=guest_or_error()
+        if error:return error
+        data=request.get_json(silent=True) or {}
+        return ('',204) if store.notes_delete(member['id'],identifier,data.get('revision')) else (jsonify(error='Note not found'),404)
+
+    @app.post('/api/me/note-folders')
+    @app.put('/api/me/note-folders/<identifier>')
+    def save_note_folder(identifier=None):
+        member,error=guest_or_error()
+        if error:return error
+        data=request.get_json(silent=True)
+        if not isinstance(data,dict):return jsonify(error='Expected folder JSON'),400
+        folder=store.notes_folder(member['id'],data.get('name'),identifier)
+        return jsonify(folder=folder),201 if identifier is None else 200
+
+    @app.delete('/api/me/note-folders/<identifier>')
+    def delete_note_folder(identifier):
+        member,error=guest_or_error()
+        if error:return error
+        return ('',204) if store.notes_delete_folder(member['id'],identifier) else (jsonify(error='Folder not found'),404)
+
+    @app.post('/api/me/notes/bulk')
+    def bulk_notes():
+        member,error=guest_or_error()
+        if error:return error
+        data=request.get_json(silent=True)
+        if not isinstance(data,dict):return jsonify(error='Expected bulk notes JSON'),400
+        result=store.notes_bulk(member['id'],data.get('ids'),data.get('action'),data.get('folder_id'),data.get('revisions'))
+        return jsonify(result)
+
     @app.get('/api/me/media')
     def member_media_list():
         member,error=guest_or_error()
@@ -537,7 +588,9 @@ def create_app(config=None):
                                 (owner,)).fetchall()
             media_rows=db.execute('SELECT id,kind,name,mime,payload,updated_at FROM user_media WHERE profile_id=?',
                                   (owner,)).fetchall()
-            total=sum(row['bytes'] for row in asset_rows)+sum(len(row['payload']) for row in media_rows)
+            note_rows=db.execute('SELECT id,folder_id,title,body,priority,revision,created_at,updated_at FROM user_notes WHERE profile_id=?',(owner,)).fetchall()
+            folder_rows=db.execute('SELECT id,name,created_at,updated_at FROM note_folders WHERE profile_id=?',(owner,)).fetchall()
+            total=sum(row['bytes'] for row in asset_rows)+sum(len(row['payload']) for row in media_rows)+sum(len(row['body'].encode('utf-8')) for row in note_rows)
             if total>1024*1024*1024 or len(asset_rows)>500 or len(car_rows)>500 or len(media_rows)>500:
                 return jsonify(error='Private backup exceeds the 1 GiB archive limit; download models individually'),413
             # TemporaryFile is unlinked immediately; the browser receives a streamed download.
@@ -545,12 +598,15 @@ def create_app(config=None):
             try:
                 with zipfile.ZipFile(archive,'w',compression=zipfile.ZIP_STORED,allowZip64=True) as z:
                     metadata={'schema':'vehiclelab-private-export/v1','exported_at':int(time.time()),
-                              'cars':len(car_rows),'models':len(asset_rows),'media':len(media_rows),
+                              'cars':len(car_rows),'models':len(asset_rows),'media':len(media_rows),'notes':len(note_rows),
                               'assets':[]}
                     for row in car_rows:
                         data={k:row[k] for k in ('id','name','asset_id','revision','visibility','updated_at')}
                         data['blueprint']=json.loads(row['blueprint'])
                         z.writestr('cars/'+row['id']+'.json',json.dumps(data,ensure_ascii=False))
+                    z.writestr('notes/notes.json',json.dumps({'schema':'vehiclelab-notes/v1',
+                               'folders':[dict(r) for r in folder_rows],
+                               'notes':[dict(r) for r in note_rows]},ensure_ascii=False,indent=2))
                     for row in media_rows:
                         suffix='.json' if row['kind']=='map' else '.jpg'
                         z.writestr('media/'+row['id']+suffix,row['payload'])

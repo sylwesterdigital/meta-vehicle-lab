@@ -1,3 +1,15 @@
+## v0.3.27 — November 10, 2026
+- Fix macOS Python 3.15 watcher regression caused by SQLite file descriptors not closed after transactions. `Storage.connect()` now guarantees close on success and exception, while preserving rollback/commit.
+- Close SQLite snapshot destination handles explicitly. Add repeat-transaction and exception/rollback test coverage, with constrained file-descriptor validation.
+- Includes the v0.3.26 Notes, geology, theme and terrain changes; no deleted data, new dependency or destructive migration.
+
+## v0.3.26 — November 10, 2026
+- New Notes window: owner-scoped SQLite notes and folders; rapid draft persistence, autosave with server acknowledgement, full-text search, priority pills, sorting, bulk move/delete and non-destructive merge. Private backup includes notes.
+- Configurable pane opacity, blur and per-window header colour swatches. Backward-compatible theme settings and JSON export/import.
+- Geological cross-section with draggable altitude boundaries and live tint control, matching the existing terrain-map biome parameters.
+- Flat default world and confirmed flat-world reset that preserves previously saved cloud maps. Sculpt strokes bounded to the terrain, with live relief/biome updates.
+- No destructive changes to existing cars, maps, profiles or 3D asset stores; no new dependencies.
+
 ## v0.3.25 — Server-primary asset safety and independent worlds (2026-11-10)
 
 - 3D wheel/cap/avatar/chassis imports and generated GLBs require an authenticated profile and an acknowledged owner-scoped server upload before local caching. Model metadata includes category and stable client ID; old assets remain untouched.

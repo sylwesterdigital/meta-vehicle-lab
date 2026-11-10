@@ -5,7 +5,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Vehicle Lab — Procedural Studio</title>
-  <meta name="vehicle-lab-version" content="0.3.25">
+  <meta name="vehicle-lab-version" content="0.3.27">
   <style>
     :root {
       color-scheme:dark;
@@ -780,6 +780,55 @@ body.ui-no-shadows,body.ui-no-shadows *,body.ui-no-shadows *::before,body.ui-no-
 #radioWindow .radio-now-line{justify-content:flex-end;min-height:0;margin-top:-4px}
 #radioWindow #radioTime{font:10px ui-monospace,SFMono-Regular,monospace;color:var(--muted)}
 @media(max-width:410px){#radioWindow .radio-head-volume svg{display:none}#radioWindow .radio-head-volume input[type=range]{width:42px}#radioWindow .radio-head-transport{gap:2px}}
+
+/* v0.3.26: private notes, adjustable glass panels and draggable geological section. */
+:root{--pane-blur:14px}
+.float-window{backdrop-filter:blur(var(--pane-blur));-webkit-backdrop-filter:blur(var(--pane-blur))}
+body.ui-colored-headers .float-window .window-head{background:color-mix(in srgb,var(--window-header-color,#466886) 60%,var(--pane));border-bottom-color:color-mix(in srgb,var(--window-header-color,#466886) 65%,transparent)}
+.window-header-swatch{display:none;width:18px!important;height:18px!important;min-width:18px!important;min-height:18px!important;border-radius:4px!important;border:1px solid #ffffff85;padding:0!important;flex:none;cursor:pointer}
+body.ui-colored-headers .window-header-swatch{display:block}
+#notesWindow{left:22vw;top:10vh;width:min(610px,94vw);height:min(680px,85dvh);min-width:295px}
+#notesWindow .window-body{display:flex;flex-direction:column;gap:8px}
+.notes-toolbar,.notes-actions,.notes-bulk,.geo-toolbar{display:flex;align-items:center;flex-wrap:wrap;gap:5px}
+.notes-toolbar>*{flex:1 1 115px;min-width:0}
+.notes-toolbar button,.notes-actions button,.notes-bulk button{flex:0 1 auto;padding:5px 8px;font-size:calc(11px * var(--ui-scale))}
+#notesWindow select,#notesWindow input:not([type=checkbox]),#notesWindow textarea{background:#132632;color:var(--text);border:1px solid var(--pane-border);border-radius:6px;padding:7px;min-width:0;width:100%;font:inherit}
+.notes-body{display:grid;grid-template-columns:minmax(145px,42%) minmax(0,1fr);gap:10px;flex:1;min-height:0}
+.notes-list{overflow:auto;min-height:90px;display:flex;flex-direction:column;gap:5px;border:1px solid var(--pane-border);border-radius:7px;padding:5px}
+.notes-entry{display:flex;align-items:stretch;gap:4px;background:color-mix(in srgb,var(--pane) 84%,#536b7c);border-radius:6px;padding:4px}
+.notes-entry[data-selected=true]{outline:2px solid var(--accent)}
+.notes-entry input{flex:none;align-self:center}
+.notes-entry button{flex:1;min-width:0;text-align:left;background:transparent;border:0;overflow:hidden;padding:4px}
+.notes-entry button strong{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.notes-entry button small{display:block;font-size:10px;color:var(--muted);margin-top:3px}
+.notes-dot{width:9px;height:9px;border-radius:100%;flex:none;align-self:center}
+.notes-editor{min-width:0;display:flex;flex-direction:column;gap:6px}
+ .notes-priority-pills{display:flex;gap:5px;flex-wrap:wrap}
+.notes-priority-pills button{flex:1;min-width:0;padding:6px 5px;white-space:nowrap;font-size:11px;color:var(--text);opacity:.6}
+.notes-priority-pills button[data-priority=urgent]{border-color:#ec9a49;background:#543d2c}
+.notes-priority-pills button[data-priority=ongoing]{border-color:#74bd83;background:#294d3d}
+.notes-priority-pills button[data-priority=idea]{border-color:#72b4ec;background:#2d455f}
+.notes-priority-pills button[aria-pressed=true]{opacity:1;outline:2px solid var(--accent);outline-offset:-2px;font-weight:750}
+.notes-editor textarea{flex:1;min-height:150px;resize:vertical;line-height:1.5}
+.notes-editor label{font-size:11px;color:var(--muted)}
+.notes-editor .notes-pair{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+#notesStatus{font-size:11px;color:var(--muted);line-height:1.35}
+#notesStatus[data-error=true]{color:#ff9b9b}
+#geologyWindow{left:calc(50vw - 190px);top:10vh;width:min(390px,95vw);height:min(680px,82dvh);min-width:290px}
+#geologyWindow .window-body{display:flex;flex-direction:column;gap:9px}
+.geo-section{position:relative;height:285px;min-height:225px;border:1px solid var(--pane-border);border-radius:10px;overflow:hidden;background:#334;user-select:none}
+.geo-layer{position:absolute;inset:0;pointer-events:none}
+.geo-ruler{position:absolute;inset:4px auto 4px 5px;display:flex;flex-direction:column;justify-content:space-between;font:10px ui-monospace,monospace;color:#fff;text-shadow:0 1px 3px #000}
+.geo-handle{position:absolute;left:72px;right:8px;display:flex;align-items:center;gap:5px;transform:translateY(50%);padding:0 5px;min-height:22px!important;background:#102333dc!important;border:1px solid #f4fbffa8!important;color:#fff!important;border-radius:8px!important;cursor:ns-resize;touch-action:none;z-index:2;font-size:10px!important}
+.geo-handle:before{content:'';position:absolute;top:50%;right:100%;width:70px;border-top:2px dashed #f4fbffd9;pointer-events:none}
+.geo-levels{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.geo-levels label{font-size:11px;display:flex;gap:5px;flex-direction:column;min-width:0}
+.geo-levels input{min-width:0;width:100%;box-sizing:border-box;background:#132632;color:var(--text);border:1px solid var(--pane-border);padding:7px;border-radius:6px}
+.geo-colors{display:flex;justify-content:space-between;gap:5px;flex-wrap:wrap}
+.geo-colors label{display:flex;align-items:center;flex-direction:column;gap:4px;font-size:10px}
+.geo-colors input{width:44px;height:29px;padding:2px}
+#geologyWindow input[type=range]{width:100%;accent-color:var(--accent)}
+@media(max-width:600px){.notes-body{grid-template-columns:1fr;grid-template-rows:minmax(110px,.6fr) minmax(240px,1.4fr)}#notesWindow{left:2vw;top:7vh;width:96vw}}
 </style>
 
  <script type="importmap">
@@ -800,7 +849,7 @@ body.ui-no-shadows,body.ui-no-shadows *,body.ui-no-shadows *::before,body.ui-no-
 
   <div id="stage">
   <div id="hud">
-    <div class="stage-badge"><strong>Vehicle Lab</strong><small id="appVersionBadge">v0.3.25</small></div>
+    <div class="stage-badge"><strong>Vehicle Lab</strong><small id="appVersionBadge">v0.3.27</small></div>
     <p id="vehicleName">City Car</p><p id="vehicleInfo">Procedural vehicle</p>
     <div id="speedHud"><strong id="speed">0</strong><div>km/h</div></div>
     <div id="cameraModeReadout" style="padding:3px 6px;margin-top:4px;width:max-content;max-width:260px;border-radius:5px;background:#132d3cc0;color:#e9f5fc;font:10px ui-monospace,monospace">Camera · Orbit follow</div>
@@ -1001,6 +1050,45 @@ body.ui-no-shadows,body.ui-no-shadows *,body.ui-no-shadows *::before,body.ui-no-
     <div class="drawer-actions"><button id="objectDuplicate">Duplicate</button><button id="objectDelete">Delete</button><button id="objectDeselect">Deselect</button></div>
    </div>
   </section>
+  <section id="notesWindow" class="float-window" aria-label="Private notes and ideas" style="display:none">
+    <div class="window-head"><strong>Notes · ideas</strong><button class="mini-btn minimize" title="Minimize"><svg class="collapse-icon" viewBox="-3 0 19 19" aria-hidden="true" fill="currentColor"><path d="M12.711 9.182a1.03 1.03 0 0 1-1.03 1.03H1.319a1.03 1.03 0 1 1 0-2.059h10.364a1.03 1.03 0 0 1 1.029 1.03z"/></svg></button></div>
+    <div class="window-body">
+      <div class="notes-toolbar">
+        <input id="notesSearch" type="search" aria-label="Search notes" placeholder="Search notes and ideas">
+        <select id="notesFilterFolder" aria-label="Filter by folder"><option value="">All folders</option></select>
+        <select id="notesPriorityFilter" aria-label="Filter by priority"><option value="">All priorities</option><option value="urgent">Urgent</option><option value="ongoing">Ongoing</option><option value="idea">Nice to have</option></select>
+        <button type="button" id="notesSort" title="Sort by date or alphabetically">Newest ↓</button>
+      </div>
+      <div class="notes-actions"><button id="notesNew" type="button">+ New note</button><button id="notesNewFolder" type="button">+ Folder</button><button id="notesRenameFolder" type="button">Rename folder</button><button id="notesDeleteFolder" type="button">Remove folder</button><button id="notesExport" type="button">Export JSON</button></div>
+      <div class="notes-bulk"><label><input type="checkbox" id="notesSelectAll"> Select all shown</label><select id="notesBulkFolder" aria-label="Destination folder"><option value="">Inbox</option></select><button id="notesMove" type="button">Move selected</button><button id="notesMerge" type="button" title="Merge into new note, keep originals">Merge</button><button id="notesDelete" type="button">Delete selected</button></div>
+      <div class="notes-body">
+        <div id="notesList" class="notes-list" role="list" aria-label="Saved private notes"></div>
+        <div class="notes-editor">
+          <input id="notesTitle" type="text" maxlength="140" placeholder="Note title" aria-label="Note title">
+          <div class="notes-pair"><label>Priority<select id="notesPriority"><option value="urgent">Urgent · orange</option><option value="ongoing">Ongoing · green</option><option value="idea" selected>Nice to have · blue</option></select></label><label>Folder<select id="notesFolder"><option value="">Inbox</option></select></label></div>
+          <div id="notesPriorityPills" class="notes-priority-pills" role="group" aria-label="Priority quick buttons"><button type="button" data-priority="urgent">Urgent</button><button type="button" data-priority="ongoing">Ongoing</button><button type="button" data-priority="idea">Nice to have</button></div>
+          <textarea id="notesBody" rows="8" maxlength="16000" placeholder="Write an idea or comment… Auto-saves after typing; drafts also survive refresh." aria-label="Note text"></textarea>
+          <button id="notesSave" type="button">Save note to server</button>
+          <small id="notesStatus" role="status">Private notes are stored on the server. Drafts are preserved locally until confirmed.</small>
+        </div>
+      </div>
+    </div>
+  </section>
+  <section id="geologyWindow" class="float-window" aria-label="Geological altitude gradient editor" style="display:none">
+    <div class="window-head"><strong>Geological layers</strong><button class="mini-btn minimize" title="Minimize"><svg class="collapse-icon" viewBox="-3 0 19 19" aria-hidden="true" fill="currentColor"><path d="M12.711 9.182a1.03 1.03 0 0 1-1.03 1.03H1.319a1.03 1.03 0 1 1 0-2.059h10.364a1.03 1.03 0 0 1 1.029 1.03z"/></svg></button></div>
+    <div class="window-body">
+      <p style="margin:0;color:var(--muted)">Drag layer boundaries vertically. Colours update on the terrain without changing its geometry.</p>
+      <div class="geo-toolbar"><label><input type="checkbox" id="geoEnabled"> Enable altitude colours</label><select id="geoPalette" aria-label="Geological palette"><option value="alpine">Alpine</option><option value="canyon">Canyon</option><option value="volcanic">Volcanic</option><option value="custom">Custom</option></select><label><input type="checkbox" id="geoRelativeSea"> Relative to sea level</label></div>
+      <div id="geoSection" class="geo-section" aria-label="Interactive terrain geology cross-section">
+        <div id="geoLayers" class="geo-layer"></div><div class="geo-ruler"><span>120 m</span><span>60 m</span><span>0 m</span><span>−50 m</span></div>
+        <button class="geo-handle" data-geo="biomeSnowAltitude" type="button">Snow boundary</button><button class="geo-handle" data-geo="biomeRockAltitude" type="button">Rock boundary</button><button class="geo-handle" data-geo="biomeValleyAltitude" type="button">Valley boundary</button>
+      </div>
+      <div class="geo-levels"><label>Deep valley (m)<input id="geoValley" type="number" min="-50" max="120" step="1"></label><label>Rock from (m)<input id="geoRock" type="number" min="-50" max="120" step="1"></label><label>Snow from (m)<input id="geoSnow" type="number" min="-50" max="120" step="1"></label><label>Intensity <input id="geoBlend" type="range" min="0" max="1" step="0.05"></label></div>
+      <div class="geo-colors"><label>Valley<input id="geoDeepColor" type="color"></label><label>Base<input id="geoGroundColor" type="color"></label><label>Rock<input id="geoRockColor" type="color"></label><label>Snow<input id="geoSnowColor" type="color"></label></div>
+      <div class="geo-levels"><label>Steep slope rock<input id="geoSlope" type="range" min="0" max="1" step="0.05"></label><label>North-facing snow<input id="geoExposure" type="range" min="0" max="1" step="0.05"></label></div>
+      <small id="geoStatus" role="status">Heights are measured in world metres.</small>
+    </div>
+  </section>
   <section id="wheelWindow" class="float-window" aria-label="Selected wheel editor" style="display:none">
     <div class="window-head"><strong>Wheel workshop</strong><button class="mini-btn minimize" title="Minimize"><svg class="collapse-icon" viewBox="-3 0 19 19" aria-hidden="true" focusable="false" fill="currentColor"><path d="M12.711 9.182a1.03 1.03 0 0 1-1.03 1.03H1.319a1.03 1.03 0 1 1 0-2.059h10.364a1.03 1.03 0 0 1 1.029 1.03z"/></svg></button></div>
     <div class="window-body">
@@ -1158,7 +1246,10 @@ body.ui-no-shadows,body.ui-no-shadows *,body.ui-no-shadows *::before,body.ui-no-
     <p>Panel appearance</p><div id="styleToggleChoices" class="pill-row" role="group" aria-label="Interface effects">
       <button id="themeBorders" type="button" aria-pressed="false" title="Toggle all interface borders">Borders off</button>
       <button id="themeShadows" type="button" aria-pressed="false" title="Toggle interface shadows">Shadows off</button>
-    </div><p>Action button style</p><div id="actionModeChoices" class="pill-row"></div>
+    </div><div class="theme-glass-controls"><label>Window opacity <input id="themePaneOpacity" type="range" min="25" max="100" step="5" value="93"><output id="themeOpacityValue">93%</output></label>
+      <label>Background blur <input id="themePaneBlur" type="range" min="0" max="30" step="1" value="14"><output id="themeBlurValue">14 px</output></label>
+      <div class="pill-row"><button id="themeColoredHeaders" type="button" aria-pressed="false">Coloured headers off</button><small>When enabled, use the colour swatch next to each window title.</small></div></div>
+    <p>Action button style</p><div id="actionModeChoices" class="pill-row"></div>
     <div class="theme-colors"><label>Accent <input id="themeAccent" type="color" value="#a8f1c8"></label>
     <label>Panel <input id="themePanel" type="color" value="#152431"></label></div>
     <div class="drawer-actions"><button id="themeExport">Export theme JSON</button><button id="themeImport">Import theme JSON</button></div>
@@ -1459,7 +1550,7 @@ body.ui-no-shadows,body.ui-no-shadows *,body.ui-no-shadows *::before,body.ui-no-
    modelScale:1,modelRotation:0,modelPitch:0,modelRoll:0,
    modelOffsetX:0,modelOffsetY:0,modelOffsetZ:0,
    worldEdgeMode:'barrier',worldBounce:.55,worldCells:{},
-   hills:true,cameraDistance:12,terrainProfile:'hills',terrainSize:180,skyStyle:'gradient',
+   hills:false,cameraDistance:12,terrainProfile:'flat',terrainSize:180,skyStyle:'gradient',
    terrainBaseElevation:0,sculptData:'',seaEnabled:false,
    wheelWidth:.23,wheelOutset:0,axleFrontOffset:0,axleRearOffset:0,
    frontWheelRadius:.34,rearWheelRadius:.34,frontWheelWidth:.23,rearWheelWidth:.23,
@@ -1604,7 +1695,7 @@ let ghostObject=null,ghostSamples=[],ghostElapsed=0,ghostTick=0;
     if(result&&typeof result.catch==='function')result.catch(()=>{});}}
   catch{/* analytics must never affect the app */}
  }
- const VERSION='0.3.25';
+ const VERSION='0.3.27';
  document.getElementById('appVersionBadge').textContent='v'+VERSION;
  let imageReference=null,busyAI=false;
 
@@ -5799,6 +5890,7 @@ const environment=gui.addFolder('09 · Terrain · elevation & sculpt');
  const groundFolder=gui.addFolder('09c · Ground material & effects');
  groundFolder.add(cfg,'groundSurface',['asphalt','grass','dirt','gravel','sand','snow','moon']).name('Ground material').onChange(()=>{rememberMapEdit('Ground material');previousHeightfieldSignature=null;void refreshEnvironmentForMap()});
  const geology=gui.addFolder('09e · Altitude · geological colours');
+ geology.add({visual:()=>{setWindowVisible('geologyWindow',true);syncGeologyEditor()}},'visual').name('Open visual geological editor');
  const recolor=()=>updateTerrainBiomeColors();
  const rememberBiome=()=>rememberMapEdit('Geological terrain colouring');
  geology.add(cfg,'biomeEnabled').name('Enable altitude tint').onChange(()=>{refreshTerrainBiomeMaterial();rememberMapEdit('Geological colouring on/off')});
@@ -5824,7 +5916,7 @@ const environment=gui.addFolder('09 · Terrain · elevation & sculpt');
  flora.add(cfg,'rocks',0,350,10).name('Decoration stones').onFinishChange(()=>{buildVegetation();scheduleHistory('Stones')});flora.close();
  environment.add({map:()=>setWindowVisible('mapWindow',true)},'map').name('Open drive test map');
  environment.add({clearTracks},'clearTracks').name('Clear tyre tracks');
- environment.add({reset:()=>{cfg.terrainProfile='hills';cfg.skyStyle='gradient';cfg.terrainSize=180;rememberMapEdit('Reset terrain preset');void refreshEnvironmentForMap();setupGUI()}},'reset').name('Reset terrain preset (keep sculpt)');
+ environment.add({reset:()=>{cfg.terrainProfile='flat';cfg.skyStyle='gradient';cfg.terrainSize=180;rememberMapEdit('Flat terrain preset');void refreshEnvironmentForMap();setupGUI()}},'reset').name('Flat terrain preset (keep sculpt)');
  environment.close();
 driving.add({resetCamera},'resetCamera').name('Reset camera');
 driving.close();
@@ -6692,6 +6784,16 @@ $('sculptOnStage').onchange=e=>{sculpt3DPaint=e.target.checked;
  $('sculptStatus').textContent=sculpt3DPaint?'3D brush preview on · Command/Ctrl + left-drag paints, normal drag orbits.':'Preview off · Command/Ctrl + left-drag still paints.';
  if(!sculpt3DPaint)sculptBrushSphere.visible=false;
 };
+const flatWorldButton=document.createElement('button');flatWorldButton.id='sculptFlatWorld';flatWorldButton.type='button';
+flatWorldButton.textContent='New completely flat world';flatWorldButton.title='Clear terrain profile, sculpt offsets, map objects and cell elevations (undoable)';
+$('sculptClear').after(flatWorldButton);
+flatWorldButton.onclick=()=>{
+ if(!window.confirm('Reset this unsaved world to a completely flat, empty map? All existing terrain objects and sculpt strokes will be removed from the scene. Map Undo can restore them. Saved cloud maps are not deleted.'))return;
+ sculptField.fill(0);sculptChangedCells.clear();sculptReliefDirty=null;storeSculptData();
+ cfg.terrainProfile='flat';cfg.terrainBaseElevation=0;cfg.courseObjects=[];cfg.worldCells={};cfg.worldEdgeMode='cliff';cfg.seaEnabled=false;
+ selectCourseObject(null);rememberMapEdit('New flat world');updateMinimapBackground();
+ void refreshEnvironmentForMap().then(()=>{setupGUI();note('Flat world created. Existing saved maps are unchanged until you explicitly save.');});
+};
 $('sculptClear').onclick=()=>{
  if(!cfg.sculptData&&!sculptField.some(v=>v))return;
  if(!window.confirm('Erase all sculpted height changes on this map? You can Undo this change.'))return;
@@ -6726,12 +6828,15 @@ function sculptStamp(x,z){
  }
  return changed;
 }
-function sculptBegin(pt){sculptStrokeLast={x:pt.x,z:pt.z};sculptStrokeChanged=false;sculptStamp(pt.x,pt.z)}
+function sculptBoundPoint(pt){const half=Math.min(SIZE/2,150);return {
+ x:clamp(pt.x,-half,half),z:clamp(pt.z,-half,half)};}
+function sculptBegin(pt){pt=sculptBoundPoint(pt);sculptStrokeLast={x:pt.x,z:pt.z};sculptStrokeChanged=false;sculptStamp(pt.x,pt.z)}
 function sculptContinue(pt){
  if(!sculptStrokeLast)return;
+ pt=sculptBoundPoint(pt);
  const stride=clamp(cfg.sculptRadius*.3,.6,5);let p=sculptStrokeLast;
  let length=Math.hypot(pt.x-p.x,pt.z-p.z),limit=0;
- while(length>=stride&&limit++<130){p={x:p.x+(pt.x-p.x)*stride/length,z:p.z+(pt.z-p.z)*stride/length};
+ while(length>=stride&&limit++<500){p={x:p.x+(pt.x-p.x)*stride/length,z:p.z+(pt.z-p.z)*stride/length};
   sculptStamp(p.x,p.z);length=Math.hypot(pt.x-p.x,pt.z-p.z);
  }
  sculptStrokeLast=p;
@@ -6748,6 +6853,7 @@ function requestSculptRender(){if(sculptRenderPending)return;sculptRenderPending
   sculptChangedCells.clear();attr.needsUpdate=true;terrain.geometry.computeVertexNormals();
   terrain.geometry.computeBoundingSphere();
   const normals=terrain.geometry.attributes.normal;normals.needsUpdate=true;
+  if(cfg.biomeEnabled)updateTerrainBiomeColors();
   updateSculptMapReliefPatch();requestMinimapPaint();
  });
 }
@@ -6757,9 +6863,7 @@ function updateSculptMapReliefPatch(){
  const dirty=sculptReliefDirty;
  if(!dirty)return;
  // A capped 12 Hz update avoids blocking camera/physics renders with map shading.
- if(!windowCurrentlyVisible('mapWindow')||$('mapView').value==='diagram'||!courseCache){
-  sculptReliefDirty=null;return;
- }
+ if(!windowCurrentlyVisible('mapWindow')||$('mapView').value==='diagram'||!courseCache){return;}
  const now=performance.now();if(now-lastSculptReliefPaint<80)return;
  lastSculptReliefPaint=now;sculptReliefDirty=null;
  const S=256,pixel=SIZE/S,canvas=courseCache;
@@ -6822,7 +6926,7 @@ for(const eventType of ['pointerup','pointercancel','lostpointercapture'])render
  if(!sculpt3DStroke||e.pointerId!==sculptStagePointer)return;
  sculpt3DStroke=false;sculptStagePointer=null;orbit.enabled=sculptStageOrbitWasEnabled&&!transformDragging;
  if(renderer.domElement.hasPointerCapture(e.pointerId))renderer.domElement.releasePointerCapture(e.pointerId);
- sculptFinish();e.preventDefault();e.stopImmediatePropagation();
+ if(e.type==='pointerup'){const pt=sculptGroundHit(e);if(pt)sculptContinue(pt)}sculptFinish();e.preventDefault();e.stopImmediatePropagation();
 },{capture:true});
 renderer.domElement.addEventListener('pointerleave',()=>{if(!sculpt3DStroke)sculptBrushSphere.visible=false});
 window.addEventListener('keydown',e=>{
@@ -6939,7 +7043,7 @@ const finishMapPointer=e=>{
  activeTouches.delete(e.pointerId);
  if(!courseDrag||courseDrag.mode==='pinch'&&activeTouches.size>0)return;
  const drag=courseDrag;courseDrag=null;
- if(drag.mode==='sculpt'){sculptFinish();}
+ if(drag.mode==='sculpt'){if(e.type==='pointerup')sculptContinue(worldMapPoint(e));sculptFinish();}
  else if(drag.mode==='draw'){
   const o=drag.points?.length>=3?objectFromFreehand(drag.points,drag.kind):mapObjectForDrag(drag.start,drag.end,drag.kind);
   addCourseObject(o,'Draw terrain/obstacle');
@@ -7518,8 +7622,8 @@ $('mapTool').closest('label').after(patchSelector);
 updateMapZoomUI();let mapFrame=0;
 
 // Workspace windows: pointer dragging + native CSS resize + minimize.
-const WINDOW_IDS=['toolbarWindow','toolsWindow','catalogWindow','galleryWindow','paramsWindow','logWindow','paletteWindow','wheelWindow','mapWindow','objectWindow','fleetWindow','chassisWindow','mediaWindow','radioWindow','sculptWindow'];
-const WINDOW_NAMES=['Actions','Tools','Library','Gallery','Parameters','Logs','Materials','Wheel workshop','Test map','Object','Scene vehicles','Chassis workshop','My media','Radio','Terrain sculpt'];
+const WINDOW_IDS=['toolbarWindow','toolsWindow','catalogWindow','galleryWindow','paramsWindow','logWindow','paletteWindow','wheelWindow','mapWindow','objectWindow','fleetWindow','chassisWindow','mediaWindow','radioWindow','sculptWindow','notesWindow','geologyWindow'];
+const WINDOW_NAMES=['Actions','Tools','Library','Gallery','Parameters','Logs','Materials','Wheel workshop','Test map','Object','Scene vehicles','Chassis workshop','My media','Radio','Terrain sculpt','Notes','Geological layers'];
 let highestZ=18;
 const safeStore=(name,value)=>{try{localStorage.setItem(name,value)}catch(e){}};
 const safeRead=name=>{try{return localStorage.getItem(name)}catch(e){return null}};
@@ -7533,6 +7637,8 @@ function snapshotWindow(win){
 function setWindowVisible(id,show,restore=false){
  const win=$(id);if(!win)return;
  if(id==='logWindow')win.classList.toggle('is-visible',show);
+ if(show&&id==='notesWindow'&&activeProfile)void notesLoad().catch(e=>notesMessage(e.message,true));
+ if(show&&id==='geologyWindow')syncGeologyEditor();
  else win.style.display=show?'flex':'none';
  // Showing a hidden panel must never expand its minimized state.
  if(show){
@@ -7600,6 +7706,13 @@ function initWorkspace(){
    if(data.min)win.classList.add('is-minimized');
   }
   win.addEventListener('pointerdown',()=>win.style.zIndex=String(++highestZ));
+  const swatch=document.createElement('input');swatch.type='color';swatch.className='window-header-swatch';
+  swatch.setAttribute('aria-label','Header colour for '+WINDOW_NAMES[WINDOW_IDS.indexOf(id)]);
+  swatch.title='Customize the window title-bar colour';
+  swatch.value=themeSettings.headerColors?.[id]||'#3d7088';
+  head.insertBefore(swatch,head.querySelector('strong'));
+  for(const event of ['pointerdown','mousedown','click','touchstart'])swatch.addEventListener(event,e=>e.stopPropagation());
+  swatch.addEventListener('input',e=>{themeSettings.headerColors[id]=e.target.value;applyTheme()});
   const collapseBtn=head.querySelector('.minimize');
   collapseBtn.setAttribute('aria-expanded',String(!win.classList.contains('is-minimized')));
   collapseBtn.setAttribute('aria-label',win.classList.contains('is-minimized')?'Expand window':'Collapse window');
@@ -7652,7 +7765,7 @@ function initWorkspace(){
 }
 
 const THEME_STORAGE='vehiclelab.theme.v1';
-const defaultsTheme={theme:'dark',font:'system',size:1,accent:null,panel:null,actionMode:'icon-text',noBorders:false,noShadows:false,introEnabled:true,introSound:true};
+const defaultsTheme={theme:'dark',font:'system',size:1,accent:null,panel:null,actionMode:'icon-text',noBorders:false,noShadows:false,introEnabled:true,introSound:true,paneOpacity:93,paneBlur:14,coloredHeaders:false,headerColors:{}};
 let themeSettings={...defaultsTheme};
 const themes=['dark','light','graphite','amber'];
 const fonts=['system','mono','rounded','Arial','Verdana','Tahoma','Trebuchet MS','Georgia','Times New Roman','Courier New'];
@@ -7688,6 +7801,16 @@ function applyTheme(){
  document.body.dataset.theme=themeSettings.theme;
  document.body.classList.toggle('ui-no-borders',Boolean(themeSettings.noBorders));
  document.body.classList.toggle('ui-no-shadows',Boolean(themeSettings.noShadows));
+ document.body.classList.toggle('ui-colored-headers',Boolean(themeSettings.coloredHeaders));
+ $('themePaneOpacity').value=String(themeSettings.paneOpacity);$('themeOpacityValue').textContent=themeSettings.paneOpacity+'%';
+ $('themePaneBlur').value=String(themeSettings.paneBlur);$('themeBlurValue').textContent=themeSettings.paneBlur+' px';
+ const headerToggle=$('themeColoredHeaders');headerToggle.setAttribute('aria-pressed',String(themeSettings.coloredHeaders));
+ headerToggle.textContent='Coloured headers '+(themeSettings.coloredHeaders?'on':'off');
+ for(const win of document.querySelectorAll('.float-window')){
+  const headColor=themeSettings.headerColors?.[win.id]||'#3d7088';
+  win.style.setProperty('--window-header-color',headColor);
+  const swatch=win.querySelector('.window-header-swatch');if(swatch&&swatch.value!==headColor)swatch.value=headColor;
+ }
  for(const [id,key,label] of [['introEnabled','introEnabled','Splash'],['introSound','introSound','Sound']]){
   const button=$(id);button.setAttribute('aria-pressed',String(Boolean(themeSettings[key])));
   button.textContent=label+(themeSettings[key]?' on':' off');
@@ -7709,7 +7832,8 @@ function applyTheme(){
   graphite:['#dedcdf','#25282e'],amber:['#ffbf68','#29241e']};
  const [accent,panel]=palette[themeSettings.theme];
  document.body.style.setProperty('--accent',themeSettings.accent||accent);
- document.body.style.setProperty('--pane',(themeSettings.panel||panel)+'ee');
+ document.body.style.setProperty('--pane',(themeSettings.panel||panel)+Math.round(themeSettings.paneOpacity*2.55).toString(16).padStart(2,'0'));
+ document.documentElement.style.setProperty('--pane-blur',themeSettings.paneBlur+'px');
  const bg=themeSettings.panel||panel;
  const fg=contrastColor(bg);
  document.body.style.setProperty('--text',fg);
@@ -7888,6 +8012,11 @@ function initTheme(){
   if(typeof imported.noShadows==='boolean')themeSettings.noShadows=imported.noShadows;
   if(typeof imported.introEnabled==='boolean')themeSettings.introEnabled=imported.introEnabled;
   if(typeof imported.introSound==='boolean')themeSettings.introSound=imported.introSound;
+  if(Number.isInteger(imported.paneOpacity)&&imported.paneOpacity>=25&&imported.paneOpacity<=100)themeSettings.paneOpacity=imported.paneOpacity;
+  if(Number.isInteger(imported.paneBlur)&&imported.paneBlur>=0&&imported.paneBlur<=30)themeSettings.paneBlur=imported.paneBlur;
+  if(typeof imported.coloredHeaders==='boolean')themeSettings.coloredHeaders=imported.coloredHeaders;
+  if(imported.headerColors&&typeof imported.headerColors==='object'&&!Array.isArray(imported.headerColors))themeSettings.headerColors=Object.fromEntries(
+   Object.entries(imported.headerColors).filter(([id,color])=>WINDOW_IDS.includes(id)&&/^#[0-9a-fA-F]{6}$/.test(color)));
   if(/^#[0-9a-fA-F]{6}$/.test(imported.accent||''))themeSettings.accent=imported.accent;
   if(/^#[0-9a-fA-F]{6}$/.test(imported.panel||''))themeSettings.panel=imported.panel;
  }catch(e){}applyTheme();
@@ -7905,12 +8034,17 @@ $('themeFile').onchange=async e=>{
    (value.noBorders!=null&&typeof value.noBorders!=='boolean')||
    (value.noShadows!=null&&typeof value.noShadows!=='boolean')||
    (value.introEnabled!=null&&typeof value.introEnabled!=='boolean')||
-   (value.introSound!=null&&typeof value.introSound!=='boolean'))throw Error('Invalid theme JSON');
+   (value.introSound!=null&&typeof value.introSound!=='boolean')||
+   (value.paneOpacity!=null&&(!Number.isInteger(value.paneOpacity)||value.paneOpacity<25||value.paneOpacity>100))||
+   (value.paneBlur!=null&&(!Number.isInteger(value.paneBlur)||value.paneBlur<0||value.paneBlur>30))||
+   (value.coloredHeaders!=null&&typeof value.coloredHeaders!=='boolean')||
+   (value.headerColors!=null&&(!value.headerColors||typeof value.headerColors!=='object'||Array.isArray(value.headerColors)||Object.entries(value.headerColors).some(([id,color])=>!WINDOW_IDS.includes(id)||!/^#[0-9a-fA-F]{6}$/.test(color)))))throw Error('Invalid theme JSON');
   if(!fonts.includes(value.font))fonts.push(value.font);
   themeSettings={theme:value.theme,font:value.font,size:value.size,
    accent:value.accent||null,panel:value.panel||null,actionMode:value.actionMode||'icon-text',
    noBorders:value.noBorders===true,noShadows:value.noShadows===true,
-   introEnabled:value.introEnabled!==false,introSound:value.introSound!==false};applyTheme();note('Theme imported.');
+   introEnabled:value.introEnabled!==false,introSound:value.introSound!==false,
+   paneOpacity:value.paneOpacity??93,paneBlur:value.paneBlur??14,coloredHeaders:value.coloredHeaders===true,headerColors:value.headerColors||{}};applyTheme();note('Theme imported.');
  }catch(e){note(e.message,true)}e.target.value='';
 };
 for(const [id,field] of [['themeAccent','accent'],['themePanel','panel']]){
@@ -7918,6 +8052,9 @@ for(const [id,field] of [['themeAccent','accent'],['themePanel','panel']]){
   if(/^#[0-9a-fA-F]{6}$/.test(e.target.value)){themeSettings[field]=e.target.value;applyTheme()}
  });
 }
+for(const [id,field] of [['themePaneOpacity','paneOpacity'],['themePaneBlur','paneBlur']])
+ $(id).addEventListener('input',e=>{themeSettings[field]=Number(e.target.value);applyTheme()});
+$('themeColoredHeaders').onclick=()=>{themeSettings.coloredHeaders=!themeSettings.coloredHeaders;applyTheme()};
 $('resetWorkspace').onclick=resetWorkspace;
 $('workspaceExport').onclick=()=>{
  let windows={};try{windows=JSON.parse(safeRead('vehiclelab.windows.v1')||'{}')}catch(e){}
@@ -8028,6 +8165,235 @@ async function identityRequest(path,method='GET',payload=null){
  if(!response.ok)throw Error(data.error||'Identity HTTP '+response.status);
  return data;
 }
+// Vehicle Lab v0.3.26 — non-destructive per-profile notes. Cloud is authoritative,
+// browser localStorage is only a temporary unsynced draft safety net.
+const NOTES_DRAFT_PREFIX='vehiclelab.notes.draft.v1.';
+const NOTES_PRIORITY_COLOR={urgent:'#ec9a49',ongoing:'#74bd83',idea:'#72b4ec'};
+let notesState={notes:[],folders:[]},notesActiveId=null,notesSelected=new Set();
+let notesSortBy='newest',notesDirty=false,notesSaveBusy=false,notesTimer=null,notesLoadBusy=false;
+const notesDraftKey=()=>NOTES_DRAFT_PREFIX+(activeProfile?.id||'guest');
+function notesMessage(message,error=false){const status=$('notesStatus');status.textContent=message;status.dataset.error=String(error)}
+function notesCapture(){return {id:notesActiveId||crypto.randomUUID(),title:$('notesTitle').value,
+ body:$('notesBody').value,priority:$('notesPriority').value,folder_id:$('notesFolder').value||null};}
+function notesStoreDraft(){if(!activeProfile)return;
+ const draft=notesCapture();notesActiveId=draft.id;
+ safeStore(notesDraftKey(),JSON.stringify({schema:'vehiclelab-notes-draft/v1',...draft,modified:Date.now()}));
+ notesDirty=true;notesMessage('Unsaved changes: local draft protected; saving to server…');
+ clearTimeout(notesTimer);notesTimer=setTimeout(()=>void notesSave(true),1800);
+}
+function notesReadDraft(){try{const d=JSON.parse(safeRead(notesDraftKey())||'null');
+ return d?.schema==='vehiclelab-notes-draft/v1'&&typeof d.body==='string'&&typeof d.title==='string'?d:null;
+ }catch{return null}}
+function notesFill(note,markDirty=false){
+ notesActiveId=note?.id||crypto.randomUUID();$('notesTitle').value=note?.title||'';
+ $('notesBody').value=note?.body||'';$('notesPriority').value=note?.priority||'idea';
+ $('notesFolder').value=note?.folder_id||'';notesDirty=markDirty;notesSyncPriorityPills();
+}
+function notesSyncPriorityPills(){for(const b of $('notesPriorityPills').querySelectorAll('button')){
+ b.setAttribute('aria-pressed',String(b.dataset.priority===$('notesPriority').value));
+}}
+function notesClearDraft(){if(activeProfile)try{localStorage.removeItem(notesDraftKey())}catch{}}
+async function notesSave(quiet=false){
+ if(notesSaveBusy||!notesDirty||!activeProfile)return !notesDirty;
+ clearTimeout(notesTimer);
+ const draft=notesCapture();if(!draft.title.trim()&&!draft.body.trim()){notesMessage('Write a title or text to save the note.');return false}
+ notesSaveBusy=true;$('notesSave').disabled=true;
+ try{
+  const existing=notesState.notes.find(n=>n.id===draft.id);
+  const payload={...draft,revision:existing?.revision??null};
+  const result=await identityRequest(existing?'/api/me/notes/'+encodeURIComponent(draft.id):'/api/me/notes',existing?'PUT':'POST',payload);
+  const saved=result.note;
+  const index=notesState.notes.findIndex(n=>n.id===saved.id);
+  if(index<0)notesState.notes.unshift(saved);else notesState.notes[index]=saved;
+  // Do not silently mark new text as saved if it arrived during HTTP transfer.
+  const current=notesCapture();
+  if(JSON.stringify(current)===JSON.stringify(draft)){
+   notesDirty=false;notesClearDraft();notesMessage('Saved securely to private server · '+new Date(saved.updated_at).toLocaleTimeString());
+  }else{
+   notesMessage('More changes pending; saving again…');
+   notesTimer=setTimeout(()=>void notesSave(true),1200);
+  }
+  renderNotesList();return true;
+ }catch(error){notesMessage('Server save FAILED. Draft kept in browser: '+error.message,true);
+  if(!quiet)note('Notes not saved: '+error.message,true);return false;
+ }finally{notesSaveBusy=false;$('notesSave').disabled=false}
+}
+async function notesLoad(){
+ if(notesLoadBusy||!activeProfile)return;notesLoadBusy=true;
+ try{
+  const result=await identityRequest('/api/me/notes');
+  if(!Array.isArray(result.notes)||!Array.isArray(result.folders))throw Error('Invalid server notes response');
+  notesState={notes:result.notes,folders:result.folders};renderNotesFolders();
+  const draft=notesReadDraft();
+  if(draft&&(!notesDirty||draft.id===notesActiveId)){
+   notesFill(draft,true);notesMessage('Recovered unsynced local draft · will save when server accepts it');
+   clearTimeout(notesTimer);notesTimer=setTimeout(()=>void notesSave(true),1800);
+  }else if(!notesDirty){
+   const existing=notesState.notes.find(n=>n.id===notesActiveId)||notesState.notes[0];
+   notesFill(existing||null,false);
+   notesMessage('Notes loaded from your private server. New drafts auto-save when you type.');
+  }
+  renderNotesList();
+ }catch(error){notesMessage('Cannot load notes from server: '+error.message,true);throw error}
+ finally{notesLoadBusy=false}
+}
+function renderNotesFolders(){
+ const filter=$('notesFilterFolder'),editor=$('notesFolder'),bulk=$('notesBulkFolder');
+ const old=[filter.value,editor.value,bulk.value];
+ for(const [el,first] of [[filter,'All folders'],[editor,'Inbox'],[bulk,'Inbox']]){
+  el.replaceChildren(new Option(first,''));
+  for(const f of notesState.folders)el.add(new Option('▸ '+f.name,f.id));
+ }
+ [filter,editor,bulk].forEach((el,i)=>{if([...el.options].some(o=>o.value===old[i]))el.value=old[i]});
+}
+function filteredNotes(){
+ const query=$('notesSearch').value.trim().toLocaleLowerCase(),folder=$('notesFilterFolder').value,
+ priority=$('notesPriorityFilter').value;
+ const rows=notesState.notes.filter(n=>(!folder||n.folder_id===folder)&&(!priority||n.priority===priority)&&
+ (!query||(n.title+'\n'+n.body).toLocaleLowerCase().includes(query)));
+ if(notesSortBy==='a-z')rows.sort((a,b)=>a.title.localeCompare(b.title));
+ else if(notesSortBy==='z-a')rows.sort((a,b)=>b.title.localeCompare(a.title));
+ else if(notesSortBy==='oldest')rows.sort((a,b)=>a.created_at-b.created_at);
+ else rows.sort((a,b)=>b.updated_at-a.updated_at);
+ return rows;
+}
+function renderNotesList(){
+ const root=$('notesList');root.replaceChildren();const visible=filteredNotes();
+ if(!visible.length){const e=document.createElement('p');e.textContent='No matching notes. Start a new idea.';e.style.color='var(--muted)';root.append(e)}
+ for(const n of visible){
+  const item=document.createElement('div');item.className='notes-entry';item.dataset.selected=String(n.id===notesActiveId);item.setAttribute('role','listitem');
+  const check=document.createElement('input');check.type='checkbox';check.checked=notesSelected.has(n.id);check.setAttribute('aria-label','Select '+(n.title||'Untitled note'));
+  check.onchange=()=>{if(check.checked)notesSelected.add(n.id);else notesSelected.delete(n.id)};
+  const dot=document.createElement('span');dot.className='notes-dot';dot.style.background=NOTES_PRIORITY_COLOR[n.priority]||NOTES_PRIORITY_COLOR.idea;
+  const open=document.createElement('button');open.type='button';open.title='Edit note';
+  const title=document.createElement('strong');title.textContent=n.title||n.body.slice(0,48)||'Untitled';
+  const stamp=document.createElement('small');stamp.textContent=new Date(n.updated_at).toLocaleString();
+  open.append(title,stamp);open.onclick=async()=>{
+   if(notesDirty&&!await notesSave(true)){notesMessage('Current draft not saved; keep editing it or export before switching.',true);return}
+   notesFill(n,false);notesMessage('Editing saved note · revision '+n.revision);renderNotesList();
+  };item.append(check,dot,open);root.append(item);
+ }
+ const all=visible.length>0&&visible.every(n=>notesSelected.has(n.id));$('notesSelectAll').checked=all;
+}
+function notesSelectedIds(){return [...notesSelected].filter(id=>notesState.notes.some(n=>n.id===id))}
+async function notesBulk(action){
+ if(notesDirty&&!await notesSave(true))return;
+ const ids=notesSelectedIds();if(!ids.length){notesMessage('Select notes using their checkboxes.');return}
+ if(action==='merge'&&ids.length<2){notesMessage('Select at least two notes to merge.');return}
+ if(action==='delete'&&!window.confirm('Permanently delete '+ids.length+' selected private notes? This cannot be undone. Export a backup first.'))return;
+ try{
+  const res=await identityRequest('/api/me/notes/bulk','POST',{ids,action,folder_id:$('notesBulkFolder').value||null,revisions:Object.fromEntries(notesState.notes.filter(n=>ids.includes(n.id)).map(n=>[n.id,n.revision]))});
+  notesSelected.clear();await notesLoad();
+  if(res.merged_id){notesFill(notesState.notes.find(n=>n.id===res.merged_id),false);renderNotesList()}
+  notesMessage(action==='merge'?'Merged into a new note; all original notes were retained.':action==='move'?'Notes moved.':'Selected notes deleted.');
+ }catch(error){notesMessage('Bulk action failed: '+error.message,true)}
+}
+$('notesNew').onclick=async()=>{
+ if(notesDirty&&!await notesSave(true))return;
+ notesFill(null);renderNotesList();$('notesTitle').focus();notesMessage('New note · text auto-saves to the server.');
+};
+$('notesSave').onclick=()=>{if(!notesDirty){notesStoreDraft();}void notesSave(false)};
+for(const id of ['notesTitle','notesBody','notesPriority','notesFolder'])$(id).addEventListener('input',()=>{notesSyncPriorityPills();notesStoreDraft()});
+for(const button of $('notesPriorityPills').querySelectorAll('button'))button.onclick=()=>{
+ $('notesPriority').value=button.dataset.priority;notesSyncPriorityPills();notesStoreDraft();
+};notesSyncPriorityPills();
+for(const id of ['notesSearch','notesFilterFolder','notesPriorityFilter'])$(id).addEventListener('input',renderNotesList);
+const SORT_MODES=[['newest','Newest ↓'],['oldest','Oldest ↑'],['a-z','A–Z'],['z-a','Z–A']];
+$('notesSort').onclick=()=>{notesSortBy=SORT_MODES[(SORT_MODES.findIndex(x=>x[0]===notesSortBy)+1)%SORT_MODES.length][0];
+ $('notesSort').textContent=SORT_MODES.find(x=>x[0]===notesSortBy)[1];renderNotesList()};
+$('notesSelectAll').onchange=e=>{for(const n of filteredNotes()){
+ if(e.target.checked)notesSelected.add(n.id);else notesSelected.delete(n.id)}renderNotesList()};
+$('notesMove').onclick=()=>void notesBulk('move');$('notesDelete').onclick=()=>void notesBulk('delete');
+$('notesMerge').onclick=()=>void notesBulk('merge');
+$('notesNewFolder').onclick=async()=>{
+ const name=window.prompt('New folder name (up to 80 characters)');if(!name?.trim())return;
+ try{await identityRequest('/api/me/note-folders','POST',{name:name.trim()});await notesLoad();notesMessage('Folder created on server.')}
+ catch(error){notesMessage(error.message,true)}
+};
+$('notesRenameFolder').onclick=async()=>{
+ const id=$('notesFilterFolder').value;if(!id){notesMessage('Choose a folder in the filter first.',true);return}
+ const f=notesState.folders.find(n=>n.id===id);if(!f)return;
+ const name=window.prompt('Rename folder',f.name);if(!name?.trim())return;
+ try{await identityRequest('/api/me/note-folders/'+encodeURIComponent(id),'PUT',{name:name.trim()});await notesLoad();notesMessage('Folder renamed.')}
+ catch(error){notesMessage(error.message,true)}
+};
+$('notesDeleteFolder').onclick=async()=>{
+ const id=$('notesFilterFolder').value;if(!id){notesMessage('Choose a folder in the filter first.',true);return}
+ if(!confirm('Remove this folder? Its notes will be moved to Inbox, not deleted.'))return;
+ try{await identityRequest('/api/me/note-folders/'+encodeURIComponent(id),'DELETE');await notesLoad();notesMessage('Folder removed; all notes moved to Inbox.')}
+ catch(error){notesMessage(error.message,true)}
+};
+$('notesExport').onclick=()=>download(JSON.stringify({schema:'vehiclelab-notes/v1',exported_at:new Date().toISOString(),
+ folders:notesState.folders,notes:notesState.notes,draft:notesDirty?notesCapture():null},null,2),
+ 'VehicleLab-Private-Notes.json','application/json');
+// Visual geological editor: the handle positions and 3D vertex colours share
+// the same cfg values. This is a render-only effect, no terrain collider rebuild.
+const GEO_MIN=-50,GEO_MAX=120;
+const GEO_CONTROLS={biomeValleyAltitude:'geoValley',biomeRockAltitude:'geoRock',biomeSnowAltitude:'geoSnow'};
+const GEO_COLOR_IDS={biomeValleyColor:'geoDeepColor',biomeGroundColor:'geoGroundColor',biomeRockColor:'geoRockColor',biomeSnowColor:'geoSnowColor'};
+function geoEffectiveColors(){return (BIOME_PALETTES[cfg.biomePalette]||
+ [cfg.biomeValleyColor,cfg.biomeGroundColor,cfg.biomeRockColor,cfg.biomeSnowColor]).slice()}
+function geoMakeCustom(){if(cfg.biomePalette==='custom')return;
+ const list=geoEffectiveColors();['biomeValleyColor','biomeGroundColor','biomeRockColor','biomeSnowColor'].forEach((k,i)=>cfg[k]=list[i]);
+ cfg.biomePalette='custom';}
+function geoApplyChange(rebuildMaterial=false){
+ normalizeBiomeSettings();if(rebuildMaterial)refreshTerrainBiomeMaterial();else updateTerrainBiomeColors();
+ syncGeologyEditor();
+}
+function geoSetAltitude(key,value,commit=false){
+ const number=Number(value);if(!Number.isFinite(number))return;
+ const low=key==='biomeValleyAltitude'?GEO_MIN:key==='biomeRockAltitude'?cfg.biomeValleyAltitude+1:cfg.biomeRockAltitude+1;
+ const high=key==='biomeValleyAltitude'?cfg.biomeRockAltitude-1:key==='biomeRockAltitude'?cfg.biomeSnowAltitude-1:GEO_MAX;
+ if(low>high)return;
+ cfg[key]=Math.round(clamp(number,low,high));
+ geoApplyChange();if(commit)rememberMapEdit('Geological layer altitude');
+}
+function syncGeologyEditor(){
+ if(!$('geologyWindow'))return;
+ $('geoEnabled').checked=cfg.biomeEnabled;$('geoRelativeSea').checked=cfg.biomeRelativeSea;
+ $('geoPalette').value=cfg.biomePalette;
+ for(const [key,id] of Object.entries(GEO_CONTROLS))$(id).value=Number(cfg[key]);
+ for(const [key,id] of Object.entries(GEO_COLOR_IDS))$(id).value=geoEffectiveColors()[Object.keys(GEO_COLOR_IDS).indexOf(key)];
+ for(const [id,key] of [['geoBlend','biomeBlend'],['geoSlope','biomeSlope'],['geoExposure','biomeExposure']])$(id).value=cfg[key];
+ const colors=geoEffectiveColors();
+ const pct=value=>clamp((Number(value)-GEO_MIN)/(GEO_MAX-GEO_MIN)*100,0,100);
+ const layers=$('geoLayers');
+ const low=pct(cfg.biomeValleyAltitude),rock=pct(cfg.biomeRockAltitude),snow=pct(cfg.biomeSnowAltitude);
+ layers.style.background=`linear-gradient(to top,${colors[0]} 0%,${colors[0]} ${low}%,${colors[1]} ${Math.min(100,low+18)}%,${colors[1]} ${rock}%,${colors[2]} ${Math.min(100,rock+8)}%,${colors[2]} ${snow}%,${colors[3]} ${Math.min(100,snow+15)}%,${colors[3]} 100%)`;
+ for(const handle of $('geoSection').querySelectorAll('.geo-handle')){
+  const key=handle.dataset.geo;handle.style.bottom=pct(cfg[key])+'%';
+  handle.textContent=(key==='biomeSnowAltitude'?'Snow':key==='biomeRockAltitude'?'Rock':'Valley')+' · '+cfg[key]+' m';
+ }
+ $('geoStatus').textContent=(cfg.biomeRelativeSea?'Heights relative to sea level':'Absolute world altitudes')+' · no physics rebuild';
+}
+$('geoEnabled').onchange=e=>{cfg.biomeEnabled=e.target.checked;geoApplyChange(true);rememberMapEdit('Geology enabled')};
+$('geoRelativeSea').onchange=e=>{cfg.biomeRelativeSea=e.target.checked;geoApplyChange();rememberMapEdit('Geology sea offset')};
+$('geoPalette').onchange=e=>{cfg.biomePalette=e.target.value;geoApplyChange();rememberMapEdit('Geology palette')};
+for(const [key,id] of Object.entries(GEO_CONTROLS)){
+ $(id).oninput=e=>geoSetAltitude(key,e.target.value);
+ $(id).onchange=()=>rememberMapEdit('Geological layer altitude');
+}
+for(const [key,id] of Object.entries(GEO_COLOR_IDS)){
+ $(id).oninput=e=>{geoMakeCustom();cfg[key]=e.target.value;geoApplyChange()};
+ $(id).onchange=()=>rememberMapEdit('Geological colour');
+}
+for(const [id,key] of [['geoBlend','biomeBlend'],['geoSlope','biomeSlope'],['geoExposure','biomeExposure']]){
+ $(id).oninput=e=>{cfg[key]=Number(e.target.value);geoApplyChange()};
+ $(id).onchange=()=>rememberMapEdit('Geological blending');
+}
+for(const handle of $('geoSection').querySelectorAll('.geo-handle')){
+ let dragging=false;
+ const apply=e=>{const rect=$('geoSection').getBoundingClientRect();
+  const fraction=clamp((rect.bottom-e.clientY)/rect.height,0,1);
+  geoSetAltitude(handle.dataset.geo,GEO_MIN+fraction*(GEO_MAX-GEO_MIN));};
+ handle.addEventListener('pointerdown',e=>{dragging=true;handle.setPointerCapture(e.pointerId);apply(e);e.preventDefault();e.stopPropagation()});
+ handle.addEventListener('pointermove',e=>{if(dragging)apply(e)});
+ const finish=()=>{if(dragging){dragging=false;rememberMapEdit('Geological layer dragged')}};
+ for(const ev of ['pointerup','pointercancel','lostpointercapture'])handle.addEventListener(ev,finish);
+ handle.addEventListener('keydown',e=>{if(!['ArrowUp','ArrowDown'].includes(e.key))return;
+  e.preventDefault();geoSetAltitude(handle.dataset.geo,cfg[handle.dataset.geo]+(e.key==='ArrowUp'?1:-1),true)});
+}
+
 function displayProfile(){
  const portrait=$('profilePortrait');portrait.replaceChildren();
  if(activeProfile?.avatar_url){const img=document.createElement('img');img.alt='My profile picture';
@@ -8047,8 +8413,11 @@ function displayProfile(){
 async function setIdentity(token){
  guestToken=token;
  const data=await identityRequest('/api/identity/me');
+ if(activeProfile?.id&&activeProfile.id!==data.profile?.id){clearTimeout(notesTimer);
+  notesState={notes:[],folders:[]};notesDirty=false;notesActiveId=null;notesSelected.clear();}
  activeProfile=data.profile;safeStore('vehiclelab.guest.v1',token);
  displayProfile();$('welcomeOverlay').hidden=true;
+ if(windowCurrentlyVisible('notesWindow'))void notesLoad().catch(e=>notesMessage(e.message,true));
  // Cloud is the primary library after login; a cleared local cache must not appear as lost data.
  gallerySource='cloud';mediaSource='cloud';gallerySelection();
  await refreshServer().catch(e=>recordEvent('WARN',e.message));
@@ -8178,6 +8547,7 @@ $('profileBackupFile').onchange=async e=>{
 };
 $('switchGuest').onclick=()=>{
  if(!confirm('Switch away from this profile? Export your backup first or this device may lose access.'))return;
+ clearTimeout(notesTimer);notesState={notes:[],folders:[]};notesDirty=false;notesActiveId=null;notesSelected.clear();
  guestToken='';activeProfile=null;safeStore('vehiclelab.guest.v1','');
  $('profileRoundel').textContent='?';$('welcomeOverlay').hidden=false;showDrawer(null);
 };
@@ -8521,6 +8891,17 @@ $('galleryRefreshBtn').onclick=()=>{gallerySource='public';setWindowVisible('gal
 $('layoutPublic').onchange=()=>{serverVisibility=$('layoutPublic').checked?'public':'private'};
 
 const RELEASE_NOTES=[
+ {v:'0.3.27',date:'2026-11-10',title:'SQLite connection lifecycle and watcher compatibility',items:[
+  'Fix SQLite connection handles left open after successful and failed operations; close deterministically after each transaction, including exceptions.',
+  'Close the second connection used to create safety snapshots and add repeated-transaction, rollback and cleanup regression tests.',
+  'Restore reliable update validation on macOS Python 3.15 with constrained file-descriptor limits. All v0.3.26 Notes, geology and workspace features are retained without data migrations.' ]},
+ {v:'0.3.26',date:'2026-11-10',title:'Private Notes workspace, colour-coded windows and geological cross-section editor',items:[
+  'Private Notes window: persistent profile-scoped SQLite notes/folders, full-text search, date/A–Z sorting, orange/green/blue priorities, selection, move, merge without deleting sources, and confirmed delete.',
+  'Writing creates an immediate per-profile local draft and a debounced server save. Failed saves retain the draft, and revision checks prevent silent concurrent overwrites.',
+  'Theme & typography now controls panel transparency, glass blur and optional individual header colours through swatches in window title bars. Theme JSON preserves settings.',
+  'A dedicated Geological layers window visualizes altitude bands, palette colours, three draggable boundaries, slope/exposure tint and sea-relative heights.',
+  'New worlds default to flat terrain. Sculpt editor can reset all terrain and map objects to a flat world after confirmation; reset is undoable and never deletes saved cloud maps.',
+  'Sculpting restricts strokes to terrain bounds, draws the final pointer segment, refreshes biome colouring during strokes and retains existing map saves and server model protections.' ]},
  {v:'0.3.25',date:'2026-11-10',title:'Read-only local library health and Wheel Workshop initialization repair',items:[
   'Saved-workspace restoration now populates Wheel Workshop controls, procedural style cards and imported model thumbnails without requiring a click on its launcher.',
   'Imported wheel GLB scans refresh the panel once assets finish loading; no browser data is modified during restoration.',

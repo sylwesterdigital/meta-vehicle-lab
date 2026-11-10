@@ -187,7 +187,12 @@ class Storage:
             os.close(fd)
             temporary=Path(name)
             try:
-                with self.connect() as source, sqlite3.connect(temporary) as target:
+                # sqlite3.Connection.__exit__ commits/rolls back but does NOT
+                # close the connection. Close both source and destination
+                # explicitly; macOS Python 3.15 otherwise reaches EMFILE when
+                # validating many storage operations in one process.
+                from contextlib import closing
+                with self.connect() as source, closing(sqlite3.connect(temporary)) as target:
                     source.backup(target)
                     if target.execute('PRAGMA quick_check').fetchone()[0]!='ok':
                         raise OSError('SQLite safety snapshot is not valid')
@@ -201,12 +206,24 @@ class Storage:
             finally:
                 temporary.unlink(missing_ok=True)
 
+    @contextmanager
     def connect(self):
+        """Transactional SQLite connection with deterministic cleanup.
+
+        A bare ``with sqlite3.connect(...)`` finalizes the transaction but
+        intentionally leaves the file descriptor open. Every Storage caller
+        uses ``with self.connect() as db``; this wrapper keeps the same
+        commit/rollback semantics and closes the handle in all paths.
+        """
         db = sqlite3.connect(self.path, timeout=10)
-        db.row_factory = sqlite3.Row
-        db.execute('PRAGMA busy_timeout=10000')
-        db.execute('PRAGMA foreign_keys=ON')
-        return db
+        try:
+            db.row_factory = sqlite3.Row
+            db.execute('PRAGMA busy_timeout=10000')
+            db.execute('PRAGMA foreign_keys=ON')
+            with db:
+                yield db
+        finally:
+            db.close()
 
     def init(self):
         with self.connect() as db:
@@ -259,6 +276,22 @@ class Storage:
               FOREIGN KEY (profile_id) REFERENCES profiles(id) ON DELETE CASCADE
             );
             CREATE INDEX IF NOT EXISTS ix_user_media_owner ON user_media(profile_id,kind,updated_at DESC);
+            CREATE TABLE IF NOT EXISTS note_folders (
+              id TEXT PRIMARY KEY, profile_id TEXT NOT NULL, name TEXT NOT NULL,
+              created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL,
+              FOREIGN KEY (profile_id) REFERENCES profiles(id) ON DELETE CASCADE
+            );
+            CREATE INDEX IF NOT EXISTS ix_note_folders_owner ON note_folders(profile_id,name);
+            CREATE TABLE IF NOT EXISTS user_notes (
+              id TEXT PRIMARY KEY, profile_id TEXT NOT NULL, folder_id TEXT,
+              title TEXT NOT NULL, body TEXT NOT NULL,
+              priority TEXT NOT NULL DEFAULT 'idea' CHECK(priority IN ('urgent','ongoing','idea')),
+              revision INTEGER NOT NULL DEFAULT 1,
+              created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL,
+              FOREIGN KEY (profile_id) REFERENCES profiles(id) ON DELETE CASCADE,
+              FOREIGN KEY (folder_id) REFERENCES note_folders(id) ON DELETE SET NULL
+            );
+            CREATE INDEX IF NOT EXISTS ix_user_notes_owner ON user_notes(profile_id,updated_at DESC);
             ''')
             cols={row['name'] for row in db.execute('PRAGMA table_info(assets)')}
             if 'owner_id' not in cols:db.execute('ALTER TABLE assets ADD COLUMN owner_id TEXT')
@@ -532,6 +565,125 @@ class Storage:
                             'WHERE owner_id=? ORDER BY created_at DESC LIMIT ?',
                             (validate_uuid(owner),min(100,max(1,int(limit))))).fetchall()
             return [dict(row) for row in rows]
+
+
+    # Notes are private profile assets, not a browser-only scratchpad. All mutations
+    # are explicit SQLite transactions; deletes are owner-scoped and never cascade
+    # through a folder deletion (the notes are moved to the Inbox instead).
+    def notes_snapshot(self, owner):
+        owner=validate_uuid(owner)
+        with self.connect() as db:
+            folders=[dict(r) for r in db.execute(
+                'SELECT id,name,created_at,updated_at FROM note_folders WHERE profile_id=? ORDER BY name COLLATE NOCASE',(owner,))]
+            notes=[dict(r) for r in db.execute(
+                'SELECT id,folder_id,title,body,priority,revision,created_at,updated_at '
+                'FROM user_notes WHERE profile_id=? ORDER BY updated_at DESC',(owner,))]
+        return {'folders':folders,'notes':notes}
+
+    def notes_folder(self,owner,name,identifier=None):
+        owner=validate_uuid(owner)
+        if not isinstance(name,str) or not 1<=len(name.strip())<=80:raise InvalidLayout('Folder name must be 1–80 characters')
+        name=name.strip()
+        identifier=validate_uuid(identifier) if identifier else str(uuid.uuid4())
+        now=int(time.time()*1000)
+        with self.connect() as db:
+            db.execute('BEGIN IMMEDIATE')
+            row=db.execute('SELECT profile_id FROM note_folders WHERE id=?',(identifier,)).fetchone()
+            if row and row['profile_id']!=owner:raise InvalidLayout('Folder is owned by another profile')
+            if not row:
+                if db.execute('SELECT count(*) FROM note_folders WHERE profile_id=?',(owner,)).fetchone()[0]>=60:
+                    raise InvalidLayout('Maximum 60 folders per profile')
+                db.execute('INSERT INTO note_folders VALUES(?,?,?,?,?)',(identifier,owner,name,now,now))
+            else:
+                db.execute('UPDATE note_folders SET name=?,updated_at=? WHERE id=? AND profile_id=?',(name,now,identifier,owner))
+        return {'id':identifier,'name':name,'updated_at':now}
+
+    def notes_delete_folder(self,owner,identifier):
+        owner=validate_uuid(owner);identifier=validate_uuid(identifier)
+        with self.connect() as db:
+            db.execute('BEGIN IMMEDIATE')
+            row=db.execute('SELECT 1 FROM note_folders WHERE id=? AND profile_id=?',(identifier,owner)).fetchone()
+            if not row:return False
+            db.execute('UPDATE user_notes SET folder_id=NULL WHERE folder_id=? AND profile_id=?',(identifier,owner))
+            db.execute('DELETE FROM note_folders WHERE id=? AND profile_id=?',(identifier,owner))
+            return True
+
+    def notes_upsert(self,owner,identifier,title,body,priority,folder_id=None,revision=None):
+        owner=validate_uuid(owner);identifier=validate_uuid(identifier)
+        if not isinstance(title,str) or len(title.strip())>140:raise InvalidLayout('Note title exceeds 140 characters')
+        if not isinstance(body,str) or len(body)>16000:raise InvalidLayout('Note text exceeds 16000 characters')
+        if not title.strip() and not body.strip():raise InvalidLayout('Cannot save an empty note')
+        if priority not in ('urgent','ongoing','idea'):raise InvalidLayout('Invalid note priority')
+        folder_id=validate_uuid(folder_id) if folder_id else None
+        now=int(time.time()*1000)
+        with self.connect() as db:
+            db.execute('BEGIN IMMEDIATE')
+            if folder_id and not db.execute('SELECT 1 FROM note_folders WHERE id=? AND profile_id=?',(folder_id,owner)).fetchone():
+                raise InvalidLayout('Folder unavailable in this profile')
+            row=db.execute('SELECT profile_id,revision,created_at FROM user_notes WHERE id=?',(identifier,)).fetchone()
+            if row:
+                if row['profile_id']!=owner:raise InvalidLayout('Note belongs to another profile')
+                if isinstance(revision,bool) or revision!=row['revision']:
+                    raise StaleLayout('Note was changed elsewhere. Copy the draft before refreshing.')
+                newrev=revision+1;created=row['created_at']
+                db.execute('UPDATE user_notes SET folder_id=?,title=?,body=?,priority=?,revision=?,updated_at=? '
+                           'WHERE id=? AND profile_id=?',(folder_id,title.strip(),body,priority,newrev,now,identifier,owner))
+            else:
+                if revision not in (None,0):raise StaleLayout('Note no longer exists; draft preserved')
+                if db.execute('SELECT COUNT(*) FROM user_notes WHERE profile_id=?',(owner,)).fetchone()[0]>=500:
+                    raise InvalidLayout('Maximum 500 notes per profile')
+                newrev=1;created=now
+                db.execute('INSERT INTO user_notes(id,profile_id,folder_id,title,body,priority,revision,created_at,updated_at) '
+                           'VALUES(?,?,?,?,?,?,?,?,?)',(identifier,owner,folder_id,title.strip(),body,priority,1,now,now))
+        return dict(id=identifier,folder_id=folder_id,title=title.strip(),body=body,priority=priority,
+                    revision=newrev,created_at=created,updated_at=now)
+
+    def notes_bulk(self,owner,ids,action,folder_id=None,revisions=None):
+        owner=validate_uuid(owner)
+        if not isinstance(ids,list) or not 1<=len(ids)<=200 or len(set(ids))!=len(ids):
+            raise InvalidLayout('Select 1–200 distinct notes')
+        ids=[validate_uuid(i) for i in ids]
+        if action not in ('move','delete','merge'):raise InvalidLayout('Unknown bulk action')
+        folder_id=validate_uuid(folder_id) if folder_id else None
+        with self.connect() as db:
+            db.execute('BEGIN IMMEDIATE')
+            rows=db.execute('SELECT * FROM user_notes WHERE profile_id=? AND id IN ('+','.join('?' for _ in ids)+')',
+                            [owner,*ids]).fetchall()
+            if len(rows)!=len(ids):raise InvalidLayout('Some selected notes are missing or not owned by this profile')
+            if action in ('move','delete'):
+                if not isinstance(revisions,dict) or any(not isinstance(revisions.get(row['id']),int) or
+                      isinstance(revisions.get(row['id']),bool) or revisions[row['id']]!=row['revision'] for row in rows):
+                    raise StaleLayout('Selected notes changed elsewhere; refresh before moving or deleting')
+            if action=='move':
+                if folder_id and not db.execute('SELECT 1 FROM note_folders WHERE id=? AND profile_id=?',(folder_id,owner)).fetchone():
+                    raise InvalidLayout('Target folder unavailable')
+                now=int(time.time()*1000)
+                db.executemany('UPDATE user_notes SET folder_id=?,revision=revision+1,updated_at=? WHERE id=? AND profile_id=?',
+                               [(folder_id,now,i,owner) for i in ids]);return {'count':len(ids)}
+            if action=='delete':
+                db.executemany('DELETE FROM user_notes WHERE id=? AND profile_id=?',[(i,owner) for i in ids]);return {'count':len(ids)}
+            # Merge is intentionally non-destructive; originals remain recoverable.
+            if len(rows)<2:raise InvalidLayout('Select at least two notes to merge')
+            rows.sort(key=lambda r:(r['created_at'],r['id']))
+            combined='\n\n'.join('--- '+(r['title'] or 'Untitled')+' ---\n'+r['body'] for r in rows)
+            if len(combined)>16000:raise InvalidLayout('Merged note would exceed 16000 characters')
+            if db.execute('SELECT COUNT(*) FROM user_notes WHERE profile_id=?',(owner,)).fetchone()[0]>=500:
+                raise InvalidLayout('Maximum 500 notes per profile')
+            merged_id=str(uuid.uuid4());now=int(time.time()*1000)
+            db.execute('INSERT INTO user_notes(id,profile_id,folder_id,title,body,priority,revision,created_at,updated_at) '
+                       'VALUES(?,?,?,?,?,?,?,?,?)',
+                       (merged_id,owner,folder_id,'Merged notes ('+str(len(rows))+')',combined,'ongoing',1,now,now))
+            return {'count':len(rows),'merged_id':merged_id,'originals_retained':True}
+
+    def notes_delete(self,owner,identifier,revision):
+        owner=validate_uuid(owner);identifier=validate_uuid(identifier)
+        with self.connect() as db:
+            db.execute('BEGIN IMMEDIATE')
+            row=db.execute('SELECT revision FROM user_notes WHERE profile_id=? AND id=?',(owner,identifier)).fetchone()
+            if not row:return False
+            if revision!=row['revision']:raise StaleLayout('Note changed elsewhere; deletion cancelled')
+            db.execute('DELETE FROM user_notes WHERE id=? AND profile_id=?',(identifier,owner))
+            return True
 
     def gallery(self,limit=40):
         with self.connect() as db:

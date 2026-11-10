@@ -1,3 +1,19 @@
+# Vehicle Lab — v0.3.27 — Database connection lifecycle fix (2026-11-10)
+
+- **Deployment fix:** v0.3.26 was rejected by the macOS watcher before deployment because Python 3.15 exhausted open file descriptors during the SQLite regression suite. The cause was `Storage.connect()` returning a raw `sqlite3.Connection`, whose `with` block commits but does not close it. Fixed using a transactional contextmanager with guaranteed `finally: db.close()`.
+- **Safety snapshots:** Backup destination SQLite connection is now closed deterministically, including on failed backup or validation. No existing snapshots, database files, assets, notes or browser data are removed or modified by this maintenance change.
+- **Validation:** Regression tests prove connection closure after success and failure, rollback behaviour and repeated 400-connection use. Test suites and watcher dry-run are also validated with a low open-file limit to emulate macOS constraints.
+- **Features:** All Notes/folder, geological cross-section, pane appearance and flat-terrain changes introduced by the rejected v0.3.26 ZIP are preserved. No new dependencies or schema migration beyond v0.3.26's additive Notes tables.
+
+# Vehicle Lab — v0.3.26 — Notes, glass workspace and geological cross-section (2026-11-10)
+
+- **Notes & ideas:** New floating Notes window in both workspace visibility presets. Private profile-scoped SQLite folders and notes, full-text search, priority (Urgent / Ongoing / Nice to have), A–Z/Z–A/chronological sorting, select all, bulk move, confirmed delete and non-destructive merge. A draft is stored immediately in the browser per profile and automatically submitted to the server after a pause; the status distinguishes locally protected drafts from confirmed SQLite saves. Notes are included in the existing private library backup ZIP and can be exported separately as JSON.
+- **Appearance:** Panel opacity 25–100%, backdrop blur 0–30px and optional per-window coloured title bars with colour swatches. Preferences remain in theme JSON and older themes import with compatible defaults. High blur and low opacity may affect readability/GPU performance; default settings retain the previous look.
+- **Terrain geology:** Separate floating geological cross-section with draggable snow/rock/valley boundaries, palette colour swatches, altitude fields, tint intensity, slope/exposure and sea-relative toggles. Shares the map's existing geological settings, with no new physics colliders or texture downloads.
+- **Sculpt and flat worlds:** New vehicles start on flat ground instead of predefined hills. A confirmed, undoable **New completely flat world** action clears sculpt offsets, course objects, cell elevations and sea display in the active unsaved scene; existing cloud maps are untouched. Brush strokes are confined to terrain bounds and update terrain colouring on the live 3D mesh.
+- **Data safety:** Server notes use owner-scoped writes and optimistic revisions; bulk move/delete is guarded against stale edits, merging keeps sources intact, folder removal moves notes to Inbox. Existing vehicle/model/map stores are not migrated or deleted. No new Python packages are required.
+- **Validation:** Local JS/Python checks and SQLite tests, plus isolated Chromium Notes/geology interactions. Full Flask HTTP endpoints and production WebGL physics require verification on the deployed server. Offline Chromium tests are not a substitute for full 3D acceptance testing.
+
 ## v0.3.25 — Server-primary asset safety and independent worlds (2026-11-10)
 
 - 3D wheel/cap/avatar/chassis imports and generated GLBs require an authenticated profile and an acknowledged owner-scoped server upload before local caching. Model metadata includes category and stable client ID; old assets remain untouched.

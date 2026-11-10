@@ -668,7 +668,7 @@ class VehicleLab0319TerrainTests(unittest.TestCase):
             'const WINDOW_IDS=',"'radioWindow','sculptWindow'",
         ):
             self.assertIn(fragment,self.html)
-        self.assertEqual(self.html.count('class="mini-btn minimize"'),15)
+        self.assertEqual(self.html.count('class="mini-btn minimize"'),17)
 
 class VehicleLab0320WorldEditingTests(unittest.TestCase):
     def setUp(self):
@@ -848,3 +848,26 @@ class VehicleLab0324LocalLibrarySafetyTests(unittest.TestCase):
             self.assertNotIn(unsafe,fragment)
         self.assertNotIn('assetIds:',fragment)
         self.assertNotIn('vehicleNames:',fragment)
+
+class VehicleLab0326NotesAndTerrainTests(unittest.TestCase):
+    def setUp(self):
+        self.html=(Path(__file__).resolve().parents[1]/'index.html').read_text()
+    def test_notes_geology_and_visibility_contracts(self):
+        for fragment in ('id="notesWindow"','id="geologyWindow"','id="notesSearch"',
+                         'id="notesBulkFolder"','id="notesMerge"','id="notesSelectAll"',
+                         'id="notesTitle"','id="notesBody"','id="geoSection"',
+                         "'notesWindow','geologyWindow'",'function notesLoad()',
+                         'function notesSave(',"'/api/me/notes'","'vehiclelab.notes.draft.v1.'"):
+            self.assertIn(fragment,self.html)
+    def test_theme_glass_and_colored_headers(self):
+        for fragment in ('id="themePaneOpacity"','id="themePaneBlur"',
+                         'id="themeColoredHeaders"','window-header-swatch',
+                         'var(--pane-blur)', 'ui-colored-headers',
+                         'paneOpacity:93,paneBlur:14,coloredHeaders:false',
+                         'themeSettings.headerColors'):
+            self.assertIn(fragment,self.html)
+    def test_sculpt_reliable_reset_and_flat_default(self):
+        for fragment in ("terrainProfile:'flat'",'id=\'sculptFlatWorld\'',
+                         "sculptField.fill(0)","cfg.terrainProfile='flat'",'sculptBoundPoint(pt)',
+                         "rememberMapEdit('New flat world')",'if(e.type===\'pointerup\')sculptContinue'):
+            self.assertIn(fragment,self.html)

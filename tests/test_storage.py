@@ -11,6 +11,35 @@ def blueprint():
     return {'schema':'procedural-vehicle/v3','vehicle':{'name':'City Car'},'modules':{'front':{},'cabin':{},'rear':{}},'occupants':2}
 
 class StorageTests(unittest.TestCase):
+    def test_connection_closes_after_read_write_and_error(self):
+        import sqlite3
+        with self.store.connect() as db:
+            db.execute('SELECT 1').fetchone()
+        with self.assertRaises(sqlite3.ProgrammingError):
+            db.execute('SELECT 1')
+        try:
+            with self.store.connect() as failed:
+                failed.execute('BEGIN IMMEDIATE')
+                failed.execute('CREATE TABLE IF NOT EXISTS should_rollback (x INTEGER)')
+                raise RuntimeError('exercise transaction rollback')
+        except RuntimeError:
+            pass
+        with self.assertRaises(sqlite3.ProgrammingError):
+            failed.execute('SELECT 1')
+        with self.store.connect() as after:
+            exists=after.execute("SELECT count(*) FROM sqlite_master WHERE name='should_rollback'").fetchone()[0]
+        self.assertEqual(exists,0)
+
+    def test_many_transactions_are_bounded(self):
+        # This test previously raised 'Too many open files' under macOS
+        # Python 3.15 when sqlite connection objects were not closed.
+        import sqlite3
+        for _ in range(400):
+            with self.store.connect() as db:
+                db.execute('SELECT 1').fetchone()
+        with self.store.connect() as db:
+            self.assertEqual(db.execute('PRAGMA quick_check').fetchone()[0],'ok')
+
     def setUp(self):
         self.tmp=tempfile.TemporaryDirectory()
         self.addCleanup(self.tmp.cleanup)
@@ -369,7 +398,8 @@ class ServerSnapshotTests(unittest.TestCase):
             first=store.safety_snapshot()
             self.assertTrue(first.is_file())
             import sqlite3
-            with sqlite3.connect('file:'+str(first)+'?mode=ro',uri=True) as db:
+            from contextlib import closing
+            with closing(sqlite3.connect('file:'+str(first)+'?mode=ro',uri=True)) as db:
                 self.assertEqual(db.execute('PRAGMA integrity_check').fetchone()[0],'ok')
                 self.assertEqual(db.execute('SELECT count(*) FROM assets').fetchone()[0],1)
                 self.assertEqual(db.execute('SELECT count(*) FROM user_layouts').fetchone()[0],1)
@@ -378,3 +408,79 @@ class ServerSnapshotTests(unittest.TestCase):
             self.assertEqual(store.safety_snapshot(),first) # rate limit
             self.assertEqual(len(store.own_layouts(owner['id'])),1)
             self.assertEqual(len(store.own_models_list(owner['id'])),1)
+
+class PrivateNotesTests(unittest.TestCase):
+    """v0.3.26: Notes are scoped server records, not browser-only state."""
+    def setUp(self):
+        self.tmp=tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        self.store=Storage(self.tmp.name)
+        self.owner,_=self.store.create_guest('Author')
+        self.other,_=self.store.create_guest('Reader')
+        self.owner=self.owner['id'];self.other=self.other['id']
+
+    def test_folder_notes_persist_across_restart_and_map_save(self):
+        folder=self.store.notes_folder(self.owner,'Physics and world')
+        identifier=str(uuid.uuid4())
+        note=self.store.notes_upsert(self.owner,identifier,'Test terrain','Try valleys 30m deep',
+                                    'urgent',folder['id'])
+        self.assertEqual(note['revision'],1)
+        self.assertEqual(note['folder_id'],folder['id'])
+        saved=self.store.save_media(self.owner,'map','New map',json.dumps({
+            'schema':'vehiclelab-testmap/v3','objects':[]}).encode(), 'application/json')
+        self.assertEqual(saved['kind'],'map')
+        reopened=Storage(self.tmp.name)
+        snapshot=reopened.notes_snapshot(self.owner)
+        self.assertEqual(len(snapshot['notes']),1)
+        self.assertEqual(snapshot['notes'][0]['body'],'Try valleys 30m deep')
+        self.assertEqual(snapshot['folders'][0]['name'],'Physics and world')
+        updated=reopened.notes_upsert(self.owner,identifier,'Test terrain','New shape',
+                                      'ongoing',folder['id'],revision=1)
+        self.assertEqual(updated['revision'],2)
+        with self.assertRaises(StaleLayout):
+            reopened.notes_upsert(self.owner,identifier,'overwrite','stale','idea',None,revision=1)
+        with self.assertRaises(StaleLayout):
+            reopened.notes_delete(self.owner,identifier,1)
+        self.assertEqual(reopened.notes_snapshot(self.owner)['notes'][0]['body'],'New shape')
+
+    def test_profile_isolation_and_folder_delete_moves_not_deletes(self):
+        folder=self.store.notes_folder(self.owner,'Concepts')
+        ident=str(uuid.uuid4())
+        self.store.notes_upsert(self.owner,ident,'Private','Only my ideas','idea',folder['id'])
+        self.assertEqual(self.store.notes_snapshot(self.other)['notes'],[])
+        with self.assertRaises(InvalidLayout):
+            self.store.notes_upsert(self.other,ident,'Breach','No','urgent',None,revision=1)
+        with self.assertRaises(InvalidLayout):
+            self.store.notes_bulk(self.other,[ident],'delete',revisions={ident:1})
+        self.assertTrue(self.store.notes_delete_folder(self.owner,folder['id']))
+        rows=self.store.notes_snapshot(self.owner)
+        self.assertEqual(len(rows['notes']),1)
+        self.assertIsNone(rows['notes'][0]['folder_id'])
+        self.assertEqual(rows['folders'],[])
+
+    def test_bulk_move_merge_retains_sources_until_confirmed_delete(self):
+        group=self.store.notes_folder(self.owner,'Ideas')
+        ids=[str(uuid.uuid4()) for _ in range(3)]
+        for i,ident in enumerate(ids):
+            self.store.notes_upsert(self.owner,ident,'Idea '+str(i),'Text '+str(i),'idea')
+        self.store.notes_bulk(self.owner,ids[:2],'move',group['id'],revisions={i:1 for i in ids[:2]})
+        rows=self.store.notes_snapshot(self.owner)['notes']
+        self.assertEqual(sum(n['folder_id']==group['id'] for n in rows),2)
+        merged=self.store.notes_bulk(self.owner,ids,'merge',group['id'])
+        self.assertTrue(merged['originals_retained'])
+        self.assertEqual(len(self.store.notes_snapshot(self.owner)['notes']),4)
+        result=next(n for n in self.store.notes_snapshot(self.owner)['notes'] if n['id']==merged['merged_id'])
+        self.assertTrue(all('Text '+str(i) in result['body'] for i in range(3)))
+        self.store.notes_bulk(self.owner,ids[:2],'delete',revisions={i:2 for i in ids[:2]})
+        self.assertEqual(len(self.store.notes_snapshot(self.owner)['notes']),2)
+
+    def test_validation_rejects_excessive_content_foreign_folder_and_duplicate_ids(self):
+        foreign=self.store.notes_folder(self.other,'Other account')
+        with self.assertRaises(InvalidLayout):
+            self.store.notes_upsert(self.owner,str(uuid.uuid4()),'x','hello','idea',foreign['id'])
+        with self.assertRaises(InvalidLayout):
+            self.store.notes_upsert(self.owner,str(uuid.uuid4()),'x','y'*16001,'idea')
+        one=str(uuid.uuid4())
+        self.store.notes_upsert(self.owner,one,'Exists','Stable','ongoing')
+        with self.assertRaises(InvalidLayout):self.store.notes_bulk(self.owner,[one,one],'delete',revisions={one:1})
+        self.assertEqual(len(self.store.notes_snapshot(self.owner)['notes']),1)
