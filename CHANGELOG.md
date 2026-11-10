@@ -1,3 +1,9 @@
+## v0.3.22 — November 10, 2026
+- Add a nonblocking 1.5-second large animated Vehicle Lab startup wordmark, with continuously cycling vertical rainbow fill and a solid-colour “Lab”. Refreshes vary palette, motion direction and speed.
+- Configuration → Theme & typography includes persisted splash and jingle toggles plus a click-to-preview sound control. Themes export/import these settings, with backwards compatibility.
+- Play an original subtle Web Audio three-note chime only if permitted by autoplay policies; otherwise skip sound without deferring it until user interaction. Respect reduced-motion preference and remove animation from DOM after fade-out.
+- No extra dependencies, media downloads or database changes.
+
 ## v0.3.21 — November 10, 2026
 - Fix a v0.3.20 3D sculpting pointer-state typo: the event handlers accessed undeclared `sculpt3DStroke` while the module declared `sculptStageStroke`. Use one correctly initialized state flag.
 - Restore normal canvas pointer handling and Command/Ctrl + left-drag sculpt interactions without repeated ReferenceError exceptions.

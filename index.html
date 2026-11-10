@@ -5,7 +5,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Vehicle Lab — Procedural Studio</title>
-  <meta name="vehicle-lab-version" content="0.3.21">
+  <meta name="vehicle-lab-version" content="0.3.22">
   <style>
     :root {
       color-scheme:dark;
@@ -742,6 +742,24 @@ body.ui-no-shadows,body.ui-no-shadows *,body.ui-no-shadows *::before,body.ui-no-
 .sculpt-panel .drawer-actions button{font-size:11px;min-height:30px;padding:6px}
 .sculpt-panel small{color:var(--muted);line-height:1.4}
 #mapToolRail button[data-map-tool=sculpt][aria-pressed=true]{background:var(--accent);color:var(--accent-ink)}
+/* v0.3.22 — non-blocking, text-only startup mark. The gradient repeats at exactly 240px. */
+#vehicleLabSplash{position:fixed;inset:0;z-index:95;display:grid;place-items:center;
+ pointer-events:none;user-select:none;overflow:hidden;contain:layout style;isolation:isolate;
+ animation:vehicleLabSplashLife 1500ms ease-out both}
+#vehicleLabSplash .splash-wordmark{display:flex;align-items:baseline;justify-content:center;
+ gap:.14em;white-space:nowrap;max-width:98vw;
+ font:900 clamp(42px,10.5vw,156px)/1 var(--ui-font,system-ui,sans-serif);
+ letter-spacing:-.065em;filter:drop-shadow(0 3px 11px #05132188)}
+#vehicleLabSplash .splash-vehicle{display:inline-block;background:
+ var(--splash-rainbow,repeating-linear-gradient(180deg,#4cf0db 0,#8acbff 60px,#f8b1ec 120px,#f5d99d 180px,#4cf0db 240px));
+ background-position:0 var(--splash-from,0px);background-size:100% 240px;
+ -webkit-background-clip:text;background-clip:text;color:transparent;
+ animation:vehicleLabRainbow var(--splash-speed,1.8s) linear infinite}
+#vehicleLabSplash .splash-lab{color:var(--splash-lab-color,#f0f8fc)}
+@keyframes vehicleLabRainbow{from{background-position:0 var(--splash-from,0px)}
+ to{background-position:0 var(--splash-to,-240px)}}
+@keyframes vehicleLabSplashLife{0%{opacity:0}13%{opacity:1}74%{opacity:1}100%{opacity:0}}
+@media(prefers-reduced-motion:reduce){#vehicleLabSplash .splash-vehicle{animation:none!important}}
 </style>
 
  <script type="importmap">
@@ -762,7 +780,7 @@ body.ui-no-shadows,body.ui-no-shadows *,body.ui-no-shadows *::before,body.ui-no-
 
   <div id="stage">
   <div id="hud">
-    <div class="stage-badge"><strong>Vehicle Lab</strong><small id="appVersionBadge">v0.3.21</small></div>
+    <div class="stage-badge"><strong>Vehicle Lab</strong><small id="appVersionBadge">v0.3.22</small></div>
     <p id="vehicleName">City Car</p><p id="vehicleInfo">Procedural vehicle</p>
     <div id="speedHud"><strong id="speed">0</strong><div>km/h</div></div>
     <div id="cameraModeReadout" style="padding:3px 6px;margin-top:4px;width:max-content;max-width:260px;border-radius:5px;background:#132d3cc0;color:#e9f5fc;font:10px ui-monospace,monospace">Camera · Orbit follow</div>
@@ -1107,6 +1125,11 @@ body.ui-no-shadows,body.ui-no-shadows *,body.ui-no-shadows *::before,body.ui-no-
     <button type="button" id="localFonts">Find installed fonts</button>
     <small id="fontInfo">Installed fonts require Chrome/Edge permission and HTTPS.</small>
     <div id="fontSizeChoices" class="pill-row"></div>
+    <p>Page-load logo</p><div id="startupLogoChoices" class="pill-row" role="group" aria-label="Startup logo settings">
+      <button id="introEnabled" type="button" aria-pressed="true" title="Show animated Vehicle Lab logo for 1.5 seconds after refresh">Splash on</button>
+      <button id="introSound" type="button" aria-pressed="true" title="Play a subtle sound on load where autoplay is permitted">Sound on</button>
+      <button id="introSoundPreview" type="button" title="Audition the startup jingle">Preview jingle</button>
+    </div><small>Sound on refresh depends on browser autoplay permission. Reduced-motion settings stop the moving rainbow.</small>
     <p>Panel appearance</p><div id="styleToggleChoices" class="pill-row" role="group" aria-label="Interface effects">
       <button id="themeBorders" type="button" aria-pressed="false" title="Toggle all interface borders">Borders off</button>
       <button id="themeShadows" type="button" aria-pressed="false" title="Toggle interface shadows">Shadows off</button>
@@ -1248,6 +1271,80 @@ body.ui-no-shadows,body.ui-no-shadows *,body.ui-no-shadows *::before,body.ui-no-
   <div id="addObjectResults" role="listbox"></div><small>Place on the visible terrain near the camera target, clear of other objects. Select the new object to transform it.</small>
  </div>
 </div>
+<!-- Runs independently of the 3D module; never intercepts pointer or keyboard input. -->
+<div id="vehicleLabSplash" aria-hidden="true"><div class="splash-wordmark"><span class="splash-vehicle">Vehicle</span><span class="splash-lab">Lab</span></div></div>
+<script>
+/* No network assets, audio files, global timers or WebGL allocations are needed. */
+(function vehicleLabStartupMark(){
+ 'use strict';
+ const mark=document.getElementById('vehicleLabSplash');
+ const storeKey='vehiclelab.theme.v1';
+ let show=true, sound=true;
+ try{const saved=JSON.parse(localStorage.getItem(storeKey)||'{}');
+  show=saved.introEnabled!==false;sound=saved.introSound!==false;
+ }catch(_error){} // Storage access can be unavailable in private browsing.
+ const palettes=[
+  ['#61f1db','#7fb5ff','#d4a1f7','#ffb8c2','#ffe3a1'],
+  ['#72d7ff','#9b94ff','#f5a5df','#ffd3a4','#b3f3a8'],
+  ['#ffc4d7','#ffdc8b','#9eebbb','#84d6ff','#baaaff'],
+  ['#91baff','#95f0ef','#f3d695','#ff9bc8','#a7a5ff']
+ ];
+ const random=(min,max)=>min+Math.random()*(max-min);
+ function playChime(manual=false){
+  if(!manual&&!sound)return;
+  if(document.hidden)return;
+  const Context=window.AudioContext||window.webkitAudioContext;
+  if(!Context)return;
+  const policy=manual?undefined:navigator.getAutoplayPolicy?.('audiocontext');
+  if(policy==='disallowed')return;
+  let context;
+  try{context=new Context({latencyHint:'interactive'});
+   // A page load cannot grant sound permission. Skip, rather than queuing an
+   // unexpectedly late chime when the user next interacts with the game.
+   if(context.state!=='running'&&!manual&&policy!=='allowed'){
+    void context.close().catch(()=>{});return;
+   }
+   const play=()=>{
+    if(context.state!=='running'){void context.close().catch(()=>{});return;}
+    const base=context.currentTime+.02;
+    const shift=Math.random()<.5?1:1.059463;
+    const notes=[523.25,659.25,783.99].map(n=>n*shift);
+    notes.forEach((frequency,index)=>{
+     const at=base+index*.13;
+     const oscillator=context.createOscillator(),gain=context.createGain();
+     oscillator.type='sine';oscillator.frequency.value=frequency;
+     gain.gain.setValueAtTime(.0001,at);
+     gain.gain.exponentialRampToValueAtTime(.014,at+.025);
+     gain.gain.exponentialRampToValueAtTime(.0001,at+.38);
+     oscillator.connect(gain);gain.connect(context.destination);
+     oscillator.start(at);oscillator.stop(at+.4);
+    });
+    window.setTimeout(()=>{void context.close().catch(()=>{});},1000);
+   };
+   if(context.state==='running')play();
+   else void context.resume().then(play).catch(()=>{void context.close().catch(()=>{});});
+  }catch(_error){if(context)void context.close().catch(()=>{});}
+ }
+ // Manual preview is the explicit, gesture-enabled fallback for autoplay blocks.
+ window.vehicleLabPreviewChime=()=>playChime(true);
+ if(!show){mark.remove();return;}
+ const palette=palettes[Math.floor(Math.random()*palettes.length)];
+ const colors=Math.random()<.5?palette.slice():palette.slice().reverse();
+ const offset=Math.round(random(0,239));
+ const direction=Math.random()<.5?1:-1;
+ const start=direction===1?offset:offset-240;
+ const last=direction===1?offset+240:offset-480;
+ const segments=colors.map((c,i)=>`${c} ${i*48}px`);
+ segments.push(`${colors[0]} 240px`);
+ mark.style.setProperty('--splash-rainbow',`repeating-linear-gradient(180deg,${segments.join(',')})`);
+ mark.style.setProperty('--splash-speed',`${random(1.2,2.6).toFixed(2)}s`);
+ mark.style.setProperty('--splash-from',`${start}px`);
+ mark.style.setProperty('--splash-to',`${last}px`);
+ mark.style.setProperty('--splash-lab-color',Math.random()<.5?'#f0f8fc':'#d5e9fa');
+ if(sound)window.requestAnimationFrame(()=>playChime());
+ window.setTimeout(()=>mark.remove(),1500);
+})();
+</script>
 <script type="module">
   import * as THREE from 'three';
   import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
@@ -1470,7 +1567,7 @@ let ghostObject=null,ghostSamples=[],ghostElapsed=0,ghostTick=0;
     if(result&&typeof result.catch==='function')result.catch(()=>{});}}
   catch{/* analytics must never affect the app */}
  }
- const VERSION='0.3.21';
+ const VERSION='0.3.22';
  document.getElementById('appVersionBadge').textContent='v'+VERSION;
  let imageReference=null,busyAI=false;
 
@@ -7239,7 +7336,7 @@ function initWorkspace(){
 }
 
 const THEME_STORAGE='vehiclelab.theme.v1';
-const defaultsTheme={theme:'dark',font:'system',size:1,accent:null,panel:null,actionMode:'icon-text',noBorders:false,noShadows:false};
+const defaultsTheme={theme:'dark',font:'system',size:1,accent:null,panel:null,actionMode:'icon-text',noBorders:false,noShadows:false,introEnabled:true,introSound:true};
 let themeSettings={...defaultsTheme};
 const themes=['dark','light','graphite','amber'];
 const fonts=['system','mono','rounded','Arial','Verdana','Tahoma','Trebuchet MS','Georgia','Times New Roman','Courier New'];
@@ -7275,6 +7372,14 @@ function applyTheme(){
  document.body.dataset.theme=themeSettings.theme;
  document.body.classList.toggle('ui-no-borders',Boolean(themeSettings.noBorders));
  document.body.classList.toggle('ui-no-shadows',Boolean(themeSettings.noShadows));
+ for(const [id,key,label] of [['introEnabled','introEnabled','Splash'],['introSound','introSound','Sound']]){
+  const button=$(id);button.setAttribute('aria-pressed',String(Boolean(themeSettings[key])));
+  button.textContent=label+(themeSettings[key]?' on':' off');
+  button.onclick=()=>{themeSettings[key]=!themeSettings[key];
+   if(key==='introEnabled'&&!themeSettings[key])$('vehicleLabSplash')?.remove();
+   applyTheme();};
+ }
+ $('introSoundPreview').onclick=()=>window.vehicleLabPreviewChime?.();
  for(const [id,key,label] of [['themeBorders','noBorders','Borders'],['themeShadows','noShadows','Shadows']]){
   const b=$(id);b.setAttribute('aria-pressed',String(Boolean(themeSettings[key])));
   b.textContent=label+(themeSettings[key]?' off':' on');
@@ -7465,6 +7570,8 @@ function initTheme(){
  if(actionModes.includes(imported.actionMode))themeSettings.actionMode=imported.actionMode;
   if(typeof imported.noBorders==='boolean')themeSettings.noBorders=imported.noBorders;
   if(typeof imported.noShadows==='boolean')themeSettings.noShadows=imported.noShadows;
+  if(typeof imported.introEnabled==='boolean')themeSettings.introEnabled=imported.introEnabled;
+  if(typeof imported.introSound==='boolean')themeSettings.introSound=imported.introSound;
   if(/^#[0-9a-fA-F]{6}$/.test(imported.accent||''))themeSettings.accent=imported.accent;
   if(/^#[0-9a-fA-F]{6}$/.test(imported.panel||''))themeSettings.panel=imported.panel;
  }catch(e){}applyTheme();
@@ -7480,11 +7587,14 @@ $('themeFile').onchange=async e=>{
    (value.accent!=null&&!/^#[0-9a-fA-F]{6}$/.test(value.accent))||
    (value.panel!=null&&!/^#[0-9a-fA-F]{6}$/.test(value.panel))||
    (value.noBorders!=null&&typeof value.noBorders!=='boolean')||
-   (value.noShadows!=null&&typeof value.noShadows!=='boolean'))throw Error('Invalid theme JSON');
+   (value.noShadows!=null&&typeof value.noShadows!=='boolean')||
+   (value.introEnabled!=null&&typeof value.introEnabled!=='boolean')||
+   (value.introSound!=null&&typeof value.introSound!=='boolean'))throw Error('Invalid theme JSON');
   if(!fonts.includes(value.font))fonts.push(value.font);
   themeSettings={theme:value.theme,font:value.font,size:value.size,
    accent:value.accent||null,panel:value.panel||null,actionMode:value.actionMode||'icon-text',
-   noBorders:value.noBorders===true,noShadows:value.noShadows===true};applyTheme();note('Theme imported.');
+   noBorders:value.noBorders===true,noShadows:value.noShadows===true,
+   introEnabled:value.introEnabled!==false,introSound:value.introSound!==false};applyTheme();note('Theme imported.');
  }catch(e){note(e.message,true)}e.target.value='';
 };
 for(const [id,field] of [['themeAccent','accent'],['themePanel','panel']]){
@@ -8081,6 +8191,10 @@ $('galleryRefreshBtn').onclick=()=>{gallerySource='public';setWindowVisible('gal
 $('layoutPublic').onchange=()=>{serverVisibility=$('layoutPublic').checked?'public':'private'};
 
 const RELEASE_NOTES=[
+ {v:'0.3.22',date:'2026-11-10',title:'Animated startup wordmark and gentle optional audio',items:[
+  'An unintrusive 1.5-second Vehicle Lab wordmark uses a repeating vertically moving rainbow gradient with random palette, direction and speed; Lab remains solid. The overlay never blocks workspace input or WebGL.',
+  'Configuration → Theme & typography has Splash on/off, Sound on/off and Preview jingle. Preferences persist in existing theme storage and JSON export/import; old themes remain valid.',
+  'Web Audio jingle is synthesized locally, low volume and never queued after autoplay denial. Reduced-motion preferences disable gradient animation; the splash removes its DOM node after 1.5 seconds.' ]},
  {v:'0.3.21',date:'2026-11-10',title:'3D sculpt pointer-state runtime fix',items:[
   'Correct the sculpt3DStroke state declaration so the captured pointer handlers and canvas tools share an initialized flag.',
   'Prevent repeated ReferenceError exceptions on canvas movement, clicks, start/end of terrain painting and pointer cancellation.',

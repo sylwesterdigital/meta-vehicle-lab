@@ -418,6 +418,32 @@ class WorkspaceTools017Tests(unittest.TestCase):
         self.assertNotIn('coursePointerTransform',self.html)
 
 
+class StartupWordmarkTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.html=(Path(__file__).resolve().parents[1]/'index.html').read_text()
+
+    def test_nonblocking_splash_and_cleanup(self):
+        for token in ('id="vehicleLabSplash"', '#vehicleLabSplash{position:fixed',
+                      'pointer-events:none', 'animation:vehicleLabSplashLife 1500ms',
+                      'window.setTimeout(()=>mark.remove(),1500)',
+                      'repeating-linear-gradient(180deg,',
+                      'prefers-reduced-motion:reduce'):
+            self.assertIn(token, self.html)
+
+    def test_theme_prefs_audio_policy_and_preview(self):
+        for token in ('id="introEnabled"','id="introSound"',
+                      'id="introSoundPreview"',
+                      'introEnabled:true,introSound:true',
+                      "if(typeof imported.introEnabled==='boolean')",
+                      "if(typeof imported.introSound==='boolean')",
+                      "value.introEnabled!==false,introSound:value.introSound!==false",
+                      "navigator.getAutoplayPolicy?.('audiocontext')",
+                      "window.vehicleLabPreviewChime=()=>playChime(true)"):
+            self.assertIn(token,self.html)
+        self.assertNotIn('<audio id="vehicleLabSplash"',self.html)
+
+
 class VersionAndAvatarLimitsTests(unittest.TestCase):
     def test_badge_meta_and_runtime_version_are_one_value(self):
         root=Path(__file__).resolve().parents[1]

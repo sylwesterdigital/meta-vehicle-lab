@@ -1,3 +1,11 @@
+# Vehicle Lab — v0.3.22 — Animated startup wordmark (2026-11-10)
+
+- **Visual:** 1.5-second non-blocking text splash on page load/refresh. “Vehicle” has a seamlessly repeating animated vertical rainbow with randomly selected colours, direction and speed; “Lab” stays solid. The mark fades and is removed entirely; no image requests, libraries, or WebGL resources.
+- **Configuration:** Theme & typography → Page-load logo has **Splash on/off**, **Sound on/off**, and **Preview jingle**. Settings persist under existing theme preference storage and are included in theme JSON exports. Imports from older releases keep defaults.
+- **Sound:** A gentle original three-note Web Audio chime plays automatically only where the browser allows audio without interaction. Otherwise it stays silent: no late surprise audio, no broken initialization. Manual preview uses a click gesture. No music/audio asset files or dependencies are added.
+- **Accessibility/performance:** The overlay never intercepts input or navigation; users requesting reduced motion see a static rainbow. Only compositor opacity and short-duration CSS text background changes are animated, and the DOM node is discarded after 1500ms.
+- **Compatibility:** Frontend/theme-only release, no database migration, service restart requirement, new APIs, or added files to watcher manifest. Verify startup on target browsers after deployment.
+
 # Vehicle Lab — v0.3.21 — 3D sculpt pointer-state runtime fix (2026-11-10)
 
 - **Fix:** The 3D canvas event handlers use `sculpt3DStroke`, but v0.3.20 mistakenly declared the different, unused variable `sculptStageStroke`. Declare and initialize `sculpt3DStroke` so all pointer handlers share the same boolean state.
