@@ -721,3 +721,104 @@ class VehicleLab0320WorldEditingTests(unittest.TestCase):
             'updateSculptMapReliefPatch();requestMinimapPaint();',
         ):
             self.assertIn(fragment,self.html)
+
+class VehicleLab0323RadioAndGeologyTests(unittest.TestCase):
+    def setUp(self):
+        self.path=Path(__file__).resolve().parents[1]/'index.html'
+        self.html=self.path.read_text(encoding='utf-8')
+
+    def test_compact_radio_header_is_the_only_transport(self):
+        from html.parser import HTMLParser
+        class Headers(HTMLParser):
+            def __init__(self):super().__init__();self.header=False;self.depth=0;self.labels=[]
+            def handle_starttag(self,tag,attrs):
+                if tag=='div' and dict(attrs).get('class')=='window-head':self.header=True;self.depth=1
+                elif self.header and tag=='div':self.depth+=1
+            def handle_endtag(self,tag):
+                if self.header and tag=='div':
+                    self.depth-=1
+                    if not self.depth:self.header=False
+            def handle_data(self,data):
+                if self.header and data.strip():self.labels.append(data.strip())
+        parsed=Headers();parsed.feed(self.html)
+        self.assertFalse(any(re.match(r'^\d{2}\s*/',s) for s in parsed.labels),parsed.labels)
+        section=self.html.split('<section id="radioWindow"',1)[1].split('<section id="objectWindow"',1)[0]
+        head,body=section.split('<div class="window-body"',1)
+        for key in ('radioPrev','radioPlay','radioNext','radioVolume'):
+            self.assertEqual(section.count(f'id="{key}"'),1)
+            self.assertIn(f'id="{key}"',head)
+            self.assertNotIn(f'id="{key}"',body)
+        self.assertIn('<strong>Radio</strong>',head)
+        self.assertNotIn('id="radioStop"',section)
+        self.assertIn("if(e.button!==0||e.target.closest('button,input,select,label,a,[role=slider]'))return;",self.html)
+        self.assertIn("radioAudio.onpause=updateRadioHeaderState",self.html)
+
+    def test_large_prism_specs_preserve_inspector_dimensions(self):
+        script=r'''
+const fs=require('fs'),assert=require('node:assert/strict');
+const src=fs.readFileSync(process.argv[1],'utf8');
+function extract(name){let a=src.indexOf('function '+name+'(');assert(a>=0);let start=src.indexOf('{',a),depth=0;
+ for(let i=start;i<src.length;i++){if(src[i]==='{')depth++;else if(src[i]==='}'&&--depth===0)return src.slice(a,i+1)}throw Error('unclosed '+name)}
+const clamp=(value,min,max)=>Math.max(min,Math.min(max,value));
+const cfg={courseObjects:[{id:'large',kind:'cube',x:0,z:0,w:80,h:50,d:75,y:25,angle:21,physics:'static'},
+ {id:'small',kind:'cube',x:0,z:0,w:22,h:18,d:35,y:9,angle:0,physics:'static'}]};
+const specs=new Function('cfg','clamp','heightAt',extract('courseSpecs')+';return courseSpecs()')(cfg,clamp,()=>0);
+assert.equal(specs.length,2);
+assert.deepEqual(specs.map(s=>[s.w,s.h,s.d]),[[80,50,75],[22,18,35]]);
+assert.equal(specs[0].ry,21*Math.PI/180);
+'''
+        result=subprocess.run(['node','-e',script,str(self.path)],capture_output=True,text=True,timeout=12)
+        self.assertEqual(result.returncode,0,result.stdout+result.stderr)
+
+    def test_optional_biome_shader_and_sparse_state(self):
+        for snippet in (
+            'function updateTerrainBiomeColors()',
+            "geometry.setAttribute('terrainBiome',buffer)",
+            'vTerrainBiome = terrainBiome;',
+            'diffuseColor.rgb = mix(diffuseColor.rgb, vTerrainBiome.rgb, vTerrainBiome.a);',
+            'function mapBiomeSnapshot()',
+            'function applyMapBiomeSettings(data)',
+            'biome:mapBiomeSnapshot()',
+            "'terrainBaseElevation','sculptData','seaEnabled','waterLevel',...MAP_BIOME_KEYS",
+            'if(cfg.biomeRelativeSea)updateTerrainBiomeColors()',
+            "biomeEnabled:false",
+        ):
+            self.assertIn(snippet,self.html)
+
+    def test_biome_vertex_colours_and_shader_injection_runtime(self):
+        script=r'''
+const fs=require('fs'),assert=require('node:assert/strict');
+const src=fs.readFileSync(process.argv[1],'utf8');
+function extract(name){let a=src.indexOf('function '+name+'(');assert(a>=0);let start=src.indexOf('{',a),depth=0;
+ for(let i=start;i<src.length;i++){if(src[i]==='{')depth++;else if(src[i]==='}'&&--depth===0)return src.slice(a,i+1)}throw Error('unclosed '+name)}
+const clamp=(v,a,b)=>Math.min(b,Math.max(a,v));
+class Color {constructor(s='#ffffff'){if(!/^#[0-9a-f]{6}$/i.test(s))throw Error('color');this.r=parseInt(s.slice(1,3),16)/255;this.g=parseInt(s.slice(3,5),16)/255;this.b=parseInt(s.slice(5,7),16)/255}
+ copy(c){this.r=c.r;this.g=c.g;this.b=c.b;return this}lerp(c,t){this.r+=(c.r-this.r)*t;this.g+=(c.g-this.g)*t;this.b+=(c.b-this.b)*t;return this}}
+class BufferAttribute {constructor(a,n){this.array=a;this.itemSize=n;this.count=a.length/n} }
+class MeshStandardMaterial{constructor(options){this.options=options}}
+class Vector2{constructor(x,y){this.x=x;this.y=y}}
+const THREE={Color,BufferAttribute,MeshStandardMaterial,Vector2,DoubleSide:2};
+const cfg={biomeEnabled:false,biomePalette:'alpine',biomeRelativeSea:false,biomeBlend:.9,biomeSlope:.6,biomeExposure:1,
+ biomeValleyAltitude:-12,biomeRockAltitude:15,biomeSnowAltitude:34,biomeValleyColor:'#252d36',biomeGroundColor:'#688754',biomeRockColor:'#838d96',biomeSnowColor:'#f2f7ff',waterLevel:0};
+const pos=[-15,0,10,24,36,50],normal=[[0,1,0],[0,1,0],[0,1,0],[0,.7,-.7],[0,1,0],[0,1,0]],attrs={
+ position:{count:pos.length,getY:i=>pos[i]},normal:{getY:i=>normal[i][1],getZ:i=>normal[i][2]}};
+const geometry={getAttribute:key=>attrs[key],setAttribute:(key,value)=>attrs[key]=value,deleteAttribute:key=>delete attrs[key]};
+const terrain={geometry};
+const fn=new Function('cfg','terrain','THREE','clamp',
+ "const BIOME_PALETTES={alpine:['#292f3b','#668650','#82909a','#f5f8ff'],canyon:['#302a2b','#c18b5a','#9d7162','#e6d1b2'],volcanic:['#121820','#343941','#606775','#cbd4dc']};\n"+
+ extract('biomeColors')+'\n'+extract('updateTerrainBiomeColors')+'\n'+extract('makeTerrainMaterial')+'\nreturn {updateTerrainBiomeColors,makeTerrainMaterial}');
+const {updateTerrainBiomeColors,makeTerrainMaterial}=fn(cfg,terrain,THREE,clamp);
+updateTerrainBiomeColors();assert.equal(attrs.terrainBiome,undefined,'off must not allocate terrain attribute');
+cfg.biomeEnabled=true;updateTerrainBiomeColors();const b=attrs.terrainBiome.array;
+assert.equal(b.length,pos.length*4);assert(b[0]<b[5*4],'valley darker than high snow');
+assert(b[4*4]>.8&&b[4*4+1]>.8&&b[4*4+2]>.8,'snow high and pale');
+assert(Math.abs(b[3]-.9)<1e-5);cfg.biomeRelativeSea=true;cfg.waterLevel=20;updateTerrainBiomeColors();
+assert(attrs.terrainBiome.array[4*4]<.8,'raising sea-relative threshold pushes snow above this altitude');
+const material=makeTerrainMaterial({map:{id:1}});
+const shader={vertexShader:'#include <common>\nvoid main(){#include <begin_vertex>}',fragmentShader:'#include <common>\nvoid main(){#include <map_fragment>}'};
+material.onBeforeCompile(shader);
+assert(shader.vertexShader.includes('attribute vec4 terrainBiome;'));
+assert(shader.fragmentShader.includes('diffuseColor.rgb = mix('));
+'''
+        result=subprocess.run(['node','-e',script,str(self.path)],capture_output=True,text=True,timeout=12)
+        self.assertEqual(result.returncode,0,result.stdout+result.stderr)

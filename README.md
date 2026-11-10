@@ -1,3 +1,12 @@
+# Vehicle Lab — v0.3.23 — Radio title controls, large prisms and geological terrain colour (2026-11-10)
+
+- **Radio:** Previous, combined Play/Pause, Next and Volume now sit in the draggable Radio title bar, including when the window is minimized. Controls use theme-aware compact SVGs with keyboard labels and visible focus; they do not trigger dragging. The redundant transport row and Stop button are removed, while the elapsed playback position remains visible in the radio body.
+- **Window titles:** Remove unnecessary numeric prefixes from all floating-window headers. The radio window title is simply **Radio**. Window IDs and BUILD/DRIVE workspace visibility keys do not change.
+- **Rectangular prism geometry:** Fix the hard-coded 18 × 7 × 18 m collision/render clamp, which contradicted the inspector's 80 m controls. Rectangular prisms can use width, height and depth up to 80 m; other primitive limits are unchanged. Very large blocks can impact physics collision complexity and may reach beyond the configured world boundary.
+- **Optional geological colour:** A new **09e · Altitude · geological colours** section provides an enable switch (off by default), alpine/canyon/volcanic/custom palettes, editable four-colour gradient, dark-valley / rock / snowy-summit elevations, strength, steep-slope rock weighting and north-facing exposure. Heights can optionally be relative to sea level. The colour grading is visual only, not a snow/rock texture or new physical material. The extra vertex data is generated when terrain builds and recoloured on settings changes, not every render frame; no extra texture requests or draw calls.
+- **Persistence:** Geological settings are saved with maps (local, cloud and v3 JSON), included in map undo and shared-world vehicle changes. Earlier maps remain supported and load without geological colouring. No new server dependencies, database migration or watcher manifest change.
+- **Verification:** Local script and regression tests, isolated browser/UI tests and watcher dry-run. Live WebGL shader compilation and all vehicle physics engines require server-browser acceptance.
+
 # Vehicle Lab — v0.3.22 — Animated startup wordmark (2026-11-10)
 
 - **Visual:** 1.5-second non-blocking text splash on page load/refresh. “Vehicle” has a seamlessly repeating animated vertical rainbow with randomly selected colours, direction and speed; “Lab” stays solid. The mark fades and is removed entirely; no image requests, libraries, or WebGL resources.

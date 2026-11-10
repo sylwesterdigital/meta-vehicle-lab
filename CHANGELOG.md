@@ -1,3 +1,10 @@
+## v0.3.23 — November 10, 2026
+- Put compact previous, combined play/pause, next and volume in the Radio title bar; remove the duplicate transport row and numbered floating-window titles.
+- Remove inconsistent rectangular-prism size clamp: all three visual and collision dimensions now support 80 metres, matching the Object Inspector.
+- Add opt-in elevation-dependent geological tint with four editable colours, three altitude thresholds, slope and north-facing exposure, plus alpine/canyon/volcanic presets. Configurable visual-only blended colour attribute, no new draw calls.
+- Preserve geology settings in local/cloud map save, JSON export/import, map history and active world across vehicle switches; default off for legacy maps.
+- No new dependencies, paid calls, new backend routes, SQLite schema changes or watcher manifest changes. Live WebGL shader/physics verification still required.
+
 ## v0.3.22 — November 10, 2026
 - Add a nonblocking 1.5-second large animated Vehicle Lab startup wordmark, with continuously cycling vertical rainbow fill and a solid-colour “Lab”. Refreshes vary palette, motion direction and speed.
 - Configuration → Theme & typography includes persisted splash and jingle toggles plus a click-to-preview sound control. Themes export/import these settings, with backwards compatibility.
