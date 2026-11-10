@@ -624,3 +624,55 @@ class VehicleLab0319TerrainTests(unittest.TestCase):
         ):
             self.assertIn(fragment,self.html)
         self.assertEqual(self.html.count('class="mini-btn minimize"'),15)
+
+class VehicleLab0320WorldEditingTests(unittest.TestCase):
+    def setUp(self):
+        self.html=(Path(__file__).resolve().parents[1]/'index.html').read_text()
+
+    def test_full_rotation_roundtrip_through_geometry_and_gizmo(self):
+        for fragment in (
+            "rx:rot+(Number(o.rotX)||0)*Math.PI/180",
+            "rz:(Number(o.rotZ)||0)*Math.PI/180",
+            "o.rotX=THREE.MathUtils.radToDeg(m.rotation.x)",
+            "o.rotZ=THREE.MathUtils.radToDeg(m.rotation.z)",
+            "o.rotX=THREE.MathUtils.radToDeg(sourceMesh.rotation.x)",
+            "o.rotZ=THREE.MathUtils.radToDeg(sourceMesh.rotation.z)",
+            "['objectRotX','rotX'],['objectRotZ','rotZ']",
+            'id="objectRotX"','id="objectRotZ"',
+        ):
+            self.assertIn(fragment,self.html)
+
+    def test_gallery_vehicle_preserves_scene(self):
+        for fragment in (
+            'const SHARED_WORLD_KEYS=',
+            "'courseObjects','courseName','terrainProfile','terrainSize'",
+            "'sculptData','seaEnabled','waterLevel'",
+            'function sceneWorldSnapshot()',
+            'function restoreSceneWorld(snapshot)',
+            'function rebuildSharedWorld()',
+            'restoreSceneWorld(activeWorld);rebuildSharedWorld()',
+        ):
+            self.assertIn(fragment,self.html)
+
+    def test_drive_camera_editor_override_and_resume_on_arrow(self):
+        for fragment in (
+            'function beginDriveSceneEditing(focus=null)',
+            'function resumeDriveSceneCamera()',
+            'if(driveSceneEditing){',
+            'beginDriveSceneEditing(current.getWorldPosition(new THREE.Vector3()))',
+            "['accelerate','reverse','steerLeft','steerRight'].includes(id)",
+            "if(cfg.cameraMode==='free'&&driveSceneCameraSnapshot)",
+            'function setViewportAxis(name){\n beginDriveSceneEditing()',
+        ):
+            self.assertIn(fragment,self.html)
+
+    def test_sculpt_modifier_ring_and_map_preview(self):
+        for fragment in (
+            'id="sculptBrushThickness"','id="sculptBrushOpacity"','id="sculptBrushColor"',
+            'new THREE.TorusGeometry(1,Math.max(.005,cfg.sculptBrushThickness/cfg.sculptRadius)',
+            'e.button!==0||!(e.metaKey||e.ctrlKey)',
+            'function updateSculptMapReliefPatch()',
+            'ctx.putImageData(image,x0,z0)',
+            'updateSculptMapReliefPatch();requestMinimapPaint();',
+        ):
+            self.assertIn(fragment,self.html)

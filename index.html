@@ -5,7 +5,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Vehicle Lab — Procedural Studio</title>
-  <meta name="vehicle-lab-version" content="0.3.19">
+  <meta name="vehicle-lab-version" content="0.3.20">
   <style>
     :root {
       color-scheme:dark;
@@ -727,7 +727,7 @@
 body.ui-no-borders :is(.float-window,.side-drawer,.window-head,button,input,select,textarea,details,.map-canvas-clip,.thumb-card,.media-card,.font-card,.gallery-card,.sculpt-panel){border-color:transparent!important}
 body.ui-no-borders :focus-visible{outline:2px solid var(--accent)!important;outline-offset:2px}
 body.ui-no-shadows,body.ui-no-shadows *,body.ui-no-shadows *::before,body.ui-no-shadows *::after{box-shadow:none!important;text-shadow:none!important}
-#sculptWindow{left:calc(50vw - 185px);top:95px;width:330px;height:360px;min-width:255px}
+#sculptWindow{left:calc(50vw - 185px);top:95px;width:330px;height:480px;min-width:255px}
 .sculpt-panel{display:flex;flex-direction:column;gap:8px;font-size:calc(11px * var(--ui-scale))}
 .sculpt-panel p{line-height:1.5;color:var(--muted);margin:0}
 .sculpt-panel label:not(.sculpt-checkbox){display:flex;justify-content:space-between;gap:8px;align-items:center;font-weight:600}
@@ -762,7 +762,7 @@ body.ui-no-shadows,body.ui-no-shadows *,body.ui-no-shadows *::before,body.ui-no-
 
   <div id="stage">
   <div id="hud">
-    <div class="stage-badge"><strong>Vehicle Lab</strong><small id="appVersionBadge">v0.3.19</small></div>
+    <div class="stage-badge"><strong>Vehicle Lab</strong><small id="appVersionBadge">v0.3.20</small></div>
     <p id="vehicleName">City Car</p><p id="vehicleInfo">Procedural vehicle</p>
     <div id="speedHud"><strong id="speed">0</strong><div>km/h</div></div>
     <div id="cameraModeReadout" style="padding:3px 6px;margin-top:4px;width:max-content;max-width:260px;border-radius:5px;background:#132d3cc0;color:#e9f5fc;font:10px ui-monospace,monospace">Camera · Orbit follow</div>
@@ -867,7 +867,7 @@ body.ui-no-shadows,body.ui-no-shadows *,body.ui-no-shadows *::before,body.ui-no-
   <section id="sculptWindow" class="float-window" aria-label="Terrain sculpt brush" style="display:none">
     <div class="window-head"><strong>15 / Terrain sculpt · sphere brush</strong><button class="mini-btn minimize" title="Minimize" aria-label="Minimize terrain sculpt"><svg class="collapse-icon" viewBox="-3 0 19 19" aria-hidden="true" focusable="false" fill="currentColor"><path d="M12.711 9.182a1.03 1.03 0 0 1-1.03 1.03H1.319a1.03 1.03 0 1 1 0-2.059h10.364a1.03 1.03 0 0 1 1.029 1.03z"/></svg></button></div>
     <div class="window-body sculpt-panel">
-      <p>Draw directly on the map or enable painting in the 3D view. Use Numpad 7 for a top view. Each stroke changes terrain height, not a decorative object.</p>
+      <p>Drag on the map, or hold Command (Mac) / Ctrl (Windows) and left-drag on the 3D terrain. Normal dragging orbits the camera. Numpad 7 opens top view.</p>
       <div class="sculpt-mode-pills" role="group" aria-label="Sculpt brush direction">
         <button id="sculptRaise" type="button" aria-pressed="false">Raise terrain</button>
         <button id="sculptLower" type="button" aria-pressed="true">Carve valley</button>
@@ -876,9 +876,14 @@ body.ui-no-shadows,body.ui-no-shadows *,body.ui-no-shadows *::before,body.ui-no-
       <input id="sculptRadius" type="range" min="2" max="35" step="0.5" value="8" aria-label="Sculpt brush radius in metres">
       <label for="sculptStrength">Strength <output id="sculptStrengthText">1 m</output></label>
       <input id="sculptStrength" type="range" min="0.1" max="4" step="0.1" value="1" aria-label="Sculpt height strength per pass in metres">
-      <label class="sculpt-checkbox"><input id="sculptOnStage" type="checkbox"> Enable sculpting directly on 3D terrain</label>
+      <label for="sculptBrushThickness">Outline thickness <output id="sculptBrushThicknessText">0.30 m</output></label>
+      <input id="sculptBrushThickness" type="range" min="0.05" max="0.8" step="0.05" value="0.3" aria-label="Sculpt outline thickness in metres">
+      <label for="sculptBrushOpacity">Brush transparency <output id="sculptBrushOpacityText">60%</output></label>
+      <input id="sculptBrushOpacity" type="range" min="0.1" max="1" step="0.05" value="0.6" aria-label="Sculpt brush outline opacity">
+      <label for="sculptBrushColor">Brush colour <input id="sculptBrushColor" type="color" value="#64ed91" aria-label="Sculpt guide colour"></label>
+      <label class="sculpt-checkbox"><input id="sculptOnStage" type="checkbox" checked> Show brush preview on 3D terrain</label>
       <div class="drawer-actions"><button id="sculptMap" type="button">Sculpt on map</button><button id="sculptTop" type="button">Top view (Numpad 7)</button><button id="sculptClear" type="button" title="Erase all sculpted height changes">Clear sculpted heights</button></div>
-      <small id="sculptStatus" role="status">[ / ] adjust radius while sculpting · Ctrl+Z undoes the last stroke. Sculpting works in BUILD and DRIVE.</small>
+      <small id="sculptStatus" role="status">Command/Ctrl + left-drag sculpts in 3D · [ / ] adjust radius · Ctrl+Z undoes strokes. BUILD and DRIVE supported.</small>
     </div>
   </section>
   <section id="mediaWindow" class="float-window" aria-label="My media library" style="display:none">
@@ -940,7 +945,9 @@ body.ui-no-shadows,body.ui-no-shadows *,body.ui-no-shadows *::before,body.ui-no-
       <input id="objectQuickSlider" type="range" min="-150" max="150" step="0.1" value="0">
       <output id="objectSlideValue">0</output></div>
     <div class="object-grid">
-     <label>Yaw °<input id="objectAngle" type="number" step="1"></label><label>Color<input id="objectColor" type="color"></label>
+     <label>Yaw °<input id="objectAngle" type="number" step="1"></label>
+     <label>Tilt X °<input id="objectRotX" type="number" step="1" aria-label="Object X rotation in degrees"></label>
+     <label>Tilt Z °<input id="objectRotZ" type="number" step="1" aria-label="Object Z rotation in degrees"></label><label>Color<input id="objectColor" type="color"></label>
      <label>Physics<select id="objectPhysics"><option value="static">Static · collider</option><option value="dynamic">Dynamic · rigid body</option><option value="none">No collider</option></select></label>
      <label>Mass kg<input id="objectMass" type="number" min="0.1" max="10000" step="1"></label>
      <label>Friction<input id="objectFriction" type="number" min="0" max="2" step="0.05"></label>
@@ -1333,6 +1340,7 @@ body.ui-no-shadows,body.ui-no-shadows *,body.ui-no-shadows *::before,body.ui-no-
    tirePattern:'tread',seatPattern:'fabric',rimFinish:'polished',glassPattern:'clear',interiorPattern:'leather',trimPattern:'matte',
    groundSurface:'grass',puddles:true,waterLevel:0,trackMarks:true,waterEffect:true,
    sculptRadius:8,sculptStrength:1,sculptDirection:'lower',
+   sculptBrushThickness:.3,sculptBrushOpacity:.6,sculptBrushColor:'#64ed91',
    cloudCoverage:.48,windSpeed:.4,waterOpacity:.68,
    noiseScale:26,noiseOctaves:5,noiseLacunarity:2.02,noiseGain:.5,
    noiseWarp:.33,noiseContrast:1.25,noiseDetail:.24,
@@ -1372,6 +1380,9 @@ function normalizeVehicleConfig(){
  cfg.sculptRadius=clamp(Number(cfg.sculptRadius)||8,2,35);
  cfg.sculptStrength=clamp(Number(cfg.sculptStrength)||1,.1,4);
  cfg.sculptDirection=cfg.sculptDirection==='raise'?'raise':'lower';
+ cfg.sculptBrushThickness=clamp(Number(cfg.sculptBrushThickness)||.3,.05,.8);
+ cfg.sculptBrushOpacity=clamp(Number(cfg.sculptBrushOpacity)||.6,.1,1);
+ if(!/^#[0-9a-f]{6}$/i.test(cfg.sculptBrushColor))cfg.sculptBrushColor='#64ed91';
  readSculptData();
  if(!Number.isFinite(Number(cfg.worldBounce)))cfg.worldBounce=.55;
  if(!cfg.worldCells||typeof cfg.worldCells!=='object'||Array.isArray(cfg.worldCells))cfg.worldCells={};
@@ -1430,6 +1441,7 @@ function resetPhysicsInterpolation(){
 const CAMERA_MODES=['orbit','smart','chase','cinematic','driver','free'];
 const CAMERA_LABELS={orbit:'Orbit follow',smart:'Terrain-aware orbit follow',chase:'Chase / adjustable',cinematic:'Cinematic follow',driver:'Driver',free:'Free / stationary'};
 let drivePanelVisibility=new Map(),stationaryCameraPosition=null,stationaryCameraTarget=null;
+let driveSceneEditing=false,driveSceneCameraSnapshot=null;
 const autopilotState={enabled:false,anchor:null,time:0,phase:0,steer:0,nav:null,lastPlan:0,stuck:0,lastSpeedAt:0};
 let ghostObject=null,ghostSamples=[],ghostElapsed=0,ghostTick=0;
  const ENGINE_LABELS={cannon:'Cannon-es',rapier:'Rapier (WASM)',ammo:'Ammo.js / Bullet'};
@@ -1458,7 +1470,7 @@ let ghostObject=null,ghostSamples=[],ghostElapsed=0,ghostTick=0;
     if(result&&typeof result.catch==='function')result.catch(()=>{});}}
   catch{/* analytics must never affect the app */}
  }
- const VERSION='0.3.19';
+ const VERSION='0.3.20';
  document.getElementById('appVersionBadge').textContent='v'+VERSION;
  let imageReference=null,busyAI=false;
 
@@ -1929,7 +1941,7 @@ function courseSpecs(){
    color:o.color||null,physics:o.physics||'static',mass:clamp(Number(o.mass)||35,.1,10000),
    friction:clamp(Number.isFinite(Number(o.friction))?Number(o.friction):.8,0,2),
    bounce:clamp(Number.isFinite(Number(o.bounce))?Number(o.bounce):.12,0,1),
-   rx:rot,ry:(o.angle||0)*Math.PI/180,rz:0});
+   rx:rot+(Number(o.rotX)||0)*Math.PI/180,ry:(o.angle||0)*Math.PI/180,rz:(Number(o.rotZ)||0)*Math.PI/180});
  };
  for(const o of cfg.courseObjects||[]){
   const w=clamp(Number(o.w)||2,.25,18),d=clamp(Number(o.d)||2,.25,18),h=clamp(Number(o.h)||1,.2,7);
@@ -2010,13 +2022,14 @@ function buildCourse(){
    let group=courseGroups.get(spec.id);
    if(!group){group=new THREE.Group();group.name='Bridge · grouped collision geometry';
      group.userData.courseId=spec.id;
-     group.position.set(spec.x,spec.y,spec.z);group.rotation.y=spec.ry;
+     group.position.set(spec.x,spec.y,spec.z);
+     group.rotation.set((Number(o.rotX)||0)*Math.PI/180,spec.ry,(Number(o.rotZ)||0)*Math.PI/180);
      courseRoot.add(group);courseGroups.set(spec.id,group);courseMeshes.set(spec.id,group);
    }
    // Convert every bridge segment from world space into its parent's local space.
    group.updateWorldMatrix(true,false);
    const point=new THREE.Vector3(spec.x,spec.y,spec.z);group.worldToLocal(point);
-   mesh.position.copy(point);mesh.rotation.set(spec.rx,0,spec.rz);
+   mesh.position.copy(point);mesh.rotation.set(spec.rx-(Number(o.rotX)||0)*Math.PI/180,0,spec.rz-(Number(o.rotZ)||0)*Math.PI/180);
    group.add(mesh);
   }else{
    if(spec.kind!=='world-edge'&&spec.id&&!courseMeshes.has(spec.id))courseMeshes.set(spec.id,mesh);
@@ -3090,8 +3103,42 @@ function updateCameraLabel(){
  const el=$('cameraModeReadout');if(el)el.textContent='Camera · '+label;
  const button=$('cameraBtn');if(button){button.title='Cycle drive camera · '+label;button.setAttribute('aria-label','Cycle camera: '+label)}
 }
+function beginDriveSceneEditing(focus=null){
+ if(mode!=='drive'||xrActive)return;
+ if(!driveSceneEditing){
+  clearFollowLift();
+  followRig.orbitOffset.copy(camera.position).sub(orbit.target);
+  driveSceneCameraSnapshot={position:camera.position.clone(),target:orbit.target.clone()};
+  driveSceneEditing=true;
+ }
+ orbit.enabled=!transformDragging;
+ if(focus){
+  const delta=focus.clone().sub(orbit.target);
+  camera.position.add(delta);orbit.target.copy(focus);
+ }
+ camera.lookAt(orbit.target);orbit.update();
+ $('cameraModeReadout').textContent='Camera · Scene edit (arrows resume driving view)';
+}
+function resumeDriveSceneCamera(){
+ if(!driveSceneEditing)return;
+ driveSceneEditing=false;
+ // FREE is intentionally stationary: restore exactly where it was before editing.
+ // All other camera modes resume at the car using their stored orbit offset.
+ if(cfg.cameraMode==='free'&&driveSceneCameraSnapshot){
+  camera.position.copy(driveSceneCameraSnapshot.position);
+  orbit.target.copy(driveSceneCameraSnapshot.target);camera.lookAt(orbit.target);orbit.update();
+ }
+ driveSceneCameraSnapshot=null;
+ followRig.initialized=false;followRig.mode='free';followRig.lift=0;
+ orbit.enabled=!transformDragging&&cfg.cameraMode!=='driver'&&!xrActive;
+ updateCameraLabel();
+}
 function followCamera(dt){
  if(!car||xrActive)return;
+ if(driveSceneEditing){
+  clearFollowLift();orbit.enabled=!transformDragging;orbit.update();
+  return;
+ }
  const modeCam=cfg.cameraMode||'orbit';
  const previousMode=followRig.mode;
  // Terrain avoidance is intentionally a temporary screen-space correction,
@@ -3181,6 +3228,7 @@ function followCamera(dt){
 }
 function cycleCamera(){
  const i=CAMERA_MODES.indexOf(cfg.cameraMode);
+ resumeDriveSceneCamera();
  cfg.cameraMode=CAMERA_MODES[(i+1+CAMERA_MODES.length)%CAMERA_MODES.length];
  followRig.yaw=null;updateCameraLabel();note('Camera: '+CAMERA_LABELS[cfg.cameraMode]);scheduleHistory('Camera mode');
 }
@@ -3484,8 +3532,9 @@ function applyDynamicCoursePose(id,position,rotation){
  if(!mesh||!o)return;
  mesh.position.copy(position);mesh.quaternion.copy(rotation);
  o.x=position.x;o.y=position.y;o.z=position.z;
- o.angle=new THREE.Euler().setFromQuaternion(
-  new THREE.Quaternion(rotation.x,rotation.y,rotation.z,rotation.w),'YXZ').y*180/Math.PI;
+ const angle=new THREE.Euler().setFromQuaternion(
+  new THREE.Quaternion(rotation.x,rotation.y,rotation.z,rotation.w),'XYZ');
+ o.rotX=THREE.MathUtils.radToDeg(angle.x);o.angle=THREE.MathUtils.radToDeg(angle.y);o.rotZ=THREE.MathUtils.radToDeg(angle.z);
 }
 function makeCannonAdapter(){
  const spawn=resumeDrivePose||activeCarPose();
@@ -3882,7 +3931,7 @@ async function enterDrive(){
     makeCannonAdapter();
   // A stale asynchronous Rapier load must not reactivate a dismissed drive.
   if(generation!==driveGeneration){adapter.destroy();return}
-  physics=adapter;stepAccumulator=0;previousYaw=null;mode='drive';parkingBrake=false;updateParkingBrake();
+  physics=adapter;stepAccumulator=0;previousYaw=null;mode='drive';driveSceneEditing=false;driveSceneCameraSnapshot=null;parkingBrake=false;updateParkingBrake();
   resetPhysicsInterpolation();clearFollowLift();followRig.initialized=false;followRig.mode=null;followRig.yaw=null;
   if(resumeDrivePose){car.position.set(resumeDrivePose.position.x,resumeDrivePose.position.y,resumeDrivePose.position.z);
    car.quaternion.set(resumeDrivePose.rotation.x,resumeDrivePose.rotation.y,resumeDrivePose.rotation.z,resumeDrivePose.rotation.w);
@@ -3916,10 +3965,11 @@ function leaveDrive(){
  if(physics?.syncCourse){physics.syncCourse();for(const spec of courseSolidSpecs){
   if(spec.physics!=='dynamic'||!spec.id)continue;
   const m=courseMeshes.get(spec.id),o=cfg.courseObjects.find(o=>o.id===spec.id);
-  if(m&&o){o.x=m.position.x;o.z=m.position.z;o.y=m.position.y;o.angle=m.rotation.y*180/Math.PI;}
+  if(m&&o){o.x=m.position.x;o.z=m.position.z;o.y=m.position.y;
+   o.rotX=THREE.MathUtils.radToDeg(m.rotation.x);o.angle=THREE.MathUtils.radToDeg(m.rotation.y);o.rotZ=THREE.MathUtils.radToDeg(m.rotation.z);}
  }}
  try{physics?.destroy()}catch(e){console.warn('Physics cleanup',e)}
- trackUsage('drive_ended');vehicleAudio.stop();physics=null;mode='build';parkingBrake=false;updateParkingBrake();stepAccumulator=0;previousYaw=null;braking=false;
+ trackUsage('drive_ended');vehicleAudio.stop();physics=null;mode='build';driveSceneEditing=false;driveSceneCameraSnapshot=null;parkingBrake=false;updateParkingBrake();stepAccumulator=0;previousYaw=null;braking=false;
  physicsVisual.previous=physicsVisual.current=null;clearFollowLift();orbit.enabled=!xrActive;
  $('buildBtn').classList.add('active');
  $('driveBtn').classList.remove('active');
@@ -3947,7 +3997,9 @@ window.addEventListener('keydown',e=>{
  for(const id of ['accelerate','reverse','steerLeft','steerRight','brake']){
   if(shortcutMatches(id,e)){
    if(cfg.autopilot){cfg.autopilot=false;autopilotState.anchor=null;updateAutopilotButton()}
-   held.add(id);e.preventDefault();break;
+   held.add(id);
+   if(['accelerate','reverse','steerLeft','steerRight'].includes(id))resumeDriveSceneCamera();
+   e.preventDefault();break;
   }
  }
 });
@@ -6191,28 +6243,54 @@ function drawMinimap(){
 let sculptMapCursor=null,sculptStageStroke=false,sculpt3DPaint=false,sculptStagePointer=null;
 const sculptChangedCells=new Set();
 let sculptRenderPending=false,sculptStrokeChanged=false,sculptStrokeLast=null,sculptStageOrbitWasEnabled=true;
-const sculptBrushSphere=new THREE.Mesh(
- new THREE.SphereGeometry(1,20,12),
- new THREE.MeshBasicMaterial({color:0x95dcff,transparent:true,opacity:.19,depthTest:false,depthWrite:false,wireframe:true}));
-sculptBrushSphere.name='Sculpt cursor · visual guide only';
-sculptBrushSphere.renderOrder=999;sculptBrushSphere.visible=false;sculptBrushSphere.raycast=()=>{};scene.add(sculptBrushSphere);
+let sculptReliefDirty=null,lastSculptReliefPaint=-Infinity;
+// A bold, theme-colour, scalable ground ring with a translucent spherical
+// brush envelope. Both parts are non-pickable and never affect raycasting/physics.
+const sculptBrushSphere=new THREE.Group();
+const sculptBrushShell=new THREE.Mesh(new THREE.SphereGeometry(1,32,16,0,Math.PI*2,0,Math.PI/2),
+ new THREE.MeshBasicMaterial({color:cfg.sculptBrushColor,transparent:true,opacity:.12,depthTest:false,depthWrite:false,side:THREE.DoubleSide}));
+const sculptBrushRing=new THREE.Mesh(new THREE.TorusGeometry(1,.04,10,96),
+ new THREE.MeshBasicMaterial({color:cfg.sculptBrushColor,transparent:true,opacity:1,depthTest:false,depthWrite:false}));
+sculptBrushRing.rotation.x=Math.PI/2;
+sculptBrushSphere.add(sculptBrushShell,sculptBrushRing);
+sculptBrushSphere.name='Sculpt cursor · outlined spherical brush';
+sculptBrushSphere.renderOrder=999;sculptBrushSphere.visible=false;
+sculptBrushSphere.traverse(node=>{node.renderOrder=999;node.raycast=()=>{}});
+scene.add(sculptBrushSphere);
+function updateSculptBrushVisual(){
+ sculptBrushShell.material.color.set(cfg.sculptBrushColor);
+ sculptBrushRing.material.color.set(cfg.sculptBrushColor);
+ sculptBrushShell.material.opacity=cfg.sculptBrushOpacity*.22;
+ sculptBrushRing.material.opacity=cfg.sculptBrushOpacity;
+ sculptBrushRing.geometry.dispose();
+ sculptBrushRing.geometry=new THREE.TorusGeometry(1,Math.max(.005,cfg.sculptBrushThickness/cfg.sculptRadius),10,96);
+ sculptBrushSphere.scale.setScalar(cfg.sculptRadius);
+}
 function syncSculptControls(){
  $('sculptRadius').value=String(cfg.sculptRadius);$('sculptRadiusText').textContent=Number(cfg.sculptRadius).toFixed(1)+' m';
  $('sculptStrength').value=String(cfg.sculptStrength);$('sculptStrengthText').textContent=Number(cfg.sculptStrength).toFixed(1)+' m';
  for(const [id,setting] of [['sculptRaise','raise'],['sculptLower','lower']])$(''+id).setAttribute('aria-pressed',String(cfg.sculptDirection===setting));
  $('sculptOnStage').checked=sculpt3DPaint;
+ $('sculptBrushThickness').value=String(cfg.sculptBrushThickness);
+ $('sculptBrushThicknessText').textContent=cfg.sculptBrushThickness.toFixed(2)+' m';
+ $('sculptBrushOpacity').value=String(cfg.sculptBrushOpacity);
+ $('sculptBrushOpacityText').textContent=Math.round(cfg.sculptBrushOpacity*100)+'%';
+ $('sculptBrushColor').value=cfg.sculptBrushColor;
 }
-function openSculptBrush(){syncSculptControls();setWindowVisible('sculptWindow',true)}
+function openSculptBrush(){sculpt3DPaint=true;updateSculptBrushVisual();syncSculptControls();setWindowVisible('sculptWindow',true)}
 function setSculptRadius(radius){cfg.sculptRadius=clamp(Math.round(Number(radius)*2)/2,2,35);syncSculptControls();
- if(sculptMapCursor)requestMinimapPaint();if(sculptBrushSphere.visible)sculptBrushSphere.scale.setScalar(cfg.sculptRadius)}
+ updateSculptBrushVisual();if(sculptMapCursor)requestMinimapPaint();}
 $('sculptRadius').oninput=e=>setSculptRadius(e.target.value);
 $('sculptStrength').oninput=e=>{cfg.sculptStrength=clamp(Number(e.target.value),.1,4);syncSculptControls()};
+$('sculptBrushThickness').oninput=e=>{cfg.sculptBrushThickness=clamp(Number(e.target.value),.05,.8);updateSculptBrushVisual();syncSculptControls()};
+$('sculptBrushOpacity').oninput=e=>{cfg.sculptBrushOpacity=clamp(Number(e.target.value),.1,1);updateSculptBrushVisual();syncSculptControls()};
+$('sculptBrushColor').oninput=e=>{if(/^#[0-9a-f]{6}$/i.test(e.target.value)){cfg.sculptBrushColor=e.target.value;updateSculptBrushVisual();syncSculptControls()}};
 for(const [id,direction] of [['sculptRaise','raise'],['sculptLower','lower']])$(id).onclick=()=>{
- cfg.sculptDirection=direction;sculptBrushSphere.material.color.set(direction==='lower'?0x95dcff:0xffc876);syncSculptControls()};
+ cfg.sculptDirection=direction;syncSculptControls()};
 $('sculptMap').onclick=()=>{setWindowVisible('mapWindow',true);setMapTool('sculpt')};
 $('sculptTop').onclick=()=>{setViewportAxis('top');note('Top view selected · scroll to zoom, paint on the map or enable 3D sculpt.')};
 $('sculptOnStage').onchange=e=>{sculpt3DPaint=e.target.checked;
- $('sculptStatus').textContent=sculpt3DPaint?'3D painting enabled · drag over ground. Disable to select objects again.':'Map sculpt · drag over the relief. [ / ] adjust radius.';
+ $('sculptStatus').textContent=sculpt3DPaint?'3D brush preview on · Command/Ctrl + left-drag paints, normal drag orbits.':'Preview off · Command/Ctrl + left-drag still paints.';
  if(!sculpt3DPaint)sculptBrushSphere.visible=false;
 };
 $('sculptClear').onclick=()=>{
@@ -6238,7 +6316,15 @@ function sculptStamp(x,z){
   const next=clamp(sculptField[index]+Math.round(strength*100*weight),-12000,12000);
   if(next!==sculptField[index]){sculptField[index]=next;sculptChangedCells.add(index);changed=true}
  }
- if(changed){sculptStrokeChanged=true;requestSculptRender()}
+ if(changed){
+  sculptStrokeChanged=true;
+  if(!sculptReliefDirty)sculptReliefDirty={x0:x-radius,z0:z-radius,x1:x+radius,z1:z+radius};
+  else{sculptReliefDirty.x0=Math.min(sculptReliefDirty.x0,x-radius);
+   sculptReliefDirty.z0=Math.min(sculptReliefDirty.z0,z-radius);
+   sculptReliefDirty.x1=Math.max(sculptReliefDirty.x1,x+radius);
+   sculptReliefDirty.z1=Math.max(sculptReliefDirty.z1,z+radius);}
+  requestSculptRender()
+ }
  return changed;
 }
 function sculptBegin(pt){sculptStrokeLast={x:pt.x,z:pt.z};sculptStrokeChanged=false;sculptStamp(pt.x,pt.z)}
@@ -6263,11 +6349,48 @@ function requestSculptRender(){if(sculptRenderPending)return;sculptRenderPending
   sculptChangedCells.clear();attr.needsUpdate=true;terrain.geometry.computeVertexNormals();
   terrain.geometry.computeBoundingSphere();
   const normals=terrain.geometry.attributes.normal;normals.needsUpdate=true;
-  requestMinimapPaint();
+  updateSculptMapReliefPatch();requestMinimapPaint();
  });
+}
+// Apply partial terrain shading to the cached relief while the pointer moves.
+// Full contour generation remains deferred to release for smooth 60Hz drawing.
+function updateSculptMapReliefPatch(){
+ const dirty=sculptReliefDirty;
+ if(!dirty)return;
+ // A capped 12 Hz update avoids blocking camera/physics renders with map shading.
+ if(!windowCurrentlyVisible('mapWindow')||$('mapView').value==='diagram'||!courseCache){
+  sculptReliefDirty=null;return;
+ }
+ const now=performance.now();if(now-lastSculptReliefPaint<80)return;
+ lastSculptReliefPaint=now;sculptReliefDirty=null;
+ const S=256,pixel=SIZE/S,canvas=courseCache;
+ const x0=clamp(Math.floor((dirty.x0/SIZE+.5)*S)-3,0,S-1),
+  x1=clamp(Math.ceil((dirty.x1/SIZE+.5)*S)+3,0,S-1),
+  z0=clamp(Math.floor((dirty.z0/SIZE+.5)*S)-3,0,S-1),
+  z1=clamp(Math.ceil((dirty.z1/SIZE+.5)*S)+3,0,S-1);
+ if(x1<x0||z1<z0)return;
+ const ctx=canvas.getContext('2d'),image=ctx.getImageData(x0,z0,x1-x0+1,z1-z0+1),data=image.data;
+ const colors=cfg.groundSurface==='sand'?[191,170,128]:cfg.groundSurface==='asphalt'?[84,101,116]:[89,132,92];
+ // Sample heights once with a two-pixel halo, then compute relief gradients
+ // from that shared tile (instead of five full heightAt() calls per pixel).
+ const iw=image.width,ih=image.height,stride=iw+4,heights=new Float32Array(stride*(ih+4));
+ for(let j=-2;j<ih+2;j++)for(let i=-2;i<iw+2;i++){
+  const x=((x0+i)/S-.5)*SIZE,z=((z0+j)/S-.5)*SIZE;
+  heights[(j+2)*stride+i+2]=heightAt(x,z);
+ }
+ for(let j=0;j<ih;j++)for(let i=0;i<iw;i++){
+  const index=(j+2)*stride+i+2,h=heights[index];
+  const dx=heights[index+2]-heights[index-2],dz=heights[index+stride*2]-heights[index-stride*2];
+  const shade=clamp(.97-dx*.3-dz*.45,.48,1.28),tint=Math.min(1,Math.abs(h)/14)*.23;
+  const idx=(j*iw+i)*4;
+  for(let channel=0;channel<3;channel++)data[idx+channel]=clamp((colors[channel]*(1-tint)+[194,198,178][channel]*tint)*shade,0,255);
+  data[idx+3]=255;
+ }
+ ctx.putImageData(image,x0,z0);
 }
 function sculptFinish(){
  sculptStrokeLast=null;if(!sculptStrokeChanged)return;
+ sculptReliefDirty=null;
  sculptStrokeChanged=false;storeSculptData();rememberMapEdit('Sculpt terrain '+cfg.sculptDirection);
  updateMinimapBackground();void refreshEnvironmentForMap();
  $('sculptStatus').textContent='Stroke saved · physics terrain updating. Undo reverts this stroke.';
@@ -6285,14 +6408,14 @@ function positionSculptSphere(pt){if(!pt){sculptBrushSphere.visible=false;return
  sculptBrushSphere.scale.setScalar(cfg.sculptRadius);
 }
 renderer.domElement.addEventListener('pointerdown',e=>{
- if(!sculpt3DPaint||!windowCurrentlyVisible('sculptWindow')||$('sculptWindow').classList.contains('is-minimized')||e.button!==0||!terrain||transformDragging||xrActive)return;
+ if(!windowCurrentlyVisible('sculptWindow')||$('sculptWindow').classList.contains('is-minimized')||e.button!==0||!(e.metaKey||e.ctrlKey)||!terrain||transformDragging||xrActive)return;
  const pt=sculptGroundHit(e);if(!pt)return;
  sculpt3DStroke=true;sculptStagePointer=e.pointerId;sculptStageOrbitWasEnabled=orbit.enabled;orbit.enabled=false;
  renderer.domElement.setPointerCapture(e.pointerId);sculptBegin(pt);positionSculptSphere(pt);
  e.preventDefault();e.stopImmediatePropagation();
 },{capture:true});
 renderer.domElement.addEventListener('pointermove',e=>{
- if(!sculpt3DPaint||!windowCurrentlyVisible('sculptWindow')){sculptBrushSphere.visible=false;return;}
+ if(!windowCurrentlyVisible('sculptWindow')||(!sculpt3DPaint&&!sculpt3DStroke&&!(e.metaKey||e.ctrlKey))){sculptBrushSphere.visible=false;return;}
  const pt=sculptGroundHit(e);positionSculptSphere(pt);
  if(sculpt3DStroke&&e.pointerId===sculptStagePointer){if(pt)sculptContinue(pt);e.preventDefault();e.stopImmediatePropagation()}
 },{capture:true});
@@ -6305,7 +6428,7 @@ for(const eventType of ['pointerup','pointercancel','lostpointercapture'])render
 renderer.domElement.addEventListener('pointerleave',()=>{if(!sculpt3DStroke)sculptBrushSphere.visible=false});
 window.addEventListener('keydown',e=>{
  if(!['BracketLeft','BracketRight'].includes(e.code)||e.ctrlKey||e.altKey||e.metaKey||isEditingText(e.target)||!keyboardContextReady())return;
- if(!(sculpt3DPaint&&windowCurrentlyVisible('sculptWindow'))&&
+ if(!windowCurrentlyVisible('sculptWindow')&&
     !($('mapTool').value==='sculpt'&&windowCurrentlyVisible('mapWindow')))return;
  e.preventDefault();setSculptRadius(cfg.sculptRadius+(e.code==='BracketRight'?.5:-.5));
 },{capture:true});
@@ -6441,6 +6564,10 @@ function syncCannonObstacle(o){
 }
 function selectCourseObject(id,openEditor=false){
  selectedCourseId=id;const obj=cfg.courseObjects.find(o=>o.id===id);
+ if(obj&&openEditor&&mode==='drive'&&!driveSceneEditing){
+  const current=courseMeshes.get(id);
+  if(current)beginDriveSceneEditing(current.getWorldPosition(new THREE.Vector3()));
+ }
  if(obj&&$('materialTarget')){$('materialTarget').value='selectedObject';renderMaterialPalette()}
  $('mapSelected').hidden=!obj;
  if(obj){$('mapSelectedName').textContent=(obj.name||obj.kind)+' · '+(obj.physics||'static');
@@ -6465,7 +6592,9 @@ async function duplicateSelectedCourse(){
    // Copy the live gizmo transform into the source record BEFORE buildCourse recreates
    // the meshes. This also retains an in-progress rotation on the original.
    o.x=sourceMesh.position.x;o.z=sourceMesh.position.z;o.y=sourceMesh.position.y;
+   o.rotX=THREE.MathUtils.radToDeg(sourceMesh.rotation.x);
    o.angle=THREE.MathUtils.radToDeg(sourceMesh.rotation.y);
+   o.rotZ=THREE.MathUtils.radToDeg(sourceMesh.rotation.z);
   }
   const other=structuredClone(o);other.id=crypto.randomUUID();
   // The object coordinate is the *centre* of its collider. Position the lower
@@ -6486,7 +6615,7 @@ function deleteSelectedCourse(){const ix=cfg.courseObjects.findIndex(o=>o.id===s
  if(ix<0)return;cfg.courseObjects.splice(ix,1);selectCourseObject(null);rememberMapEdit('Delete map object');void refreshEnvironmentForMap();setWindowVisible('objectWindow',false)}
 const OBJECT_SLIDER_BOUNDS={objectX:[-200,200,.05],objectY:[-40,100,.05],objectZ:[-200,200,.05],
  objectW:[.1,80,.05],objectH:[.1,40,.05],objectD:[.1,80,.05],
- objectAngle:[-180,180,1],objectMass:[.1,10000,1],objectFriction:[0,2,.01],objectBounce:[0,1,.01]};
+ objectAngle:[-360,360,1],objectRotX:[-360,360,1],objectRotZ:[-360,360,1],objectMass:[.1,10000,1],objectFriction:[0,2,.01],objectBounce:[0,1,.01]};
 let selectedObjectSlider='objectX';
 function bindObjectSlider(id){
  const field=$(id),slider=$('objectQuickSlider');if(!field||!OBJECT_SLIDER_BOUNDS[id])return;
@@ -6501,11 +6630,13 @@ $('objectQuickSlider').oninput=e=>{
  const value=Number(e.target.value);field.value=String(value);$('objectSlideValue').textContent=value.toFixed(2);
  const o=cfg.courseObjects.find(x=>x.id===selectedCourseId),mesh=courseMeshes.get(selectedCourseId);
  if(!o)return;
- const fieldMap={objectX:'x',objectY:'y',objectZ:'z',objectW:'w',objectH:'h',objectD:'d',objectAngle:'angle',
+ const fieldMap={objectX:'x',objectY:'y',objectZ:'z',objectW:'w',objectH:'h',objectD:'d',objectAngle:'angle',objectRotX:'rotX',objectRotZ:'rotZ',
   objectMass:'mass',objectFriction:'friction',objectBounce:'bounce'};
  const prop=fieldMap[selectedObjectSlider];if(!prop)return;o[prop]=value;
  if(mesh){if(prop==='x'||prop==='y'||prop==='z')mesh.position[prop]=value;
   else if(prop==='angle')mesh.rotation.y=value*Math.PI/180;
+  else if(prop==='rotX')mesh.rotation.x=value*Math.PI/180;
+  else if(prop==='rotZ')mesh.rotation.z=value*Math.PI/180;
   else if(['w','h','d'].includes(prop)){const old=mesh.userData.baseSize||{w:o.w,h:o.h,d:o.d};
     mesh.scale.set(o.w/old.w,o.h/old.h,o.d/old.d);}}
  drawMinimap();
@@ -6537,6 +6668,7 @@ function exitSceneCameraView(){
  camera.lookAt(orbit.target);orbit.update();updateCameraLabel();
 }
 function switchViewportProjection(){
+ beginDriveSceneEditing();
  if(xrActive){note('Leave XR before changing viewport projection.');return}
  const aspect=Math.max(.2,($('stage').clientWidth||1)/Math.max(1,$('stage').clientHeight));
  const distance=Math.max(2.5,camera.position.distanceTo(orbit.target));
@@ -6561,6 +6693,7 @@ function switchViewportProjection(){
  $('cameraModeReadout').textContent='Viewport · '+(viewProjection==='orthographic'?'Orthographic':'Perspective');
 }
 function setViewportAxis(name){
+ beginDriveSceneEditing();
  if(viewportCameraStored)exitSceneCameraView();
  const vector=new THREE.Vector3(...viewAxes[name]);if(vector.lengthSq()===0)return;
  const radius=Math.max(2.5,camera.position.distanceTo(orbit.target));
@@ -6571,6 +6704,7 @@ function setViewportAxis(name){
  $('cameraModeReadout').textContent='Viewport · '+name[0].toUpperCase()+name.slice(1)+' · '+(viewProjection==='orthographic'?'Ortho':'Persp');
 }
 function orbitViewport(direction){
+ beginDriveSceneEditing();
  if(viewportCameraStored)exitSceneCameraView();
  const v=camera.position.clone().sub(orbit.target),r=Math.max(2.5,v.length());
  const theta=Math.atan2(v.x,v.z)+(direction==='left'?-VIEW_ANGLE_STEP:direction==='right'?VIEW_ANGLE_STEP:0);
@@ -6582,6 +6716,7 @@ function orbitViewport(direction){
  camera.lookAt(orbit.target);orbit.update();
 }
 function zoomViewport(closer){
+ beginDriveSceneEditing();
  if(viewportCameraStored)exitSceneCameraView();
  if(camera.isOrthographicCamera){camera.zoom=THREE.MathUtils.clamp(camera.zoom*(closer?1.2:1/1.2),.1,25);camera.updateProjectionMatrix();}
  else{
@@ -6591,6 +6726,7 @@ function zoomViewport(closer){
  }
 }
 function frameViewportSelection(){
+ beginDriveSceneEditing();
  if(viewportCameraStored)exitSceneCameraView();
  const selected=cfg.courseObjects.find(o=>o.id===selectedCourseId);
  if(!selected&&!car){note('Select a 3D object to frame.');return}
@@ -6608,6 +6744,7 @@ function frameViewportSelection(){
  camera.lookAt(target);orbit.update();
 }
 function toggleSceneCameraView(){
+ resumeDriveSceneCamera();
  if(viewportCameraStored){exitSceneCameraView();return}
  if(!car){note('There is no vehicle camera to view.');return}
  viewportCameraStored={position:camera.position.clone(),target:orbit.target.clone(),driveMode:cfg.cameraMode};
@@ -6632,6 +6769,7 @@ function applyLocalView(){
  }
 }
 function toggleLocalView(){
+ beginDriveSceneEditing();
  if(viewportCameraStored)exitSceneCameraView();
  if(!localViewEnabled&&!courseMeshes.has(selectedCourseId)){note('Select an object before entering Local View.');return}
  localViewEnabled=!localViewEnabled;applyLocalView();
@@ -6686,7 +6824,7 @@ function renderCourseInspector(){const o=cfg.courseObjects.find(item=>item.id===
  if(!o)return;setWindowVisible('objectWindow',true);
  $('objectKindTitle').textContent=(o.name||o.kind)+' · object properties';$('objectIdText').textContent='Object ID '+o.id;
  for(const [key,prop] of [['objectX','x'],['objectZ','z'],['objectW','w'],['objectH','h'],['objectD','d'],['objectAngle','angle'],
-  ['objectMass','mass'],['objectFriction','friction'],['objectBounce','bounce'],['objectSeed','seed'],
+  ['objectRotX','rotX'],['objectRotZ','rotZ'],['objectMass','mass'],['objectFriction','friction'],['objectBounce','bounce'],['objectSeed','seed'],
   ['objectTexture','texture'],['objectColor','color']]){
   const el=$(key);el.value=o[prop]??(prop==='color'?'#7b9db4':prop==='mass'?35:prop==='friction'?.85:0);
   el.onchange=()=>{o[prop]=['color','texture'].includes(prop)?el.value:parseFloat(el.value);
@@ -6700,9 +6838,11 @@ function renderCourseInspector(){const o=cfg.courseObjects.find(item=>item.id===
    const mesh=courseMeshes.get(o.id);
    if(mesh){if(prop==='x'||prop==='z')mesh.position[prop]=o[prop];
     else if(prop==='angle')mesh.rotation.y=o.angle*Math.PI/180;
+    else if(prop==='rotX')mesh.rotation.x=o.rotX*Math.PI/180;
+    else if(prop==='rotZ')mesh.rotation.z=o.rotZ*Math.PI/180;
     else if(prop==='color'&&mesh.material?.color)mesh.material.color.set(o.color);
    }
-   if(['x','z','angle','y'].includes(prop)&&simulator.engine==='cannon')syncCannonObstacle(o);
+   if(['x','z','angle','rotX','rotZ','y'].includes(prop)&&simulator.engine==='cannon')syncCannonObstacle(o);
    else void refreshEnvironmentForMap();
    rememberMapEdit('Edit course object '+prop);};
  }
@@ -6723,7 +6863,9 @@ let objectScaleStart=null,lastGizmoPointerUp=-Infinity;
 objectGizmo=new TransformControls(camera,renderer.domElement);
 scene.add(objectGizmo.getHelper());objectGizmo.setSize(.85);
 objectGizmo.addEventListener('dragging-changed',e=>{
- transformDragging=!!e.value;orbit.enabled=!e.value&&(mode!=='drive'||cfg.cameraMode!=='driver')&&!xrActive;
+ transformDragging=!!e.value;
+ if(e.value)beginDriveSceneEditing();
+ orbit.enabled=!e.value&&(mode!=='drive'||driveSceneEditing||cfg.cameraMode!=='driver')&&!xrActive;
  if(!e.value)lastGizmoPointerUp=performance.now();
  if(e.value){const o=cfg.courseObjects.find(x=>x.id===selectedCourseId);objectScaleStart=o?{w:o.w,h:o.h,d:o.d}:null;}
  if(!e.value&&selectedCourseId){
@@ -6737,7 +6879,10 @@ objectGizmo.addEventListener('dragging-changed',e=>{
 objectGizmo.addEventListener('objectChange',()=>{
  const m=objectGizmo.object,o=cfg.courseObjects.find(item=>item.id===selectedCourseId);
  if(!m||!o)return;
- o.x=m.position.x;o.z=m.position.z;o.y=m.position.y;o.angle=m.rotation.y*180/Math.PI;
+ o.x=m.position.x;o.z=m.position.z;o.y=m.position.y;
+ o.rotX=THREE.MathUtils.radToDeg(m.rotation.x);
+ o.angle=THREE.MathUtils.radToDeg(m.rotation.y);
+ o.rotZ=THREE.MathUtils.radToDeg(m.rotation.z);
  if(objectGizmo.getMode()==='scale'){
   const origin=objectScaleStart||o;
   o.w=clamp(origin.w*m.scale.x,.1,80);o.h=clamp(origin.h*m.scale.y,.1,80);o.d=clamp(origin.d*m.scale.z,.1,80);
@@ -6849,6 +6994,9 @@ function normalizeCourseObjects(){
   if(!Number.isFinite(Number(o.mass)))o.mass=35;
   if(!Number.isFinite(Number(o.friction)))o.friction=.85;
   if(!Number.isFinite(Number(o.bounce)))o.bounce=.12;
+  // Older map JSON stored yaw only. Do not discard full gizmo rotations.
+  for(const key of ['rotX','rotZ'])o[key]=Number.isFinite(Number(o[key]))?clamp(Number(o[key]),-360,360):0;
+  o.angle=Number.isFinite(Number(o.angle))?Number(o.angle):0;
  }
 }
 async function refreshMapList(){const list=$('mapSaved');list.replaceChildren();
@@ -7736,6 +7884,27 @@ function cloneFleetVisual(source,id){
  cloned.userData.fleetId=id;cloned.updateMatrixWorld(true);
  return cloned;
 }
+// A scene's terrain and placed objects belong to the world, not the vehicle
+// blueprint selected from the gallery. Keep the world across vehicle switches.
+const SHARED_WORLD_KEYS=['courseObjects','courseName','terrainProfile','terrainSize',
+ 'groundSurface','groundRoughness','worldEdgeMode','worldBounce','worldCells',
+ 'terrainBaseElevation','sculptData','seaEnabled','waterLevel','puddles','skyStyle','seed',
+ 'noiseScale','noiseOctaves','noiseLacunarity','noiseGain','noiseWarp','noiseContrast',
+ 'noiseDetail','noiseTiling','terrainNormalStrength','terrainTextureScale',
+ 'cloudCoverage','windSpeed','waterOpacity','grassDensity','grassHeight','shrubs',
+ 'rocks','vegetationWind','sculptRadius','sculptStrength','sculptDirection',
+ 'sculptBrushThickness','sculptBrushOpacity','sculptBrushColor'];
+function sceneWorldSnapshot(){return Object.fromEntries(SHARED_WORLD_KEYS.map(k=>[k,structuredClone(cfg[k])]));}
+function restoreSceneWorld(snapshot){
+ for(const key of SHARED_WORLD_KEYS)cfg[key]=structuredClone(snapshot[key]);
+ readSculptData();normalizeCourseObjects();
+}
+function rebuildSharedWorld(){
+ buildTerrain();buildCourse();buildVegetation();updateEnvironment();
+ previousHeightfieldSignature=heightfieldSignature();previousMapWaterSignature=mapWaterSignature();
+ updateMinimapBackground();drawMinimap();
+ if(selectedCourseId&&!cfg.courseObjects.some(o=>o.id===selectedCourseId))selectCourseObject(null);
+}
 function storeActiveFleet(){
  const row=fleetRecords.find(x=>x.id===activeFleetId);if(!row||!car)return;
  if(row.visual){scene.remove(row.visual);disposeTree(row.visual);}
@@ -7760,8 +7929,10 @@ async function activateFleetVehicle(id){
  if(id===activeFleetId)return;
  const chosen=fleetRecords.find(x=>x.id===id);if(!chosen)return;
  if(mode==='drive')leaveDrive();
+ const activeWorld=sceneWorldSnapshot();
  storeActiveFleet();removeParkedVisual(chosen);
- cfg=structuredClone(chosen.config);mods=structuredClone(chosen.mods);
+ cfg=structuredClone(chosen.config);restoreSceneWorld(activeWorld);
+ rebuildSharedWorld();mods=structuredClone(chosen.mods);
  seatPresence=structuredClone(chosen.seatPresence);occupants=chosen.occupants;
  for(const key of Object.keys(seatBindings))delete seatBindings[key];Object.assign(seatBindings,chosen.seatBindings);
  modelSource=chosen.modelSource;modelBlob=chosen.modelBlob;modelName=chosen.modelName;
@@ -7774,8 +7945,13 @@ async function activateFleetVehicle(id){
 async function addGalleryVehicle(item){
  if(fleetRecords.length>=12)throw Error('Scene supports up to 12 vehicle instances');
  if(mode==='drive')leaveDrive();ensureFleet();storeActiveFleet();
+ const activeWorld=sceneWorldSnapshot();
  const previous=fleetRecords.find(x=>x.id===activeFleetId);
- try{await openGalleryItem(item)}catch(error){removeParkedVisual(previous);previous.visual=null;throw error}
+ try{await openGalleryItem(item)}catch(error){
+  restoreSceneWorld(activeWorld);rebuildSharedWorld();
+  removeParkedVisual(previous);previous.visual=null;throw error;
+ }
+ restoreSceneWorld(activeWorld);rebuildSharedWorld();
  resumeDrivePose=null;
  const shift=previous?.position?.x??0;
  car.position.set(clamp(shift+Math.max(4,cfg.W+2),-SIZE/2+5,SIZE/2-5),heightAt(shift+5,0)+cfg.radius+.65,previous?.position?.z??0);
@@ -7905,6 +8081,13 @@ $('galleryRefreshBtn').onclick=()=>{gallerySource='public';setWindowVisible('gal
 $('layoutPublic').onchange=()=>{serverVisibility=$('layoutPublic').checked?'public':'private'};
 
 const RELEASE_NOTES=[
+ {v:'0.3.20',date:'2026-11-10',title:'Persistent scene transforms and world · drive scene camera · 3D sculpt brush',items:[
+  'Save full X/Y/Z object rotations across materials, duplication, terrain updates and physics; add inspector tilt controls.',
+  'Keep world geometry and sculpted terrain when adding or switching gallery vehicles.',
+  'Allow DRIVE mode numpad views and temporary scene-focused editing; driving arrow keys resume the previous follow camera.',
+  'Show a thick green configurable sculpt brush ring and paint via Command/Ctrl + drag without breaking OrbitControls.',
+  'Update cached map relief progressively during strokes; only rebuild collision adapters when the stroke ends.'
+ ]},
  {v:'0.3.19',date:'2026-11-10',title:'Terrain sculpting, elevation and sea level; consistent window styling',items:[
   'Raise or lower terrain using a draggable spherical brush on the overhead map or directly in the 3D scene, with [ and ] adjusting radius and dedicated radius/strength/direction controls.',
   'Terrain base plateau elevation and independent sea-level altitude support carving valleys and optionally filling them with water. Separate Terrain, Sea, Sky and Ground folders clarify the controls.',

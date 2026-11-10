@@ -1,3 +1,11 @@
+## v0.3.20 — November 10, 2026
+- Scene object rotations retain X/Y/Z Euler angles when editing materials, duplicating, adding terrain objects or rebuilding physics. Inspector exposes X/Z tilt alongside yaw; legacy maps with yaw-only records remain valid.
+- Adding gallery vehicles and selecting existing scene vehicles keeps the current world, placed obstacles, sculpt grid, altitude and sea level instead of replacing them with the saved car's environment.
+- DRIVE supports Blender-style numpad view adjustments with a temporary scene-edit camera; selecting an object focuses its gizmo and driving arrow keys restore the previous car-follow camera mode or saved stationary view.
+- Terrain sculpting gets a thick green adjustable guide (colour, ring thickness, opacity) and Command/Ctrl + left-drag painting while normal pointer dragging still operates OrbitControls. The map relief bitmap updates in affected regions during a stroke rather than only after release.
+- Existing credentials, user profiles, backend storage, API routes, AI payments, world and map JSON format, and deployment watcher remain unchanged. This release does not change dependencies or perform database migrations.
+- Validation: static source contracts, Python and JavaScript checks, isolated Chromium interactions, watcher release validation. Live physics, full WebGL startup and deployment require testing on the server.
+
 ## v0.3.19 — November 10, 2026
 - Added bounded heightfield terrain sculpt brush: Raise/Carve, radius/strength controls, map canvas and optional 3D painting, `[ ]` radius adjustments, wireframe sphere preview and per-stroke map history.
 - Separated terrain plateau elevation from independent sea plane/sea altitude; beaches retain their previous sea. Vegetation, water and physics consume the same terrain height calculation, preserving BUILD/DRIVE editing.

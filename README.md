@@ -1,3 +1,11 @@
+# Vehicle Lab — v0.3.20 — live world editing and 3D sculpt visibility (2026-11-10)
+
+- DRIVE: numpad angles and object selection temporarily detach from car following for scene editing. Car steering/accelerator arrow keys resume the prior camera mode; stationary camera restores its original view.
+- Obstacle X, Y and Z rotations now persist across cosmetic materials, duplication and map/physics rebuilding. Object Inspector has X/Z tilt inputs; yaw-only saved maps remain compatible.
+- Multiple vehicles share the running scene's world and sculpt data. Adding a vehicle from gallery or switching the active vehicle does not overwrite the terrain/obstacle scene with the car's saved terrain.
+- Sculpt window: green spherical outline + ring, adjustable colour/thickness/transparency. Command (Mac) or Ctrl (Windows) + left-drag sculpts on 3D terrain; regular dragging remains camera orbit. Test map relief refreshes during the stroke with a bounded incremental update; collision updates remain stroke-final only.
+- No new dependencies or database migrations; watcher manifest retains exactly fifteen app files. Avoid mixing this release with stale files from previous ZIPs. Full live WebGL/physics verification is required.
+
 # Vehicle Lab — v0.3.19 — Terrain sculpting and configurable UI effects (2026-11-10)
 
 - **Sculpting:** A new floating Terrain sculpt brush works on the Drive test map in BUILD or DRIVE, and optionally directly on the 3D terrain via an explicit toggle. Set direction to **Raise terrain** or **Carve valley**, choose sphere radius (2–35 m) and stroke strength (0.1–4 m). While sculpting, `[` and `]` adjust radius by 0.5 m. The map displays a radius circle; the 3D viewport displays a translucent wireframe sphere. Numpad 7 looks directly down from the current orbit radius.
