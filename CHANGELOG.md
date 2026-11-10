@@ -1,3 +1,11 @@
+## v0.3.19 — November 10, 2026
+- Added bounded heightfield terrain sculpt brush: Raise/Carve, radius/strength controls, map canvas and optional 3D painting, `[ ]` radius adjustments, wireframe sphere preview and per-stroke map history.
+- Separated terrain plateau elevation from independent sea plane/sea altitude; beaches retain their previous sea. Vegetation, water and physics consume the same terrain height calculation, preserving BUILD/DRIVE editing.
+- Map exports, local saves, owner-scoped cloud backups and vehicle blueprints carry a compact versioned 1.5-m sculpt height grid. v1/v2 map imports remain accepted; malformed height payloads are bounded and rejected.
+- Reorganized Terrain, Sea, Sky, Ground and Vegetation lil-gui folders.
+- Replaced 15 window-minimize glyphs with a centered currentColor SVG based on the supplied collapse icon. Added borders/shadows theme pills and normalized Configuration button typography/sizing. Imported older themes default to effects enabled.
+- No new server libraries, database migrations, paid AI operations or watcher schema changes; live WebGL/physics and deployment remain unverified.
+
 ## v0.3.18 — November 10, 2026
 - Duplicated 3D/map objects spawn above, not inside, their source; preserve original's rotation and selection, with translate gizmo on the clone.
 - Exact axis-oriented Blender-like numpad navigation uses the present camera radius instead of re-framing far away. Includes camera mode, orthographic toggle, orbit, zoom, frame selected, local view, view menu and optional laptop emulation.

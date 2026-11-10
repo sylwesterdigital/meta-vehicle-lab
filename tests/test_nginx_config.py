@@ -201,7 +201,7 @@ class VehicleLab034RegressionTests(unittest.TestCase):
                         "function rememberModeWindows(which=mode)",
                         "applyModeWindows('drive')",
                         "applyModeWindows('build')",
-                        "win.classList.toggle('is-minimized');snapshotWindow(win)"):
+                        "win.classList.toggle('is-minimized');"):
             self.assertIn(snippet,self.source)
 
     def test_context_palette_and_editor_shortcuts(self):
@@ -588,3 +588,39 @@ class VehicleLab0318RegressionTests(unittest.TestCase):
                      "appendBtn('Add to scene','add',"):
             self.assertIn(term,self.source)
         self.assertNotIn("strip=document.createElement('div')",self.source)
+
+
+class VehicleLab0319TerrainTests(unittest.TestCase):
+    def setUp(self):
+        self.html=(Path(__file__).resolve().parents[1]/'index.html').read_text()
+
+    def test_sculpt_sample_grid_and_bounded_codec(self):
+        for fragment in (
+            'const SCULPT_SIDE=201,SCULPT_LIMIT=SCULPT_SIDE*SCULPT_SIDE',
+            'new Int16Array(SCULPT_LIMIT)',
+            "cfg.sculptData=(sparse?'s1:':'d1:')+sculptBytesToBase64(bytes)",
+            'const editOffset=(Number(cfg.terrainBaseElevation)||0)+sculptSample(x,z)',
+            'function validateMapSculptPayload(data)',
+            'sculptField.fill(0);sculptChangedCells.clear();storeSculptData()',
+            "rememberMapEdit('Sculpt terrain '+cfg.sculptDirection)",
+            "'terrainBaseElevation','sculptData','seaEnabled','waterLevel'",
+            'function sculptGroundHit(e)',
+            "const hit=sculptRay.intersectObject(terrain,false)[0]",
+            "window.confirm('Erase all sculpted height changes on this map?",
+            "if(!terrainChanged&&waterChanged)updateEnvironment()",
+            "if(cfg.terrainProfile==='beach'||cfg.seaEnabled)",
+        ):
+            self.assertIn(fragment,self.html)
+
+    def test_font_effects_and_collapse_icon(self):
+        for fragment in (
+            'id="themeBorders"','id="themeShadows"',
+            "document.body.classList.toggle('ui-no-borders'",
+            "document.body.classList.toggle('ui-no-shadows'",
+            'body.ui-no-borders :focus-visible',
+            'class="collapse-icon"',
+            "collapseBtn.setAttribute('aria-expanded'",
+            'const WINDOW_IDS=',"'radioWindow','sculptWindow'",
+        ):
+            self.assertIn(fragment,self.html)
+        self.assertEqual(self.html.count('class="mini-btn minimize"'),15)

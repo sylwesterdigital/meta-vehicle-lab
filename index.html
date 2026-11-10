@@ -5,7 +5,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Vehicle Lab — Procedural Studio</title>
-  <meta name="vehicle-lab-version" content="0.3.18">
+  <meta name="vehicle-lab-version" content="0.3.19">
   <style>
     :root {
       color-scheme:dark;
@@ -237,7 +237,7 @@
     .thumb-category{color:var(--muted);font-size:10px;margin:4px 2px}
     .thumb-actions{display:flex;gap:3px;flex-wrap:wrap}.thumb-actions button{font-size:10px;padding:4px 6px;flex:1;min-width:0}
     .thumb-strip{display:flex;gap:3px;overflow-x:auto}.thumb-strip img{width:18%;aspect-ratio:3/2;object-fit:cover;cursor:pointer;border-radius:3px}
-    /* v0.3.18: image-first gallery, accessible hover actions, no miniature image rail. */
+    /* v0.3.19: image-first gallery, accessible hover actions, no miniature image rail. */
     #vehicleGallery.thumb-gallery{gap:8px}
     #vehicleGallery .thumb-card{position:relative;aspect-ratio:3/2;min-width:0;padding:0;border-radius:11px;isolation:isolate;background:#162936;overflow:hidden}
     #vehicleGallery .thumb-hero{display:block;position:absolute;inset:0;width:100%;height:100%;aspect-ratio:auto;object-fit:cover;border-radius:0;transition:transform .18s ease}
@@ -712,6 +712,36 @@
 .shortcut-row .shortcut-clear{min-width:27px;padding:5px}
 @media(max-width:520px){#fontBrowser .font-browser-controls{grid-template-columns:1fr}#fontBrowser .font-browser-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
  #shortcutOverlay .shortcut-row{gap:5px}.shortcut-row .shortcut-key{width:110px}}
+/* v0.3.19: consistent scalable configuration controls and icon alignment. */
+.window-head .mini-btn.minimize{display:inline-flex!important;align-items:center!important;justify-content:center!important;padding:0!important;flex:0 0 22px;line-height:1!important}
+.window-head .mini-btn.minimize .collapse-icon{display:block!important;width:15px;height:15px;fill:currentColor;flex:none;margin:auto;pointer-events:none}
+.window-head .mini-btn.minimize[aria-expanded="false"] .collapse-icon{transform:rotate(90deg)}
+#configDrawer button:not(.drawer-close){font-family:var(--ui-font);font-size:calc(11px * var(--ui-scale))!important;line-height:1.3;min-height:33px;padding:6px 9px;max-width:100%}
+#configDrawer .drawer-actions button{min-height:33px}
+#configDrawer .pill-row button{min-height:31px;border-radius:99px}
+#configDrawer .workspace-mode-pills button{font-size:calc(12px * var(--ui-scale))!important;min-height:36px}
+#configDrawer .theme-generator{flex-wrap:wrap}
+#configDrawer #generateTheme,#configDrawer #openFontBrowser{white-space:normal}
+#styleToggleChoices{margin-top:10px}
+#styleToggleChoices button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
+body.ui-no-borders :is(.float-window,.side-drawer,.window-head,button,input,select,textarea,details,.map-canvas-clip,.thumb-card,.media-card,.font-card,.gallery-card,.sculpt-panel){border-color:transparent!important}
+body.ui-no-borders :focus-visible{outline:2px solid var(--accent)!important;outline-offset:2px}
+body.ui-no-shadows,body.ui-no-shadows *,body.ui-no-shadows *::before,body.ui-no-shadows *::after{box-shadow:none!important;text-shadow:none!important}
+#sculptWindow{left:calc(50vw - 185px);top:95px;width:330px;height:360px;min-width:255px}
+.sculpt-panel{display:flex;flex-direction:column;gap:8px;font-size:calc(11px * var(--ui-scale))}
+.sculpt-panel p{line-height:1.5;color:var(--muted);margin:0}
+.sculpt-panel label:not(.sculpt-checkbox){display:flex;justify-content:space-between;gap:8px;align-items:center;font-weight:600}
+.sculpt-panel output{font-variant-numeric:tabular-nums;color:var(--accent)}
+.sculpt-panel input[type=range]{width:100%;accent-color:var(--accent)}
+.sculpt-panel .sculpt-checkbox{display:flex;align-items:center;gap:7px;line-height:1.35}
+.sculpt-panel .sculpt-checkbox input{accent-color:var(--accent)}
+.sculpt-mode-pills{display:flex;gap:7px}
+.sculpt-mode-pills button{flex:1;min-width:0;border-radius:50px;padding:7px 9px}
+.sculpt-mode-pills button[aria-pressed=true]{background:var(--accent);color:var(--accent-ink,#132a35)}
+.sculpt-panel .drawer-actions{margin:0;gap:5px}
+.sculpt-panel .drawer-actions button{font-size:11px;min-height:30px;padding:6px}
+.sculpt-panel small{color:var(--muted);line-height:1.4}
+#mapToolRail button[data-map-tool=sculpt][aria-pressed=true]{background:var(--accent);color:var(--accent-ink)}
 </style>
 
  <script type="importmap">
@@ -732,7 +762,7 @@
 
   <div id="stage">
   <div id="hud">
-    <div class="stage-badge"><strong>Vehicle Lab</strong><small id="appVersionBadge">v0.3.18</small></div>
+    <div class="stage-badge"><strong>Vehicle Lab</strong><small id="appVersionBadge">v0.3.19</small></div>
     <p id="vehicleName">City Car</p><p id="vehicleInfo">Procedural vehicle</p>
     <div id="speedHud"><strong id="speed">0</strong><div>km/h</div></div>
     <div id="cameraModeReadout" style="padding:3px 6px;margin-top:4px;width:max-content;max-width:260px;border-radius:5px;background:#132d3cc0;color:#e9f5fc;font:10px ui-monospace,monospace">Camera · Orbit follow</div>
@@ -742,7 +772,7 @@
     </div>
   </div>
   <section id="toolbarWindow" class="float-window" aria-label="Vehicle actions">
-    <div class="window-head"><strong>01 / Actions</strong><button class="mini-btn minimize" title="Minimize">−</button></div>
+    <div class="window-head"><strong>01 / Actions</strong><button class="mini-btn minimize" title="Minimize"><svg class="collapse-icon" viewBox="-3 0 19 19" aria-hidden="true" focusable="false" fill="currentColor"><path d="M12.711 9.182a1.03 1.03 0 0 1-1.03 1.03H1.319a1.03 1.03 0 1 1 0-2.059h10.364a1.03 1.03 0 0 1 1.029 1.03z"/></svg></button></div>
     <div class="window-body"><div class="actions">
       <button id="buildBtn" class="active">BUILD</button><button id="driveBtn">DRIVE</button><button id="undoBtn" title="Undo (Cmd/Ctrl+Z)">Undo</button><button id="redoBtn" title="Redo (Cmd/Ctrl+Shift+Z)">Redo</button>
       <button id="parkingBrakeBtn" type="button" aria-pressed="false" title="Toggle parking brake (Shift+B)">Handbrake off</button><button id="cameraBtn" title="Cycle driving cameras (C)">Camera</button><button id="uprightBtn" title="Recover flipped car (U)">Upright</button><button id="resetOriginBtn" title="Return the vehicle to the test world's origin">Reset 0,0,0</button><button id="rotateBtn">Rotation</button><button id="autopilotBtn" title="Toggle autopilot (P)" aria-pressed="false">○ Auto</button><button id="lightsBtn">Lights on</button>
@@ -751,13 +781,13 @@
     </div></div>
   </section>
   <section id="toolsWindow" class="float-window" aria-label="Vehicle tools">
-    <div class="window-head"><strong>02 / Vehicle tools</strong><button class="mini-btn minimize" title="Minimize">−</button></div>
+    <div class="window-head"><strong>02 / Vehicle tools</strong><button class="mini-btn minimize" title="Minimize"><svg class="collapse-icon" viewBox="-3 0 19 19" aria-hidden="true" focusable="false" fill="currentColor"><path d="M12.711 9.182a1.03 1.03 0 0 1-1.03 1.03H1.319a1.03 1.03 0 1 1 0-2.059h10.364a1.03 1.03 0 0 1 1.029 1.03z"/></svg></button></div>
     <div class="window-body"><div id="boarding"><button type="button" id="openOccupants" title="Choose driver and passenger 3D models">Driver / passengers</button>
       <button id="exitBtn">Exit −</button><button id="boardBtn">Board +</button><button id="doorsBtn">Open doors</button><button id="wheelEditorBtn" title="Wheel styles / GLB models">Wheel workshop</button><button id="chassisEditorBtn" title="3D chassis asset library">Body workshop</button><button id="fleetBtn" title="Scene vehicle instances">Fleet</button><button id="mapEditorBtn" title="Test track / obstacles / hills">Test map</button><button id="mediaBrowserBtn" title="Cars, models, images, maps, music and public gallery">My media</button><button id="radioBtn" title="Music playlists and in-vehicle radio">♫ Radio</button><button id="xrBtn" title="WebXR immersive VR">Enter XR</button><button id="xrSeatBtn" title="Teleport into the cabin (XR only)">Cabin</button>
     </div></div>
   </section>
   <section id="catalogWindow" class="float-window" aria-label="Vehicle library">
-    <div class="window-head"><strong>03 / Vehicle library</strong><button class="mini-btn minimize" title="Minimize">−</button></div>
+    <div class="window-head"><strong>03 / Vehicle library</strong><button class="mini-btn minimize" title="Minimize"><svg class="collapse-icon" viewBox="-3 0 19 19" aria-hidden="true" focusable="false" fill="currentColor"><path d="M12.711 9.182a1.03 1.03 0 0 1-1.03 1.03H1.319a1.03 1.03 0 1 1 0-2.059h10.364a1.03 1.03 0 0 1 1.029 1.03z"/></svg></button></div>
     <div class="window-body">
       <input id="search" placeholder="Search 40 vehicle types" aria-label="Search vehicles">
       <div id="presets"></div>
@@ -770,7 +800,7 @@
     </div>
   </section>
   <section id="galleryWindow" class="float-window" aria-label="Vehicle screenshot gallery">
-    <div class="window-head"><strong>04 / Vehicle gallery</strong><button class="mini-btn minimize" title="Minimize">−</button></div>
+    <div class="window-head"><strong>04 / Vehicle gallery</strong><button class="mini-btn minimize" title="Minimize"><svg class="collapse-icon" viewBox="-3 0 19 19" aria-hidden="true" focusable="false" fill="currentColor"><path d="M12.711 9.182a1.03 1.03 0 0 1-1.03 1.03H1.319a1.03 1.03 0 1 1 0-2.059h10.364a1.03 1.03 0 0 1 1.029 1.03z"/></svg></button></div>
     <div class="window-body">
       <div class="gallery-topline"><input id="gallerySearch" type="search" placeholder="Search vehicle, category, description" aria-label="Search gallery">
         <div id="gallerySizes" class="pill-row"><button data-size="xl">XL</button><button data-size="m">M</button><button data-size="s">S</button></div></div>
@@ -780,7 +810,7 @@
     </div>
   </section>
   <section id="paletteWindow" class="float-window" aria-label="Material design studio" style="display:none">
-    <div class="window-head"><strong>07 / Material studio</strong><button class="mini-btn minimize" title="Minimize" aria-label="Minimize material studio">−</button></div>
+    <div class="window-head"><strong>07 / Material studio</strong><button class="mini-btn minimize" title="Minimize" aria-label="Minimize material studio"><svg class="collapse-icon" viewBox="-3 0 19 19" aria-hidden="true" focusable="false" fill="currentColor"><path d="M12.711 9.182a1.03 1.03 0 0 1-1.03 1.03H1.319a1.03 1.03 0 1 1 0-2.059h10.364a1.03 1.03 0 0 1 1.029 1.03z"/></svg></button></div>
     <div class="window-body">
       <div class="palette-head"><input id="materialPicker" type="color" value="#70afd5" aria-label="Browser color spectrum"><div><strong id="materialHeading">Body paint</strong><small style="display:block;color:var(--muted)">Native spectrum · editable targets</small></div></div>
       <div class="palette-tools"><label>Material target<select id="materialTarget"><option value="selectedObject">Selected scene object</option><option value="paint">Body paint</option><option value="glass">Windows</option><option value="trimColor">Trim / dashboard</option><option value="tireColor">Tyres</option><option value="rimColor">Rims</option><option value="seatColor">Seats</option><option value="interiorColor">Interior panels</option></select></label>
@@ -792,7 +822,7 @@
     </div>
   </section>
   <section id="mapWindow" class="float-window" aria-label="Drive test map editor" style="display:none">
-   <div class="window-head"><strong>09 / Drive test map</strong><button class="mini-btn minimize" title="Minimize">−</button></div>
+   <div class="window-head"><strong>09 / Drive test map</strong><button class="mini-btn minimize" title="Minimize"><svg class="collapse-icon" viewBox="-3 0 19 19" aria-hidden="true" focusable="false" fill="currentColor"><path d="M12.711 9.182a1.03 1.03 0 0 1-1.03 1.03H1.319a1.03 1.03 0 1 1 0-2.059h10.364a1.03 1.03 0 0 1 1.029 1.03z"/></svg></button></div>
    <div class="window-body">
     <input id="mapName" maxlength="90" value="Open practice ground" hidden><button type="button" id="mapCenter" hidden aria-label="Center car on map">◎</button>
     <div class="map-interactions"><label class="map-edge-select" title="What happens at the edge of the world">World edge<select id="mapEdgeMode" aria-label="World boundary behavior"><option value="barrier">Bounce barrier</option><option value="ramp">Steep uphill</option><option value="wrap">Wrap to opposite</option><option value="cells">Connected 3×3 cells</option><option value="cliff">Open edge</option></select></label><button id="mapZoomOut" title="Zoom out (−)">−</button><output id="mapZoomValue">100%</output><button id="mapZoomIn" title="Zoom in (+)">+</button><button id="mapFit" title="Fit entire map">⛶</button><button id="mapFollowBtn" title="Follow vehicle" aria-label="Follow vehicle">◎</button><button id="mapObjectAdd" title="Add object · Shift+A" aria-label="Add object">＋</button><button id="mapViewCycle" title="Toggle contour / precision map" aria-label="Toggle map style">▤</button><button id="mapLibraryBtn" title="Saved maps gallery" aria-label="Open maps gallery">▦</button></div>
@@ -808,6 +838,7 @@
       <button data-map-tool="pan" aria-label="Pan map" title="Hand: pan map">✋</button>
       <button data-map-tool="freehand" aria-label="Freehand terrain footprint" title="Freehand terrain / surface patch">〰</button>
       <button data-map-tool="hill" title="Draw terrain hill">▲</button>
+      <button data-map-tool="sculpt" title="Sculpt real terrain height with a sphere brush" aria-label="Sculpt terrain with sphere brush">◉</button>
       <button data-map-tool="puddle" title="Draw water / puddle">◉</button>
       <button data-map-tool="cone" title="Traffic cone">△</button>
       <button data-map-tool="rock" title="Boulder">◆</button>
@@ -825,7 +856,7 @@
     </nav><div class="map-canvas-clip"><canvas id="terrainMini" width="768" height="768" aria-label="Square editable map: drag and pinch to pan/zoom."></canvas></div></div>
     <div id="mapCoordinates" aria-live="polite">Map: true world metres · wheel to zoom · middle/right drag to pan</div>
     <div id="mapSelected" class="map-selected" hidden><strong id="mapSelectedName">Selected object</strong><div class="drawer-actions"><button id="mapEditObject">Edit / gizmo</button><button id="mapDuplicateObject">Duplicate</button><button id="mapRemoveObject">Remove</button></div></div>
-    <div class="map-top"><label>Action<select id="mapTool"><option value="select">Select / move</option><option value="pan">Pan / hand</option><option value="freehand">Freehand patch</option><option value="hill">Draw hill</option><option value="puddle">Draw puddle</option><option value="cone">Traffic cone</option><option value="rock">Physical boulder</option><option value="barrier">Race barrier</option><option value="cube">Cube obstacle</option><option value="pyramid">Pyramid obstacle</option><option value="bridge">Raised bridge</option><option value="jump">Rally jump</option><option value="beam">Balance beam (static)</option><option value="grass">Grass patch</option><option value="sand">Sand patch</option><option value="trees">Tree cluster</option><option value="hedge">Hedge strip</option><option value="dune">Dunes</option></select></label>
+    <div class="map-top"><label>Action<select id="mapTool"><option value="select">Select / move</option><option value="pan">Pan / hand</option><option value="freehand">Freehand patch</option><option value="hill">Draw hill</option><option value="sculpt">Sculpt height · sphere brush</option><option value="puddle">Draw puddle</option><option value="cone">Traffic cone</option><option value="rock">Physical boulder</option><option value="barrier">Race barrier</option><option value="cube">Cube obstacle</option><option value="pyramid">Pyramid obstacle</option><option value="bridge">Raised bridge</option><option value="jump">Rally jump</option><option value="beam">Balance beam (static)</option><option value="grass">Grass patch</option><option value="sand">Sand patch</option><option value="trees">Tree cluster</option><option value="hedge">Hedge strip</option><option value="dune">Dunes</option></select></label>
       <label>Draw footprint<select id="mapShape"><option value="ellipse">Oval</option><option value="circle">Circle</option><option value="square">Square</option><option value="line">Line</option><option value="polygon">Freehand polygon</option></select></label></div>
     <label>Height (m) <input id="mapHeight" type="range" min=".2" max="7" step=".1" value="2"><output id="mapHeightValue">2m</output></label>
     <div class="drawer-actions"><button id="mapUndo">Undo</button><button id="mapRedo">Redo</button><button id="mapClear">Clear objects</button><button id="mapSave">Save map</button><button id="mapExport">Export JSON</button><button id="mapImport">Import JSON</button></div>
@@ -833,9 +864,26 @@
     <small id="mapStatus">Drag to draw the selected footprint. Edits in DRIVE rebuild physics at the car’s current position.</small>
    </div>
   </section>
+  <section id="sculptWindow" class="float-window" aria-label="Terrain sculpt brush" style="display:none">
+    <div class="window-head"><strong>15 / Terrain sculpt · sphere brush</strong><button class="mini-btn minimize" title="Minimize" aria-label="Minimize terrain sculpt"><svg class="collapse-icon" viewBox="-3 0 19 19" aria-hidden="true" focusable="false" fill="currentColor"><path d="M12.711 9.182a1.03 1.03 0 0 1-1.03 1.03H1.319a1.03 1.03 0 1 1 0-2.059h10.364a1.03 1.03 0 0 1 1.029 1.03z"/></svg></button></div>
+    <div class="window-body sculpt-panel">
+      <p>Draw directly on the map or enable painting in the 3D view. Use Numpad 7 for a top view. Each stroke changes terrain height, not a decorative object.</p>
+      <div class="sculpt-mode-pills" role="group" aria-label="Sculpt brush direction">
+        <button id="sculptRaise" type="button" aria-pressed="false">Raise terrain</button>
+        <button id="sculptLower" type="button" aria-pressed="true">Carve valley</button>
+      </div>
+      <label for="sculptRadius">Sphere radius <output id="sculptRadiusText">8 m</output></label>
+      <input id="sculptRadius" type="range" min="2" max="35" step="0.5" value="8" aria-label="Sculpt brush radius in metres">
+      <label for="sculptStrength">Strength <output id="sculptStrengthText">1 m</output></label>
+      <input id="sculptStrength" type="range" min="0.1" max="4" step="0.1" value="1" aria-label="Sculpt height strength per pass in metres">
+      <label class="sculpt-checkbox"><input id="sculptOnStage" type="checkbox"> Enable sculpting directly on 3D terrain</label>
+      <div class="drawer-actions"><button id="sculptMap" type="button">Sculpt on map</button><button id="sculptTop" type="button">Top view (Numpad 7)</button><button id="sculptClear" type="button" title="Erase all sculpted height changes">Clear sculpted heights</button></div>
+      <small id="sculptStatus" role="status">[ / ] adjust radius while sculpting · Ctrl+Z undoes the last stroke. Sculpting works in BUILD and DRIVE.</small>
+    </div>
+  </section>
   <section id="mediaWindow" class="float-window" aria-label="My media library" style="display:none">
    <div class="window-head"><strong>13 / My media · Cars / Models / Images / Maps</strong>
-    <button class="mini-btn minimize" title="Minimize media library" aria-label="Minimize">−</button></div>
+    <button class="mini-btn minimize" title="Minimize media library" aria-label="Minimize"><svg class="collapse-icon" viewBox="-3 0 19 19" aria-hidden="true" focusable="false" fill="currentColor"><path d="M12.711 9.182a1.03 1.03 0 0 1-1.03 1.03H1.319a1.03 1.03 0 1 1 0-2.059h10.364a1.03 1.03 0 0 1 1.029 1.03z"/></svg></button></div>
    <div class="window-body">
     <div class="media-toolbar"><div id="mediaTabs" role="group" aria-label="Media category">
      <button data-media-type="cars">Cars</button><button data-media-type="models">Models</button>
@@ -849,7 +897,7 @@
   </section>
 
   <section id="radioWindow" class="float-window" aria-label="Music radio and playlists" style="display:none">
-    <div class="window-head"><strong>14 / Radio · playlists</strong><button class="mini-btn minimize" title="Minimize radio">−</button></div>
+    <div class="window-head"><strong>14 / Radio · playlists</strong><button class="mini-btn minimize" title="Minimize radio"><svg class="collapse-icon" viewBox="-3 0 19 19" aria-hidden="true" focusable="false" fill="currentColor"><path d="M12.711 9.182a1.03 1.03 0 0 1-1.03 1.03H1.319a1.03 1.03 0 1 1 0-2.059h10.364a1.03 1.03 0 0 1 1.029 1.03z"/></svg></button></div>
     <div class="window-body">
       <div class="radio-line"><img class="radio-cover" id="radioCover" alt="Album artwork"><div id="radioNow" title="Now playing">Choose a playlist · upload your music</div></div>
       <div class="radio-line"><button id="radioPrev" title="Previous">◀◀</button><button id="radioPlay" title="Play / pause">▶</button><button id="radioStop" title="Stop">■</button><button id="radioNext" title="Next">▶▶</button>
@@ -875,7 +923,7 @@
     </div>
   </section>
   <section id="objectWindow" class="float-window" aria-label="3D object transforms and physics" style="display:none">
-   <div class="window-head"><strong>10 / Object inspector</strong><button class="mini-btn minimize" title="Minimize">−</button></div>
+   <div class="window-head"><strong>10 / Object inspector</strong><button class="mini-btn minimize" title="Minimize"><svg class="collapse-icon" viewBox="-3 0 19 19" aria-hidden="true" focusable="false" fill="currentColor"><path d="M12.711 9.182a1.03 1.03 0 0 1-1.03 1.03H1.319a1.03 1.03 0 1 1 0-2.059h10.364a1.03 1.03 0 0 1 1.029 1.03z"/></svg></button></div>
    <div class="window-body"><strong id="objectKindTitle">Select an object</strong><small id="objectIdText" style="display:block;color:var(--muted);margin:5px 0">Click a course object in the 3D world or on the map.</small>
     <div class="object-mode" id="objectGizmoModes"><button data-gizmo="translate" aria-pressed="true">Move</button><button data-gizmo="rotate">Rotate</button><button data-gizmo="scale">Scale</button></div>
     <div class="object-vector"><span>Position</span>
@@ -904,7 +952,7 @@
    </div>
   </section>
   <section id="wheelWindow" class="float-window" aria-label="Selected wheel editor" style="display:none">
-    <div class="window-head"><strong>08 / Wheel workshop</strong><button class="mini-btn minimize" title="Minimize">−</button></div>
+    <div class="window-head"><strong>08 / Wheel workshop</strong><button class="mini-btn minimize" title="Minimize"><svg class="collapse-icon" viewBox="-3 0 19 19" aria-hidden="true" focusable="false" fill="currentColor"><path d="M12.711 9.182a1.03 1.03 0 0 1-1.03 1.03H1.319a1.03 1.03 0 1 1 0-2.059h10.364a1.03 1.03 0 0 1 1.029 1.03z"/></svg></button></div>
     <div class="window-body">
       <div class="wheel-top"><strong id="wheelTargetTitle">Front wheel</strong><div class="pill-row" id="wheelAxleSwitch"><button data-axle="front">Front</button><button data-axle="rear">Rear</button></div></div>
       <div class="wheel-grid" id="wheelStyles"></div>
@@ -939,7 +987,7 @@
     </div>
   </section>
   <section id="chassisWindow" class="float-window" aria-label="Chassis geometry and 3D model library" style="display:none">
-    <div class="window-head"><strong>12 / Chassis workshop</strong><button class="mini-btn minimize" title="Minimize">−</button></div>
+    <div class="window-head"><strong>12 / Chassis workshop</strong><button class="mini-btn minimize" title="Minimize"><svg class="collapse-icon" viewBox="-3 0 19 19" aria-hidden="true" focusable="false" fill="currentColor"><path d="M12.711 9.182a1.03 1.03 0 0 1-1.03 1.03H1.319a1.03 1.03 0 1 1 0-2.059h10.364a1.03 1.03 0 0 1 1.029 1.03z"/></svg></button></div>
     <div class="window-body"><strong>Vehicle shell · without wheels</strong>
       <div class="body-library" id="chassisAssets" role="list" aria-label="Imported 3D body shells"></div>
       <div class="drawer-actions"><button type="button" id="chassisImport">＋ Import GLB</button><button type="button" id="chassisReset">↺ Procedural body</button><button type="button" id="chassisAI">✦ Design body with AI</button></div>
@@ -1002,7 +1050,7 @@
     </div>
   </section>
   <section id="fleetWindow" class="float-window" aria-label="Scene vehicles" style="display:none">
-    <div class="window-head"><strong>11 / Scene vehicles</strong><button class="mini-btn minimize" title="Minimize">−</button></div>
+    <div class="window-head"><strong>11 / Scene vehicles</strong><button class="mini-btn minimize" title="Minimize"><svg class="collapse-icon" viewBox="-3 0 19 19" aria-hidden="true" focusable="false" fill="currentColor"><path d="M12.711 9.182a1.03 1.03 0 0 1-1.03 1.03H1.319a1.03 1.03 0 1 1 0-2.059h10.364a1.03 1.03 0 0 1 1.029 1.03z"/></svg></button></div>
     <div class="window-body">
       <div class="fleet-toolbar"><button type="button" id="fleetDuplicate" title="Duplicate active vehicle">＋ Duplicate</button><button type="button" id="fleetViewGallery" title="Select another vehicle from gallery">Gallery ＋</button></div>
       <div id="fleetList" role="list"></div>
@@ -1010,12 +1058,12 @@
     </div>
   </section>
   <section id="paramsWindow" class="float-window" aria-label="Vehicle parameters">
-    <div class="window-head"><strong>05 / Parameters · lil-gui</strong><button class="mini-btn minimize" title="Minimize">−</button></div>
+    <div class="window-head"><strong>05 / Parameters · lil-gui</strong><button class="mini-btn minimize" title="Minimize"><svg class="collapse-icon" viewBox="-3 0 19 19" aria-hidden="true" focusable="false" fill="currentColor"><path d="M12.711 9.182a1.03 1.03 0 0 1-1.03 1.03H1.319a1.03 1.03 0 1 1 0-2.059h10.364a1.03 1.03 0 0 1 1.029 1.03z"/></svg></button></div>
     <div class="window-body"><div id="editorGuiMount"></div></div>
   </section>
 
   <section id="logWindow" class="float-window" aria-label="Application logs">
-    <div class="window-head"><strong>06 / App logs</strong><button class="mini-btn minimize" title="Minimize">−</button></div>
+    <div class="window-head"><strong>06 / App logs</strong><button class="mini-btn minimize" title="Minimize"><svg class="collapse-icon" viewBox="-3 0 19 19" aria-hidden="true" focusable="false" fill="currentColor"><path d="M12.711 9.182a1.03 1.03 0 0 1-1.03 1.03H1.319a1.03 1.03 0 1 1 0-2.059h10.364a1.03 1.03 0 0 1 1.029 1.03z"/></svg></button></div>
     <div class="window-body logs-toolbar">
       <select id="logScope" aria-label="Log source"><option value="client">Browser</option><option value="backend">Flask server (admin)</option></select>
       <select id="logLevel" aria-label="Log level"><option value="all">All</option><option value="error">Errors</option><option value="warn">Warnings + errors</option></select>
@@ -1051,7 +1099,11 @@
     <button type="button" id="openFontBrowser">Browse typefaces · visual previews</button>
     <button type="button" id="localFonts">Find installed fonts</button>
     <small id="fontInfo">Installed fonts require Chrome/Edge permission and HTTPS.</small>
-    <div id="fontSizeChoices" class="pill-row"></div><p>Action button style</p><div id="actionModeChoices" class="pill-row"></div>
+    <div id="fontSizeChoices" class="pill-row"></div>
+    <p>Panel appearance</p><div id="styleToggleChoices" class="pill-row" role="group" aria-label="Interface effects">
+      <button id="themeBorders" type="button" aria-pressed="false" title="Toggle all interface borders">Borders off</button>
+      <button id="themeShadows" type="button" aria-pressed="false" title="Toggle interface shadows">Shadows off</button>
+    </div><p>Action button style</p><div id="actionModeChoices" class="pill-row"></div>
     <div class="theme-colors"><label>Accent <input id="themeAccent" type="color" value="#a8f1c8"></label>
     <label>Panel <input id="themePanel" type="color" value="#152431"></label></div>
     <div class="drawer-actions"><button id="themeExport">Export theme JSON</button><button id="themeImport">Import theme JSON</button></div>
@@ -1271,6 +1323,7 @@
    modelOffsetX:0,modelOffsetY:0,modelOffsetZ:0,
    worldEdgeMode:'barrier',worldBounce:.55,worldCells:{},
    hills:true,cameraDistance:12,terrainProfile:'hills',terrainSize:180,skyStyle:'gradient',
+   terrainBaseElevation:0,sculptData:'',seaEnabled:false,
    wheelWidth:.23,wheelOutset:0,axleFrontOffset:0,axleRearOffset:0,
    frontWheelRadius:.34,rearWheelRadius:.34,frontWheelWidth:.23,rearWheelWidth:.23,
    frontWheelOutset:0,rearWheelOutset:0,frontWheelStyle:'alloy',rearWheelStyle:'alloy',
@@ -1279,6 +1332,7 @@
    tireColor:'#171d23',rimColor:'#b5c2cc',seatColor:'#3b4651',trimColor:'#283d4a',interiorColor:'#252b32',
    tirePattern:'tread',seatPattern:'fabric',rimFinish:'polished',glassPattern:'clear',interiorPattern:'leather',trimPattern:'matte',
    groundSurface:'grass',puddles:true,waterLevel:0,trackMarks:true,waterEffect:true,
+   sculptRadius:8,sculptStrength:1,sculptDirection:'lower',
    cloudCoverage:.48,windSpeed:.4,waterOpacity:.68,
    noiseScale:26,noiseOctaves:5,noiseLacunarity:2.02,noiseGain:.5,
    noiseWarp:.33,noiseContrast:1.25,noiseDetail:.24,
@@ -1310,6 +1364,15 @@ let objectGizmo=null;
 // lil-gui fails while creating a numeric controller for an absent property.
 function normalizeVehicleConfig(){
  if(!['cliff','barrier','ramp','wrap','cells'].includes(cfg.worldEdgeMode))cfg.worldEdgeMode='barrier';
+ if(typeof cfg.sculptData!=='string'||cfg.sculptData.length>115000)cfg.sculptData='';
+ if(!Number.isFinite(Number(cfg.terrainBaseElevation)))cfg.terrainBaseElevation=0;
+ cfg.terrainBaseElevation=clamp(Number(cfg.terrainBaseElevation),-40,80);
+ cfg.waterLevel=clamp(Number(cfg.waterLevel)||0,-40,80);
+ cfg.seaEnabled=cfg.seaEnabled===true;
+ cfg.sculptRadius=clamp(Number(cfg.sculptRadius)||8,2,35);
+ cfg.sculptStrength=clamp(Number(cfg.sculptStrength)||1,.1,4);
+ cfg.sculptDirection=cfg.sculptDirection==='raise'?'raise':'lower';
+ readSculptData();
  if(!Number.isFinite(Number(cfg.worldBounce)))cfg.worldBounce=.55;
  if(!cfg.worldCells||typeof cfg.worldCells!=='object'||Array.isArray(cfg.worldCells))cfg.worldCells={};
  const wheelKeys=['frontWheelRadius','rearWheelRadius','frontWheelWidth','rearWheelWidth',
@@ -1395,7 +1458,7 @@ let ghostObject=null,ghostSamples=[],ghostElapsed=0,ghostTick=0;
     if(result&&typeof result.catch==='function')result.catch(()=>{});}}
   catch{/* analytics must never affect the app */}
  }
- const VERSION='0.3.18';
+ const VERSION='0.3.19';
  document.getElementById('appVersionBadge').textContent='v'+VERSION;
  let imageReference=null,busyAI=false;
 
@@ -1553,6 +1616,50 @@ xrTeleportMark.rotation.x=-Math.PI/2;xrTeleportMark.visible=false;scene.add(xrTe
   }
   return list.filter((_,i)=>i%Math.max(1,Math.ceil(list.length/100))===0);
  }
+// Fixed 1.5-m resolution across the maximum 300-m world. Compact, bounded
+ // binary encoding prevents each brush dab from creating thousands of objects.
+ const SCULPT_SIDE=201,SCULPT_LIMIT=SCULPT_SIDE*SCULPT_SIDE,SCULPT_ORIGIN=-150;
+ let sculptField=new Int16Array(SCULPT_LIMIT);
+ function sculptCell(i,j){return i*SCULPT_SIDE+j}
+ function sculptIndex(x,z){return Math.round((x-SCULPT_ORIGIN)/STEP)*SCULPT_SIDE+Math.round((z-SCULPT_ORIGIN)/STEP)}
+ function sculptSample(x,z){
+  const ix=clamp((x-SCULPT_ORIGIN)/STEP,0,SCULPT_SIDE-1),
+   iz=clamp((z-SCULPT_ORIGIN)/STEP,0,SCULPT_SIDE-1);
+  const a=Math.floor(ix),b=Math.floor(iz),u=ix-a,v=iz-b,A=sculptCell(a,b);
+  const B=sculptCell(Math.min(SCULPT_SIDE-1,a+1),b);
+  return (sculptField[A]*(1-u)*(1-v)+sculptField[B]*u*(1-v)+
+   sculptField[sculptCell(a,Math.min(SCULPT_SIDE-1,b+1))]*(1-u)*v+
+   sculptField[sculptCell(Math.min(SCULPT_SIDE-1,a+1),Math.min(SCULPT_SIDE-1,b+1))]*u*v)/100;
+ }
+ function sculptBytesToBase64(bytes){let text='';for(let i=0;i<bytes.length;i+=8192)text+=String.fromCharCode(...bytes.subarray(i,i+8192));return btoa(text)}
+ function readSculptData(){
+  sculptField.fill(0);
+  const raw=cfg.sculptData;if(typeof raw!=='string'||!raw)return;
+  try{
+   const format=raw.slice(0,3),payload=raw.slice(3);
+   if(!['s1:','d1:'].includes(format)||payload.length>115000)throw Error('Sculpt payload format');
+   const binary=atob(payload),bytes=Uint8Array.from(binary,c=>c.charCodeAt(0));
+   const view=new DataView(bytes.buffer,bytes.byteOffset,bytes.byteLength);
+   if(format==='d1:'){
+    if(bytes.length!==SCULPT_LIMIT*2)throw Error('Sculpt grid size');
+    for(let i=0;i<SCULPT_LIMIT;i++)sculptField[i]=view.getInt16(i*2,true);
+   }else{
+    if(bytes.length%4)throw Error('Sculpt sparse cell data');
+    for(let p=0;p<bytes.length;p+=4){const id=view.getUint16(p,true);if(id>=SCULPT_LIMIT)throw Error('Sculpt grid bounds');sculptField[id]=view.getInt16(p+2,true)}
+   }
+  }catch(error){sculptField.fill(0);cfg.sculptData='';recordEvent?.('WARN','Invalid saved sculpt grid ignored: '+error.message)}
+ }
+ function storeSculptData(){
+  let nonZero=0;for(const n of sculptField)if(n)nonZero++;
+  if(!nonZero){cfg.sculptData='';return}
+  const sparse=nonZero*4<SCULPT_LIMIT*2,bytes=new Uint8Array(sparse?nonZero*4:SCULPT_LIMIT*2);
+  const view=new DataView(bytes.buffer);let p=0;
+  for(let i=0;i<SCULPT_LIMIT;i++){
+   if(sparse){if(!sculptField[i])continue;view.setUint16(p,i,true);view.setInt16(p+2,sculptField[i],true);p+=4}
+   else view.setInt16(i*2,sculptField[i],true);
+  }
+  cfg.sculptData=(sparse?'s1:':'d1:')+sculptBytesToBase64(bytes);
+ }
  function heightAt(x,z){
    const profile=cfg.terrainProfile||(cfg.hills?'hills':'flat');
    let heightOffset=0;
@@ -1592,10 +1699,11 @@ xrTeleportMark.rotation.x=-Math.PI/2;xrTeleportMark.visible=false;scene.add(xrTe
     }
     if(weight)heightOffset+=sum/Math.max(1,weight);
    }
-   if(profile==='flat')return heightOffset;
+   const editOffset=(Number(cfg.terrainBaseElevation)||0)+sculptSample(x,z);
+   if(profile==='flat')return heightOffset+editOffset;
    if(profile==='beach'){
      // Sloping shoreline: negative elevation towards positive world Z.
-     return .38- .042*z + .08*Math.sin(x*.17)*Math.cos(z*.11)+heightOffset;
+     return .38- .042*z + .08*Math.sin(x*.17)*Math.cos(z*.11)+heightOffset+editOffset;
    }
    let h=0;
    const size=profile==='extreme'?1.95:profile==='bumps'?.23:profile==='moon'?1.35:1;
@@ -1615,7 +1723,7 @@ xrTeleportMark.rotation.x=-Math.PI/2;xrTeleportMark.visible=false;scene.add(xrTe
      }
    }
    if(profile==='bumps')h+=.12*Math.sin(x*.38)*Math.cos(z*.35);
-   return h+heightOffset;
+   return h+heightOffset+editOffset;
 }
 
 let terrain=null,terrainBody=null;
@@ -1794,7 +1902,7 @@ function updateEnvironment(){
  skyDome=new THREE.Mesh(new THREE.SphereGeometry(230,40,20),skyMat);
  skyDome.frustumCulled=false;skyDome.renderOrder=-50;scene.add(skyDome);
  scene.fog=new THREE.Fog(horizon,Math.max(85,SIZE*.36),Math.max(170,SIZE*.92));
- if(cfg.terrainProfile==='beach'){
+ if(cfg.terrainProfile==='beach'||cfg.seaEnabled){
   seaSurface=buildWaterMesh(new THREE.PlaneGeometry(SIZE*1.4,SIZE*1.4,80,80),0,cfg.waterLevel||0,0);
   waterPatches.push(seaSurface);seaSurface=null;
  }else if(cfg.puddles){
@@ -2058,13 +2166,16 @@ function updateVegetation(dt){updateNearGrass();if(grassMaterial){grassMaterial.
 // necessary for modified terrain triangle colliders (new hills). Do not reset to origin.
 let resumeDrivePose=null,mapUpdating=false,mapRefreshQueued=false;
 const terrainAffectingKinds=new Set(['hill','dune']);
+function mapWaterSignature(){return JSON.stringify([cfg.seaEnabled,cfg.waterLevel,cfg.terrainProfile,cfg.puddles,
+ (cfg.courseObjects||[]).filter(o=>o.kind==='puddle').map(o=>[o.id,o.x,o.z,o.w,o.d,o.shape,o.points])]);}
+let previousMapWaterSignature=null;
 function heightfieldSignature(){return JSON.stringify([cfg.worldEdgeMode,cfg.worldCells,cfg.terrainSize,cfg.terrainProfile,
- (cfg.courseObjects||[]).filter(o=>terrainAffectingKinds.has(o.kind)).map(o=>[o.id,o.x,o.z,o.h,o.w,o.d,o.shape,o.points])]);}
+ (cfg.courseObjects||[]).filter(o=>terrainAffectingKinds.has(o.kind)).map(o=>[o.id,o.x,o.z,o.h,o.w,o.d,o.shape,o.points]),cfg.terrainBaseElevation,cfg.sculptData]);}
 let previousHeightfieldSignature=null;
 // Map undo is independent of vehicle history. It is intentionally not persisted
 // across reloads: a map snapshot contains only editable world data, never physics
 // bodies, credentials, GLB blobs, or browser identity.
-const MAP_HISTORY_KEYS=['courseObjects','courseName','terrainProfile','groundSurface','worldEdgeMode','worldBounce','worldCells','terrainSize'];
+const MAP_HISTORY_KEYS=['courseObjects','courseName','terrainProfile','groundSurface','worldEdgeMode','worldBounce','worldCells','terrainSize','terrainBaseElevation','sculptData','seaEnabled','waterLevel'];
 const mapHistory=[],MAP_HISTORY_LIMIT=64;
 let mapHistoryIndex=-1,replayingMapHistory=false,activeUndoDomain='vehicle';
 function mapState(){return Object.fromEntries(MAP_HISTORY_KEYS.map(key=>[key,structuredClone(cfg[key])]));}
@@ -2085,7 +2196,7 @@ async function stepMapHistory(direction){
  try{
   const entry=mapHistory[mapHistoryIndex];
   for(const key of MAP_HISTORY_KEYS)cfg[key]=structuredClone(entry.state[key]);
-  normalizeCourseObjects();
+  readSculptData();normalizeCourseObjects();
   if(selectedCourseId&&!cfg.courseObjects.some(o=>o.id===selectedCourseId))selectCourseObject(null);
   $('mapName').value=cfg.courseName||'';showWorldCells();
   await refreshEnvironmentForMap();
@@ -2103,6 +2214,7 @@ async function refreshEnvironmentForMap(){
  try{
   const signature=heightfieldSignature();
   const terrainChanged=signature!==previousHeightfieldSignature;
+  const waterSignature=mapWaterSignature(),waterChanged=waterSignature!==previousMapWaterSignature;
   const restart=driving&&(simulator.engine!=='cannon'||terrainChanged);
   if(restart){
    resumeDrivePose=prior?.pose?.()||resumeDrivePose;
@@ -2112,6 +2224,8 @@ async function refreshEnvironmentForMap(){
   }
   if(terrainChanged){buildTerrain();buildVegetation();clearTracks();previousHeightfieldSignature=signature;}
   buildCourse();
+  if(!terrainChanged&&waterChanged)updateEnvironment();
+  previousMapWaterSignature=waterSignature;
   if(!car)buildVehicle();
   if(restart&&mode==='drive'){
    // Avoid releasing the handbrake or switching keyboard/workspace state.
@@ -3438,7 +3552,7 @@ function makeCannonAdapter(){
     vehicle.setBrake(input.handbrake&&wheelAxle(i)===cfg.axles-1?1800:(input.brake?400:0),i);
    }
    if(cfg.terrainProfile==='beach'){
-    const submerged=clamp((cfg.waterLevel+cfg.H*.4-chassis.position.y)/(cfg.H*.7),0,1);
+    const submerged=(cfg.seaEnabled||cfg.terrainProfile==='beach')?clamp((cfg.waterLevel+cfg.H*.4-chassis.position.y)/(cfg.H*.7),0,1):0;
     if(submerged){const m=vehicleMass();chassis.applyForce(new CANNON.Vec3(-chassis.velocity.x*m*.6*submerged,m*9.82*1.12*submerged,-chassis.velocity.z*m*.6*submerged));}
    }
    world.step(dt);
@@ -3558,7 +3672,7 @@ async function makeRapierAdapter(){
     }
     if(cfg.terrainProfile==='beach'){
       const here=chassis.translation(),vel=chassis.linvel();
-      const submerged=clamp((cfg.waterLevel+cfg.H*.4-here.y)/(cfg.H*.7),0,1);
+      const submerged=(cfg.seaEnabled||cfg.terrainProfile==='beach')?clamp((cfg.waterLevel+cfg.H*.4-here.y)/(cfg.H*.7),0,1):0;
       if(submerged){const m=vehicleMass();chassis.addForce({x:-vel.x*m*.6*submerged,y:m*9.82*1.12*submerged,z:-vel.z*m*.6*submerged},true)}
     }
     vehicle.updateVehicle(dt);
@@ -3717,7 +3831,7 @@ async function makeAmmoAdapter(){
      rayVehicle.setBrake(input.handbrake&&wheelAxle(i)===cfg.axles-1?450:(input.brake?Math.min(80,Math.max(12,Math.abs(input.power)*.012)):0),i);
     }
     if(cfg.terrainProfile==='beach'){
-      const o=origin(),vel=velocity(),submerged=clamp((cfg.waterLevel+cfg.H*.4-o.y())/(cfg.H*.7),0,1);
+      const o=origin(),vel=velocity(),submerged=(cfg.seaEnabled||cfg.terrainProfile==='beach')?clamp((cfg.waterLevel+cfg.H*.4-o.y())/(cfg.H*.7),0,1):0;
       if(submerged){const m=vehicleMass(),force=v(-vel.x()*m*.6*submerged,m*9.82*1.12*submerged,-vel.z()*m*.6*submerged);
         chassis.applyCentralForce(force);}
     }
@@ -4051,7 +4165,7 @@ function stepVehicle(dt){
  if(cfg.waterEffect&&physics.getSpeed()>1.5){
   for(let i=0;i<wheels.length;i++){
    const pos=wheels[i].getWorldPosition(new THREE.Vector3());
-   const wet=cfg.terrainProfile==='beach'?(pos.y-wheelRadiusFor(wheelAxle(i))<cfg.waterLevel+.16):puddleAt(pos.x,pos.z);
+   const wet=(cfg.seaEnabled||cfg.terrainProfile==='beach')?(pos.y-wheelRadiusFor(wheelAxle(i))<cfg.waterLevel+.16):puddleAt(pos.x,pos.z);
    if(wet&&Math.random()<.23)splashAt(pos.x,Math.max(heightAt(pos.x,pos.z),cfg.waterLevel)+.08,pos.z,physics.getSpeed());
   }
  }
@@ -5225,44 +5339,41 @@ $('audioPresetImport').onchange=async event=>{try{
   cfg.soundPreset=String(data.name||'Custom').slice(0,48);vehicleAudio.update(8,.45,false);
   setupGUI();scheduleHistory('Imported sound preset');note('Sound preset imported.');
  }catch(error){note(error.message,true)}finally{event.target.value=''}};
-const environment=gui.addFolder('09 · Terrain & sky');
- environment.add(cfg,'terrainProfile',['flat','bumps','hills','extreme','moon','beach']).name('Terrain').onChange(()=>{if(cfg.terrainProfile==='beach')cfg.groundSurface='sand';if(cfg.terrainProfile==='moon')cfg.groundSurface='moon';rememberMapEdit('Terrain profile');void refreshEnvironmentForMap()});
- environment.add(cfg,'terrainSize',90,300,30).name('Terrain width').onFinishChange(()=>{rememberMapEdit('Terrain size');void refreshEnvironmentForMap()});
+const environment=gui.addFolder('09 · Terrain · elevation & sculpt');
+ environment.add(cfg,'terrainProfile',['flat','bumps','hills','extreme','moon','beach']).name('Terrain preset').onChange(()=>{if(cfg.terrainProfile==='beach')cfg.groundSurface='sand';if(cfg.terrainProfile==='moon')cfg.groundSurface='moon';rememberMapEdit('Terrain profile');void refreshEnvironmentForMap()});
+ environment.add(cfg,'terrainBaseElevation',-40,80,.5).name('Base plateau (m)').onFinishChange(()=>{rememberMapEdit('Terrain plateau elevation');void refreshEnvironmentForMap()});
+ environment.add(cfg,'terrainSize',90,300,30).name('Terrain width (m)').onFinishChange(()=>{rememberMapEdit('Terrain size');void refreshEnvironmentForMap()});
+ environment.add({brush:()=>openSculptBrush()},'brush').name('Open terrain sculpt brush');
  const edges=environment.addFolder('World boundaries / connected cells');
- edges.add(cfg,'worldEdgeMode',{
-  'Open edge (legacy cliff)':'cliff',
-  'Physical bounce barrier':'barrier',
-  'Steep uphill boundary':'ramp',
-  'Reappear on opposite edge':'wrap',
-  'Editable 3 × 3 cells':'cells'
- }).name('World border').onChange(()=>{
-  if(cfg.worldEdgeMode==='cells')cfg.terrainSize=300;
-  rememberMapEdit('World boundary mode');void refreshEnvironmentForMap();showWorldCells();
-  trackUsage('map_boundary_changed');
- });
+ edges.add(cfg,'worldEdgeMode',{'Open edge (legacy cliff)':'cliff','Physical bounce barrier':'barrier',
+  'Steep uphill boundary':'ramp','Reappear on opposite edge':'wrap','Editable 3 × 3 cells':'cells'
+ }).name('World border').onChange(()=>{if(cfg.worldEdgeMode==='cells')cfg.terrainSize=300;
+  rememberMapEdit('World boundary mode');void refreshEnvironmentForMap();showWorldCells();trackUsage('map_boundary_changed')});
  edges.add(cfg,'worldBounce',0,.95,.05).name('Barrier bounce').onFinishChange(()=>{rememberMapEdit('Barrier bounce');void refreshEnvironmentForMap()});
- edges.add({edit:()=>setWindowVisible('mapWindow',true)},'edit').name('Edit / save connected cells');
- edges.close();
- environment.add(cfg,'skyStyle',['solid','gradient','clouds','night']).name('Sky').onChange(()=>{updateEnvironment();scheduleHistory('Sky')});
- environment.add(cfg,'groundSurface',['asphalt','grass','dirt','gravel','sand','snow','moon']).name('Ground material').onChange(()=>{rememberMapEdit('Ground material');previousHeightfieldSignature=null;void refreshEnvironmentForMap()});
- environment.add(cfg,'groundRoughness',.08,1,.01).name('Ground PBR roughness').onChange(value=>{if(terrain?.material){terrain.material.roughness=value;terrain.material.needsUpdate=true}}).onFinishChange(()=>scheduleHistory('Ground roughness'));
- environment.add(cfg,'puddles').name('Puddles').onChange(()=>{updateEnvironment();scheduleHistory('Puddles')});
- environment.add(cfg,'waterLevel',-.9,1.2,.05).name('Sea level (m)').onChange(()=>{updateEnvironment();scheduleHistory('Sea level')});
- environment.add(cfg,'waterOpacity',.2,.95,.01).name('Water transparency').onChange(()=>{for(const u of waterUniforms)u.uOpacity.value=cfg.waterOpacity;scheduleHistory('Water opacity')});
- environment.add(cfg,'trackMarks').name('Tyre tracks').onChange(()=>{if(!cfg.trackMarks)clearTracks();scheduleHistory('Wheel tracks')});
- environment.add(cfg,'waterEffect').name('Water splashes').onChange(()=>scheduleHistory('Splashes'));
- environment.add(cfg,'cloudCoverage',0,1,.05).name('Cloud coverage').onChange(()=>scheduleHistory('Clouds'));
- environment.add(cfg,'windSpeed',0,2,.05).name('Cloud wind').onChange(()=>scheduleHistory('Wind'));
- const flora=gui.addFolder('09b · Instanced grass / shrubs / rocks');
+ edges.add({edit:()=>setWindowVisible('mapWindow',true)},'edit').name('Edit / save connected cells');edges.close();
+ const waterFolder=gui.addFolder('09a · Sea level & water');
+ waterFolder.add(cfg,'seaEnabled').name('Enable sea plane').onChange(()=>{updateEnvironment();rememberMapEdit('Sea enabled')});
+ waterFolder.add(cfg,'waterLevel',-40,80,.5).name('Sea surface altitude (m)').onFinishChange(()=>{updateEnvironment();rememberMapEdit('Sea altitude')});
+ waterFolder.add(cfg,'waterOpacity',.2,.95,.01).name('Water transparency').onChange(()=>{for(const u of waterUniforms)u.uOpacity.value=cfg.waterOpacity;scheduleHistory('Water opacity')});
+ waterFolder.add(cfg,'puddles').name('Local puddles').onChange(()=>{updateEnvironment();scheduleHistory('Puddles')});waterFolder.close();
+ const skyFolder=gui.addFolder('09b · Sky & weather');
+ skyFolder.add(cfg,'skyStyle',['solid','gradient','clouds','night']).name('Sky').onChange(()=>{updateEnvironment();scheduleHistory('Sky')});
+ skyFolder.add(cfg,'cloudCoverage',0,1,.05).name('Cloud coverage').onChange(()=>scheduleHistory('Clouds'));
+ skyFolder.add(cfg,'windSpeed',0,2,.05).name('Cloud wind').onChange(()=>scheduleHistory('Wind'));skyFolder.close();
+ const groundFolder=gui.addFolder('09c · Ground material & effects');
+ groundFolder.add(cfg,'groundSurface',['asphalt','grass','dirt','gravel','sand','snow','moon']).name('Ground material').onChange(()=>{rememberMapEdit('Ground material');previousHeightfieldSignature=null;void refreshEnvironmentForMap()});
+ groundFolder.add(cfg,'groundRoughness',.08,1,.01).name('Ground roughness').onChange(value=>{if(terrain?.material){terrain.material.roughness=value;terrain.material.needsUpdate=true}}).onFinishChange(()=>scheduleHistory('Ground roughness'));
+ groundFolder.add(cfg,'trackMarks').name('Tyre tracks').onChange(()=>{if(!cfg.trackMarks)clearTracks();scheduleHistory('Wheel tracks')});
+ groundFolder.add(cfg,'waterEffect').name('Water splashes').onChange(()=>scheduleHistory('Splashes'));groundFolder.close();
+ const flora=gui.addFolder('09d · Grass / shrubs / rocks');
  flora.add(cfg,'grassDensity',0,24000,500).name('Grass blade budget').onFinishChange(()=>{buildVegetation();scheduleHistory('Vegetation density')});
  flora.add(cfg,'grassHeight',.05,1.1,.02).name('Grass height').onFinishChange(()=>{buildVegetation();scheduleHistory('Grass height')});
  flora.add(cfg,'vegetationWind',0,2,.05).name('Grass sway').onChange(()=>scheduleHistory('Grass wind'));
  flora.add(cfg,'shrubs',0,450,10).name('Instanced shrubs').onFinishChange(()=>{buildVegetation();scheduleHistory('Shrubs')});
- flora.add(cfg,'rocks',0,350,10).name('Decoration stones').onFinishChange(()=>{buildVegetation();scheduleHistory('Stones')});
- flora.close();
+ flora.add(cfg,'rocks',0,350,10).name('Decoration stones').onFinishChange(()=>{buildVegetation();scheduleHistory('Stones')});flora.close();
  environment.add({map:()=>setWindowVisible('mapWindow',true)},'map').name('Open drive test map');
  environment.add({clearTracks},'clearTracks').name('Clear tyre tracks');
- environment.add({reset:()=>{cfg.terrainProfile='hills';cfg.skyStyle='gradient';cfg.terrainSize=180;buildTerrain();buildCourse();buildVegetation();updateEnvironment();setupGUI();scheduleHistory('Terrain reset')}},'reset').name('Reset terrain');
+ environment.add({reset:()=>{cfg.terrainProfile='hills';cfg.skyStyle='gradient';cfg.terrainSize=180;rememberMapEdit('Reset terrain preset');void refreshEnvironmentForMap();setupGUI()}},'reset').name('Reset terrain preset (keep sculpt)');
  environment.close();
 driving.add({resetCamera},'resetCamera').name('Reset camera');
 driving.close();
@@ -5527,7 +5638,7 @@ renderer.domElement.addEventListener('pointerdown',e=>{
  startPointer=[e.clientX,e.clientY];
 });
 renderer.domElement.addEventListener('pointerup',e=>{
- if(mode!=='build'||!startPointer||
+ if(sculpt3DStroke||mode!=='build'||!startPointer||
   Math.hypot(e.clientX-startPointer[0],e.clientY-startPointer[1])>5)return;
    const rect=renderer.domElement.getBoundingClientRect();
  pointer.set(
@@ -5719,7 +5830,7 @@ const wheelStylesAvailable=['alloy','mesh','turbine','steel','disc','beadlock'];
 const wheelRaycaster=new THREE.Raycaster(),wheelPointer=new THREE.Vector2();let pointerOrigin=null;
 renderer.domElement.addEventListener('pointerdown',e=>{if(e.button===0)pointerOrigin={x:e.clientX,y:e.clientY}},true);
 renderer.domElement.addEventListener('pointerup',e=>{
- if(mode!=='build'||!pointerOrigin||Math.hypot(e.clientX-pointerOrigin.x,e.clientY-pointerOrigin.y)>7)return;
+ if(sculpt3DStroke||mode!=='build'||!pointerOrigin||Math.hypot(e.clientX-pointerOrigin.x,e.clientY-pointerOrigin.y)>7)return;
  pointerOrigin=null;if(!car)return;
  const r=renderer.domElement.getBoundingClientRect();
  wheelPointer.set((e.clientX-r.left)/r.width*2-1,-((e.clientY-r.top)/r.height*2-1));
@@ -6058,6 +6169,10 @@ function drawMinimap(){
   c.restore();
  }
  for(const o of cfg.courseObjects||[])drawMapFootprint(c,o,o.id===selectedCourseId);
+ if($('mapTool').value==='sculpt'&&sculptMapCursor){const pt=mapScreen(sculptMapCursor.x,sculptMapCursor.z);
+  c.save();c.beginPath();c.arc(pt.x,pt.y,cfg.sculptRadius*mapPixelsPerMetre(),0,Math.PI*2);
+  c.fillStyle=cfg.sculptDirection==='lower'?'#87d8ff28':'#ffcb7828';
+  c.strokeStyle=cfg.sculptDirection==='lower'?'#87d8ff':'#ffcb78';c.lineWidth=2;c.fill();c.stroke();c.restore();}
  if(courseDrag?.mode==='draw'){
   const kind=courseDrag.kind;
   if(courseDrag.points?.length>2)drawMapFootprint(c,objectFromFreehand(courseDrag.points,kind),true);
@@ -6070,7 +6185,132 @@ function drawMinimap(){
  }
  c.save();c.fillStyle='#f2f8fa';c.font='bold 13px ui-monospace,monospace';c.fillText('N ↑',W-46,20);c.restore();
 }
+// Editable displacement layer. Brush samples are written at fixed world coordinates.
+// The preview updates the visible mesh immediately; physics adapters are rebuilt
+// once per completed stroke, preserving the active BUILD/DRIVE workspace.
+let sculptMapCursor=null,sculptStageStroke=false,sculpt3DPaint=false,sculptStagePointer=null;
+const sculptChangedCells=new Set();
+let sculptRenderPending=false,sculptStrokeChanged=false,sculptStrokeLast=null,sculptStageOrbitWasEnabled=true;
+const sculptBrushSphere=new THREE.Mesh(
+ new THREE.SphereGeometry(1,20,12),
+ new THREE.MeshBasicMaterial({color:0x95dcff,transparent:true,opacity:.19,depthTest:false,depthWrite:false,wireframe:true}));
+sculptBrushSphere.name='Sculpt cursor · visual guide only';
+sculptBrushSphere.renderOrder=999;sculptBrushSphere.visible=false;sculptBrushSphere.raycast=()=>{};scene.add(sculptBrushSphere);
+function syncSculptControls(){
+ $('sculptRadius').value=String(cfg.sculptRadius);$('sculptRadiusText').textContent=Number(cfg.sculptRadius).toFixed(1)+' m';
+ $('sculptStrength').value=String(cfg.sculptStrength);$('sculptStrengthText').textContent=Number(cfg.sculptStrength).toFixed(1)+' m';
+ for(const [id,setting] of [['sculptRaise','raise'],['sculptLower','lower']])$(''+id).setAttribute('aria-pressed',String(cfg.sculptDirection===setting));
+ $('sculptOnStage').checked=sculpt3DPaint;
+}
+function openSculptBrush(){syncSculptControls();setWindowVisible('sculptWindow',true)}
+function setSculptRadius(radius){cfg.sculptRadius=clamp(Math.round(Number(radius)*2)/2,2,35);syncSculptControls();
+ if(sculptMapCursor)requestMinimapPaint();if(sculptBrushSphere.visible)sculptBrushSphere.scale.setScalar(cfg.sculptRadius)}
+$('sculptRadius').oninput=e=>setSculptRadius(e.target.value);
+$('sculptStrength').oninput=e=>{cfg.sculptStrength=clamp(Number(e.target.value),.1,4);syncSculptControls()};
+for(const [id,direction] of [['sculptRaise','raise'],['sculptLower','lower']])$(id).onclick=()=>{
+ cfg.sculptDirection=direction;sculptBrushSphere.material.color.set(direction==='lower'?0x95dcff:0xffc876);syncSculptControls()};
+$('sculptMap').onclick=()=>{setWindowVisible('mapWindow',true);setMapTool('sculpt')};
+$('sculptTop').onclick=()=>{setViewportAxis('top');note('Top view selected · scroll to zoom, paint on the map or enable 3D sculpt.')};
+$('sculptOnStage').onchange=e=>{sculpt3DPaint=e.target.checked;
+ $('sculptStatus').textContent=sculpt3DPaint?'3D painting enabled · drag over ground. Disable to select objects again.':'Map sculpt · drag over the relief. [ / ] adjust radius.';
+ if(!sculpt3DPaint)sculptBrushSphere.visible=false;
+};
+$('sculptClear').onclick=()=>{
+ if(!cfg.sculptData&&!sculptField.some(v=>v))return;
+ if(!window.confirm('Erase all sculpted height changes on this map? You can Undo this change.'))return;
+ sculptField.fill(0);sculptChangedCells.clear();storeSculptData();rememberMapEdit('Clear terrain sculpture');
+ updateMinimapBackground();void refreshEnvironmentForMap();
+};
+// A rounded, sphere-derived falloff. Use a fixed 1.5m grid and centimetre
+// quantization; repeated pointer events at the same position cannot amplify a
+// stroke just because that browser emits more move events.
+function sculptStamp(x,z){
+ const radius=cfg.sculptRadius,strength=cfg.sculptStrength*(cfg.sculptDirection==='lower'?-1:1)*.43;
+ const loX=Math.max(0,Math.ceil((x-radius-SCULPT_ORIGIN)/STEP)),
+  hiX=Math.min(SCULPT_SIDE-1,Math.floor((x+radius-SCULPT_ORIGIN)/STEP)),
+  loZ=Math.max(0,Math.ceil((z-radius-SCULPT_ORIGIN)/STEP)),
+  hiZ=Math.min(SCULPT_SIDE-1,Math.floor((z+radius-SCULPT_ORIGIN)/STEP));
+ let changed=false;
+ for(let i=loX;i<=hiX;i++)for(let j=loZ;j<=hiZ;j++){
+  const dx=SCULPT_ORIGIN+i*STEP-x,dz=SCULPT_ORIGIN+j*STEP-z;
+  const t=(dx*dx+dz*dz)/(radius*radius);if(t>=1)continue;
+  const weight=(1-t)**1.5,index=sculptCell(i,j);
+  const next=clamp(sculptField[index]+Math.round(strength*100*weight),-12000,12000);
+  if(next!==sculptField[index]){sculptField[index]=next;sculptChangedCells.add(index);changed=true}
+ }
+ if(changed){sculptStrokeChanged=true;requestSculptRender()}
+ return changed;
+}
+function sculptBegin(pt){sculptStrokeLast={x:pt.x,z:pt.z};sculptStrokeChanged=false;sculptStamp(pt.x,pt.z)}
+function sculptContinue(pt){
+ if(!sculptStrokeLast)return;
+ const stride=clamp(cfg.sculptRadius*.3,.6,5);let p=sculptStrokeLast;
+ let length=Math.hypot(pt.x-p.x,pt.z-p.z),limit=0;
+ while(length>=stride&&limit++<130){p={x:p.x+(pt.x-p.x)*stride/length,z:p.z+(pt.z-p.z)*stride/length};
+  sculptStamp(p.x,p.z);length=Math.hypot(pt.x-p.x,pt.z-p.z);
+ }
+ sculptStrokeLast=p;
+}
+function requestSculptRender(){if(sculptRenderPending)return;sculptRenderPending=true;
+ requestAnimationFrame(()=>{sculptRenderPending=false;if(!terrain||!sculptChangedCells.size)return;
+  const attr=terrain.geometry.attributes.position;
+  for(const id of sculptChangedCells){const i=Math.floor(id/SCULPT_SIDE),j=id%SCULPT_SIDE;
+   const x=SCULPT_ORIGIN+i*STEP,z=SCULPT_ORIGIN+j*STEP;
+   const I=Math.round((x+SIZE/2)/STEP),J=Math.round((SIZE/2-z)/STEP);
+   if(I<0||I>N||J<0||J>N)continue;
+   attr.setY(I*(N+1)+J,heightAt(x,z));
+  }
+  sculptChangedCells.clear();attr.needsUpdate=true;terrain.geometry.computeVertexNormals();
+  terrain.geometry.computeBoundingSphere();
+  const normals=terrain.geometry.attributes.normal;normals.needsUpdate=true;
+  requestMinimapPaint();
+ });
+}
+function sculptFinish(){
+ sculptStrokeLast=null;if(!sculptStrokeChanged)return;
+ sculptStrokeChanged=false;storeSculptData();rememberMapEdit('Sculpt terrain '+cfg.sculptDirection);
+ updateMinimapBackground();void refreshEnvironmentForMap();
+ $('sculptStatus').textContent='Stroke saved · physics terrain updating. Undo reverts this stroke.';
+}
+const sculptRay=new THREE.Raycaster();
+function sculptGroundHit(e){
+ if(!terrain)return null;
+ const r=renderer.domElement.getBoundingClientRect();
+ const point=new THREE.Vector2((e.clientX-r.left)/r.width*2-1,1-(e.clientY-r.top)/r.height*2);
+ sculptRay.setFromCamera(point,camera);
+ const hit=sculptRay.intersectObject(terrain,false)[0];return hit?{x:hit.point.x,z:hit.point.z,y:hit.point.y}:null;
+}
+function positionSculptSphere(pt){if(!pt){sculptBrushSphere.visible=false;return}
+ sculptBrushSphere.visible=true;sculptBrushSphere.position.set(pt.x,heightAt(pt.x,pt.z),pt.z);
+ sculptBrushSphere.scale.setScalar(cfg.sculptRadius);
+}
+renderer.domElement.addEventListener('pointerdown',e=>{
+ if(!sculpt3DPaint||!windowCurrentlyVisible('sculptWindow')||$('sculptWindow').classList.contains('is-minimized')||e.button!==0||!terrain||transformDragging||xrActive)return;
+ const pt=sculptGroundHit(e);if(!pt)return;
+ sculpt3DStroke=true;sculptStagePointer=e.pointerId;sculptStageOrbitWasEnabled=orbit.enabled;orbit.enabled=false;
+ renderer.domElement.setPointerCapture(e.pointerId);sculptBegin(pt);positionSculptSphere(pt);
+ e.preventDefault();e.stopImmediatePropagation();
+},{capture:true});
+renderer.domElement.addEventListener('pointermove',e=>{
+ if(!sculpt3DPaint||!windowCurrentlyVisible('sculptWindow')){sculptBrushSphere.visible=false;return;}
+ const pt=sculptGroundHit(e);positionSculptSphere(pt);
+ if(sculpt3DStroke&&e.pointerId===sculptStagePointer){if(pt)sculptContinue(pt);e.preventDefault();e.stopImmediatePropagation()}
+},{capture:true});
+for(const eventType of ['pointerup','pointercancel','lostpointercapture'])renderer.domElement.addEventListener(eventType,e=>{
+ if(!sculpt3DStroke||e.pointerId!==sculptStagePointer)return;
+ sculpt3DStroke=false;sculptStagePointer=null;orbit.enabled=sculptStageOrbitWasEnabled&&!transformDragging;
+ if(renderer.domElement.hasPointerCapture(e.pointerId))renderer.domElement.releasePointerCapture(e.pointerId);
+ sculptFinish();e.preventDefault();e.stopImmediatePropagation();
+},{capture:true});
+renderer.domElement.addEventListener('pointerleave',()=>{if(!sculpt3DStroke)sculptBrushSphere.visible=false});
+window.addEventListener('keydown',e=>{
+ if(!['BracketLeft','BracketRight'].includes(e.code)||e.ctrlKey||e.altKey||e.metaKey||isEditingText(e.target)||!keyboardContextReady())return;
+ if(!(sculpt3DPaint&&windowCurrentlyVisible('sculptWindow'))&&
+    !($('mapTool').value==='sculpt'&&windowCurrentlyVisible('mapWindow')))return;
+ e.preventDefault();setSculptRadius(cfg.sculptRadius+(e.code==='BracketRight'?.5:-.5));
+},{capture:true});
 function setMapTool(kind){$('mapTool').value=kind;
+ if(kind==='sculpt')openSculptBrush();
  for(const btn of $('mapToolRail').querySelectorAll('button[data-map-tool]'))btn.setAttribute('aria-pressed',String(btn.dataset.mapTool===kind));
  courseCanvas.style.cursor=['select','pan'].includes(kind)?'grab':'crosshair';
 }
@@ -6125,12 +6365,14 @@ courseCanvas.addEventListener('pointerdown',e=>{
  if(e.button!==0&&e.button!==1&&e.button!==2)return;
  courseCanvas.setPointerCapture(e.pointerId);const pt=worldMapPoint(e);
  activeTouches.set(e.pointerId,{x:e.clientX,y:e.clientY});
- if(activeTouches.size===2){courseDrag={mode:'pinch',centerX:mapCenterX,centerZ:mapCenterZ,
+ if(activeTouches.size===2){if(courseDrag?.mode==='sculpt')sculptFinish();
+  courseDrag={mode:'pinch',centerX:mapCenterX,centerZ:mapCenterZ,
   zoom:mapZoom,initial:[...activeTouches.values()]};return}
  if(e.button!==0||e.shiftKey||e.code==='Space'||$('mapTool').value==='pan'){
   courseFollow=false;courseDrag={mode:'pan',x:e.clientX,y:e.clientY,cx:mapCenterX,cz:mapCenterZ};return;
  }
  const kind=$('mapTool').value;
+ if(kind==='sculpt'){courseFollow=false;courseDrag={mode:'sculpt'};sculptMapCursor=pt;sculptBegin(pt);requestMinimapPaint();return;}
  if(kind==='select'){
   const selected=findMapObject(pt);
   if(selected){selectCourseObject(selected.id,true);
@@ -6144,9 +6386,12 @@ courseCanvas.addEventListener('pointerdown',e=>{
 });
 courseCanvas.addEventListener('contextmenu',e=>e.preventDefault());
 courseCanvas.addEventListener('pointermove',e=>{
- const pt=worldMapPoint(e);$('mapCoordinates').textContent=`X ${pt.x.toFixed(2)}m · Z ${pt.z.toFixed(2)}m · ${Math.round(mapZoom*100)}% · ${mapGridStep()}m grid`;
+ const pt=worldMapPoint(e);
+ if($('mapTool').value==='sculpt'){sculptMapCursor=pt;if(!courseDrag||courseDrag.mode!=='sculpt')requestMinimapPaint();}
+ $('mapCoordinates').textContent=`X ${pt.x.toFixed(2)}m · Z ${pt.z.toFixed(2)}m · ${Math.round(mapZoom*100)}% · ${mapGridStep()}m grid`;
  if(activeTouches.has(e.pointerId))activeTouches.set(e.pointerId,{x:e.clientX,y:e.clientY});
  if(!courseDrag)return;
+ if(courseDrag.mode==='sculpt'){sculptContinue(pt);requestMinimapPaint();return;}
  if(courseDrag.mode==='pinch'&&activeTouches.size===2){
   const [p,q]=[...activeTouches.values()],dist=Math.hypot(p.x-q.x,p.y-q.y);
   const [a,b]=courseDrag.initial,initial=Math.max(1,Math.hypot(a.x-b.x,a.y-b.y));
@@ -6172,13 +6417,15 @@ const finishMapPointer=e=>{
  activeTouches.delete(e.pointerId);
  if(!courseDrag||courseDrag.mode==='pinch'&&activeTouches.size>0)return;
  const drag=courseDrag;courseDrag=null;
- if(drag.mode==='draw'){
+ if(drag.mode==='sculpt'){sculptFinish();}
+ else if(drag.mode==='draw'){
   const o=drag.points?.length>=3?objectFromFreehand(drag.points,drag.kind):mapObjectForDrag(drag.start,drag.end,drag.kind);
   addCourseObject(o,'Draw terrain/obstacle');
  }else if(drag.mode==='move'){rememberMapEdit('Move test-map object');void refreshEnvironmentForMap()}
  drawMinimap();
 };
 for(const type of ['pointerup','pointercancel','lostpointercapture'])courseCanvas.addEventListener(type,finishMapPointer);
+courseCanvas.addEventListener('pointerleave',()=>{if(!courseDrag){sculptMapCursor=null;requestMinimapPaint()}});
 $('mapHeight').oninput=e=>$('mapHeightValue').textContent=Number(e.target.value).toFixed(1)+'m';
 $('mapUndo').onclick=()=>void stepMapHistory(-1);
 $('mapRedo').onclick=()=>void stepMapHistory(1);
@@ -6498,7 +6745,7 @@ objectGizmo.addEventListener('objectChange',()=>{
  drawMinimap();
 });
 renderer.domElement.addEventListener('pointerup',e=>{
- if(transformDragging||performance.now()-lastGizmoPointerUp<190||e.button!==0)return;
+ if(sculpt3DStroke||transformDragging||performance.now()-lastGizmoPointerUp<190||e.button!==0)return;
  const r=renderer.domElement.getBoundingClientRect(),p=new THREE.Vector2((e.clientX-r.left)/r.width*2-1,1-(e.clientY-r.top)/r.height*2);
  const rc=new THREE.Raycaster();rc.setFromCamera(p,camera);
  const hits=rc.intersectObject(courseRoot,true);
@@ -6635,46 +6882,74 @@ $('worldCellApply').onclick=async()=>{
 showWorldCells();
 $('mapSave').onclick=async()=>{const name=await requestMapName();
  if(!name)return;cfg.courseName=name;$('mapName').value=name;
- const id=crypto.randomUUID();await mapTransaction('readwrite','put',{id,name,objects:structuredClone(cfg.courseObjects),terrain:cfg.terrainProfile,ground:cfg.groundSurface,edge:cfg.worldEdgeMode,cells:structuredClone(cfg.worldCells),size:cfg.terrainSize,modified:Date.now()});
+ const id=crypto.randomUUID();await mapTransaction('readwrite','put',{id,name,objects:structuredClone(cfg.courseObjects),terrain:cfg.terrainProfile,ground:cfg.groundSurface,edge:cfg.worldEdgeMode,cells:structuredClone(cfg.worldCells),size:cfg.terrainSize,terrainBaseElevation:cfg.terrainBaseElevation,sculptData:cfg.sculptData,seaEnabled:cfg.seaEnabled,waterLevel:cfg.waterLevel,modified:Date.now()});
  await refreshMapList();$('mapSaved').value=id;trackUsage('map_saved');note('Saved precision test map in IndexedDB.');
  if(activeProfile&&guestToken){
   const documentMap={schema:'vehiclelab-testmap/v3',name,
    terrainProfile:cfg.terrainProfile,groundSurface:cfg.groundSurface,
    objects:cfg.courseObjects,edge:cfg.worldEdgeMode,worldCells:cfg.worldCells,
-   terrainSize:cfg.terrainSize};
+   terrainSize:cfg.terrainSize,terrainBaseElevation:cfg.terrainBaseElevation,sculptData:cfg.sculptData,seaEnabled:cfg.seaEnabled,waterLevel:cfg.waterLevel};
   void identityRequest('/api/me/media','POST',{kind:'map',name,data:documentMap})
    .then(()=>recordEvent('INFO','Map also saved privately in cloud.'))
    .catch(e=>recordEvent('WARN','Cloud map backup: '+e.message));
  }};
+function validateMapSculptPayload(data){
+ const raw=data.sculptData??'';
+ if(typeof raw!=='string'||raw.length>115000)throw Error('Invalid sculpt grid data');
+ if(!raw)return;
+ if(!/^(s1:|d1:)[A-Za-z0-9+/]+={0,2}$/.test(raw))throw Error('Invalid sculpt grid encoding');
+ let binary;
+ try{binary=atob(raw.slice(3))}catch{throw Error('Invalid sculpt grid encoding')}
+ if(raw.startsWith('d1:')){
+  if(binary.length!==SCULPT_LIMIT*2)throw Error('Invalid sculpt grid length');
+ }else{
+  if(binary.length%4!==0||binary.length>SCULPT_LIMIT*4)throw Error('Invalid sparse sculpt grid');
+  for(let p=0;p<binary.length;p+=4){const id=binary.charCodeAt(p)|(binary.charCodeAt(p+1)<<8);
+   if(id>=SCULPT_LIMIT)throw Error('Invalid sculpt cell index');}
+ }
+}
+function applyMapSculptSettings(data){
+ validateMapSculptPayload(data);
+ const elevation=Number(data.terrainBaseElevation??0),sea=Number(data.waterLevel??0);
+ cfg.terrainBaseElevation=Number.isFinite(elevation)?clamp(elevation,-40,80):0;
+ cfg.waterLevel=Number.isFinite(sea)?clamp(sea,-40,80):0;
+ cfg.seaEnabled=data.seaEnabled===true;
+ const raw=data.sculptData??'';
+ if(typeof raw!=='string'||raw.length>115000)throw Error('Invalid sculpt grid data');
+ cfg.sculptData=raw;readSculptData();
+ syncSculptControls?.();
+}
 async function applySavedTestMap(data){
- if(!data)return;cfg.courseName=data.name;cfg.courseObjects=structuredClone(data.objects||[]);normalizeCourseObjects();selectCourseObject(null);
+ if(!data)return;validateMapSculptPayload(data);cfg.courseName=data.name;cfg.courseObjects=structuredClone(data.objects||[]);normalizeCourseObjects();selectCourseObject(null);
  const terrain=data.terrainProfile||data.terrain,ground=data.groundSurface||data.ground;
  if(terrain)cfg.terrainProfile=terrain;if(ground)cfg.groundSurface=ground;
  if(['cliff','barrier','ramp','wrap','cells'].includes(data.edge))cfg.worldEdgeMode=data.edge;
  const cells=data.worldCells||data.cells;
  if(cells&&typeof cells==='object'&&!Array.isArray(cells))cfg.worldCells=structuredClone(cells);
  const size=Number(data.terrainSize??data.size);
- if(Number.isFinite(size)&&size>=90)cfg.terrainSize=clamp(size,90,300);showWorldCells();
+ if(Number.isFinite(size)&&size>=90)cfg.terrainSize=clamp(size,90,300);applyMapSculptSettings(data);showWorldCells();
  $('mapName').value=cfg.courseName;rememberMapEdit('Loaded test map');await refreshEnvironmentForMap();trackUsage('map_loaded');note('Loaded test map: '+data.name)}
 $('mapLoad').onclick=async()=>{const id=$('mapSaved').value;
  const data=id.startsWith('preset:')?{name:id.slice(7),objects:testMapPresets[id.slice(7)]}:await mapTransaction('readonly','get',id);
  await applySavedTestMap(data)};
-$('mapExport').onclick=()=>{trackUsage('map_exported');download(JSON.stringify({schema:'vehiclelab-testmap/v2',name:$('mapName').value,
- terrainProfile:cfg.terrainProfile,groundSurface:cfg.groundSurface,edge:cfg.worldEdgeMode,worldCells:cfg.worldCells,terrainSize:cfg.terrainSize,objects:cfg.courseObjects},null,2),
+$('mapExport').onclick=()=>{trackUsage('map_exported');download(JSON.stringify({schema:'vehiclelab-testmap/v3',name:$('mapName').value,
+ terrainProfile:cfg.terrainProfile,groundSurface:cfg.groundSurface,edge:cfg.worldEdgeMode,worldCells:cfg.worldCells,terrainSize:cfg.terrainSize,terrainBaseElevation:cfg.terrainBaseElevation,sculptData:cfg.sculptData,seaEnabled:cfg.seaEnabled,waterLevel:cfg.waterLevel,objects:cfg.courseObjects},null,2),
  'vehiclelab-testmap-'+new Date().toISOString().slice(0,10)+'.json','application/json')};
 $('mapImport').onclick=()=>$('mapImportFile').click();
 $('mapImportFile').onchange=async e=>{try{const file=e.target.files?.[0];if(!file)return;
+ if(file.size>600000)throw Error('Map JSON exceeds the 600 KB limit');
  const data=JSON.parse(await file.text());if(!['vehiclelab-testmap/v1','vehiclelab-testmap/v2','vehiclelab-testmap/v3'].includes(data.schema)||!Array.isArray(data.objects)||data.objects.length>220)throw Error('Invalid test map');
  const allowed=new Set([...Object.values(OBJECT_CHOICES).map(pair=>pair[1])]);
  for(const o of data.objects){if(!allowed.has(o.kind)||!['x','z','w','d','h'].every(k=>Number.isFinite(o[k])&&Math.abs(o[k])<400)||
   o.points&&(!Array.isArray(o.points)||o.points.length>200||o.points.some(p=>!Number.isFinite(p.x)||!Number.isFinite(p.z))))throw Error('Invalid map object')}
+ validateMapSculptPayload(data);
  cfg.courseObjects=data.objects.map(o=>({...o}));normalizeCourseObjects();cfg.courseName=String(data.name||'Imported').slice(0,90);
  if(data.terrainProfile||data.terrain)cfg.terrainProfile=data.terrainProfile||data.terrain;
  if(data.groundSurface||data.ground)cfg.groundSurface=data.groundSurface||data.ground;
  if(['cliff','barrier','ramp','wrap','cells'].includes(data.edge))cfg.worldEdgeMode=data.edge;
  const cells=data.worldCells||data.cells;if(cells&&typeof cells==='object'&&!Array.isArray(cells))cfg.worldCells=structuredClone(cells);
  const size=Number(data.terrainSize??data.size);if(Number.isFinite(size)&&size>=90)cfg.terrainSize=clamp(size,90,300);
- showWorldCells();$('mapName').value=cfg.courseName;selectCourseObject(null);rememberMapEdit('Imported test map');await refreshEnvironmentForMap();note('Imported test map')
+ applyMapSculptSettings(data);showWorldCells();$('mapName').value=cfg.courseName;selectCourseObject(null);rememberMapEdit('Imported test map');await refreshEnvironmentForMap();note('Imported test map')
  }catch(error){note(error.message,true)}finally{e.target.value=''}};
 // The freehand input can create closed area patches or smoothed open paths.
 const patchSettings=document.createElement('div');patchSettings.className='map-top';
@@ -6688,8 +6963,8 @@ $('mapTool').closest('label').after(patchSelector);
 updateMapZoomUI();let mapFrame=0;
 
 // Workspace windows: pointer dragging + native CSS resize + minimize.
-const WINDOW_IDS=['toolbarWindow','toolsWindow','catalogWindow','galleryWindow','paramsWindow','logWindow','paletteWindow','wheelWindow','mapWindow','objectWindow','fleetWindow','chassisWindow','mediaWindow','radioWindow'];
-const WINDOW_NAMES=['Actions','Tools','Library','Gallery','Parameters','Logs','Materials','Wheel workshop','Test map','Object','Scene vehicles','Chassis workshop','My media','Radio'];
+const WINDOW_IDS=['toolbarWindow','toolsWindow','catalogWindow','galleryWindow','paramsWindow','logWindow','paletteWindow','wheelWindow','mapWindow','objectWindow','fleetWindow','chassisWindow','mediaWindow','radioWindow','sculptWindow'];
+const WINDOW_NAMES=['Actions','Tools','Library','Gallery','Parameters','Logs','Materials','Wheel workshop','Test map','Object','Scene vehicles','Chassis workshop','My media','Radio','Terrain sculpt'];
 let highestZ=18;
 const safeStore=(name,value)=>{try{localStorage.setItem(name,value)}catch(e){}};
 const safeRead=name=>{try{return localStorage.getItem(name)}catch(e){return null}};
@@ -6764,8 +7039,15 @@ function initWorkspace(){
    if(data.min)win.classList.add('is-minimized');
   }
   win.addEventListener('pointerdown',()=>win.style.zIndex=String(++highestZ));
-  head.querySelector('.minimize').onclick=()=>{
-    win.classList.toggle('is-minimized');snapshotWindow(win);
+  const collapseBtn=head.querySelector('.minimize');
+  collapseBtn.setAttribute('aria-expanded',String(!win.classList.contains('is-minimized')));
+  collapseBtn.setAttribute('aria-label',win.classList.contains('is-minimized')?'Expand window':'Collapse window');
+  collapseBtn.title=collapseBtn.getAttribute('aria-label');
+  collapseBtn.onclick=()=>{
+    win.classList.toggle('is-minimized');
+    const b=collapseBtn,min=win.classList.contains('is-minimized');
+    b.title=min?'Expand window':'Collapse window';b.setAttribute('aria-label',b.title);b.setAttribute('aria-expanded',String(!min));
+    snapshotWindow(win);
     if(workspaceModes[mode]){workspaceModes[mode][id]={show:windowCurrentlyVisible(id),min:win.classList.contains('is-minimized')};saveWorkspaceModes()}
   };
   // Explicit resize handle works with touch and mouse; browser-native
@@ -6809,7 +7091,7 @@ function initWorkspace(){
 }
 
 const THEME_STORAGE='vehiclelab.theme.v1';
-const defaultsTheme={theme:'dark',font:'system',size:1,accent:null,panel:null,actionMode:'icon-text'};
+const defaultsTheme={theme:'dark',font:'system',size:1,accent:null,panel:null,actionMode:'icon-text',noBorders:false,noShadows:false};
 let themeSettings={...defaultsTheme};
 const themes=['dark','light','graphite','amber'];
 const fonts=['system','mono','rounded','Arial','Verdana','Tahoma','Trebuchet MS','Georgia','Times New Roman','Courier New'];
@@ -6843,6 +7125,13 @@ function applyButtonMode(){
 }
 function applyTheme(){
  document.body.dataset.theme=themeSettings.theme;
+ document.body.classList.toggle('ui-no-borders',Boolean(themeSettings.noBorders));
+ document.body.classList.toggle('ui-no-shadows',Boolean(themeSettings.noShadows));
+ for(const [id,key,label] of [['themeBorders','noBorders','Borders'],['themeShadows','noShadows','Shadows']]){
+  const b=$(id);b.setAttribute('aria-pressed',String(Boolean(themeSettings[key])));
+  b.textContent=label+(themeSettings[key]?' off':' on');
+  b.onclick=()=>{themeSettings[key]=!themeSettings[key];applyTheme()};
+ }
  const faces={system:'system-ui,-apple-system,sans-serif',mono:'ui-monospace,SFMono-Regular,monospace',rounded:'ui-rounded,system-ui,sans-serif'};
  document.documentElement.style.setProperty('--ui-font',faces[themeSettings.font]||JSON.stringify(themeSettings.font)+',system-ui,sans-serif');
  applyButtonMode();
@@ -7026,6 +7315,8 @@ function initTheme(){
   if(isValidFontName(imported.font)&&!fonts.includes(imported.font))fonts.push(imported.font);
   if(scales.includes(imported.size))themeSettings.size=imported.size;
  if(actionModes.includes(imported.actionMode))themeSettings.actionMode=imported.actionMode;
+  if(typeof imported.noBorders==='boolean')themeSettings.noBorders=imported.noBorders;
+  if(typeof imported.noShadows==='boolean')themeSettings.noShadows=imported.noShadows;
   if(/^#[0-9a-fA-F]{6}$/.test(imported.accent||''))themeSettings.accent=imported.accent;
   if(/^#[0-9a-fA-F]{6}$/.test(imported.panel||''))themeSettings.panel=imported.panel;
  }catch(e){}applyTheme();
@@ -7039,10 +7330,13 @@ $('themeFile').onchange=async e=>{
    !(fonts.includes(value.font)||isValidFontName(value.font))||!scales.includes(value.size)||
    (value.actionMode!=null&&!actionModes.includes(value.actionMode))||
    (value.accent!=null&&!/^#[0-9a-fA-F]{6}$/.test(value.accent))||
-   (value.panel!=null&&!/^#[0-9a-fA-F]{6}$/.test(value.panel)))throw Error('Invalid theme JSON');
+   (value.panel!=null&&!/^#[0-9a-fA-F]{6}$/.test(value.panel))||
+   (value.noBorders!=null&&typeof value.noBorders!=='boolean')||
+   (value.noShadows!=null&&typeof value.noShadows!=='boolean'))throw Error('Invalid theme JSON');
   if(!fonts.includes(value.font))fonts.push(value.font);
   themeSettings={theme:value.theme,font:value.font,size:value.size,
-   accent:value.accent||null,panel:value.panel||null,actionMode:value.actionMode||'icon-text'};applyTheme();note('Theme imported.');
+   accent:value.accent||null,panel:value.panel||null,actionMode:value.actionMode||'icon-text',
+   noBorders:value.noBorders===true,noShadows:value.noShadows===true};applyTheme();note('Theme imported.');
  }catch(e){note(e.message,true)}e.target.value='';
 };
 for(const [id,field] of [['themeAccent','accent'],['themePanel','panel']]){
@@ -7508,7 +7802,7 @@ async function removeFleetVehicle(id){
 $('fleetDuplicate').onclick=duplicateActiveFleet;
 $('fleetViewGallery').onclick=()=>setWindowVisible('galleryWindow',true);
 renderer.domElement.addEventListener('pointerup',event=>{
- if(event.button!==0||transformDragging||mode==='drive'&&Math.abs(inputForStep().throttle)>.1)return;
+ if(event.button!==0||sculpt3DStroke||transformDragging||mode==='drive'&&Math.abs(inputForStep().throttle)>.1)return;
  const box=renderer.domElement.getBoundingClientRect();
  const coords=new THREE.Vector2((event.clientX-box.left)/box.width*2-1,1-(event.clientY-box.top)/box.height*2);
  const ray=new THREE.Raycaster();ray.setFromCamera(coords,camera);
@@ -7611,7 +7905,15 @@ $('galleryRefreshBtn').onclick=()=>{gallerySource='public';setWindowVisible('gal
 $('layoutPublic').onchange=()=>{serverVisibility=$('layoutPublic').checked?'public':'private'};
 
 const RELEASE_NOTES=[
- {v:'0.3.18',date:'2026-11-10',title:'Blender-style viewport keys, safe object cloning and image-first gallery',items:[
+ {v:'0.3.19',date:'2026-11-10',title:'Terrain sculpting, elevation and sea level; consistent window styling',items:[
+  'Raise or lower terrain using a draggable spherical brush on the overhead map or directly in the 3D scene, with [ and ] adjusting radius and dedicated radius/strength/direction controls.',
+  'Terrain base plateau elevation and independent sea-level altitude support carving valleys and optionally filling them with water. Separate Terrain, Sea, Sky and Ground folders clarify the controls.',
+  'Sculpt changes use a compact bounded 1.5-m grid, map undo/redo and compatible local/cloud map JSON; rebuild physics only after a brush stroke ends, without leaving DRIVE.',
+  'All floating window minimize buttons use the supplied centered currentColor collapse SVG with accessible expanded state.',
+  'Theme & typography provides independent Borders off and Shadows off pills, saved/imported with the theme. Configuration buttons use a consistent font and control height.',
+  'No new backend dependencies, paid API requests or database migrations. Full GPU/physics/production checks remain required.'
+ ]},
+ {v:'0.3.19',date:'2026-11-10',title:'Blender-style viewport keys, safe object cloning and image-first gallery',items:[
   'Shift+D preserves source rotation and places the clone vertically above the original, separated by its rendered height and a safety gap.',
   'Numpad front/right/top/back/left/bottom, orbit, camera view, ortho toggle, zoom, frame selection, local view and backtick view menu.',
   'View-orientation keys preserve the existing camera target and distance. Emulate numpad is optional for top-row number keys.',
