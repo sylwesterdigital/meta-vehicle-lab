@@ -414,3 +414,48 @@ class AIPrivateMediaTests(unittest.TestCase):
         self.assertEqual(thumbnail.status_code,200)
         self.assertEqual(thumbnail.mimetype,'image/jpeg')
         self.assertEqual(self.client.get('/api/me/media/'+media_id,headers=self.other).status_code,404)
+
+@unittest.skipIf(create_app is None,'Flask must be installed for API tests')
+class DurableLibraryAPITests(unittest.TestCase):
+    def setUp(self):
+        self.temp=tempfile.TemporaryDirectory()
+        self.addCleanup(self.temp.cleanup)
+        self.app=create_app({'TESTING':True,'DATA_DIR':self.temp.name,'API_TOKEN':'test-token'})
+        self.client=self.app.test_client()
+        self.a=self.client.post('/api/identity/guest',json={'name':'Model Owner'}).json
+        self.b=self.client.post('/api/identity/guest',json={'name':'Other'}).json
+        self.headers={'Authorization':'Bearer '+self.a['token']}
+        self.other={'Authorization':'Bearer '+self.b['token']}
+
+    def test_all_models_backup_rehydration_and_owner_isolation(self):
+        import io, json, zipfile
+        # 20-byte minimal GLB with valid header; enough for binary storage tests.
+        glb=b'glTF'+(2).to_bytes(4,'little')+(20).to_bytes(4,'little')+b'\0'*8
+        local_id=str(uuid.uuid4())
+        def upload(blob,client_id=local_id):
+            return self.client.post('/api/me/assets',headers=self.headers,
+                                    data={'file':(io.BytesIO(blob),'wheel.glb'),'kind':'wheel',
+                                          'client_id':client_id},content_type='multipart/form-data')
+        created=upload(glb)
+        self.assertEqual(created.status_code,201,created.get_json())
+        ident=created.json['asset']['id']
+        duplicate=upload(glb)
+        self.assertEqual(duplicate.status_code,200,duplicate.get_json())
+        self.assertEqual(duplicate.json['asset']['id'],ident)
+        self.assertEqual(upload(glb+b'x').status_code,400) # invalid length; no overwrite
+        self.assertEqual(self.client.get('/api/me/models',headers=self.other).json['models'],[])
+        self.assertEqual(self.client.get('/api/me/assets/'+ident,headers=self.other).status_code,404)
+        models=self.client.get('/api/me/models',headers=self.headers).json['models']
+        self.assertEqual(models[0]['kind'],'wheel')
+        self.assertEqual(models[0]['client_id'],local_id)
+        missing=self.client.get('/api/me/backup')
+        self.assertEqual(missing.status_code,401)
+        other=self.client.get('/api/me/backup',headers=self.other)
+        self.assertEqual(other.status_code,200)
+        with zipfile.ZipFile(io.BytesIO(other.data)) as z:
+            self.assertEqual(json.loads(z.read('manifest.json'))['models'],0)
+        own=self.client.get('/api/me/backup',headers=self.headers)
+        self.assertEqual(own.status_code,200)
+        with zipfile.ZipFile(io.BytesIO(own.data)) as z:
+            self.assertEqual(z.read('models/'+ident+'.glb'),glb)
+            self.assertEqual(json.loads(z.read('manifest.json'))['models'],1)

@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import hashlib
+import sqlite3
 import hmac
 import json
 import os
@@ -129,6 +130,17 @@ def create_app(config=None):
 
     # Different owners never share a session token. No token, email, IP or
     # provider credential is written into application logs.
+    @app.before_request
+    def safeguard_storage_mutations():
+        # Retain a recent valid database snapshot BEFORE any potentially modifying API call.
+        # If this fails (disk full, read error), never claim the write was safely accepted.
+        if request.path.startswith('/api/') and request.method in ('POST','PUT','PATCH','DELETE'):
+            try:store.safety_snapshot()
+            except (OSError,sqlite3.Error) as exc:
+                app.logger.error('Safety snapshot failed: %s',type(exc).__name__)
+                return jsonify(error='Server backup unavailable; changes are paused to protect existing data'),503
+        return None
+
     @app.after_request
     def request_audit(response):
         if request.path.startswith('/api/') and request.path!='/api/health':
@@ -476,6 +488,11 @@ def create_app(config=None):
         name=(file.filename or 'model.glb').rsplit('/',1)[-1].rsplit('\\',1)[-1]
         if not name.lower().endswith('.glb') or len(name)>120:
             return jsonify(error='GLB file required'),400
+        kind=request.form.get('kind','chassis')
+        if kind not in ('wheel','cap','chassis','avatar','passenger'):
+            return jsonify(error='Invalid model category'),400
+        client_id=request.form.get('client_id') or None
+        if client_id:validate_uuid(client_id)
         identifier=str(uuid.uuid4());dest=store.assets/(identifier+'.glb')
         hasher=hashlib.sha256();size=0
         try:
@@ -487,10 +504,84 @@ def create_app(config=None):
             with dest.open('rb') as content:header=content.read(12)
             if len(header)!=12 or header[:4]!=b'glTF' or int.from_bytes(header[4:8],'little')!=2 or int.from_bytes(header[8:12],'little')!=size:
                 raise InvalidLayout('Invalid GLB header or length')
-            store.add_asset(identifier=identifier,filename=name,size=size,sha256=hasher.hexdigest(),owner_id=member['id'])
+            existing=store.find_owned_client_asset(member['id'],client_id) if client_id else None
+            if existing:
+                if existing['sha256']!=hasher.hexdigest() or existing['kind']!=kind:
+                    raise InvalidLayout('This local model ID already points to different cloud content; nothing was replaced')
+                dest.unlink(missing_ok=True)
+                return jsonify(asset={'id':existing['id'],'bytes':existing['bytes'],'kind':kind,'client_id':client_id,'already_saved':True}),200
+            mirror_dir=store.dir/'asset-backups';mirror_dir.mkdir(mode=0o700,parents=True,exist_ok=True)
+            mirror_path=mirror_dir/(identifier+'.glb')
+            with dest.open('rb') as source,mirror_path.open('xb') as backup:
+                while chunk:=source.read(1024*1024):backup.write(chunk)
+                backup.flush();os.fsync(backup.fileno())
+            store.add_asset(identifier=identifier,filename=name,size=size,sha256=hasher.hexdigest(),owner_id=member['id'],kind=kind,client_id=client_id)
+            # Immutable asset: an upload cannot overwrite another user's model or an older revision.
         except Exception:
-            dest.unlink(missing_ok=True);raise
-        return jsonify(asset={'id':identifier,'bytes':size}),201
+            dest.unlink(missing_ok=True)
+            (store.dir/'asset-backups'/(identifier+'.glb')).unlink(missing_ok=True)
+            raise
+        return jsonify(asset={'id':identifier,'bytes':size,'kind':kind,'client_id':client_id}),201
+
+    @app.get('/api/me/backup')
+    def download_private_backup():
+        # Portable read-only export. Never expose another profile's records or tokens.
+        member,error=guest_or_error()
+        if error:return error
+        owner=member['id']
+        import tempfile
+        with store.connect() as db:
+            asset_rows=db.execute('SELECT id,filename,bytes,sha256,kind,client_id FROM assets WHERE owner_id=?',
+                                  (owner,)).fetchall()
+            car_rows=db.execute('SELECT id,name,blueprint,asset_id,revision,visibility,updated_at FROM user_layouts WHERE profile_id=?',
+                                (owner,)).fetchall()
+            media_rows=db.execute('SELECT id,kind,name,mime,payload,updated_at FROM user_media WHERE profile_id=?',
+                                  (owner,)).fetchall()
+            total=sum(row['bytes'] for row in asset_rows)+sum(len(row['payload']) for row in media_rows)
+            if total>1024*1024*1024 or len(asset_rows)>500 or len(car_rows)>500 or len(media_rows)>500:
+                return jsonify(error='Private backup exceeds the 1 GiB archive limit; download models individually'),413
+            # TemporaryFile is unlinked immediately; the browser receives a streamed download.
+            archive=tempfile.TemporaryFile(mode='w+b',dir=store.dir)
+            try:
+                with zipfile.ZipFile(archive,'w',compression=zipfile.ZIP_STORED,allowZip64=True) as z:
+                    metadata={'schema':'vehiclelab-private-export/v1','exported_at':int(time.time()),
+                              'cars':len(car_rows),'models':len(asset_rows),'media':len(media_rows),
+                              'assets':[]}
+                    for row in car_rows:
+                        data={k:row[k] for k in ('id','name','asset_id','revision','visibility','updated_at')}
+                        data['blueprint']=json.loads(row['blueprint'])
+                        z.writestr('cars/'+row['id']+'.json',json.dumps(data,ensure_ascii=False))
+                    for row in media_rows:
+                        suffix='.json' if row['kind']=='map' else '.jpg'
+                        z.writestr('media/'+row['id']+suffix,row['payload'])
+                    for row in asset_rows:
+                        path=store.assets/(row['id']+'.glb')
+                        if not path.is_file():
+                            metadata['assets'].append({'id':row['id'],'status':'MISSING', 'name':row['filename']})
+                            continue
+                        with z.open('models/'+row['id']+'.glb','w',force_zip64=True) as target, path.open('rb') as source:
+                            digest=hashlib.sha256()
+                            while chunk:=source.read(1024*1024):
+                                digest.update(chunk);target.write(chunk)
+                        status='ok' if digest.hexdigest()==row['sha256'] else 'HASH_MISMATCH'
+                        metadata['assets'].append({'id':row['id'],'name':row['filename'],
+                                                  'kind':row['kind'],'client_id':row['client_id'],
+                                                  'sha256':row['sha256'],'status':status})
+                    z.writestr('manifest.json',json.dumps(metadata,ensure_ascii=False,indent=2))
+                archive.seek(0)
+                response=send_file(archive,mimetype='application/zip',as_attachment=True,
+                                   download_name='VehicleLab-Private-Library.zip')
+                response.call_on_close(archive.close)
+                return response
+            except Exception:
+                archive.close()
+                raise
+
+    @app.get('/api/me/models')
+    def my_models():
+        member,error=guest_or_error()
+        if error:return error
+        return jsonify(models=store.own_models_list(member['id']))
 
     @app.get('/api/me/assets/<identifier>')
     def my_get_asset(identifier):
@@ -498,7 +589,10 @@ def create_app(config=None):
         if error:return error
         item=store.get_asset(identifier)
         if not item or item['owner_id']!=member['id']:return jsonify(error='Asset not found'),404
-        return send_file(store.assets/(identifier+'.glb'),mimetype='model/gltf-binary',as_attachment=True,download_name='vehicle.glb')
+        file=store.assets/(identifier+'.glb')
+        if not file.is_file():file=store.dir/'asset-backups'/(identifier+'.glb')
+        if not file.is_file():return jsonify(error='Model binary unavailable; recover from private backup'),503
+        return send_file(file,mimetype='model/gltf-binary',as_attachment=True,download_name=item['filename'])
 
     @app.get('/api/gallery/<identifier>/asset')
     def public_gallery_asset(identifier):

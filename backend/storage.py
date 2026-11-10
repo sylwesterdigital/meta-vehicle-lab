@@ -168,6 +168,39 @@ class Storage:
         self.assets.mkdir(parents=True, exist_ok=True, mode=0o700)
         self.init()
 
+    def safety_snapshot(self):
+        """Automatic, non-destructive SQLite snapshot; rate-limited across workers.
+
+        Snapshot is on the same host, NOT an offsite disaster-recovery backup.
+        The source is copied via sqlite3.backup to preserve SQLite WAL consistency.
+        """
+        import fcntl
+        backups=self.dir/'db-backups'
+        backups.mkdir(mode=0o700,parents=True,exist_ok=True)
+        with (backups/'.lock').open('a+b') as lock:
+            fcntl.flock(lock.fileno(),fcntl.LOCK_EX)
+            existing=sorted(backups.glob('snapshot-*.sqlite3'))
+            if existing and (time.time()-existing[-1].stat().st_mtime)<900:
+                return existing[-1]
+            import tempfile
+            fd,name=tempfile.mkstemp(prefix='.pending-',suffix='.sqlite3',dir=backups)
+            os.close(fd)
+            temporary=Path(name)
+            try:
+                with self.connect() as source, sqlite3.connect(temporary) as target:
+                    source.backup(target)
+                    if target.execute('PRAGMA quick_check').fetchone()[0]!='ok':
+                        raise OSError('SQLite safety snapshot is not valid')
+                # Fully durable file before exposing as a completed backup.
+                with temporary.open('rb') as binary:os.fsync(binary.fileno())
+                final=backups/('snapshot-'+time.strftime('%Y%m%d-%H%M%S',time.gmtime())+'.sqlite3')
+                os.replace(temporary,final)
+                for stale in sorted(backups.glob('snapshot-*.sqlite3'))[:-48]:
+                    stale.unlink(missing_ok=True)
+                return final
+            finally:
+                temporary.unlink(missing_ok=True)
+
     def connect(self):
         db = sqlite3.connect(self.path, timeout=10)
         db.row_factory = sqlite3.Row
@@ -229,6 +262,9 @@ class Storage:
             ''')
             cols={row['name'] for row in db.execute('PRAGMA table_info(assets)')}
             if 'owner_id' not in cols:db.execute('ALTER TABLE assets ADD COLUMN owner_id TEXT')
+            if 'kind' not in cols:db.execute("ALTER TABLE assets ADD COLUMN kind TEXT NOT NULL DEFAULT 'chassis'")
+            if 'client_id' not in cols:db.execute('ALTER TABLE assets ADD COLUMN client_id TEXT')
+            db.execute('CREATE INDEX IF NOT EXISTS ix_assets_owner_client ON assets(owner_id,client_id)')
 
     @staticmethod
     def summary(row):
@@ -492,7 +528,7 @@ class Storage:
 
     def own_models_list(self,owner,limit=100):
         with self.connect() as db:
-            rows=db.execute('SELECT id,filename AS name,bytes,created_at FROM assets '
+            rows=db.execute('SELECT id,filename AS name,bytes,created_at,kind,client_id,sha256 FROM assets '
                             'WHERE owner_id=? ORDER BY created_at DESC LIMIT ?',
                             (validate_uuid(owner),min(100,max(1,int(limit))))).fetchall()
             return [dict(row) for row in rows]
@@ -520,14 +556,24 @@ class Storage:
                            'WHERE l.id=? AND l.visibility=?',(validate_uuid(identifier),'public')).fetchone()
             return {**dict(row),'blueprint':json.loads(row['blueprint'])} if row else None
 
-    def add_asset(self, *, identifier, filename, size, sha256, owner_id=None):
+    def find_owned_client_asset(self,owner,client_id):
+        owner=validate_uuid(owner);client_id=validate_uuid(client_id)
+        with self.connect() as db:
+            row=db.execute('SELECT * FROM assets WHERE owner_id=? AND client_id=? ORDER BY created_at DESC LIMIT 1',
+                           (owner,client_id)).fetchone()
+            return dict(row) if row else None
+
+    def add_asset(self, *, identifier, filename, size, sha256, owner_id=None, kind='chassis', client_id=None):
         validate_uuid(identifier)
         if not isinstance(size,int) or not 20<=size<=80*1024*1024:raise InvalidLayout('Invalid model asset size')
         if not isinstance(filename,str) or len(filename)>120:raise InvalidLayout('Invalid model filename')
         if owner_id:validate_uuid(owner_id)
+        if kind not in ('wheel','cap','chassis','avatar','passenger'):
+            raise InvalidLayout('Invalid 3D asset category')
+        if client_id:validate_uuid(client_id)
         with self.connect() as db:
-            db.execute('INSERT INTO assets(id,filename,bytes,sha256,created_at,owner_id) VALUES (?,?,?,?,?,?)',
-                       (identifier,filename,size,sha256,int(time.time()*1000),owner_id))
+            db.execute('INSERT INTO assets(id,filename,bytes,sha256,created_at,owner_id,kind,client_id) VALUES (?,?,?,?,?,?,?,?)',
+                       (identifier,filename,size,sha256,int(time.time()*1000),owner_id,kind,client_id))
 
     def get_asset(self,identifier):
         validate_uuid(identifier)

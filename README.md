@@ -1,4 +1,14 @@
-# Vehicle Lab — v0.3.24 — Local-library diagnostics and Wheel Workshop repair (2026-11-10)
+## v0.3.25 — Server-primary asset safety and independent worlds (2026-11-10)
+
+- 3D wheel/cap/avatar/chassis imports and generated GLBs require an authenticated profile and an acknowledged owner-scoped server upload before local caching. Model metadata includes category and stable client ID; old assets remain untouched.
+- On login, scan existing local model binaries and back them up to the server before restoring cloud-only model binaries into IndexedDB. Failed transfers are logged as errors rather than successful saves.
+- Map saves await the private server result, then cache locally. No silent fire-and-forget backup. A map load changes terrain but not the currently loaded cars.
+- Vehicle loads keep the current scene terrain, sculpting and placed objects; using Add to scene retains the previous vehicles. Vehicle Save also writes the server copy before confirming local save.
+- Private server ZIP export includes original GLBs, vehicles, maps and images; before each mutation, rate-limited WAL-consistent SQLite snapshots are maintained (48 snapshots max), while new GLB assets get a redundant server-local binary copy. Offsite encrypted backups remain a deployment responsibility.
+- Each completed Lux3D model is archived in the cloud even if automatic scene import is off; cloud library is the default after signing in.
+- Existing data is retained. Only additive asset-kind/client-ID columns are introduced; no new Python dependencies, no destructive SQLite or browser migrations. Live validation of large GLBs and third-party providers remains required.
+
+# Vehicle Lab — v0.3.25 — Local-library diagnostics and Wheel Workshop repair (2026-11-10)
 
 - **Restored Wheel Workshop:** Saved BUILD/DRIVE workspaces can show the wheel window immediately after launch. Previously its thumbnails and parameter controls were blank until opening the launcher. The window now populates during workspace restore, after initial vehicle setup and after asynchronous GLB loading. Neither records nor GLB assets are reset or deleted.
 - **Read-only local storage check:** Configuration → Persistence & deployment → Check local libraries shows the exact browser origin, current IndexedDB car count, stored asset count, decoded wheel/avatar/chassis counts and available history snapshots, plus basic browser storage diagnostics. An optional downloadable JSON report contains no car names, private IDs, model binary content or credentials. This is a diagnostic, not an automatic repair or export of data.

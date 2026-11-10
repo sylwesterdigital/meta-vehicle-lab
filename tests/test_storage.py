@@ -318,3 +318,63 @@ class PrivateMediaPreviewTests(unittest.TestCase):
         self.assertEqual(self.store.own_media_list(two['id'],kind='image'),[])
         self.assertIsNone(self.store.own_media(two['id'],picture['id']))
         self.assertEqual(self.store.gallery(),[])
+
+class DurableAssetLibraryTests(unittest.TestCase):
+    """Persistent model records must survive process/release restart and stay owner-isolated."""
+    def setUp(self):
+        self.tmp=tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        self.storage=Storage(self.tmp.name)
+        self.a,_=self.storage.create_guest('Creator A')
+        self.b,_=self.storage.create_guest('Creator B')
+
+    def test_new_wheel_avatar_chassis_metadata_survives_restart(self):
+        for kind in ('wheel','cap','avatar','chassis','passenger'):
+            ident=str(uuid.uuid4());local_id=str(uuid.uuid4())
+            self.storage.add_asset(identifier=ident,filename=kind+'.glb',size=24,
+                sha256='a'*64,owner_id=self.a['id'],kind=kind,client_id=local_id)
+            self.assertEqual(self.storage.find_owned_client_asset(self.a['id'],local_id)['id'],ident)
+            self.assertIsNone(self.storage.find_owned_client_asset(self.b['id'],local_id))
+        reopened=Storage(self.tmp.name)
+        models=reopened.own_models_list(self.a['id'])
+        self.assertEqual({x['kind'] for x in models},{'wheel','cap','avatar','chassis','passenger'})
+        self.assertEqual(len(models),5)
+        self.assertEqual(reopened.own_models_list(self.b['id']),[])
+        with self.assertRaises(InvalidLayout):
+            reopened.add_asset(identifier=str(uuid.uuid4()),filename='x.glb',size=24,
+                sha256='b'*64,owner_id=self.a['id'],kind='untrusted')
+
+    def test_map_write_does_not_remove_models_or_cars(self):
+        ident=str(uuid.uuid4());local=str(uuid.uuid4())
+        self.storage.add_asset(identifier=ident,filename='rim.glb',size=24,
+            sha256='c'*64,owner_id=self.a['id'],kind='wheel',client_id=local)
+        carid=str(uuid.uuid4())
+        self.storage.user_save_layout(self.a['id'],carid,'Rally Car',blueprint())
+        mapdata={'schema':'vehiclelab-testmap/v3','objects':[],'sculptData':''}
+        self.storage.save_media(self.a['id'],'map','Test map',json.dumps(mapdata).encode(),'application/json')
+        self.assertEqual(len(self.storage.own_models_list(self.a['id'])),1)
+        self.assertEqual(len(self.storage.own_layouts(self.a['id'])),1)
+        self.assertEqual(len(self.storage.own_media_list(self.a['id'],'map')),1)
+
+class ServerSnapshotTests(unittest.TestCase):
+    def test_consistent_sqlite_snapshot_and_no_destructive_reset(self):
+        with tempfile.TemporaryDirectory() as directory:
+            store=Storage(directory)
+            owner,_=store.create_guest('Safe Writer')
+            model=str(uuid.uuid4());client=str(uuid.uuid4())
+            store.add_asset(identifier=model,filename='generated-wheel.glb',size=24,sha256='a'*64,
+                            owner_id=owner['id'],kind='wheel',client_id=client)
+            carid=str(uuid.uuid4())
+            store.user_save_layout(owner['id'],carid,'Saved scene',blueprint())
+            first=store.safety_snapshot()
+            self.assertTrue(first.is_file())
+            import sqlite3
+            with sqlite3.connect('file:'+str(first)+'?mode=ro',uri=True) as db:
+                self.assertEqual(db.execute('PRAGMA integrity_check').fetchone()[0],'ok')
+                self.assertEqual(db.execute('SELECT count(*) FROM assets').fetchone()[0],1)
+                self.assertEqual(db.execute('SELECT count(*) FROM user_layouts').fetchone()[0],1)
+            maps={'schema':'vehiclelab-testmap/v3','objects':[]}
+            store.save_media(owner['id'],'map','Map',json.dumps(maps).encode(),'application/json')
+            self.assertEqual(store.safety_snapshot(),first) # rate limit
+            self.assertEqual(len(store.own_layouts(owner['id'])),1)
+            self.assertEqual(len(store.own_models_list(owner['id'])),1)

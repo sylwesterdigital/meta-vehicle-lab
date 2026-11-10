@@ -5,7 +5,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Vehicle Lab — Procedural Studio</title>
-  <meta name="vehicle-lab-version" content="0.3.24">
+  <meta name="vehicle-lab-version" content="0.3.25">
   <style>
     :root {
       color-scheme:dark;
@@ -800,7 +800,7 @@ body.ui-no-shadows,body.ui-no-shadows *,body.ui-no-shadows *::before,body.ui-no-
 
   <div id="stage">
   <div id="hud">
-    <div class="stage-badge"><strong>Vehicle Lab</strong><small id="appVersionBadge">v0.3.24</small></div>
+    <div class="stage-badge"><strong>Vehicle Lab</strong><small id="appVersionBadge">v0.3.25</small></div>
     <p id="vehicleName">City Car</p><p id="vehicleInfo">Procedural vehicle</p>
     <div id="speedHud"><strong id="speed">0</strong><div>km/h</div></div>
     <div id="cameraModeReadout" style="padding:3px 6px;margin-top:4px;width:max-content;max-width:260px;border-radius:5px;background:#132d3cc0;color:#e9f5fc;font:10px ui-monospace,monospace">Camera · Orbit follow</div>
@@ -1201,7 +1201,7 @@ body.ui-no-shadows,body.ui-no-shadows *,body.ui-no-shadows *::before,body.ui-no-
     <button id="lux3dCancelQueue" type="button" hidden>Cancel remaining queued jobs</button>
     <div id="lux3dDownloads" class="lux-downloads" hidden></div>
     <button id="lux3dImportResult" type="button" hidden>Import completed GLB into editor</button>
-    <p>Generated files are downloaded directly from provider links. Import a downloaded GLB with Vehicle Tools → Import GLB. Generated body meshes remain visual replacements; wheels/physics stay procedural. External model output and charges require a real provider key.</p>
+    <p>Completed 3D files are saved privately to the server before optional scene import. You can also download the source GLB. Generated body meshes remain visual replacements; wheels/physics stay procedural. External model output and charges require a real provider key.</p>
   </details>
   <details><summary>Server logs (administrator only)</summary>
     <form id="adminTokenForm" autocomplete="off"><label>Administrator API token<input id="adminLogToken" type="password" autocomplete="off" placeholder="Required for server logs"></label>
@@ -1209,8 +1209,10 @@ body.ui-no-shadows,body.ui-no-shadows *,body.ui-no-shadows *::before,body.ui-no-
     <p>Profile members only see browser logs. Server logs exclude credentials; service and Mac watcher logs stay on their respective hosts.</p>
   </details>
   <details id="localPersistence"><summary>Persistence & deployment</summary>
-    <p>Flask + SQLite: private/public vehicle blueprints and passwordless profiles. Local cars and imported models are stored in this browser's IndexedDB, separately from cloud data and profile backups.</p>
+    <p>Private server is the primary library for saved maps, cars and imported/generated 3D models. Browser IndexedDB is only a cache. Cloud upload errors block save confirmation; always preserve your private profile backup.</p>
     <p><strong>Local library health</strong> · A read-only check reports whether saved cars and GLB assets exist for this exact browser origin. It never deletes, resets, migrates or uploads records.</p>
+    <div class="drawer-actions"><button type="button" id="downloadCloudLibrary">Download entire private cloud library ZIP</button></div>
+    <p>The private download includes cars, maps, images and original GLB files. Store this archive somewhere outside the browser. Keep your profile recovery backup separately; deleting site data can lose the private profile login.</p>
     <div class="drawer-actions"><button type="button" id="checkLocalLibraries">Check local libraries</button><button type="button" id="downloadLocalReport" disabled>Download diagnostic report</button></div>
     <pre id="localLibraryReport" class="local-storage-report" role="status" aria-live="polite">No check performed.</pre>
     <p>If the counts are zero, check the original browser profile and exact site address before changing any settings. Avoid clearing browsing/site data. The private profile backup is not a backup of browser-local cars.</p>
@@ -1602,7 +1604,7 @@ let ghostObject=null,ghostSamples=[],ghostElapsed=0,ghostTick=0;
     if(result&&typeof result.catch==='function')result.catch(()=>{});}}
   catch{/* analytics must never affect the app */}
  }
- const VERSION='0.3.24';
+ const VERSION='0.3.25';
  document.getElementById('appVersionBadge').textContent='v'+VERSION;
  let imageReference=null,busyAI=false;
 
@@ -4500,6 +4502,7 @@ let dbPromise=null;
 
 function database(){
  if(!dbPromise)dbPromise=new Promise((resolve,reject)=>{
+  // Cache only. Never delete/recreate object stores during version upgrades.
   const req=indexedDB.open(DB_NAME,3);
   req.onupgradeneeded=()=>{
    if(!req.result.objectStoreNames.contains(STORE))
@@ -4582,6 +4585,17 @@ async function checkLocalLibraries(){
   recordEvent('WARN','Read-only local library check failed: '+(error?.message||String(error)))}
 }
 $('checkLocalLibraries').onclick=()=>void checkLocalLibraries();
+$('downloadCloudLibrary').onclick=async()=>{
+ const button=$('downloadCloudLibrary');button.disabled=true;
+ try{
+  requireProtectedProfile();
+  const response=await fetch('/api/me/backup',{headers:authHeaders(),cache:'no-store',credentials:'same-origin'});
+  if(!response.ok){const info=await response.json().catch(()=>({}));throw Error(info.error||'Private archive HTTP '+response.status)}
+  const archive=await response.blob();download(archive,'VehicleLab-Private-Library-'+new Date().toISOString().slice(0,10)+'.zip','application/zip');
+  note('Downloaded private server library. Keep this ZIP in a secure location.');
+ }catch(error){note('Library export failed: '+error.message,true)}
+ finally{button.disabled=false}
+};
 $('downloadLocalReport').onclick=()=>{
  if(!lastLocalLibraryReport)return;
  download(JSON.stringify(lastLocalLibraryReport,null,2),'vehiclelab-local-storage-diagnostic.json','application/json');
@@ -4589,7 +4603,8 @@ $('downloadLocalReport').onclick=()=>{
 
 async function saveAvatarAsset(blob,name){
  if(blob.size>30*1024*1024)throw Error('Avatar library GLBs are limited to 30 MB each');
- const id=crypto.randomUUID(),data={id,name,blob,scale:.72,created:Date.now()};
+ const id=crypto.randomUUID(),data={id,name,kind:'avatar',blob,scale:.72,created:Date.now()};
+ await persistProtectedModel(data);
  await avatarStore('readwrite','put',data);
  await parseAvatarAsset(data);avatarEdit.model=id;seatBindings[avatarEdit.seat-1]=id;
  if(mode==='drive')leaveDrive();buildVehicle();setupGUI();
@@ -4614,11 +4629,13 @@ async function parseWheelAsset(data){
   data.preview=record.preview;
  }finally{URL.revokeObjectURL(url)}
 }
-async function storeWheelAsset(file,kind){
+async function storeWheelAsset(file,kind,protectedCloud=null){
  if(!file||file.size>35*1024*1024||file.size<12)throw Error('Wheel GLB must be 12 bytes to 35 MB');
  const magic=new TextDecoder().decode(new Uint8Array(await file.slice(0,4).arrayBuffer()));
  if(magic!=='glTF')throw Error('Wheel asset must be a valid binary GLB');
- const data={id:crypto.randomUUID(),name:file.name.slice(0,110),kind,blob:file,created:Date.now(),axis:'auto',rx:0,ry:0,rz:0};
+ const data={id:protectedCloud?.client_id||crypto.randomUUID(),name:file.name.slice(0,110),kind,blob:file,
+  cloudId:protectedCloud?.id||null,created:Date.now(),axis:'auto',rx:0,ry:0,rz:0};
+ await persistProtectedModel(data);
  await parseWheelAsset(data);await avatarStore('readwrite','put',data);
  cfg[selectedWheelAxle+(kind==='cap'?'CapModel':'WheelModel')]=data.id;
  rebuildWheelVisuals();renderWheelStudio();scheduleHistory('Wheel model imported');
@@ -4844,13 +4861,15 @@ async function saveLayout(copy=false){
  const details=await askVehicleDetails(previousName);if(!details)return;
  applyVehicleDetails(details);
  note('Capturing five gallery views…');galleryImages=captureVehicleGallery();
+ await persistVehicleToCloud(details,copy);
  const id=copy||!layoutId?crypto.randomUUID():layoutId;
  const record={id,name:details.name,modified:Date.now(),
   ...blueprint(),glbBlob:modelBlob||null,passengerBlob:passengerGLB||null};
- await transaction('readwrite','put',record);
+ try{await transaction('readwrite','put',record)}
+ catch(error){recordEvent('WARN','Car saved to server, local browser cache failed: '+error.message)}
  layoutId=id;commitHistory('Saved layout: '+details.name);
  await refreshSaved();await refreshVehicleGallery();
- trackUsage('vehicle_saved');note('Saved '+details.name+' with five camera views to IndexedDB.');
+ trackUsage('vehicle_saved');note('Saved '+details.name+' privately on the server and cached in this browser.');
 }
 
 async function refreshSaved(){
@@ -4875,9 +4894,11 @@ if(!root.children.length)root.textContent='No saved layouts';
  if(gallerySource==='local')void refreshVehicleGallery();
 }
 async function loadLayout(item){
+ const intactWorld=sceneWorldSnapshot();
  serverLayoutId=null;serverRevision=null;serverAssetId=null;serverAssetBlob=null;
  if(mode==='drive')leaveDrive();
  cfg={...structuredClone(defaults),...item.vehicle};
+ restoreSceneWorld(intactWorld); // Never load a world implicitly from a vehicle blueprint.
  if(item.simulation && ENGINE_LABELS[item.simulation.backend])
   simulator.engine=item.simulation.backend;
  updatePhysicsHud();
@@ -4931,6 +4952,65 @@ async function serverRequest(method,path,payload=null){
  if(!response.ok)throw Error(data.error||('SQLite server HTTP '+response.status));
  return data;
 }
+// Cloud is the durable source of user-created GLBs. IndexedDB is a disposable cache.
+// A model is NOT described as saved until the owner-scoped server acknowledges it.
+function requireProtectedProfile(){
+ if(!guestServerMode())throw Error('Create or restore your Vehicle Lab profile before importing or generating 3D models. Models must be saved on the server.');
+}
+async function persistProtectedModel(record){
+ requireProtectedProfile();
+ if(!record?.blob)throw Error('Missing 3D model binary; nothing saved');
+ if(record.ownerId && record.ownerId!==activeProfile.id)
+  throw Error('Model belongs to another local profile; switch to its profile before uploading');
+ await verifiedGLB(record.blob,record.name||'3D model');
+ if(record.cloudId && record.ownerId===activeProfile.id)return record.cloudId;
+ const form=new FormData();
+ form.append('file',record.blob,String(record.name||'model.glb').slice(0,115).replace(/\.glb$/i,'')+'.glb');
+ form.append('kind',record.kind||'chassis');
+ form.append('client_id',record.id);
+ const result=await serverRequest('POST','/api/assets',form);
+ if(!result?.asset?.id)throw Error('Cloud upload did not return a model ID');
+ record.cloudId=result.asset.id;
+ record.ownerId=activeProfile.id;
+ return record.cloudId;
+}
+let cloudModelSyncPromise=null;
+// Safe to invoke again: server-side client_id prevents duplicate uploads.
+async function syncProtectedModelLibrary(){
+ if(!guestServerMode())return;
+ if(cloudModelSyncPromise)return cloudModelSyncPromise;
+ cloudModelSyncPromise=(async()=>{
+  const local=await avatarStore('readonly','getAll').catch(error=>{throw Error('Cannot inspect local models: '+error.message)});
+  // Existing local models are backed up before any cloud downloads or cache replacement.
+  const failedBackups=[];
+  for(const row of local){
+   if(!row.blob||!['avatar','wheel','cap','chassis','passenger'].includes(row.kind||'avatar'))continue;
+   try{
+    const remote=await persistProtectedModel(row);
+    if(row.cloudId!==remote){row.cloudId=remote;await avatarStore('readwrite','put',row)}
+   }catch(error){failedBackups.push(row.id);recordEvent('ERROR','Model '+(row.name||row.id)+' NOT backed up to cloud: '+error.message)}
+  }
+  if(failedBackups.length)throw Error(failedBackups.length+' local GLB models were not backed up. No cloud save is confirmed until uploads succeed.');
+  const response=await identityRequest('/api/me/models');
+  let restored=0,failed=0;
+  for(const item of response.models||[]){
+   if(!item.client_id)continue; // legacy cloud chassis remains available via saved car link
+   const existing=await avatarStore('readonly','get',item.client_id).catch(()=>null);
+   if(existing?.blob)continue;
+   try{
+    const blob=await cloudModelBlob(item.id);
+    const row={id:item.client_id,name:item.name,kind:item.kind||'chassis',blob,
+     cloudId:item.id,ownerId:activeProfile.id,created:item.created_at,scale:.72,axis:'auto',rx:0,ry:0,rz:0};
+    await avatarStore('readwrite','put',row);restored++;
+   }catch(error){failed++;recordEvent('ERROR','Cloud model '+item.id+' could not be restored: '+error.message)}
+  }
+  if(restored){await loadAvatarLibrary();await refreshMediaBrowser().catch(()=>{})}
+  recordEvent(failed?'WARN':'INFO','Cloud model inventory: '+(response.models||[]).length+
+   ' records; '+restored+' restored to cache; '+failed+' download errors.');
+ })().finally(()=>{cloudModelSyncPromise=null});
+ return cloudModelSyncPromise;
+}
+
 async function refreshServer(){
  const root=$('serverSaved');root.replaceChildren();
  if(!guestServerMode()&&!serverAccess.token.trim()){
@@ -5020,6 +5100,12 @@ async function saveServer(copy=false){
  const details=await askVehicleDetails(candidate);if(!details)return;
  applyVehicleDetails(details);
  note('Capturing five gallery views…');galleryImages=captureVehicleGallery();
+ return persistVehicleToCloud(details,copy);
+}
+async function persistVehicleToCloud(details,copy=false){
+ requireProtectedProfile();
+ // Ensure all locally imported passenger/wheel/chassis binaries are mirrored first.
+ await syncProtectedModelLibrary();
  let assetId=serverAssetId;
  if(modelBlob && (serverAssetBlob!==modelBlob || !assetId)){
   const upload=new FormData();upload.append('file',modelBlob,modelName||'vehicle.glb');
@@ -5123,12 +5209,14 @@ async function decodeGLB(source){
   throw error;
  }
 }
-async function loadGLB(blob,name='Imported GLB',rebuild=true){
+async function loadGLB(blob,name='Imported GLB',rebuild=true,protectedCloud=null){
  if(blob.size>80*1024*1024)throw Error('GLB exceeds 80 MB');
  if(blob.size<12 || new TextDecoder().decode(new Uint8Array(await blob.slice(0,4).arrayBuffer()))!=='glTF')throw Error('File is not a binary GLB model');
  const fingerprint=await chassisFingerprint(blob);
  const existing=findChassisByFingerprint(fingerprint);
  if(existing){
+  if(rebuild && !existing.cloudId){await persistProtectedModel(existing);
+   await avatarStore('readwrite','put',{id:existing.id,name:existing.name,kind:'chassis',blob:existing.blob,created:existing.created,cloudId:existing.cloudId,fingerprint:existing.fingerprint,preview:existing.preview});}
   // Keep the binary instance from the current layout so cloud asset reuse and
   // saveServer() don't treat a legitimate download as an unrelated upload.
   modelSource=existing.source;modelBlob=blob;modelName=name;
@@ -5144,8 +5232,11 @@ async function loadGLB(blob,name='Imported GLB',rebuild=true){
   const bounds=new THREE.Box3().setFromObject(result.scene);
   if(bounds.isEmpty())throw Error('No visible mesh');
   modelSource=result.scene;modelBlob=blob;modelName=name;
-  const newId=crypto.randomUUID();currentChassisAssetId=newId;
-  const record={id:newId,name:String(name).slice(0,120),kind:'chassis',blob,created:Date.now(),preview:null,fingerprint};
+  const newId=protectedCloud?.client_id||crypto.randomUUID();
+  const record={id:newId,name:String(name).slice(0,120),kind:'chassis',blob,created:Date.now(),
+   cloudId:protectedCloud?.id||null,preview:null,fingerprint};
+  if(rebuild)await persistProtectedModel(record);
+  currentChassisAssetId=newId;
   record.preview=await createChassisPreview(result.scene);
   chassisAssets.set(newId,{...record,source:result.scene});
   try{await avatarStore('readwrite','put',record)}catch(err){recordEvent('WARN','Chassis library save: '+err.message)}
@@ -5345,6 +5436,7 @@ function setAIWorking(button,working,message='AI task in progress…'){
 
 async function generateImage(){
  if(busyAI)return;
+ if(!guestServerMode()){note('Restore or create a profile first. Generated images require private server storage.',true);return null}
  const key=keys[ai.provider];
  if(!key){note('Enter the selected provider API key in AI / API Keys.',true);return}
  busyAI=true;
@@ -5363,7 +5455,10 @@ async function generateImage(){
   imageReference=data.image;
   if(data.media?.id){note('Generated image saved to your private My Media → Images.');
    if(mediaType==='images'&&mediaSource==='cloud')void refreshMediaBrowser();}
-  else recordEvent('WARN','Generated concept exists in this tab only: private media save was not confirmed.');
+  else{
+   recordEvent('ERROR','Generated image exists ONLY in this tab; server save was NOT confirmed.');
+   note('WARNING: Generated image was not saved on the server. Download it now before leaving the page.',true);
+  }
   if(pendingWheelImage){$('wheelGeneratedPreview').src=imageReference;$('wheelGeneratedPreview').hidden=false;pendingWheelImage=false;
    $('wheelAISection').open=true;$('wheelAIStatus').textContent='Image concept generated. Review it, then authorize 3D generation if desired.';}
   $('referenceImage').src=imageReference;
@@ -5376,6 +5471,7 @@ finally{busyAI=false;setAIWorking(button,false);if(wheelTile){wheelTile.classLis
 let pendingTripoComponent='chassis';
 async function generateTripo(){
  if(busyAI)return;
+ if(!guestServerMode()){note('Restore or create a profile before generating 3D models.',true);return}
  if(!keys.tripo){note('Enter a Tripo API key in AI / API Keys.',true);return}
  busyAI=true;
  try{
@@ -7333,17 +7429,25 @@ $('worldCellApply').onclick=async()=>{
 showWorldCells();
 $('mapSave').onclick=async()=>{const name=await requestMapName();
  if(!name)return;cfg.courseName=name;$('mapName').value=name;
- const id=crypto.randomUUID();await mapTransaction('readwrite','put',{id,name,objects:structuredClone(cfg.courseObjects),terrain:cfg.terrainProfile,ground:cfg.groundSurface,edge:cfg.worldEdgeMode,cells:structuredClone(cfg.worldCells),size:cfg.terrainSize,terrainBaseElevation:cfg.terrainBaseElevation,sculptData:cfg.sculptData,seaEnabled:cfg.seaEnabled,waterLevel:cfg.waterLevel,biome:mapBiomeSnapshot(),modified:Date.now()});
- await refreshMapList();$('mapSaved').value=id;trackUsage('map_saved');note('Saved precision test map in IndexedDB.');
- if(activeProfile&&guestToken){
+ try{
+  requireProtectedProfile();
+  const id=crypto.randomUUID();
   const documentMap={schema:'vehiclelab-testmap/v3',name,
    terrainProfile:cfg.terrainProfile,groundSurface:cfg.groundSurface,
-   objects:cfg.courseObjects,edge:cfg.worldEdgeMode,worldCells:cfg.worldCells,
-   terrainSize:cfg.terrainSize,terrainBaseElevation:cfg.terrainBaseElevation,sculptData:cfg.sculptData,seaEnabled:cfg.seaEnabled,waterLevel:cfg.waterLevel,biome:mapBiomeSnapshot()};
-  void identityRequest('/api/me/media','POST',{kind:'map',name,data:documentMap})
-   .then(()=>recordEvent('INFO','Map also saved privately in cloud.'))
-   .catch(e=>recordEvent('WARN','Cloud map backup: '+e.message));
- }};
+   objects:structuredClone(cfg.courseObjects),edge:cfg.worldEdgeMode,worldCells:structuredClone(cfg.worldCells),
+   terrainSize:cfg.terrainSize,terrainBaseElevation:cfg.terrainBaseElevation,sculptData:cfg.sculptData,
+   seaEnabled:cfg.seaEnabled,waterLevel:cfg.waterLevel,biome:mapBiomeSnapshot()};
+  // Server commit is mandatory and awaited. A failed POST must NOT display Saved.
+  await identityRequest('/api/me/media','POST',{id,kind:'map',name,data:documentMap});
+  try{await mapTransaction('readwrite','put',{id,name,objects:documentMap.objects,terrain:cfg.terrainProfile,
+   ground:cfg.groundSurface,edge:cfg.worldEdgeMode,cells:documentMap.worldCells,size:cfg.terrainSize,
+   terrainBaseElevation:cfg.terrainBaseElevation,sculptData:cfg.sculptData,seaEnabled:cfg.seaEnabled,
+   waterLevel:cfg.waterLevel,biome:documentMap.biome,modified:Date.now()});
+  }catch(error){recordEvent('WARN','Map safely stored in cloud but offline cache unavailable: '+error.message)}
+  await refreshMapList().catch(()=>{});$('mapSaved').value=id;trackUsage('map_saved');
+  note('Map saved to your private server library. Current vehicles and scene remain unchanged.');
+ }catch(error){note('Map NOT saved: '+error.message,true);recordEvent('ERROR','Map cloud save failed: '+error.message)}
+};
 function validateMapSculptPayload(data){
  const raw=data.sculptData??'';
  if(typeof raw!=='string'||raw.length>115000)throw Error('Invalid sculpt grid data');
@@ -7945,7 +8049,13 @@ async function setIdentity(token){
  const data=await identityRequest('/api/identity/me');
  activeProfile=data.profile;safeStore('vehiclelab.guest.v1',token);
  displayProfile();$('welcomeOverlay').hidden=true;
+ // Cloud is the primary library after login; a cleared local cache must not appear as lost data.
+ gallerySource='cloud';mediaSource='cloud';gallerySelection();
  await refreshServer().catch(e=>recordEvent('WARN',e.message));
+ void refreshVehicleGallery().catch(e=>recordEvent('WARN','Cloud cars: '+e.message));
+ void refreshMediaBrowser().catch(e=>recordEvent('WARN','Cloud media: '+e.message));
+ // Do not block UI initialization on large downloads; never silently claim an empty library.
+ void syncProtectedModelLibrary().catch(e=>recordEvent('ERROR','Cloud model sync failed: '+e.message));
 }
 async function postAvatar(file){
  if(!file)return;
@@ -8144,7 +8254,10 @@ function makeGalleryCard(item){
  const buttons=document.createElement('div');buttons.className='thumb-actions';buttons.setAttribute('aria-label',name+' actions');
  const appendBtn=(label,icon,fn,danger=false)=>{
   const b=document.createElement('button');b.type='button';b.innerHTML=GALLERY_ICONS[icon];
-  b.title=label+' · '+name;b.setAttribute('aria-label',label+' '+name);
+  const actionText=label==='Open'?'Replace active car (preserves current map and all other scene vehicles)':
+   label==='Add to scene'?'Add another vehicle without replacing the current scene':label;
+  b.title=actionText+' · '+name;b.setAttribute('aria-label',label+' '+name);
+  b.setAttribute('aria-description',actionText);
   if(danger)b.dataset.danger='true';
   b.onclick=()=>void Promise.resolve().then(fn).catch(e=>note(e.message,true));
   buttons.append(b);
@@ -8408,7 +8521,7 @@ $('galleryRefreshBtn').onclick=()=>{gallerySource='public';setWindowVisible('gal
 $('layoutPublic').onchange=()=>{serverVisibility=$('layoutPublic').checked?'public':'private'};
 
 const RELEASE_NOTES=[
- {v:'0.3.24',date:'2026-11-10',title:'Read-only local library health and Wheel Workshop initialization repair',items:[
+ {v:'0.3.25',date:'2026-11-10',title:'Read-only local library health and Wheel Workshop initialization repair',items:[
   'Saved-workspace restoration now populates Wheel Workshop controls, procedural style cards and imported model thumbnails without requiring a click on its launcher.',
   'Imported wheel GLB scans refresh the panel once assets finish loading; no browser data is modified during restoration.',
   'Configuration → Persistence & deployment includes a read-only local library diagnostic for saved cars, stored GLB models, loaded assets, edit history and browser origin. Downloadable report contains counts only, no secrets or private asset contents.',
@@ -8691,6 +8804,7 @@ $('lux3dCancelQueue').onclick=()=>{cancelRemainingLuxJobs=true;
 };
 $('lux3dCreateForm').onsubmit=async e=>{
  e.preventDefault();if(busyAI)return;
+ if(!guestServerMode()){$('lux3dTaskStatus').textContent='Restore or create your profile before generating models; cloud storage is required.';return}
  const key=getLux3dKey();if(!key){$('lux3dTaskStatus').textContent='Enter and test a Lux3D key first.';return}
  if(!$('lux3dSpendAck').checked){$('lux3dTaskStatus').textContent='Explicit authorization required for each potentially billable task.';return}
  const component=$('lux3dComponent').value;
@@ -8741,6 +8855,23 @@ $('lux3dCreateForm').onsubmit=async e=>{
  }catch(err){$('lux3dTaskStatus').textContent='Lux3D batch: '+err.message;note('Lux3D: '+err.message,true)}
  finally{busyAI=false;setAIWorking(submit,false);$('lux3dSpendAck').checked=false;$('lux3dCancelQueue').hidden=true;}
 };
+async function fetchCompletedLux3dGLB(task){
+ const response=await fetch('/api/providers/lux3d/import',{method:'POST',cache:'no-store',credentials:'same-origin',
+  headers:{'Content-Type':'application/json',...authHeaders()},
+  body:JSON.stringify({key:task.key,region:task.region,task_id:task.task_id})});
+ if(!response.ok){const error=await response.json().catch(()=>({}));throw Error(error.error||'GLB transfer HTTP '+response.status)}
+ return verifiedGLB(await response.blob(),'Generated Lux3D GLB');
+}
+async function archiveCompletedLux3d(task){
+ const blob=await fetchCompletedLux3dGLB(task);
+ const name='Lux3D-'+task.task_id+'.glb';
+ const record={id:crypto.randomUUID(),name,kind:task.component==='wheel'?'wheel':'chassis',blob};
+ const cloudId=await persistProtectedModel(record);
+ task.archivedBlob=blob;
+ task.archivedCloud={id:cloudId,client_id:record.id};
+ recordEvent('INFO','Lux3D task '+task.task_id+' saved to private model library.');
+ return task;
+}
 async function pollLux3d(taskId,region,key){
  lux3dPolling=true;
  try{
@@ -8760,6 +8891,14 @@ async function pollLux3d(taskId,region,key){
     }
     regionData.hidden=false;
     $('lux3dImportResult').hidden=false;
+    try{
+     await archiveCompletedLux3d(lux3dCompleted);
+     $('lux3dTaskStatus').textContent='✓ Model securely saved to private cloud. You can download or import it.';
+    }catch(error){
+     $('lux3dTaskStatus').textContent='WARNING: Generated model NOT saved to Vehicle Lab: '+error.message+'. Download from provider links now.';
+     recordEvent('ERROR','Lux3D generated file is not backed up: '+error.message);
+     throw Error('Generated file not cloud-backed: '+error.message);
+    }
     if($('lux3dAutoImport').checked){
      try{await importLux3dResult();}
      catch(error){$('lux3dTaskStatus').textContent='3D task completed, but automatic import failed: '+error.message+' · use download links or retry import.';}
@@ -8779,23 +8918,16 @@ async function importLux3dResult(){
  if(!task)throw Error('No finished Lux3D result to import.');
  const button=$('lux3dImportResult');button.disabled=true;
  try{
-  $('lux3dTaskStatus').textContent='Receiving GLB securely through Vehicle Lab backend…';
-  const response=await fetch('/api/providers/lux3d/import',{method:'POST',cache:'no-store',credentials:'same-origin',
-   headers:{'Content-Type':'application/json',...authHeaders()},
-   body:JSON.stringify({key:task.key,region:task.region,task_id:task.task_id})});
-  if(!response.ok){const err=await response.json().catch(()=>({}));throw Error(err.error||'GLB transfer HTTP '+response.status)}
-  const contentLength=Number(response.headers.get('Content-Length')||0);
-  if(contentLength>80*1024*1024)throw Error('Generated GLB exceeds 80MB.');
-  const blob=await response.blob();
-  if(blob.size>80*1024*1024)throw Error('Generated GLB exceeds the importer limit.');
+  $('lux3dTaskStatus').textContent='Verifying private model backup before import…';
+  if(!task.archivedBlob||!task.archivedCloud)await archiveCompletedLux3d(task);
+  const blob=task.archivedBlob;
   if(task.component==='wheel'){
-   // A generated wheel should not accidentally replace the whole car body.
-   await storeWheelAsset(new File([blob],`Lux3D-${task.task_id}.glb`,{type:'model/gltf-binary'}),'wheel');
+   await storeWheelAsset(new File([blob],`Lux3D-${task.task_id}.glb`,{type:'model/gltf-binary'}),'wheel',task.archivedCloud);
   }else{
-   await loadGLB(blob,`Lux3D-${task.task_id}.glb`);
+   await loadGLB(blob,`Lux3D-${task.task_id}.glb`,true,task.archivedCloud);
   }
-  $('lux3dTaskStatus').textContent='✓ Lux3D task '+task.task_id+' imported directly into editor ('+(blob.size/1048576).toFixed(1)+' MiB). Procedural wheels / physics preserved.';
-  note('Lux3D GLB imported from verified result, without manual download.');
+  $('lux3dTaskStatus').textContent='✓ Generated GLB saved to your private server library and imported into the editor.';
+  note('Cloud-backed Lux3D model imported.');
  }finally{button.disabled=false}
 }
 $('lux3dImportResult').onclick=()=>void importLux3dResult().catch(error=>note('Lux3D import failed: '+error.message,true));
@@ -9272,10 +9404,9 @@ async function refreshMediaBrowser(){
     }
     if(mediaType==='models')for(const row of result.models||[]){entries.push({name:row.name,
      preview:vehicleFallbackImage(row),action:async()=>{
-      const response=await fetch('/api/me/assets/'+row.id,{headers:authHeaders()});
-      if(!response.ok)throw Error('Model download failed');
-      const blob=await response.blob();
-      const a=document.createElement('a');a.href=mediaImageURL(blob);a.download=row.name;a.click();}})}
+      const blob=await cloudModelBlob(row.id);
+      // An explicit download is available even when the browser has lost its IndexedDB cache.
+      download(blob,row.name||'vehiclelab-model.glb','model/gltf-binary');}})}
    }
   }
   if(id!==mediaRequest)return;

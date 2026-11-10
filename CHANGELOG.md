@@ -1,3 +1,13 @@
+## v0.3.25 — Server-primary asset safety and independent worlds (2026-11-10)
+
+- 3D wheel/cap/avatar/chassis imports and generated GLBs require an authenticated profile and an acknowledged owner-scoped server upload before local caching. Model metadata includes category and stable client ID; old assets remain untouched.
+- On login, scan existing local model binaries and back them up to the server before restoring cloud-only model binaries into IndexedDB. Failed transfers are logged as errors rather than successful saves.
+- Map saves await the private server result, then cache locally. No silent fire-and-forget backup. A map load changes terrain but not the currently loaded cars.
+- Vehicle loads keep the current scene terrain, sculpting and placed objects; using Add to scene retains the previous vehicles. Vehicle Save also writes the server copy before confirming local save.
+- Regular read-only private library export to ZIP includes cloud cars, images, map JSON and original GLB assets; interval-limited SQLite snapshots plus duplicated new GLB files add server-side recovery options. These are same-server snapshots, not offsite backups.
+- Generated Lux3D batches archive each successful GLB to the private model library, independent of whether Auto import is enabled.
+- Existing data is retained. Only additive asset-kind/client-ID columns are introduced; no new Python dependencies, no destructive SQLite or browser migrations. Live validation of large GLBs and third-party providers remains required.
+
 ## v0.3.24 — November 10, 2026
 - Fix an empty Wheel Workshop when it is made visible by a restored BUILD/DRIVE workspace: populate controls and procedural wheel thumbnails immediately, and refresh again after asynchronous wheel GLB loading.
 - Add read-only local browser library health diagnostics showing current origin, stored local vehicle/asset counts, loaded model counts, available edit-history snapshots, and quota status; allow download of a non-sensitive diagnostic report.
