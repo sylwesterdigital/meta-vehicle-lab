@@ -1,3 +1,11 @@
+# Vehicle Lab — v0.3.24 — Local-library diagnostics and Wheel Workshop repair (2026-11-10)
+
+- **Restored Wheel Workshop:** Saved BUILD/DRIVE workspaces can show the wheel window immediately after launch. Previously its thumbnails and parameter controls were blank until opening the launcher. The window now populates during workspace restore, after initial vehicle setup and after asynchronous GLB loading. Neither records nor GLB assets are reset or deleted.
+- **Read-only local storage check:** Configuration → Persistence & deployment → Check local libraries shows the exact browser origin, current IndexedDB car count, stored asset count, decoded wheel/avatar/chassis counts and available history snapshots, plus basic browser storage diagnostics. An optional downloadable JSON report contains no car names, private IDs, model binary content or credentials. This is a diagnostic, not an automatic repair or export of data.
+- **Gallery messages:** A search with no results is distinguished from zero local car records at the current origin. `0` records does not establish deletion on another origin/browser profile; stored data cannot be recovered by a frontend update if it is no longer available in the same-origin browser storage.
+- **Safety:** No changes to IndexedDB database version/schema, delete operations, server code, profile identity, history data, backend dependencies or deployment rules. The change does not silently create, migrate or overwrite any saved cars, GLB models or backups.
+- **Validation:** Static source contracts, JavaScript and Python syntax, browser tests of empty/populated stores, and release-watcher dry-run. Real browser origin/profile-specific recovery and GLB rendering require inspection in the affected browser.
+
 # Vehicle Lab — v0.3.23 — Radio title controls, large prisms and geological terrain colour (2026-11-10)
 
 - **Radio:** Previous, combined Play/Pause, Next and Volume now sit in the draggable Radio title bar, including when the window is minimized. Controls use theme-aware compact SVGs with keyboard labels and visible focus; they do not trigger dragging. The redundant transport row and Stop button are removed, while the elapsed playback position remains visible in the radio body.

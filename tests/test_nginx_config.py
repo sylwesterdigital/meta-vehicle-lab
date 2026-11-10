@@ -822,3 +822,29 @@ assert(shader.fragmentShader.includes('diffuseColor.rgb = mix('));
 '''
         result=subprocess.run(['node','-e',script,str(self.path)],capture_output=True,text=True,timeout=12)
         self.assertEqual(result.returncode,0,result.stdout+result.stderr)
+
+class VehicleLab0324LocalLibrarySafetyTests(unittest.TestCase):
+    """A missing local gallery must never trigger destructive recovery."""
+    def setUp(self):
+        self.source = (Path(__file__).resolve().parents[1] / 'index.html').read_text()
+
+    def test_same_browser_database_contract_is_preserved(self):
+        self.assertIn("const DB_NAME='procedural-vehicle-studio';", self.source)
+        self.assertIn('indexedDB.open(DB_NAME,3)', self.source)
+        self.assertNotIn('indexedDB.deleteDatabase(',self.source)
+        self.assertNotIn('localStorage.clear(',self.source)
+
+    def test_wheel_workshop_is_populated_after_visibility_and_library_loading(self):
+        self.assertIn("if(id==='wheelWindow')renderWheelStudio();", self.source)
+        self.assertIn('buildVehicle();\nrenderWheelStudio();\nresetCamera();',self.source)
+        self.assertIn('renderWheelStudio();\n}\n\n async function allLayouts()',self.source)
+
+    def test_diagnostics_are_read_only_and_do_not_expose_private_data(self):
+        fragment=self.source.split('// Read-only local-data report for storage outages.',1)[1].split('async function saveAvatarAsset(',1)[0]
+        self.assertIn("db.transaction(name,'readonly')",fragment)
+        self.assertIn("$('checkLocalLibraries').onclick",fragment)
+        self.assertIn('storageUsageMiB',fragment)
+        for unsafe in ("'readwrite'",'.delete(','.put(','.clear(', 'data.blob'):
+            self.assertNotIn(unsafe,fragment)
+        self.assertNotIn('assetIds:',fragment)
+        self.assertNotIn('vehicleNames:',fragment)

@@ -1,3 +1,9 @@
+## v0.3.24 — November 10, 2026
+- Fix an empty Wheel Workshop when it is made visible by a restored BUILD/DRIVE workspace: populate controls and procedural wheel thumbnails immediately, and refresh again after asynchronous wheel GLB loading.
+- Add read-only local browser library health diagnostics showing current origin, stored local vehicle/asset counts, loaded model counts, available edit-history snapshots, and quota status; allow download of a non-sensitive diagnostic report.
+- Clarify gallery empty states: no local records in this browser origin is not proof that cars were deleted elsewhere. Do not clear or migrate IndexedDB or overwrite user data as part of the repair.
+- Frontend-only; no schema changes, new dependencies or watcher changes. Full live browser verification on affected user's origin is required.
+
 ## v0.3.23 — November 10, 2026
 - Put compact previous, combined play/pause, next and volume in the Radio title bar; remove the duplicate transport row and numbered floating-window titles.
 - Remove inconsistent rectangular-prism size clamp: all three visual and collision dimensions now support 80 metres, matching the Object Inspector.

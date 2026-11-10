@@ -5,7 +5,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Vehicle Lab — Procedural Studio</title>
-  <meta name="vehicle-lab-version" content="0.3.23">
+  <meta name="vehicle-lab-version" content="0.3.24">
   <style>
     :root {
       color-scheme:dark;
@@ -761,6 +761,9 @@ body.ui-no-shadows,body.ui-no-shadows *,body.ui-no-shadows *::before,body.ui-no-
 @keyframes vehicleLabSplashLife{0%{opacity:0}13%{opacity:1}74%{opacity:1}100%{opacity:0}}
 @media(prefers-reduced-motion:reduce){#vehicleLabSplash .splash-vehicle{animation:none!important}}
 
+/* Storage diagnostics are display-only and intentionally do not show private records. */
+.local-storage-report{font:11px/1.55 ui-monospace,SFMono-Regular,monospace;white-space:pre-wrap;overflow-wrap:anywhere;max-height:230px;overflow:auto;margin:8px 0;padding:9px;border-radius:7px;background:#102332a8;color:var(--text);border:1px solid var(--pane-border)}
+
 /* v0.3.23 — compact radio controls, accessible even when radio body is minimized. */
 #radioWindow .window-head{gap:5px}
 #radioWindow .window-head strong{flex:1 1 auto;min-width:34px;white-space:nowrap}
@@ -797,7 +800,7 @@ body.ui-no-shadows,body.ui-no-shadows *,body.ui-no-shadows *::before,body.ui-no-
 
   <div id="stage">
   <div id="hud">
-    <div class="stage-badge"><strong>Vehicle Lab</strong><small id="appVersionBadge">v0.3.23</small></div>
+    <div class="stage-badge"><strong>Vehicle Lab</strong><small id="appVersionBadge">v0.3.24</small></div>
     <p id="vehicleName">City Car</p><p id="vehicleInfo">Procedural vehicle</p>
     <div id="speedHud"><strong id="speed">0</strong><div>km/h</div></div>
     <div id="cameraModeReadout" style="padding:3px 6px;margin-top:4px;width:max-content;max-width:260px;border-radius:5px;background:#132d3cc0;color:#e9f5fc;font:10px ui-monospace,monospace">Camera · Orbit follow</div>
@@ -1205,7 +1208,13 @@ body.ui-no-shadows,body.ui-no-shadows *,body.ui-no-shadows *::before,body.ui-no-
       <button type="submit">Open server logs</button></form>
     <p>Profile members only see browser logs. Server logs exclude credentials; service and Mac watcher logs stay on their respective hosts.</p>
   </details>
-  <details><summary>Persistence & deployment</summary><p>Flask + SQLite: private/public vehicle blueprints and passwordless profiles. Email recovery, verified email/phone and passwords are not enabled.</p></details>
+  <details id="localPersistence"><summary>Persistence & deployment</summary>
+    <p>Flask + SQLite: private/public vehicle blueprints and passwordless profiles. Local cars and imported models are stored in this browser's IndexedDB, separately from cloud data and profile backups.</p>
+    <p><strong>Local library health</strong> · A read-only check reports whether saved cars and GLB assets exist for this exact browser origin. It never deletes, resets, migrates or uploads records.</p>
+    <div class="drawer-actions"><button type="button" id="checkLocalLibraries">Check local libraries</button><button type="button" id="downloadLocalReport" disabled>Download diagnostic report</button></div>
+    <pre id="localLibraryReport" class="local-storage-report" role="status" aria-live="polite">No check performed.</pre>
+    <p>If the counts are zero, check the original browser profile and exact site address before changing any settings. Avoid clearing browsing/site data. The private profile backup is not a backup of browser-local cars.</p>
+  </details>
 </aside>
 <aside id="profileDrawer" class="side-drawer" aria-label="User profile">
   <div class="drawer-title"><strong>My profile</strong><button class="drawer-close" aria-label="Close">×</button></div>
@@ -1593,7 +1602,7 @@ let ghostObject=null,ghostSamples=[],ghostElapsed=0,ghostTick=0;
     if(result&&typeof result.catch==='function')result.catch(()=>{});}}
   catch{/* analytics must never affect the app */}
  }
- const VERSION='0.3.23';
+ const VERSION='0.3.24';
  document.getElementById('appVersionBadge').textContent='v'+VERSION;
  let imageReference=null,busyAI=false;
 
@@ -4517,6 +4526,67 @@ async function avatarStore(mode,method,value){
   request.onsuccess=()=>resolve(request.result);request.onerror=()=>reject(request.error);
  });
 }
+
+// Read-only local-data report for storage outages. Intentionally does not
+// enumerate vehicle names, user IDs, secrets, private assets or file contents.
+// An empty count for one origin cannot prove records were deleted elsewhere.
+let lastLocalLibraryReport=null;
+function objectStoreCount(db,name){
+ return new Promise((resolve,reject)=>{
+  try{const request=db.transaction(name,'readonly').objectStore(name).count();
+   request.onsuccess=()=>resolve(request.result);request.onerror=()=>reject(request.error);
+  }catch(error){reject(error)}
+ });
+}
+async function checkLocalLibraries(){
+ const target=$('localLibraryReport'),downloadButton=$('downloadLocalReport');
+ target.textContent='Checking this browser’s IndexedDB…';downloadButton.disabled=true;lastLocalLibraryReport=null;
+ try{
+  const db=await database();
+  const layouts=await objectStoreCount(db,STORE);
+  const assets=await objectStoreCount(db,AVATAR_STORE);
+  const history=safeRead('vehiclelab.history.v1');
+  let historyEntries=0;
+  try{const saved=JSON.parse(history||'null');if(Array.isArray(saved?.records))historyEntries=saved.records.length}catch{}
+  let storageUsage=null,storageQuota=null,persistent=null,relatedDatabases=[];
+  try{if(navigator.storage?.estimate){const estimate=await navigator.storage.estimate();
+   if(Number.isFinite(estimate.usage))storageUsage=Math.round(estimate.usage/1048576*10)/10;
+   if(Number.isFinite(estimate.quota))storageQuota=Math.round(estimate.quota/1048576);
+  }}catch{}
+  try{if(navigator.storage?.persisted)persistent=await navigator.storage.persisted()}catch{}
+  try{if(indexedDB.databases){relatedDatabases=(await indexedDB.databases()).map(item=>item.name).filter(n=>typeof n==='string'&&/(vehicle|procedural|lab)/i.test(n)).slice(0,12)}}catch{}
+  lastLocalLibraryReport={schema:'vehiclelab-local-storage-report/v1',version:VERSION,
+   time:new Date().toISOString(),origin:location.origin,database:DB_NAME,
+   layouts,assets,historyEntries,loadedWheelModels:wheelAssets.size,
+   loadedAvatarModels:occupantModels.size,loadedChassisModels:chassisAssets.size,
+   storageUsageMiB:storageUsage,storageQuotaMiB:storageQuota,
+   persistentStorage:persistent,relatedDatabases};
+  const info=lastLocalLibraryReport;
+  target.textContent=[
+   'Origin: '+info.origin,
+   'Database: '+info.database,
+   'Saved local cars: '+info.layouts,
+   'Stored 3D assets (wheel/avatar/chassis): '+info.assets,
+   'Loaded wheel / avatar / chassis models: '+[info.loadedWheelModels,info.loadedAvatarModels,info.loadedChassisModels].join(' / '),
+   'Vehicle edit-history snapshots: '+info.historyEntries,
+   'Browser storage: '+(info.storageUsageMiB===null?'unavailable':info.storageUsageMiB+' MiB used')+
+    (info.storageQuotaMiB===null?'':' / '+info.storageQuotaMiB+' MiB quota'),
+   'Persistent storage granted: '+(info.persistentStorage===null?'unknown':info.persistentStorage?'yes':'no'),
+   'Related databases on this origin: '+(info.relatedDatabases.length?info.relatedDatabases.join(', '):'none reported'),
+   info.layouts===0?'No local cars found at THIS origin. This does not prove another browser/origin has lost its records.':'Local car records exist. If the gallery is blank, its display/loading is failing.',
+   info.assets>0&&info.loadedWheelModels+info.loadedAvatarModels+info.loadedChassisModels===0?
+    'Stored 3D records exist but no models loaded: inspect App logs for GLB parse errors.':''
+  ].filter(Boolean).join('\n');
+  downloadButton.disabled=false;
+ }catch(error){target.textContent='Local library check failed: '+(error?.message||String(error))+'\nNo data was changed.';
+  recordEvent('WARN','Read-only local library check failed: '+(error?.message||String(error)))}
+}
+$('checkLocalLibraries').onclick=()=>void checkLocalLibraries();
+$('downloadLocalReport').onclick=()=>{
+ if(!lastLocalLibraryReport)return;
+ download(JSON.stringify(lastLocalLibraryReport,null,2),'vehiclelab-local-storage-diagnostic.json','application/json');
+};
+
 async function saveAvatarAsset(blob,name){
  if(blob.size>30*1024*1024)throw Error('Avatar library GLBs are limited to 30 MB each');
  const id=crypto.randomUUID(),data={id,name,blob,scale:.72,created:Date.now()};
@@ -4633,7 +4703,11 @@ async function loadAvatarLibrary(){
  }catch(e){recordEvent('WARN','3D asset '+data.name+': '+e.message)}}
  if(hiddenDuplicates)recordEvent('INFO','Chassis library: hidden '+hiddenDuplicates+' duplicate GLB record(s); original files retained.');
  if(saved.length){setupGUI();buildVehicle();renderChassisAssets()}
+ // The imported wheel library is read asynchronously; repaint the workshop
+ // when it finishes, preserving saved selections without changing any rows.
+ renderWheelStudio();
 }
+
  async function allLayouts(){
    const records=await transaction('readonly','getAll');
    return records.sort((a,b)=>b.modified-b.modified);
@@ -7357,7 +7431,13 @@ function setWindowVisible(id,show,restore=false){
  if(id==='logWindow')win.classList.toggle('is-visible',show);
  else win.style.display=show?'flex':'none';
  // Showing a hidden panel must never expand its minimized state.
- if(show){win.style.zIndex=String(++highestZ);}
+ if(show){
+  win.style.zIndex=String(++highestZ);
+  // A restored BUILD/DRIVE layout can reveal Wheel Workshop before anyone
+  // clicks its launcher. Populate live fields/cards instead of showing an
+  // uninitialized, empty panel. This only reads configuration and asset maps.
+  if(id==='wheelWindow')renderWheelStudio();
+ }
  if(!restore){snapshotWindow(win);
   if(!workspaceApplying&&workspaceModes[mode]){
    workspaceModes[mode][id]={show:show,min:win.classList.contains('is-minimized')};saveWorkspaceModes();
@@ -8297,7 +8377,12 @@ async function refreshVehicleGallery(){
  if(serial!==galleryRefreshSerial)return;
  items=items.filter(e=>`${e.name} ${e.category} ${e.description} ${e.creator_name||''}`.toLowerCase().includes(term));
  for(const item of items)root.append(makeGalleryCard(item));
- if(!root.children.length)root.textContent='No matching vehicles.';
+ if(!root.children.length){
+  if(term)root.textContent='No vehicles match this search. Clear the search to show all saved vehicles.';
+  else if(gallerySource==='local')root.textContent='No local vehicle records found for this browser origin. Check Configuration → Persistence & deployment → Check local libraries. Do not clear browser data.';
+  else root.textContent='No vehicles found in this gallery.';
+ }
+
 }
 document.addEventListener('visibilitychange',()=>{if(document.hidden)stopGalleryPreviews()});
 function setGalleryDock(mode){
@@ -8323,6 +8408,11 @@ $('galleryRefreshBtn').onclick=()=>{gallerySource='public';setWindowVisible('gal
 $('layoutPublic').onchange=()=>{serverVisibility=$('layoutPublic').checked?'public':'private'};
 
 const RELEASE_NOTES=[
+ {v:'0.3.24',date:'2026-11-10',title:'Read-only local library health and Wheel Workshop initialization repair',items:[
+  'Saved-workspace restoration now populates Wheel Workshop controls, procedural style cards and imported model thumbnails without requiring a click on its launcher.',
+  'Imported wheel GLB scans refresh the panel once assets finish loading; no browser data is modified during restoration.',
+  'Configuration → Persistence & deployment includes a read-only local library diagnostic for saved cars, stored GLB models, loaded assets, edit history and browser origin. Downloadable report contains counts only, no secrets or private asset contents.',
+  'Vehicle Gallery empty states distinguish an empty current-origin IndexedDB library from a filtered search. There is no automatic deletion, migration or reconstruction of local data.' ]},
  {v:'0.3.23',date:'2026-11-10',title:'Compact radio transport, accurate 80 m rectangular prisms and optional geological tint',items:[
   'Radio title bar now holds previous, play/pause, next and a compact volume slider, accessible while minimized; numbered window headers are removed.',
   'Rectangular-prism physics and rendering now support all three inspector dimensions up to 80 m rather than silently clamping to 18 × 7 × 18 m.',
@@ -9407,6 +9497,7 @@ recordEvent('INFO','Vehicle Lab v'+VERSION+' initialized. Profile and backend st
 renderPresets();
 setupGUI();
 buildVehicle();
+renderWheelStudio();
 resetCamera();
 try{const view=JSON.parse(safeRead('vehiclelab.camera.v1')||'null');
  if(Array.isArray(view?.offset)&&view.offset.length===3&&view.offset.every(Number.isFinite)){
