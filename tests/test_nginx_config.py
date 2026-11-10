@@ -226,7 +226,7 @@ class VehicleLab034RegressionTests(unittest.TestCase):
         for snippet in ('vehiclelab-audio/v1', 'audioPresetImport',
                         'vehicleAudio.damage(', 'function renderFleetList()',
                         'function activateFleetVehicle(', 'function parkedFleetSpecs()',
-                        'function addGalleryVehicle(', "appendBtn('＋',"):
+                        'function addGalleryVehicle(', "appendBtn('Add to scene','add',"):
             self.assertIn(snippet,self.source)
 
 
@@ -550,3 +550,41 @@ class WorldMediaXRSourceTests(unittest.TestCase):
                        "identityRequest('/api/me/media'",'function mapAssetPreview(',
                        'async function refreshMediaBrowser()',"trackUsage('map_saved')"):
             self.assertIn(marker,SOURCE)
+
+class VehicleLab0318RegressionTests(unittest.TestCase):
+    def setUp(self):
+        self.source=(Path(__file__).resolve().parents[1]/'index.html').read_text()
+
+    def test_safe_duplicate_height_and_rotation(self):
+        for term in ('const sourceMesh=courseMeshes.get(o.id)',
+                     'o.angle=THREE.MathUtils.radToDeg(sourceMesh.rotation.y)',
+                     'new THREE.Box3().setFromObject(sourceMesh)',
+                     'other.y=centre+rise+',
+                     "await addCourseObject(other,'Duplicated above source')",
+                     "objectGizmo?.setMode('translate')"):
+            self.assertIn(term,self.source)
+        self.assertNotIn('other.x+=2;other.z+=2;',self.source)
+
+    def test_blender_navigation_and_laptop_emulation(self):
+        for term in ("['viewFront','Front view · Numpad 1','Numpad1'",
+                     "['viewTop','Top view · Numpad 7','Numpad7'",
+                     "['viewBack','Back view · Ctrl+Numpad 1','Ctrl+Numpad1'",
+                     "['viewFrame','Frame selected · Numpad .','NumpadDecimal'",
+                     "['viewLocal','Toggle local view · Numpad /','NumpadDivide'",
+                     'function switchViewportProjection()',
+                     'function setViewportAxis(name)',
+                     'function orbitViewport(direction)',
+                     'const radius=Math.max(2.5,camera.position.distanceTo(orbit.target))',
+                     'id="emulateNumpad"', 'id="viewPieMenu"', 'normalizeShortcutImport(bindings)', 'Ctrl+Numpad1'):
+            self.assertIn(term,self.source)
+
+    def test_gallery_full_bleed_and_hover_cleanup(self):
+        for term in ('#vehicleGallery .thumb-card{position:relative;aspect-ratio:3/2',
+                     '#vehicleGallery .thumb-hero{display:block;position:absolute;inset:0',
+                     "b.setAttribute('aria-label',label+' '+name)",
+                     'const galleryHoverStops=new Set()',
+                     'setInterval(()=>', '},500)', 'hero.src=original',
+                     'stopGalleryPreviews()', 'prefers-reduced-motion',
+                     "appendBtn('Add to scene','add',"):
+            self.assertIn(term,self.source)
+        self.assertNotIn("strip=document.createElement('div')",self.source)

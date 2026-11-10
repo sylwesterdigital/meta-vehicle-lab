@@ -1,3 +1,10 @@
+# Vehicle Lab — v0.3.18 — Blender-style viewport and image-first gallery (2026-11-10)
+
+- **Safe Shift+D duplication:** snapshots the selected object's actual gizmo transform first, then spawns a clone directly above the original using its rendered world height and a separation margin. Preserves source and clone rotation. Default G is translate gizmo; no pointer-follow movement.
+- **3D viewport controls:** Blender-style keypad views: Numpad 1 Front, 3 Right, 7 Top, Ctrl+1 Back, Ctrl+3 Left, Ctrl+7 Bottom, 5 orthographic/perspective, 2/4/6/8 orbit, +/- zoom, dot frame selected, slash Local View, 0 vehicle-camera view, backtick menu. View direction changes preserve the existing orbit target/distance. 'Emulate numpad' is an optional checkbox in the shortcut editor; assignments remain customisable. Custom v0.3.17 view mappings migrate when their binding differs from the previous default. Some OS/browser-reserved Ctrl+number combinations may require a different user-defined shortcut.
+- **Vehicle Gallery:** image fills each tile; title/category overlaid; accessible colour-aware SVG action icons taken from the supplied icon library. If multiple images are saved, pointer hover cycles them every 500 ms and pointer leave restores the main image. Automatic hover cycling respects reduced-motion preferences and stops on gallery refresh/tab hide.
+- **Deployment:** Same 15-file release manifest, no new server dependencies or database changes. Live browser/3D/physics acceptance still required after release.
+
 # Vehicle Lab — v0.3.17 — typography, independent map undo and editable driving controls (2026-11-09)
 
 - **Typography:** Changing the theme font now updates both UI windows and lil-gui. Configuration → Theme & typography → **Browse typefaces** opens a movable, resizable, non-modal gallery with editable sample text, search, visual font cards, and a click-to-apply selection. Without explicit browser permission, only built-in and previously selected fonts can be listed. **Find installed fonts** uses the optional Chrome/Edge Local Font Access API over HTTPS after user permission; missing fonts render with the documented browser fallback. No third-party font download or telemetry is used.
@@ -39,7 +46,7 @@
 
 # Vehicle Lab — procedural 3D vehicle studio
 
-**Version 0.3.17 (2026-11-09)**. Browser-native modular vehicle editor built with Three.js, lil-gui, three alternative physics engines, optional GLB imports, Flask and SQLite. Project: https://github.com/sylwesterdigital/meta-vehicle-lab. Website: https://vehiclelab.xyz/.
+**Version 0.3.18 (2026-11-10)**. Browser-native modular vehicle editor built with Three.js, lil-gui, three alternative physics engines, optional GLB imports, Flask and SQLite. Project: https://github.com/sylwesterdigital/meta-vehicle-lab. Website: https://vehiclelab.xyz/.
 
 This README deliberately contains the **About, Install, Roadmap, Ideas and LLM Handover** sections in a single allowed release file. The current watcher validates an exact 15-file manifest, so adding standalone documentation to a watcher release without first migrating its manifest schema would reject the ZIP. A separate optional documentation archive contains those sections as individual Markdown files.
 

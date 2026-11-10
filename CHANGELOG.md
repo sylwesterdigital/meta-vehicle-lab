@@ -1,3 +1,10 @@
+## v0.3.18 — November 10, 2026
+- Duplicated 3D/map objects spawn above, not inside, their source; preserve original's rotation and selection, with translate gizmo on the clone.
+- Exact axis-oriented Blender-like numpad navigation uses the present camera radius instead of re-framing far away. Includes camera mode, orthographic toggle, orbit, zoom, frame selected, local view, view menu and optional laptop emulation.
+- Vehicle gallery cards show full-bleed photos, overlay labels and tooltipped accessible theme-colour SVG action icons; hover cycles multi-view photos every 500 ms and resets on exit.
+- Existing customized top-row camera shortcuts migrate where applicable. New features are client-side only; existing private data, API routes, paid integrations, database schema, deployment watcher and dependencies unchanged.
+- Static regressions and isolated browser tests run locally; production WebGL/input testing remains required.
+
 ## v0.3.17 — November 9, 2026
 - Font/theme changes now reach all lil-gui controllers. Searchable non-modal font gallery previews editable sample text in a grid and optionally enumerates installed local fonts with user permission.
 - Map/object-specific undo/redo prevents accidental vehicle undo and BUILD-mode switching. Terrain/map changes refresh the physics adapter while retaining DRIVE layout and current car pose/velocity.

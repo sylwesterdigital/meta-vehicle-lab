@@ -5,7 +5,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Vehicle Lab — Procedural Studio</title>
-  <meta name="vehicle-lab-version" content="0.3.17">
+  <meta name="vehicle-lab-version" content="0.3.18">
   <style>
     :root {
       color-scheme:dark;
@@ -237,6 +237,40 @@
     .thumb-category{color:var(--muted);font-size:10px;margin:4px 2px}
     .thumb-actions{display:flex;gap:3px;flex-wrap:wrap}.thumb-actions button{font-size:10px;padding:4px 6px;flex:1;min-width:0}
     .thumb-strip{display:flex;gap:3px;overflow-x:auto}.thumb-strip img{width:18%;aspect-ratio:3/2;object-fit:cover;cursor:pointer;border-radius:3px}
+    /* v0.3.18: image-first gallery, accessible hover actions, no miniature image rail. */
+    #vehicleGallery.thumb-gallery{gap:8px}
+    #vehicleGallery .thumb-card{position:relative;aspect-ratio:3/2;min-width:0;padding:0;border-radius:11px;isolation:isolate;background:#162936;overflow:hidden}
+    #vehicleGallery .thumb-hero{display:block;position:absolute;inset:0;width:100%;height:100%;aspect-ratio:auto;object-fit:cover;border-radius:0;transition:transform .18s ease}
+    #vehicleGallery .thumb-card:hover .thumb-hero{transform:scale(1.025)}
+    #vehicleGallery .thumb-title{position:absolute;top:0;right:0;left:0;margin:0;padding:10px 9px 19px;z-index:1;
+      font-size:calc(11px * var(--ui-scale));line-height:1.3;color:#fff;text-shadow:0 1px 3px #000d;
+      background:linear-gradient(#071923dc,#07192396 65%,transparent);pointer-events:none}
+    #vehicleGallery .thumb-category{position:absolute;bottom:0;left:0;right:0;margin:0;padding:20px 9px 7px;z-index:1;
+      font-size:calc(10px * var(--ui-scale));color:#eaf5f8;background:linear-gradient(transparent,#071923d9);pointer-events:none}
+    #vehicleGallery .thumb-actions{position:absolute;left:5px;right:5px;bottom:28px;z-index:2;display:flex;align-items:center;
+      justify-content:center;flex-wrap:nowrap;gap:4px;opacity:0;transform:translateY(5px);transition:opacity .14s ease,transform .14s ease;
+      pointer-events:none}
+    #vehicleGallery .thumb-card:hover .thumb-actions,#vehicleGallery .thumb-card:focus-within .thumb-actions{opacity:1;transform:none;pointer-events:auto}
+    #vehicleGallery .thumb-actions button{flex:0 0 auto;display:grid;place-items:center;width:29px;height:29px;min-width:0;min-height:0;
+      padding:5px;border-radius:8px;background:#112737ed!important;color:#ebf7ff!important;border:1px solid #96b4c2a8!important;
+      backdrop-filter:blur(8px);cursor:pointer}
+    #vehicleGallery .thumb-actions button svg{width:17px;height:17px;display:block;fill:none;color:inherit;pointer-events:none}
+    #vehicleGallery .thumb-actions button:hover,#vehicleGallery .thumb-actions button:focus-visible{background:var(--accent)!important;
+      color:var(--accent-ink,#102821)!important;border-color:var(--accent)!important;outline-offset:2px}
+    #vehicleGallery .thumb-actions button[data-danger=true]:hover{background:#c34c58!important;color:#fff!important;border-color:#f3b6bd!important}
+    #vehicleGallery .thumb-hero:focus-visible{outline:3px solid var(--accent);outline-offset:-3px}
+    #vehicleGallery .thumb-strip{display:none!important}
+    #vehicleGallery[data-size=s] .thumb-actions{flex-wrap:wrap;bottom:22px}
+    #vehicleGallery[data-size=s] .thumb-actions button{width:25px;height:25px;padding:4px}
+    @media(hover:none),(pointer:coarse){#vehicleGallery .thumb-actions{opacity:1;transform:none;pointer-events:auto}}
+    @media(prefers-reduced-motion:reduce){#vehicleGallery .thumb-hero,#vehicleGallery .thumb-actions{transition:none!important}#vehicleGallery .thumb-card:hover .thumb-hero{transform:none}}
+    #viewPieMenu{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:88;width:min(310px,90vw);padding:12px;
+      background:var(--pane);border:1px solid var(--pane-border);border-radius:15px;box-shadow:var(--panel-shadow);color:var(--text)}
+    #viewPieMenu[hidden]{display:none}
+    #viewPieMenu .view-pie-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;margin-top:10px}
+    #viewPieMenu button{padding:9px 5px;white-space:normal}
+    .shortcut-emulation{display:flex!important;flex-direction:row!important;align-items:center;gap:8px;font-size:12px;margin:8px 0}
+    .shortcut-emulation input{width:auto!important;accent-color:var(--accent)}
     .float-window.docked{z-index:11!important;max-width:none;max-height:none;border-radius:7px}
     #galleryWindow.dock-left{left:0!important;top:55px!important;width:min(340px,45vw)!important;height:calc(100dvh - 60px)!important}
     #galleryWindow.dock-right{right:0!important;left:auto!important;top:55px!important;width:min(340px,45vw)!important;height:calc(100dvh - 60px)!important}
@@ -698,7 +732,7 @@
 
   <div id="stage">
   <div id="hud">
-    <div class="stage-badge"><strong>Vehicle Lab</strong><small id="appVersionBadge">v0.3.17</small></div>
+    <div class="stage-badge"><strong>Vehicle Lab</strong><small id="appVersionBadge">v0.3.18</small></div>
     <p id="vehicleName">City Car</p><p id="vehicleInfo">Procedural vehicle</p>
     <div id="speedHud"><strong id="speed">0</strong><div>km/h</div></div>
     <div id="cameraModeReadout" style="padding:3px 6px;margin-top:4px;width:max-content;max-width:260px;border-radius:5px;background:#132d3cc0;color:#e9f5fc;font:10px ui-monospace,monospace">Camera · Orbit follow</div>
@@ -1117,9 +1151,18 @@
  <div id="fontBrowserGrid" class="font-browser-grid" role="group" aria-label="Available typeface previews"></div>
  <div class="font-browser-foot"><small id="fontBrowserCount">Fonts installed in your browser are shown as previews; discover other local families using Find installed fonts.</small><button id="fontBrowserMore" type="button" hidden>Show more</button><button id="fontBrowserLocal" type="button">Find installed fonts</button></div>
 </div>
+<div id="viewPieMenu" role="dialog" aria-label="3D viewport views" hidden>
+ <strong>3D View · ` (backtick)</strong><div class="view-pie-grid" id="viewPieButtons">
+ <button data-view="front">Front · 1</button><button data-view="top">Top · 7</button><button data-view="right">Right · 3</button>
+ <button data-view="back">Back</button><button data-view="bottom">Bottom</button><button data-view="left">Left</button>
+ <button data-view="camera">Camera · 0</button><button data-view="frame">Frame · .</button><button data-view="projection">Ortho / Persp · 5</button>
+ <button data-view="local">Local · /</button><button data-view="orbitLeft">Orbit left</button><button data-view="orbitRight">Orbit right</button>
+ </div>
+</div>
 <div id="shortcutOverlay" class="utility-overlay" hidden><div class="modal-card shortcuts-card">
  <div class="dialog-title"><h2>Keyboard shortcuts</h2><button id="closeShortcuts">×</button></div>
  <div class="shortcut-controls"><button id="shortcutEdit" type="button" aria-pressed="false">Edit shortcuts</button><button id="shortcutValidate" type="button">Validate & apply</button><button id="shortcutDefaults" type="button">Reset defaults</button><button id="shortcutExport" type="button">Export JSON</button><button id="shortcutImport" type="button">Import JSON</button></div>
+ <label class="shortcut-emulation"><input type="checkbox" id="emulateNumpad"> Emulate numpad using the top-row number keys (laptop keyboards)</label>
  <div id="shortcutStatus" role="status">Click Edit shortcuts to record new keys. Validation restores missing bindings and marks duplicates in red.</div>
  <input id="shortcutSearch" type="search" placeholder="Search a shortcut or action" aria-label="Search shortcuts">
  <div id="shortcutsList"></div>
@@ -1352,7 +1395,7 @@ let ghostObject=null,ghostSamples=[],ghostElapsed=0,ghostTick=0;
     if(result&&typeof result.catch==='function')result.catch(()=>{});}}
   catch{/* analytics must never affect the app */}
  }
- const VERSION='0.3.17';
+ const VERSION='0.3.18';
  document.getElementById('appVersionBadge').textContent='v'+VERSION;
  let imageReference=null,busyAI=false;
 
@@ -1384,7 +1427,7 @@ let ghostObject=null,ghostSamples=[],ghostElapsed=0,ghostTick=0;
  scene.background=new THREE.Color('#172532');
  scene.fog=new THREE.Fog('#172532',85,230);
 
- const camera=new THREE.PerspectiveCamera(48,1,.1,350);
+ let camera=new THREE.PerspectiveCamera(48,1,.1,350);
  camera.position.set(9,6,11);
 // XR uses the same world and raycast floor; no second scene or duplicated chassis.
 let xrActive=false,xrSession=null,xrSeated=false,xrOutside=false;
@@ -1836,7 +1879,7 @@ function buildCourse(){
  const courseGroups=new Map();
  courseSolidSpecs.splice(0,courseSolidSpecs.length,...courseSpecs(),...worldBoundarySpecs());
  for(const spec of courseSolidSpecs){
-  const o=cfg.courseObjects.find(c=>Math.abs((c.x||0)-spec.x)<.05&&c.kind===spec.kind)||{};
+  const o=cfg.courseObjects.find(c=>c.id===spec.id)||{};
   let geo;
   if(spec.kind==='sphere')geo=new THREE.SphereGeometry(Math.max(.15,spec.w/2),24,12);
   else if(spec.kind==='cylinder')geo=new THREE.CylinderGeometry(spec.w/2,spec.w/2,spec.h,20);
@@ -2080,6 +2123,7 @@ async function refreshEnvironmentForMap(){
   }
   if(selectedCourseId&&cfg.courseObjects.some(o=>o.id===selectedCourseId))
    selectCourseObject(selectedCourseId,$('objectWindow').style.display!=='none');
+  if(localViewEnabled)applyLocalView();
   drawMinimap();
   $('mapStatus').textContent=(driving?'DRIVE · ':'')+(cfg.courseObjects||[]).length+' test-map objects.';
  }catch(error){
@@ -4308,7 +4352,7 @@ function captureVehicleGallery(){
   renderer.setScissor(oldScissor);renderer.setScissorTest(oldScissorTest);
   renderer.setClearColor(oldClearColor,oldClearAlpha);renderer.autoClear=oldClear;
   const rect=$('stage').getBoundingClientRect();
-  if(rect.width>1&&rect.height>1){renderer.setSize(rect.width,rect.height,false);camera.aspect=rect.width/rect.height;camera.updateProjectionMatrix()}
+  if(rect.width>1&&rect.height>1){renderer.setSize(rect.width,rect.height,false);resizeViewportCamera(rect.width,rect.height)}
   rt.dispose();
  }
  return images;
@@ -5426,7 +5470,7 @@ $('shortcutsBtn').onclick=()=>toggleShortcuts(true);
 $('importBtn').onclick=importJSON;
 $('rotateBtn').onclick=()=>{
  autoRotate=!autoRotate;
- orbit.autoRotate=autoRotate&&mode==='build';
+ orbit.autoRotate=autoRotate&&mode==='build'&&!viewportCameraStored;
  safeStore('vehiclelab.rotation.v1',autoRotate?'on':'off');
  updateRotationButton();commitHistory('Rotation');
 };
@@ -5505,8 +5549,7 @@ new ResizeObserver(()=>{
  const r=$('stage').getBoundingClientRect();
  if(r.width<1||r.height<1)return;
  renderer.setSize(r.width,r.height,false);
- camera.aspect=r.width/r.height;
- camera.updateProjectionMatrix();
+ resizeViewportCamera(r.width,r.height);
 }).observe($('stage'));
 
 
@@ -5652,7 +5695,7 @@ function animate(){
  telemetry.frameTime+=frameDelta;
  if(mode==='drive')stepVehicle(dt);
  else if(!xrActive){
-  orbit.autoRotate=autoRotate;
+  orbit.autoRotate=autoRotate&&!viewportCameraStored;
   orbit.update();
   highlight?.update();
 }
@@ -6063,8 +6106,9 @@ function mapObjectForDrag(a,b,kind){
 }
 function addCourseObject(o,label='Added object'){
  if(cfg.courseObjects.length>=220){note('Map has reached 220 objects.',true);return}
- if(!o.id)o.id=crypto.randomUUID();cfg.courseObjects.push(o);void refreshEnvironmentForMap();
+ if(!o.id)o.id=crypto.randomUUID();cfg.courseObjects.push(o);const refresh=refreshEnvironmentForMap();
  rememberMapEdit(label);drawMinimap();$('mapStatus').textContent=label+': '+o.kind+' ('+o.x.toFixed(1)+', '+o.z.toFixed(1)+')';
+ return refresh;
 }
 function findMapObject(pt){
  for(const o of [...cfg.courseObjects].reverse()){
@@ -6156,16 +6200,41 @@ function selectCourseObject(id,openEditor=false){
   if(openEditor)renderCourseInspector()}
  if(objectGizmo){objectGizmo.detach();
   if(obj&&courseMeshes.has(id))objectGizmo.attach(courseMeshes.get(id));}
+ if(localViewEnabled)applyLocalView();
  drawMinimap();
 }
 $('mapEditObject').onclick=()=>renderCourseInspector();
 $('mapDuplicateObject').onclick=$('objectDuplicate').onclick=()=>duplicateSelectedCourse();
 $('mapRemoveObject').onclick=$('objectDelete').onclick=()=>deleteSelectedCourse();
 $('objectDeselect').onclick=()=>{selectCourseObject(null);setWindowVisible('objectWindow',false)};
-function duplicateSelectedCourse(){const o=cfg.courseObjects.find(o=>o.id===selectedCourseId);if(!o)return;
- const other=structuredClone(o);other.id=crypto.randomUUID();other.x+=2;other.z+=2;
- if(other.points)other.points=other.points.map(p=>({x:p.x+2,z:p.z+2}));
- addCourseObject(other,'Duplicated course object');selectCourseObject(other.id,true)}
+let duplicatingCourse=false;
+async function duplicateSelectedCourse(){
+ const o=cfg.courseObjects.find(o=>o.id===selectedCourseId);if(!o||duplicatingCourse)return;
+ if(cfg.courseObjects.length>=220){note('Map has reached 220 objects.',true);return}
+ duplicatingCourse=true;
+ try{
+  const sourceMesh=courseMeshes.get(o.id);
+  if(sourceMesh){
+   // Copy the live gizmo transform into the source record BEFORE buildCourse recreates
+   // the meshes. This also retains an in-progress rotation on the original.
+   o.x=sourceMesh.position.x;o.z=sourceMesh.position.z;o.y=sourceMesh.position.y;
+   o.angle=THREE.MathUtils.radToDeg(sourceMesh.rotation.y);
+  }
+  const other=structuredClone(o);other.id=crypto.randomUUID();
+  // The object coordinate is the *centre* of its collider. Position the lower
+  // face of the clone above the source's upper face, with a small clearance.
+  const occupiedHeight=sourceMesh?new THREE.Box3().setFromObject(sourceMesh).getSize(new THREE.Vector3()).y:0;
+  const rise=sourceMesh?Math.max(.2,occupiedHeight):Math.max(.2,Math.min(Number(o.h)||1,7));
+  const centre=Number.isFinite(o.y)?o.y:heightAt(o.x,o.z)+rise/2;
+  other.y=centre+rise+Math.max(.2,rise*.07);
+  other.name=(o.name||o.kind)+' copy';
+  await addCourseObject(other,'Duplicated above source');
+  if(cfg.courseObjects.some(item=>item.id===other.id)){
+   selectCourseObject(other.id,true);objectGizmo?.setMode('translate');
+   note('Duplicate placed above original · move with the gizmo (G).');
+  }
+ }finally{duplicatingCourse=false}
+}
 function deleteSelectedCourse(){const ix=cfg.courseObjects.findIndex(o=>o.id===selectedCourseId);
  if(ix<0)return;cfg.courseObjects.splice(ix,1);selectCourseObject(null);rememberMapEdit('Delete map object');void refreshEnvironmentForMap();setWindowVisible('objectWindow',false)}
 const OBJECT_SLIDER_BOUNDS={objectX:[-200,200,.05],objectY:[-40,100,.05],objectZ:[-200,200,.05],
@@ -6196,14 +6265,153 @@ $('objectQuickSlider').oninput=e=>{
 };
 $('objectQuickSlider').onchange=()=>$(selectedObjectSlider)?.dispatchEvent(new Event('change'));
 for(const id of Object.keys(OBJECT_SLIDER_BOUNDS))$(id)?.addEventListener('focus',()=>bindObjectSlider(id));
-function focusSelectedCourse(direction){
- const o=cfg.courseObjects.find(x=>x.id===selectedCourseId);if(!o)return;
- const t=new THREE.Vector3(o.x,Number.isFinite(o.y)?o.y:heightAt(o.x,o.z)+o.h/2,o.z);
- const dirs={1:[0,0,1],2:[0,0,-1],3:[-1,0,0],4:[1,0,0],5:[0,1,0],6:[0,-1,0],7:[1,1,1]};
- const d=dirs[direction]||dirs[7];const r=Math.max(3,Math.max(o.w,o.h,o.d)*2.1);
- orbit.target.copy(t);camera.position.copy(t).add(new THREE.Vector3(...d).normalize().multiplyScalar(r));
- camera.lookAt(t);orbit.update();
+// Blender-style world navigation. Direction changes preserve the current orbit
+// radius and pivot. Only Frame Selected (Numpad .) deliberately fits the object.
+const VIEW_ANGLE_STEP=Math.PI/12;
+const VIEW_FOV=48;
+let viewportCameraStored=null,localViewEnabled=false,localViewRestore=new Map();
+let viewProjection='perspective';
+const viewAxes={front:[0,0,1],right:[1,0,0],top:[0,1,0],back:[0,0,-1],left:[-1,0,0],bottom:[0,-1,0]};
+function resizeViewportCamera(width,height){
+ const aspect=Math.max(.05,width/Math.max(1,height));
+ if(camera.isOrthographicCamera){
+  const half=(camera.top-camera.bottom)/2;
+  camera.left=-half*aspect;camera.right=half*aspect;
+ }else camera.aspect=aspect;
+ camera.updateProjectionMatrix();
 }
+function exitSceneCameraView(){
+ if(!viewportCameraStored)return;
+ const stored=viewportCameraStored;viewportCameraStored=null;
+ if(mode==='drive'){cfg.cameraMode=stored.driveMode;followRig.orbitOffset.copy(stored.position).sub(stored.target);}
+ camera.position.copy(stored.position);orbit.target.copy(stored.target);
+ orbit.enabled=!transformDragging&&(mode!=='drive'||cfg.cameraMode!=='driver');
+ followRig.initialized=false;followRig.mode=null;
+ camera.lookAt(orbit.target);orbit.update();updateCameraLabel();
+}
+function switchViewportProjection(){
+ if(xrActive){note('Leave XR before changing viewport projection.');return}
+ const aspect=Math.max(.2,($('stage').clientWidth||1)/Math.max(1,$('stage').clientHeight));
+ const distance=Math.max(2.5,camera.position.distanceTo(orbit.target));
+ let next;
+ if(viewProjection==='perspective'){
+  const half=distance*Math.tan(THREE.MathUtils.degToRad(VIEW_FOV)/2);
+  next=new THREE.OrthographicCamera(-half*aspect,half*aspect,half,-half,.1,350);
+  viewProjection='orthographic';
+ }else{
+  next=new THREE.PerspectiveCamera(VIEW_FOV,aspect,.1,350);
+  // Orthographic OrbitControls zoom changes the visual size; carry its result
+  // back to perspective rather than unexpectedly jumping in scale.
+  const zoom=Math.max(.1,camera.zoom||1);
+  next.position.copy(orbit.target).add(camera.position.clone().sub(orbit.target).multiplyScalar(1/zoom));
+  viewProjection='perspective';
+ }
+ if(viewProjection==='orthographic')next.position.copy(camera.position);
+ next.up.copy(camera.up);next.quaternion.copy(camera.quaternion);next.layers.mask=camera.layers.mask;
+ camera=next;orbit.object=camera;
+ if(objectGizmo)objectGizmo.camera=camera;
+ camera.lookAt(orbit.target);orbit.update();
+ $('cameraModeReadout').textContent='Viewport · '+(viewProjection==='orthographic'?'Orthographic':'Perspective');
+}
+function setViewportAxis(name){
+ if(viewportCameraStored)exitSceneCameraView();
+ const vector=new THREE.Vector3(...viewAxes[name]);if(vector.lengthSq()===0)return;
+ const radius=Math.max(2.5,camera.position.distanceTo(orbit.target));
+ // Front, right and top are exact axes, including reversed Ctrl+numpad views.
+ orbit.minPolarAngle=0;orbit.maxPolarAngle=Math.PI-.000001;
+ camera.position.copy(orbit.target).addScaledVector(vector,radius);
+ camera.lookAt(orbit.target);orbit.update();
+ $('cameraModeReadout').textContent='Viewport · '+name[0].toUpperCase()+name.slice(1)+' · '+(viewProjection==='orthographic'?'Ortho':'Persp');
+}
+function orbitViewport(direction){
+ if(viewportCameraStored)exitSceneCameraView();
+ const v=camera.position.clone().sub(orbit.target),r=Math.max(2.5,v.length());
+ const theta=Math.atan2(v.x,v.z)+(direction==='left'?-VIEW_ANGLE_STEP:direction==='right'?VIEW_ANGLE_STEP:0);
+ const phi=Math.acos(THREE.MathUtils.clamp(v.y/r,-1,1))+
+  (direction==='down'?VIEW_ANGLE_STEP:direction==='up'?-VIEW_ANGLE_STEP:0);
+ const p=THREE.MathUtils.clamp(phi,.001,Math.PI-.001);
+ orbit.minPolarAngle=0;orbit.maxPolarAngle=Math.PI-.000001;
+ camera.position.copy(orbit.target).add(new THREE.Vector3(r*Math.sin(p)*Math.sin(theta),r*Math.cos(p),r*Math.sin(p)*Math.cos(theta)));
+ camera.lookAt(orbit.target);orbit.update();
+}
+function zoomViewport(closer){
+ if(viewportCameraStored)exitSceneCameraView();
+ if(camera.isOrthographicCamera){camera.zoom=THREE.MathUtils.clamp(camera.zoom*(closer?1.2:1/1.2),.1,25);camera.updateProjectionMatrix();}
+ else{
+  const offset=camera.position.clone().sub(orbit.target).multiplyScalar(closer?.83:1.2);
+  offset.setLength(THREE.MathUtils.clamp(offset.length(),orbit.minDistance,orbit.maxDistance));
+  camera.position.copy(orbit.target).add(offset);orbit.update();
+ }
+}
+function frameViewportSelection(){
+ if(viewportCameraStored)exitSceneCameraView();
+ const selected=cfg.courseObjects.find(o=>o.id===selectedCourseId);
+ if(!selected&&!car){note('Select a 3D object to frame.');return}
+ const target=selected?new THREE.Vector3(selected.x,Number.isFinite(selected.y)?selected.y:heightAt(selected.x,selected.z)+(selected.h||1)/2,selected.z):
+  car.position.clone().add(new THREE.Vector3(0,cfg.H*.3,0));
+ const radius=selected?Math.max(.5,Math.hypot(selected.w||1,selected.h||1,selected.d||1)/2):Math.max(1,cfg.L*.6);
+ const distance=THREE.MathUtils.clamp(radius/Math.sin(THREE.MathUtils.degToRad(VIEW_FOV)/2)*1.25,2.5,125);
+ const direction=camera.position.clone().sub(orbit.target).normalize();if(direction.lengthSq()<.1)direction.set(1,.5,1).normalize();
+ orbit.target.copy(target);camera.position.copy(target).addScaledVector(direction,distance);
+ if(camera.isOrthographicCamera){
+  const half=distance*Math.tan(THREE.MathUtils.degToRad(VIEW_FOV)/2);
+  const aspect=Math.max(.2,($('stage').clientWidth||1)/Math.max(1,$('stage').clientHeight));
+  camera.top=half;camera.bottom=-half;camera.left=-half*aspect;camera.right=half*aspect;camera.zoom=1;camera.updateProjectionMatrix();
+ }
+ camera.lookAt(target);orbit.update();
+}
+function toggleSceneCameraView(){
+ if(viewportCameraStored){exitSceneCameraView();return}
+ if(!car){note('There is no vehicle camera to view.');return}
+ viewportCameraStored={position:camera.position.clone(),target:orbit.target.clone(),driveMode:cfg.cameraMode};
+ if(mode==='drive'){
+  cfg.cameraMode='driver';followRig.mode=null;followRig.initialized=false;
+ }else{
+  car.updateWorldMatrix(true,false);
+  const eye=car.localToWorld(new THREE.Vector3(-cfg.W*.22,cfg.H*.37,cfg.L*.19));
+  const forward=new THREE.Vector3(0,0,6).applyQuaternion(car.getWorldQuaternion(new THREE.Quaternion()));
+  camera.position.copy(eye);orbit.target.copy(eye).add(forward);camera.lookAt(orbit.target);orbit.enabled=false;
+ }
+ $('cameraModeReadout').textContent='Viewport · Vehicle camera (Numpad 0 to exit)';
+}
+function applyLocalView(){
+ for(const [mesh,visible] of localViewRestore)mesh.visible=visible;
+ localViewRestore.clear();
+ if(!localViewEnabled)return;
+ const selectedMesh=courseMeshes.get(selectedCourseId);
+ if(!selectedMesh){localViewEnabled=false;return}
+ for(const mesh of [...courseMeshes.values(),car,...fleetRecords.map(row=>row.visual)]){
+  if(mesh&&mesh!==selectedMesh){localViewRestore.set(mesh,mesh.visible);mesh.visible=false}
+ }
+}
+function toggleLocalView(){
+ if(viewportCameraStored)exitSceneCameraView();
+ if(!localViewEnabled&&!courseMeshes.has(selectedCourseId)){note('Select an object before entering Local View.');return}
+ localViewEnabled=!localViewEnabled;applyLocalView();
+ note(localViewEnabled?'Local View · selected object only':'Local View off · all scene objects restored');
+}
+const VIEW_ACTIONS={front:()=>setViewportAxis('front'),right:()=>setViewportAxis('right'),top:()=>setViewportAxis('top'),
+ back:()=>setViewportAxis('back'),left:()=>setViewportAxis('left'),bottom:()=>setViewportAxis('bottom'),
+ orbitDown:()=>orbitViewport('down'),orbitLeft:()=>orbitViewport('left'),orbitRight:()=>orbitViewport('right'),orbitUp:()=>orbitViewport('up'),
+ camera:toggleSceneCameraView,projection:switchViewportProjection,zoomIn:()=>zoomViewport(true),zoomOut:()=>zoomViewport(false),
+ frame:frameViewportSelection,local:toggleLocalView};
+const VIEW_SHORTCUT_ACTIONS=[
+ ['viewFront','front'],['viewRight','right'],['viewTop','top'],['viewBack','back'],['viewLeft','left'],['viewBottom','bottom'],
+ ['viewCamera','camera'],['viewProjection','projection'],['viewOrbitDown','orbitDown'],['viewOrbitLeft','orbitLeft'],
+ ['viewOrbitRight','orbitRight'],['viewOrbitUp','orbitUp'],['viewZoomIn','zoomIn'],['viewZoomOut','zoomOut'],
+ ['viewFrame','frame'],['viewLocal','local']
+];
+function showViewPie(show){$('viewPieMenu').hidden=!show;if(show)$('viewPieButtons').querySelector('button')?.focus()}
+for(const button of $('viewPieButtons').querySelectorAll('button'))button.onclick=()=>{showViewPie(false);VIEW_ACTIONS[button.dataset.view]?.()};
+window.addEventListener('pointerdown',e=>{if(!$('viewPieMenu').hidden&&!$('viewPieMenu').contains(e.target))showViewPie(false)});
+window.addEventListener('keydown',e=>{
+ if(isEditingText(e.target)||!keyboardContextReady()||xrActive)return;
+ if(shortcutMatches('viewPie',e)){e.preventDefault();showViewPie($('viewPieMenu').hidden);return}
+ if(e.repeat&&['viewCamera','viewLocal','viewProjection'].some(id=>viewportShortcutMatches(id,e)))return;
+ for(const [shortcut,action] of VIEW_SHORTCUT_ACTIONS)if(viewportShortcutMatches(shortcut,e)){
+  e.preventDefault();e.stopImmediatePropagation();showViewPie(false);VIEW_ACTIONS[action]();return;
+ }
+});
 // G/R/E change the transform gizmo *mode*, never initiate a free-pointer
 // move/rotate. The user must drag a visible axis/plane handle on the selection.
 function activateCourseGizmo(kind){
@@ -6223,13 +6431,8 @@ window.addEventListener('keydown',e=>{
  if(shortcutMatches('deleteObject',e)||shortcutMatches('deleteObjectAlt',e)){
   e.preventDefault();e.stopImmediatePropagation();deleteSelectedCourse();return;
  }
- for(let n=1;n<=7;n++)if(shortcutMatches('view'+n,e)){
-  focusSelectedCourse(n);e.preventDefault();e.stopImmediatePropagation();return;
- }
  if(shortcutMatches('zoomObjectIn',e)||shortcutMatches('zoomObjectOut',e)){
-  const near=shortcutMatches('zoomObjectIn',e);
-  const offset=camera.position.clone().sub(orbit.target).multiplyScalar(near?.83:1.2);
-  camera.position.copy(orbit.target).add(offset);orbit.update();e.preventDefault();e.stopImmediatePropagation();
+  zoomViewport(shortcutMatches('zoomObjectIn',e));e.preventDefault();e.stopImmediatePropagation();
  }
 });
 function renderCourseInspector(){const o=cfg.courseObjects.find(item=>item.id===selectedCourseId);
@@ -7158,39 +7361,41 @@ function vehicleFallbackImage(item){
  const svg=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 256"><defs><linearGradient id="g" x2=".9" y2="1"><stop stop-color="#324d62"/><stop offset="1" stop-color="#122330"/></linearGradient></defs><rect width="384" height="256" fill="url(#g)"/><path d="M80 146L126 103H264L311 147V179H72V151Z" fill="#7eaec7" stroke="#dde9ea" stroke-width="3"/><path d="M136 109H258L286 144H106Z" fill="#1b3d55"/><circle cx="132" cy="180" r="30" fill="#131e25" stroke="#94afbb" stroke-width="10"/><circle cx="265" cy="180" r="30" fill="#131e25" stroke="#94afbb" stroke-width="10"/></svg>`;
  return 'data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svg);
 }
+// Stop all active hover players when filtering/re-rendering the gallery.
+const galleryHoverStops=new Set();
+function stopGalleryPreviews(){for(const stop of [...galleryHoverStops])stop()}
+const GALLERY_ICONS={"open":"<svg fill=\"none\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" viewBox=\"0 0 24 24\" xmlns=\"http://www.w3.org/2000/svg\"><path d=\"M2.5 12S6 6 12 6s9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6\"/><circle cx=\"12\" cy=\"12\" r=\"2.5\"/></svg>","add":"<svg fill=\"none\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" viewBox=\"0 0 24 24\" xmlns=\"http://www.w3.org/2000/svg\"><path d=\"M12 5v14m-7-7h14\"/></svg>","edit":"<svg fill=\"none\" viewBox=\"0 0 24 24\" xmlns=\"http://www.w3.org/2000/svg\"><path fill=\"currentColor\" fill-rule=\"evenodd\" d=\"m8.56 20.25 12-12-4.81-4.81-12 12v4.81zm7.19-14.69 2.69 2.69-1.94 1.94-2.69-2.69zm-3 3 2.69 2.69-7.5 7.5H5.25v-2.69z\" clip-rule=\"evenodd\"/></svg>","copy":"<svg fill=\"none\" viewBox=\"0 0 24 24\" xmlns=\"http://www.w3.org/2000/svg\"><path stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M9 9V6.2c0-1.12 0-1.68.22-2.1a2 2 0 0 1 .87-.88C10.52 3 11.08 3 12.2 3h5.6c1.12 0 1.68 0 2.1.22.38.19.7.5.88.87.22.43.22.99.22 2.11v5.6c0 1.12 0 1.68-.22 2.1a2 2 0 0 1-.87.88c-.43.22-.99.22-2.1.22H15M9 9H6.2c-1.12 0-1.68 0-2.1.22a2 2 0 0 0-.88.87C3 10.52 3 11.08 3 12.2v5.6c0 1.12 0 1.68.22 2.1.19.38.5.7.87.88.43.22.99.22 2.1.22h5.61c1.12 0 1.68 0 2.1-.22a2 2 0 0 0 .88-.87c.22-.43.22-.99.22-2.1V15M9 9h2.8c1.12 0 1.68 0 2.1.22q.59.3.88.87c.22.43.22.99.22 2.1V15\"/></svg>","delete":"<svg fill=\"none\" viewBox=\"0 0 24 24\" xmlns=\"http://www.w3.org/2000/svg\"><path stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" d=\"M10 12v5m4-5v5M4 7h16M6 10v8a3 3 0 0 0 3 3h6a3 3 0 0 0 3-3v-8M9 5c0-1.1.9-2 2-2h2a2 2 0 0 1 2 2v2H9z\"/></svg>","share":"<svg fill=\"none\" viewBox=\"0 0 24 24\" xmlns=\"http://www.w3.org/2000/svg\"><path fill=\"currentColor\" fill-rule=\"evenodd\" d=\"M15 6.75a2.25 2.25 0 1 1 4.5 0 2.25 2.25 0 0 1-4.5 0M17.25 3a3.75 3.75 0 0 0-3.68 4.49l-3.8 2.3a3.74 3.74 0 1 0 .17 4.18l3.65 2.48A3.76 3.76 0 0 0 17.25 21a3.75 3.75 0 1 0-3.04-5.95l-3.74-2.54a4 4 0 0 0-.07-1.35l3.76-2.28A3.75 3.75 0 1 0 17.25 3M15 17.25a2.25 2.25 0 1 1 4.5 0 2.25 2.25 0 0 1-4.5 0M4.5 12A2.25 2.25 0 1 1 9 12a2.25 2.25 0 0 1-4.5 0\" clip-rule=\"evenodd\"/></svg>","unpublish":"<svg fill=\"none\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" viewBox=\"0 0 24 24\" xmlns=\"http://www.w3.org/2000/svg\"><path d=\"M7 11V8a5 5 0 0 1 9.5-2M5 11h14v10H5z\"/></svg>","save":"<svg fill=\"none\" stroke=\"currentColor\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"2\" viewBox=\"0 0 24 24\" xmlns=\"http://www.w3.org/2000/svg\"><path d=\"M12 3v12m-5-5 5 5 5-5M4 21h16\"/></svg>"};
 function makeGalleryCard(item){
  const card=document.createElement('div');card.className='thumb-card';card.setAttribute('role','listitem');
- const title=document.createElement('div');title.className='thumb-title';title.textContent=item.name||'Unnamed';
- title.title=item.name||'';card.append(title);
- const hero=document.createElement('img');hero.className='thumb-hero';hero.alt=(item.name||'Vehicle')+' preview';
- hero.src=galleryImage(item.images)||vehicleFallbackImage(item);
- hero.onclick=()=>void openGalleryItem(item);card.append(hero);
- if(item.images?.length){
-  const strip=document.createElement('div');strip.className='thumb-strip';
-  item.images.forEach((data,i)=>{
-   const t=document.createElement('img');t.src=galleryImage(item.images,i)||'';
-   t.alt=data.label||('View '+(i+1));t.title=t.alt;
-   t.onclick=()=>{hero.src=t.src;hero.alt=t.alt};strip.append(t);
-  });card.append(strip);
- }
- const category=document.createElement('div');category.className='thumb-category';
- category.textContent=item.category||'Vehicle';card.append(category);
- const buttons=document.createElement('div');buttons.className='thumb-actions';
- const appendBtn=(label,fn)=>{
-  const b=document.createElement('button');b.textContent=label;b.onclick=()=>void Promise.resolve(fn()).catch(e=>note(e.message,true));
+ const name=item.name||'Unnamed vehicle';card.setAttribute('aria-label',name);
+ const hero=document.createElement('img');hero.className='thumb-hero';hero.alt=name+' main preview';hero.loading='lazy';
+ const views=(item.images||[]).map((_,i)=>galleryImage(item.images,i)).filter(Boolean);
+ const original=views[0]||vehicleFallbackImage(item);
+ hero.src=original;hero.tabIndex=0;hero.setAttribute('role','button');hero.title='Open '+name;
+ hero.onclick=()=>void openGalleryItem(item);
+ hero.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();void openGalleryItem(item)}};
+ card.append(hero);
+ const title=document.createElement('div');title.className='thumb-title';title.textContent=name;title.title=name;card.append(title);
+ const category=document.createElement('div');category.className='thumb-category';category.textContent=item.category||'Vehicle';card.append(category);
+ const buttons=document.createElement('div');buttons.className='thumb-actions';buttons.setAttribute('aria-label',name+' actions');
+ const appendBtn=(label,icon,fn,danger=false)=>{
+  const b=document.createElement('button');b.type='button';b.innerHTML=GALLERY_ICONS[icon];
+  b.title=label+' · '+name;b.setAttribute('aria-label',label+' '+name);
+  if(danger)b.dataset.danger='true';
+  b.onclick=()=>void Promise.resolve().then(fn).catch(e=>note(e.message,true));
   buttons.append(b);
  };
- appendBtn('Open',()=>openGalleryItem(item));
- appendBtn('＋',()=>addGalleryVehicle(item));
+ appendBtn('Open','open',()=>openGalleryItem(item));
+ appendBtn('Add to scene','add',()=>addGalleryVehicle(item));
  if(item.source==='local'){
-  appendBtn('Edit',()=>editLocalMetadata(item));
-  appendBtn('Copy',()=>duplicateLocal(item));
-  appendBtn('Delete',()=>deleteLocal(item));
- }else if(item.source==='public')appendBtn('Save copy',async()=>{
+  appendBtn('Edit details','edit',()=>editLocalMetadata(item));
+  appendBtn('Duplicate','copy',()=>duplicateLocal(item));
+  appendBtn('Delete','delete',()=>deleteLocal(item),true);
+ }else if(item.source==='public')appendBtn('Save copy','save',async()=>{
   await openGalleryItem(item);await saveLayout(true);
  });
  else {
-  appendBtn(item.visibility==='public'?'Unpublish':'Publish',async()=>{
+  appendBtn(item.visibility==='public'?'Unpublish':'Publish',item.visibility==='public'?'unpublish':'share',async()=>{
     const current=await serverRequest('GET','/api/layouts/'+encodeURIComponent(item.id));
     const row=current.layout;
     const value=row.visibility==='public'?'private':'public';
@@ -7200,9 +7405,22 @@ function makeGalleryCard(item){
     note(value==='public'?'Vehicle published · visible in Public gallery':'Vehicle is private.');
     await refreshVehicleGallery();if(value==='public')void refreshGallery();
   });
-  appendBtn('Copy',async()=>{await openGalleryItem(item);await saveServer(true)});
+  appendBtn('Copy to cloud','copy',async()=>{await openGalleryItem(item);await saveServer(true)});
  }
- card.append(buttons);return card;
+ card.append(buttons);
+ // No intervals for hidden cards. 500 ms per frame only while the card is hovered.
+ if(views.length>1){
+  let timer=null,index=0;
+  const stop=()=>{if(timer!==null){clearInterval(timer);timer=null}galleryHoverStops.delete(stop);index=0;hero.src=original;hero.alt=name+' main preview'};
+  const start=()=>{if(timer!==null||document.hidden||window.matchMedia?.('(prefers-reduced-motion: reduce)').matches)return;index=0;galleryHoverStops.add(stop);
+   timer=setInterval(()=>{if(!card.isConnected||document.hidden){stop();return}
+    index=(index+1)%views.length;hero.src=views[index];hero.alt=name+' preview '+(index+1)+' of '+views.length;
+   },500)};
+  card.addEventListener('pointerenter',e=>{if(e.pointerType==='mouse'||e.pointerType==='pen')start()});
+  card.addEventListener('pointerleave',stop);
+  hero.addEventListener('focus',start);hero.addEventListener('blur',stop);
+ }
+ return card;
 }
 // Scene instances: one actively editable vehicle; other vehicles remain independent visible
 // meshes with static collision during test driving. Geometry/material are deep-cloned so
@@ -7338,7 +7556,7 @@ async function deleteLocal(item){
 }
 let galleryRefreshSerial=0;
 async function refreshVehicleGallery(){
- const serial=++galleryRefreshSerial,root=$('vehicleGallery');root.replaceChildren();
+ stopGalleryPreviews();const serial=++galleryRefreshSerial,root=$('vehicleGallery');root.replaceChildren();
  const term=$('gallerySearch').value.trim().toLowerCase();gallerySelection();
  let items=[];
  try{
@@ -7369,6 +7587,7 @@ async function refreshVehicleGallery(){
  for(const item of items)root.append(makeGalleryCard(item));
  if(!root.children.length)root.textContent='No matching vehicles.';
 }
+document.addEventListener('visibilitychange',()=>{if(document.hidden)stopGalleryPreviews()});
 function setGalleryDock(mode){
  const win=$('galleryWindow');win.classList.remove('docked','dock-left','dock-right','dock-bottom');
  if(mode!=='float'){win.classList.add('docked','dock-'+mode)}
@@ -7392,6 +7611,14 @@ $('galleryRefreshBtn').onclick=()=>{gallerySource='public';setWindowVisible('gal
 $('layoutPublic').onchange=()=>{serverVisibility=$('layoutPublic').checked?'public':'private'};
 
 const RELEASE_NOTES=[
+ {v:'0.3.18',date:'2026-11-10',title:'Blender-style viewport keys, safe object cloning and image-first gallery',items:[
+  'Shift+D preserves source rotation and places the clone vertically above the original, separated by its rendered height and a safety gap.',
+  'Numpad front/right/top/back/left/bottom, orbit, camera view, ortho toggle, zoom, frame selection, local view and backtick view menu.',
+  'View-orientation keys preserve the existing camera target and distance. Emulate numpad is optional for top-row number keys.',
+  'Vehicle cards fill their tile with the preview image; names and categories become overlays; action buttons use theme-colour SVG icons.',
+  'On pointer hover the saved views rotate every 500 ms; leaving restores the main image. Reduced-motion preference disables slideshow.',
+  'No new external assets, dependencies, database migration or server-side permissions introduced.'
+ ]},
  {v:'0.3.17',date:'2026-11-09',title:'Typeface previews, context undo, configurable keys and parking brake',items:[
   'Selected typography now applies to both interface panels and lil-gui controls.',
   'Non-modal, movable font gallery shows editable specimen text, searchable font cards and installed fonts with browser permission.',
@@ -7745,6 +7972,10 @@ $('lux3dImportResult').onclick=()=>void importLux3dResult().catch(error=>note('L
 // with optional Mod (Ctrl on Windows/Linux, Cmd on macOS), Shift and Alt.
 // The registry is separate from mouse, touch and XR bindings.
 const SHORTCUT_STORAGE='vehiclelab.shortcuts.v1';
+const EMULATE_NUMPAD_STORAGE='vehiclelab.emulateNumpad.v1';
+let emulateNumpad=safeRead(EMULATE_NUMPAD_STORAGE)==='on';
+$('emulateNumpad').checked=emulateNumpad;
+$('emulateNumpad').onchange=e=>{emulateNumpad=e.target.checked;safeStore(EMULATE_NUMPAD_STORAGE,emulateNumpad?'on':'off')};
 const SHORTCUT_DEFS=[
  ['undo','Undo most recent map/vehicle edit','Mod+KeyZ','Editing'],
  ['redo','Redo most recent edit','Mod+Shift+KeyZ','Editing'],
@@ -7772,15 +8003,38 @@ const SHORTCUT_DEFS=[
  ['deleteObjectAlt','Delete selected object (alternate)','Delete','World editor'],
  ['zoomObjectIn','Zoom toward selected object','Equal','World editor'],
  ['zoomObjectOut','Zoom away from selected object','Minus','World editor'],
- ...Array.from({length:7},(_,i)=>['view'+(i+1),'Selected object camera view '+(i+1),'Digit'+(i+1),'World editor'])
+ ['viewFront','Front view · Numpad 1','Numpad1','3D viewport'],
+ ['viewRight','Right view · Numpad 3','Numpad3','3D viewport'],
+ ['viewTop','Top view · Numpad 7','Numpad7','3D viewport'],
+ ['viewBack','Back view · Ctrl+Numpad 1','Ctrl+Numpad1','3D viewport'],
+ ['viewLeft','Left view · Ctrl+Numpad 3','Ctrl+Numpad3','3D viewport'],
+ ['viewBottom','Bottom view · Ctrl+Numpad 7','Ctrl+Numpad7','3D viewport'],
+ ['viewCamera','Vehicle camera view · Numpad 0','Numpad0','3D viewport'],
+ ['viewProjection','Orthographic / perspective · Numpad 5','Numpad5','3D viewport'],
+ ['viewOrbitDown','Orbit down · Numpad 2','Numpad2','3D viewport'],
+ ['viewOrbitLeft','Orbit left · Numpad 4','Numpad4','3D viewport'],
+ ['viewOrbitRight','Orbit right · Numpad 6','Numpad6','3D viewport'],
+ ['viewOrbitUp','Orbit up · Numpad 8','Numpad8','3D viewport'],
+ ['viewZoomIn','Zoom in · Numpad +','NumpadAdd','3D viewport'],
+ ['viewZoomOut','Zoom out · Numpad −','NumpadSubtract','3D viewport'],
+ ['viewFrame','Frame selected · Numpad .','NumpadDecimal','3D viewport'],
+ ['viewLocal','Toggle local view · Numpad /','NumpadDivide','3D viewport'],
+ ['viewPie','View menu · backtick','Backquote','3D viewport']
 ];
 const SHORTCUT_DEFAULTS=Object.fromEntries(SHORTCUT_DEFS.map(([id,,combo])=>[id,combo]));
 let shortcutBindings={...SHORTCUT_DEFAULTS},shortcutDraft={...SHORTCUT_DEFAULTS},shortcutEditMode=false,recordingShortcutId=null;
-const VALID_CODE=/^(?:Key[A-Z]|Digit[0-9]|Numpad[0-9]|Arrow(?:Up|Down|Left|Right)|F(?:[1-9]|1[0-2])|Space|Slash|Equal|Minus|Delete|Backspace|BracketLeft|BracketRight|Comma|Period|Semicolon|Quote|Backquote|Enter|Tab)$/;
+const VALID_CODE=/^(?:Key[A-Z]|Digit[0-9]|Numpad(?:[0-9]|Add|Subtract|Decimal|Divide)|Arrow(?:Up|Down|Left|Right)|F(?:[1-9]|1[0-2])|Space|Slash|Equal|Minus|Delete|Backspace|BracketLeft|BracketRight|Comma|Period|Semicolon|Quote|Backquote|Enter|Tab)$/;
 function shortcutForEvent(e){
- return [e.ctrlKey||e.metaKey?'Mod':null,e.shiftKey?'Shift':null,e.altKey?'Alt':null,e.code].filter(Boolean).join('+');
+ return [e.ctrlKey&&e.code?.startsWith('Numpad')?'Ctrl':e.ctrlKey||e.metaKey?'Mod':null,e.shiftKey?'Shift':null,e.altKey?'Alt':null,e.code].filter(Boolean).join('+');
 }
 function shortcutMatches(id,e){return !!shortcutBindings[id]&&shortcutBindings[id]===shortcutForEvent(e);}
+function viewportShortcutMatches(id,e){
+ if(shortcutMatches(id,e))return true;
+ if(!emulateNumpad||!/^Digit[0-9]$/.test(e.code))return false;
+ const emulatedCode='Numpad'+e.code.slice(-1);
+ return !!shortcutBindings[id]&&shortcutBindings[id]===shortcutForEvent({code:emulatedCode,ctrlKey:e.ctrlKey,
+  metaKey:e.metaKey,shiftKey:e.shiftKey,altKey:e.altKey});
+}
 function isEditingText(target){return !!target?.closest?.('input,textarea,select,[contenteditable=""],[contenteditable="true"]');}
 function keyboardContextReady(){return $('welcomeOverlay').hidden&&$('releaseOverlay').hidden&&
  $('shortcutOverlay').hidden&&$('saveOverlay').hidden&&$('cameraOverlay').hidden&&$('addObjectOverlay').hidden&&
@@ -7788,8 +8042,8 @@ function keyboardContextReady(){return $('welcomeOverlay').hidden&&$('releaseOve
 function validateCombo(combo){
  if(typeof combo!=='string'||combo.length>70)return false;
  const tokens=combo.split('+'),code=tokens.at(-1),mod=tokens.slice(0,-1);
- if(!VALID_CODE.test(code)||new Set(mod).size!==mod.length||mod.some(x=>!['Mod','Shift','Alt'].includes(x)))return false;
- if(mod.join('+')!==['Mod','Shift','Alt'].filter(x=>mod.includes(x)).join('+'))return false;
+ if(!VALID_CODE.test(code)||new Set(mod).size!==mod.length||mod.some(x=>!['Mod','Ctrl','Shift','Alt'].includes(x))||mod.includes('Mod')&&mod.includes('Ctrl'))return false;
+ if(mod.join('+')!==['Mod','Ctrl','Shift','Alt'].filter(x=>mod.includes(x)).join('+'))return false;
  // The browser/OS owns these actions; don't steal reload, new tabs, address bar or close.
  if(['Mod+KeyW','Mod+KeyR','Mod+KeyT','Mod+KeyL','Mod+KeyN','F5','F11'].includes(combo))return false;
  return true;
@@ -7806,12 +8060,25 @@ function shortcutProblems(bindings){
  }
  return errors;
 }
+// Upgrade custom top-row view assignments from v0.3.17 without carrying over
+// the old, non-Blender view semantics or resetting unrelated user shortcuts.
+const LEGACY_VIEW_KEYS={view1:['viewFront','Digit1'],view2:['viewOrbitDown','Digit2'],
+ view3:['viewRight','Digit3'],view4:['viewOrbitLeft','Digit4'],
+ view5:['viewProjection','Digit5'],view6:['viewOrbitRight','Digit6'],view7:['viewTop','Digit7']};
+function normalizeShortcutImport(bindings){
+ const next={...SHORTCUT_DEFAULTS};
+ for(const [id] of SHORTCUT_DEFS)if(Object.hasOwn(bindings,id))next[id]=bindings[id];
+ for(const [oldId,[newId,formerDefault]] of Object.entries(LEGACY_VIEW_KEYS)){
+  if(!Object.hasOwn(bindings,newId)&&Object.hasOwn(bindings,oldId)&&bindings[oldId]!==formerDefault&&validateCombo(bindings[oldId]))
+   next[newId]=bindings[oldId];
+ }
+ return next;
+}
 function loadShortcuts(){
  try{
   const value=JSON.parse(safeRead(SHORTCUT_STORAGE)||'null');
   if(value?.schema!=='vehiclelab-shortcuts/v1'||!value.bindings||typeof value.bindings!=='object')return;
-  const next={...SHORTCUT_DEFAULTS};
-  for(const [id] of SHORTCUT_DEFS)if(Object.hasOwn(value.bindings,id))next[id]=value.bindings[id];
+  const next=normalizeShortcutImport(value.bindings);
   if(shortcutProblems(next).size===0)shortcutBindings=next;
   else recordEvent('WARN','Stored shortcut bindings failed validation; safe defaults were restored.');
  }catch(e){recordEvent('WARN','Shortcut configuration: '+e.message)}
@@ -7897,9 +8164,9 @@ $('shortcutFile').onchange=async e=>{
   const data=JSON.parse(await file.text());
   if(data?.schema!=='vehiclelab-shortcuts/v1'||!data.bindings||typeof data.bindings!=='object'||Array.isArray(data.bindings))
    throw Error('Unsupported shortcut JSON schema.');
-  if(Object.keys(data.bindings).some(key=>!Object.hasOwn(SHORTCUT_DEFAULTS,key)))throw Error('Shortcut JSON contains unknown actions.');
+  if(Object.keys(data.bindings).some(key=>!Object.hasOwn(SHORTCUT_DEFAULTS,key)&&!Object.hasOwn(LEGACY_VIEW_KEYS,key)))throw Error('Shortcut JSON contains unknown actions.');
   if(Object.values(data.bindings).some(value=>typeof value!=='string'||value.length>70))throw Error('Shortcut JSON has invalid keys.');
-  shortcutDraft={...SHORTCUT_DEFAULTS,...data.bindings};
+  shortcutDraft=normalizeShortcutImport(data.bindings);
   shortcutEditMode=true;$('shortcutEdit').setAttribute('aria-pressed','true');$('shortcutEdit').textContent='Cancel editing';
   validateShortcutDraft();
  }catch(error){$('shortcutStatus').classList.add('is-error');$('shortcutStatus').textContent='Import rejected: '+error.message;}
@@ -7922,6 +8189,7 @@ window.addEventListener('keydown',e=>{
   e.preventDefault();toggleShortcuts($('shortcutOverlay').hidden);return;
  }
  if(e.code==='Escape'){
+  if(!$('viewPieMenu').hidden)showViewPie(false);
   if(!$('shortcutOverlay').hidden)toggleShortcuts(false);
   if(!$('fontBrowser').hidden)showFontBrowser(false);
   if(!$('saveOverlay').hidden)$('saveCancel').click();
