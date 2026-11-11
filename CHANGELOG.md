@@ -1,3 +1,11 @@
+## v0.3.39 — November 11, 2026
+- Vector Chassis: left and right views now edit the same 2D profile, extruded into a single body shell rather than two independently drawn bodies. Secondary side panels are mirrored as visual overlays.
+- Front/rear wheel roundels can be dragged to reposition the actual axle offsets and wheel vertical mounting; wheel radius is adjustable in the contextual inspector. These values remain in the vehicle blueprint and update all supported physics engine wheel mount points.
+- Default wheel arches use three controllable nodes per arch and true circular curves. The Arch tool draws an exact semicircle guide; existing arbitrary shape nodes can still be moved.
+- Enlarged full-window drafting canvas with overlay toolbar and inspector; no reserved blank panel space. The editable 2D surface captures G/S/R (move, scale, rotate), X (delete), and F (fill/close) without invoking 3D scene shortcuts.
+- Any path with at least three nodes can be closed and reassigned as Body shell after drawing. Added per-layer fill colour and opacity to both SVG preview and Three.js material.
+- No new backend dependencies or migrations; existing cloud maps, cars and GLB assets remain untouched. Source-level and isolated browser checks are not a substitute for live WebGL verification.
+
 ## v0.3.38 — November 11, 2026
 - Adds a separate resizable Vector Chassis workbench (Shift+C or Shift+A → Vector chassis) while retaining previous procedural and GLB workshops.
 - Draw/edit profile nodes with multi-selection, insert/delete nodes, line, polygon, freehand, ellipse, rectangle, circle and triangle; change straight/Bézier edges and assign semantic materials for body, glass, door, lights, bumper, grille, mirrors, nameplates and trim.

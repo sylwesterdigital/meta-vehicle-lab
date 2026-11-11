@@ -1282,3 +1282,48 @@ class VectorChassis038Tests(unittest.TestCase):
         self.assertIn('if(vectorGizmo?.object)vectorGizmo.detach()',self.html)
         self.assertIn('vectorRoot=new THREE.Group();',self.html)
 
+
+class VectorChassis039Tests(unittest.TestCase):
+    """Non-destructive source contracts for the 2D workbench follow-up."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.html = (Path(__file__).resolve().parents[1] / 'index.html').read_text()
+
+    def test_left_and_right_reference_a_single_profile(self):
+        self.assertIn("function vectorLayersInView(){return vectorDesign().layers.filter(l=>l.view===((vectorView==='right')?'left':vectorView))", self.html)
+        self.assertIn("view:vectorView==='right'?'left':vectorView", self.html)
+        self.assertIn("if(layer.role!=='body')", self.html)
+        self.assertIn("group.position.x=layer.role==='body'?layer.depth/2", self.html)
+
+    def test_arc_primitives_have_three_handles(self):
+        self.assertIn("make('Outer body', 'body',points,{arcs:[{start:8,mid:9,end:10},{start:11,mid:12,end:13}]})", self.html)
+        self.assertIn('function vectorCircleThrough(a,b,c)', self.html)
+        self.assertIn('shape.absarc(c.x,c.y,c.radius,c.start,c.end,c.clockwise)', self.html)
+        self.assertIn('data-vector-tool="arch"', self.html)
+        self.assertIn("new THREE.TubeGeometry(curve,48,.017,6,false)", self.html)
+
+    def test_physical_wheel_mounts_and_guides_are_linked(self):
+        self.assertIn('frontWheelMountY:-.3,rearWheelMountY:-.3', self.html)
+        self.assertIn('function vectorCommitWheelGuide()', self.html)
+        self.assertIn("'data-vector-wheel':axle", self.html)
+        self.assertIn('wheelMountYFor(axle)', self.html)
+        self.assertIn("cfg.axleFrontOffset=clamp(preview.x-cfg.L*.38", self.html)
+        self.assertIn("scheduleBuild();scheduleHistory('Move '", self.html)
+
+    def test_focus_and_editor_transform_shortcuts(self):
+        self.assertIn("!document.activeElement?.closest?.('#vectorWindow')", self.html)
+        self.assertIn("function vectorBeginTransform(mode)", self.html)
+        self.assertIn("function vectorApplyTransform(point)", self.html)
+        self.assertIn("function vectorFinishTransform(cancel=false)", self.html)
+        self.assertIn("KeyG:'move',KeyS:'scale',KeyR:'rotate'", self.html)
+        self.assertIn("if(e.code==='KeyF')", self.html)
+        self.assertIn("if(['KeyX','Delete','Backspace'].includes(e.code))", self.html)
+
+    def test_fill_and_close_can_be_changed_after_drawing(self):
+        self.assertIn('id="vectorClosePath"', self.html)
+        self.assertIn('id="vectorFillColor"', self.html)
+        self.assertIn('id="vectorFillOpacity"', self.html)
+        self.assertIn('layer.opacity', self.html)
+        self.assertIn("if(!layer.closed&&layer.role==='body'&&layer.nodes.length>=3)layer.closed=true", self.html)
+        self.assertIn('color:/^#[0-9a-f]{6}$/i', self.html)
