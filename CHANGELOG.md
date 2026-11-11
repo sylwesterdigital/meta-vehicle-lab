@@ -1,3 +1,9 @@
+## v0.3.33 — November 11, 2026
+- Imported GLB shell uses a centred visual pivot, correcting rotations around remote authoring origins. Auto-align detects the likely up axis and positions the long body axis along the car. Model binary and physical wheels remain unchanged.
+- Chassis Workshop fit panel replaces seven independent steppers with one parameter selector and adaptive range slider plus optional precise text input.
+- Dedicated Three.js TransformControls for the visual body with Move / Rotate / Scale modes, on-screen selection, server-blueprint persistence, and explicit Auto-align / Turn 180° options. Chassis gizmo detaches on car rebuild or when another scene gizmo is activated.
+- No server schema changes, library deletion, imported GLB overwrite, or changes to car physics and passengers. Requires live WebGL acceptance.
+
 ## v0.3.32 — November 11, 2026
 - Chassis Workshop AI flow is now guided around the current procedural shell: larger center preview, one-click procedural prompt generation, example prompt text, and automatic white-background shell/full-car studio captures from multiple angles.
 - Workshop no longer insists on re-entering provider keys when the same image or Lux3D keys are already present in AI / API Keys. Inline key fields collapse when keys are already available, with direct links back to settings only when needed.

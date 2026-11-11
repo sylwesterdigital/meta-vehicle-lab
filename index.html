@@ -5,7 +5,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Vehicle Lab — Procedural Studio</title>
-  <meta name="vehicle-lab-version" content="0.3.32">
+  <meta name="vehicle-lab-version" content="0.3.33">
   <style>
     :root {
       color-scheme:dark;
@@ -605,11 +605,15 @@
 #chassisFitPanel[hidden]{display:none!important}
 #chassisFitPanel .chassis-fit-title{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:7px;font-size:11px}
 #chassisFitPanel .chassis-fit-title button{font-size:10px;padding:4px 7px;min-height:26px;background:#244c63;color:white;border:1px solid #6b9db2;border-radius:5px}
-#chassisFitPanel .chassis-xyz{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px;margin:5px 0}
-#chassisFitPanel .chassis-xyz label{font-size:10px;display:flex;gap:4px;align-items:center;min-width:0;color:#d6ebf6}
-#chassisFitPanel .chassis-xyz input{min-width:0;width:100%;padding:5px 3px;border-radius:5px;background:#0d1b29;border:1px solid #6a8ba0;color:white;font-size:11px}
-#chassisFitPanel .chassis-fit-scale{display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:center;margin:7px 0;font-size:10px}
-#chassisFitPanel .chassis-fit-scale input{width:100%;min-width:0}
+#chassisFitPanel .chassis-fit-choice{display:grid;grid-template-columns:auto minmax(0,1fr) auto minmax(76px,.35fr);gap:7px;align-items:center;margin:10px 0 6px}
+#chassisFitPanel .chassis-fit-choice label{font-size:11px;color:#d6ebf6}
+#chassisFitPanel .chassis-fit-choice select,#chassisFitPanel .chassis-fit-choice input{width:100%;min-width:0;min-height:32px;padding:6px 8px;border-radius:6px;background:#0d1b29;color:#edf8ff;font-size:12px;border:1px solid #698fa2;color-scheme:dark}
+#chassisFitPanel .chassis-fit-shared{display:grid;grid-template-columns:minmax(0,1fr) 62px;gap:9px;align-items:center;margin:7px 0 11px}
+#chassisFitPanel .chassis-fit-shared input{width:100%;min-width:0;accent-color:var(--accent)}
+#chassisFitPanel .chassis-fit-shared output{text-align:right;color:#edf8ff;font-size:12px;font-variant-numeric:tabular-nums}
+#chassisFitPanel .chassis-fit-modes,#chassisFitPanel .chassis-fit-actions{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0}
+#chassisFitPanel .chassis-fit-modes button[aria-pressed=true]{background:var(--accent);color:#10232c}
+@media(max-width:500px){#chassisFitPanel .chassis-fit-choice{grid-template-columns:auto minmax(0,1fr)}#chassisFitPanel .chassis-fit-choice label[for=bodyFitValue]{grid-column:1}}
 #chassisFitPanel .drawer-actions{margin:8px 0;display:flex;gap:5px;flex-wrap:wrap}
 #chassisFitPanel .drawer-actions button{color:white;background:#23445a;border:1px solid #628ca2;font-size:10px;padding:5px 9px;border-radius:6px;min-height:30px}
 #chassisFitPanel small{display:block;font-size:10px;color:#b9d7e9;line-height:1.5}
@@ -930,7 +934,7 @@ input[type=color]:focus-visible{outline:2px solid var(--accent)!important;outlin
 
   <div id="stage">
   <div id="hud">
-    <div class="stage-badge"><strong>Vehicle Lab</strong><small id="appVersionBadge">v0.3.32</small></div>
+    <div class="stage-badge"><strong>Vehicle Lab</strong><small id="appVersionBadge">v0.3.33</small></div>
     <p id="vehicleName">City Car</p><p id="vehicleInfo">Procedural vehicle</p>
     <div id="speedHud"><strong id="speed">0</strong><div>km/h</div></div>
     <div id="cameraModeReadout" style="padding:3px 6px;margin-top:4px;width:max-content;max-width:260px;border-radius:5px;background:#132d3cc0;color:#e9f5fc;font:10px ui-monospace,monospace">Camera · Orbit follow</div>
@@ -1254,19 +1258,25 @@ input[type=color]:focus-visible{outline:2px solid var(--accent)!important;outlin
       </section>
       <section id="chassisFitPanel" aria-label="Imported chassis fit and alignment" hidden>
         <div class="chassis-fit-title"><strong>Imported GLB · fit &amp; alignment</strong><button type="button" id="chassisFitReset" title="Restore auto-fit coordinates">Reset fit</button></div>
-        <div class="chassis-xyz" role="group" aria-label="Vehicle-local body position in metres">
-          <label>X <input type="number" id="bodyOffsetX" step=".05" min="-12" max="12"></label>
-          <label>Y <input type="number" id="bodyOffsetY" step=".05" min="-12" max="12"></label>
-          <label>Z <input type="number" id="bodyOffsetZ" step=".05" min="-12" max="12"></label>
+        <div class="chassis-fit-choice">
+          <label for="bodyFitProperty">Adjust property</label>
+          <select id="bodyFitProperty" aria-label="Select imported body transform property">
+            <option value="modelOffsetX">Position X</option><option value="modelOffsetY">Position Y</option><option value="modelOffsetZ">Position Z</option>
+            <option value="modelPitch">Pitch X°</option><option value="modelRotation">Yaw Y°</option><option value="modelRoll">Roll Z°</option>
+            <option value="modelScale">Size</option>
+          </select>
+          <label for="bodyFitValue">Value</label><input id="bodyFitValue" type="text" inputmode="decimal" spellcheck="false" aria-label="Precise selected transform value">
         </div>
-        <div class="chassis-xyz" role="group" aria-label="Imported body orientation in degrees">
-          <label>Pitch X° <input type="number" id="bodyRotX" step="5" min="-180" max="180"></label>
-          <label>Yaw Y° <input type="number" id="bodyRotY" step="5" min="-180" max="180"></label>
-          <label>Roll Z° <input type="number" id="bodyRotZ" step="5" min="-180" max="180"></label>
+        <div class="chassis-fit-shared"><input id="bodyFitSlider" type="range" aria-label="Adjust selected imported body property"><output id="bodyFitReadout" aria-live="off"></output></div>
+        <div class="chassis-fit-modes" role="group" aria-label="Three.js transform gizmo">
+          <button type="button" id="chassisGizmoToggle" aria-pressed="false">Edit in 3D</button>
+          <button type="button" data-chassis-gizmo="translate">Move</button>
+          <button type="button" data-chassis-gizmo="rotate">Rotate</button>
+          <button type="button" data-chassis-gizmo="scale">Scale</button>
         </div>
-        <div class="chassis-fit-scale"><label for="bodyFitScale">Relative size</label><input id="bodyFitScale" type="range" min=".2" max="4" step=".01"><output id="bodyFitScaleValue">1.00×</output></div>
+        <div class="chassis-fit-actions"><button type="button" id="chassisAutoAlign">Auto-align to vehicle</button><button type="button" id="chassisFlipFront">Turn 180°</button></div>
         <div class="drawer-actions"><button id="chassisDownloadGLB" type="button" title="Download the currently loaded GLB binary">↓ Download GLB</button><button id="chassisDownloadReference" type="button" title="Save the current studio reference image">↓ Reference PNG/JPEG</button></div>
-        <small>Only the imported shell moves. Wheels, colliders, camera and passengers are unchanged. Values are saved in the vehicle blueprint.</small>
+        <small>The GLB rotates around its own centred pivot. Only the imported visual body is transformed; wheels, collision geometry, seats and passengers stay in place. Fit values are saved with the car.</small>
       </section>
       <div class="body-controls"><label>Front rake <input id="bodyRakeFront" type="number" step=".02" min=".04" max="1.8"></label>
         <label>Rear rake <input id="bodyRakeRear" type="number" step=".02" min=".04" max="1.8"></label>
@@ -1714,7 +1724,7 @@ let shrubRockMeshes=[];
 const coursePhysicsBodies=[],courseSolidSpecs=[];
 const courseMeshes=new Map();
 let selectedCourseId=null, transformDragging=false;
-let objectGizmo=null;
+let objectGizmo=null,chassisGizmo=null,chassisGizmoEnabled=false,chassisGizmoMode="translate",chassisGizmoStart=null;
 // Pre-v0.2.7 IndexedDB and server layouts can lack wheel/texture properties.
 // lil-gui fails while creating a numeric controller for an absent property.
 function normalizeVehicleConfig(){
@@ -1894,7 +1904,7 @@ let ghostObject=null,ghostSamples=[],ghostElapsed=0,ghostTick=0;
  function appConfirm(message){return showAppDialog('confirm',message)}
  function appPrompt(message,value='',options={}){return showAppDialog('prompt',message,value,options)}
 
- const VERSION='0.3.32';
+ const VERSION='0.3.33';
  document.getElementById('appVersionBadge').textContent='v'+VERSION;
  let imageReference=null,busyAI=false;
 
@@ -3366,6 +3376,7 @@ if(['mixer','roller','tractor','mining'].includes(kind)){
 }
 
 function clearVehicle(){
+ if(chassisGizmo?.object)chassisGizmo.detach();
  if(highlight){highlight.dispose();scene.remove(highlight);highlight=null}
  for(const w of wheels)if(w.parent===scene)disposeTree(w);
    wheels=[];
@@ -3460,47 +3471,73 @@ function updateSeatAnimations(dt){
  if(steeringWheel){const steer=inputForStep().steer||0;steeringWheel.rotation.z=lerp(steeringWheel.rotation.z,-steer*.55,1-Math.exp(-8*dt))}
 }
 
- // Imported shell fitting is independent of car physics and wheel geometry.
- // A generated 3D shell often has arbitrary units, origin and forward axis.
- // User offsets are vehicle-local metres, and can be adjusted without rebuilding
- // the driver, seat rigs or camera.  +Z is forward, Y is up.
+ // Visual-only imported body. An external GLB can have an arbitrary origin
+ // and forward axis. Center its actual geometry under a dedicated pivot so
+ // rotation/scale gizmos do not orbit around a remote GLB authoring origin.
  function shellBoundsAfterRotation(source,rotation){
   const raw=new THREE.Box3().setFromObject(source);
+  const centre=raw.getCenter(new THREE.Vector3());
   const rotated=new THREE.Box3().makeEmpty(),point=new THREE.Vector3();
   const matrix=new THREE.Matrix4().makeRotationFromEuler(rotation);
   for(const x of [raw.min.x,raw.max.x])for(const y of [raw.min.y,raw.max.y])
-   for(const z of [raw.min.z,raw.max.z])rotated.expandByPoint(point.set(x,y,z).applyMatrix4(matrix));
+   for(const z of [raw.min.z,raw.max.z])rotated.expandByPoint(point.set(x-centre.x,y-centre.y,z-centre.z).applyMatrix4(matrix));
   return rotated;
+ }
+ function importedShellFitSpec(){
+  if(!modelSource)return null;
+  const rotation=new THREE.Euler(rad(cfg.modelPitch||0),rad(cfg.modelRotation||0),rad(cfg.modelRoll||0),'XYZ');
+  const bounds=shellBoundsAfterRotation(modelSource,rotation);
+  const size=bounds.getSize(new THREE.Vector3());
+  if(size.x<.0001||size.y<.0001||size.z<.0001)return null;
+  // Fit to the body envelope without inflating a complete donor car beyond
+  // the real wheel track; allow a realistic GLB body height above the roof.
+  const nativeScale=Math.min(cfg.W*.98/size.x,cfg.H*1.16/size.y,cfg.L*.98/size.z);
+  const scale=nativeScale*clamp(Number(cfg.modelScale)||1,.2,4);
+  const bodyBottom=-Math.min(cfg.H*.42,.78);
+  return {rotation,scale,nativeScale,baseY:bodyBottom-bounds.min.y*scale};
  }
  function fitImportedShell(){
   if(!modelSource||!importedShell)return;
-  const rotation=new THREE.Euler(rad(cfg.modelPitch||0),rad(cfg.modelRotation||0),rad(cfg.modelRoll||0),'XYZ');
-  const bounds=shellBoundsAfterRotation(modelSource,rotation);
-  const size=bounds.getSize(new THREE.Vector3()),center=bounds.getCenter(new THREE.Vector3());
-  if(size.x<.0001||size.y<.0001||size.z<.0001)return;
-  const uniformFit=Math.min(cfg.W/size.x,cfg.H/size.y,cfg.L/size.z);
-  const scale=uniformFit*clamp(Number(cfg.modelScale)||1,.2,4);
-  importedShell.rotation.copy(rotation);importedShell.scale.setScalar(scale);
-  // Unlike the old +H*.35 centre placement, fit the bottom of the shell down
-  // around the wheel centres, leaving real access to the cabin for occupants.
-  const bodyBottom=-Math.min(cfg.H*.42,.78);
-  importedShell.position.set(-center.x*scale+(Number(cfg.modelOffsetX)||0),
-    bodyBottom-bounds.min.y*scale+(Number(cfg.modelOffsetY)||0),
-    -center.z*scale+(Number(cfg.modelOffsetZ)||0));
+  const fit=importedShellFitSpec();if(!fit)return;
+  importedShell.rotation.copy(fit.rotation);
+  importedShell.scale.setScalar(fit.scale);
+  // The imported model's local centre was subtracted when the pivot was built.
+  importedShell.position.set(Number(cfg.modelOffsetX)||0,
+   fit.baseY+(Number(cfg.modelOffsetY)||0),Number(cfg.modelOffsetZ)||0);
   importedShell.updateMatrix();
  }
- function resetImportedShellFit(){
-  Object.assign(cfg,{modelScale:1,modelRotation:0,modelPitch:0,modelRoll:0,
+ function autoAlignImportedShell(logHistory=true){
+  if(!modelSource)return;
+  const size=new THREE.Box3().setFromObject(modelSource).getSize(new THREE.Vector3());
+  // GLB convention is Y-up. Only override it for an unmistakably sideways source.
+  const axes=[size.x,size.y,size.z];const vertical=size.y<=Math.max(size.x,size.z)*1.4?1:axes.indexOf(Math.min(...axes));
+  let pitch=0,roll=0;
+  if(vertical===0)roll=90;
+  else if(vertical===2)pitch=-90;
+  const rot0=new THREE.Euler(rad(pitch),0,rad(roll),'XYZ');
+  const oriented=shellBoundsAfterRotation(modelSource,rot0).getSize(new THREE.Vector3());
+  const yaw=oriented.x>oriented.z?90:0;
+  Object.assign(cfg,{modelScale:1,modelPitch:pitch,modelRotation:yaw,modelRoll:roll,
    modelOffsetX:0,modelOffsetY:0,modelOffsetZ:0});
-  fitImportedShell();syncBodyFitInputs();scheduleHistory('Reset chassis GLB alignment');
+  fitImportedShell();syncBodyFitInputs();
+  if(logHistory)scheduleHistory('Auto-align imported chassis to car');
  }
+ function resetImportedShellFit(){autoAlignImportedShell();}
  function addImportedModel(){
   if(!modelSource)return;
-  importedShell=modelSource.clone(true);
-  importedShell.traverse(o=>o.userData.externalModel=true);
+  // Keep raw GLB assets untouched. The visual clone is offset to its centre,
+  // under a separate pivot suitable for interactive Three.js controls.
+  const raw=new THREE.Box3().setFromObject(modelSource);
+  const center=raw.getCenter(new THREE.Vector3());
+  importedShell=new THREE.Group();importedShell.name='Centred imported chassis pivot';
+  const visual=modelSource.clone(true);
+  visual.position.sub(center);
+  visual.traverse(o=>o.userData.externalModel=true);
   importedShell.userData.externalModel=true;
+  importedShell.add(visual);
   car.add(importedShell);fitImportedShell();bodyRoot.visible=false;
   registerEditableVehiclePart(importedShell,'imported-shell','Imported chassis',null);
+  updateChassisGizmo();
  }
 
  function buildVehicle(){
@@ -5183,6 +5220,7 @@ async function selectChassisAsset(id){
  if(mode==='drive')leaveDrive();
  modelSource=item.source;modelBlob=item.blob;modelName=item.name;
  currentChassisAssetId=id;
+ autoAlignImportedShell(false);
  buildVehicle();renderChassisAssets();scheduleHistory('Selected chassis model');
  note('Selected '+item.name+' as visual vehicle shell.');
 }
@@ -5737,6 +5775,7 @@ async function loadGLB(blob,name='Imported GLB',rebuild=true,protectedCloud=null
   // Keep the binary instance from the current layout so cloud asset reuse and
   // saveServer() don't treat a legitimate download as an unrelated upload.
   modelSource=existing.source;modelBlob=blob;modelName=name;
+  if(rebuild)autoAlignImportedShell(false);
   currentChassisAssetId=existing.id;renderChassisAssets();
   if(rebuild){if(mode==='drive')leaveDrive();buildVehicle();scheduleHistory('Selected existing vehicle model')}
   recordEvent('INFO','Reused identical 3D chassis: '+name+' (no duplicate library entry).');
@@ -5749,6 +5788,7 @@ async function loadGLB(blob,name='Imported GLB',rebuild=true,protectedCloud=null
   const bounds=new THREE.Box3().setFromObject(result.scene);
   if(bounds.isEmpty())throw Error('No visible mesh');
   modelSource=result.scene;modelBlob=blob;modelName=name;
+  if(rebuild)autoAlignImportedShell(false);
   const newId=protectedCloud?.client_id||crypto.randomUUID();
   const record={id:newId,name:String(name).slice(0,120),kind:'chassis',blob,created:Date.now(),
    cloudId:protectedCloud?.id||null,preview:null,fingerprint};
@@ -7623,7 +7663,10 @@ function selectCourseObject(id,openEditor=false){
  if(obj){$('mapSelectedName').textContent=(obj.name||obj.kind)+' · '+(obj.physics||'static');
   if(openEditor)renderCourseInspector()}
  if(objectGizmo){objectGizmo.detach();
-  if(obj&&courseMeshes.has(id))objectGizmo.attach(courseMeshes.get(id));}
+  if(obj&&courseMeshes.has(id)){
+   chassisGizmoEnabled=false;updateChassisGizmo();
+   objectGizmo.attach(courseMeshes.get(id));
+  }}
  if(localViewEnabled)applyLocalView();
  drawMinimap();
 }
@@ -7739,6 +7782,7 @@ function switchViewportProjection(){
  next.up.copy(camera.up);next.quaternion.copy(camera.quaternion);next.layers.mask=camera.layers.mask;
  camera=next;orbit.object=camera;
  if(objectGizmo)objectGizmo.camera=camera;
+ if(chassisGizmo)chassisGizmo.camera=camera;
  camera.lookAt(orbit.target);orbit.update();
  $('cameraModeReadout').textContent='Viewport · '+(viewProjection==='orthographic'?'Orthographic':'Perspective');
 }
@@ -8211,6 +8255,7 @@ function setWindowVisible(id,show,restore=false){
  win.style.display=show?'flex':'none';
  if(show&&id==='notesWindow'&&activeProfile)void notesLoad().catch(e=>notesMessage(e.message,true));
  if(show&&id==='geologyWindow'){syncGeologyEditor();void geoRefreshPresets()}
+ if(id==='chassisWindow')updateChassisGizmo();
  // Showing a hidden panel must never expand its minimized state.
  if(show){
   win.style.zIndex=String(++highestZ);
@@ -8291,6 +8336,7 @@ function initWorkspace(){
     const b=collapseBtn,min=win.classList.contains('is-minimized');
     b.title=min?'Expand window':'Collapse window';b.setAttribute('aria-label',b.title);b.setAttribute('aria-expanded',String(!min));
     snapshotWindow(win);
+    if(id==='chassisWindow')updateChassisGizmo();
     if(workspaceModes[mode]){workspaceModes[mode][id]={show:windowCurrentlyVisible(id),min:win.classList.contains('is-minimized')};saveWorkspaceModes()}
   };
   // Explicit resize handle works with touch and mouse; browser-native
@@ -9498,6 +9544,7 @@ $('galleryRefreshBtn').onclick=()=>{gallerySource='public';setWindowVisible('gal
 $('layoutPublic').onchange=()=>{serverVisibility=$('layoutPublic').checked?'public':'private'};
 
 const RELEASE_NOTES=[
+ {v:'0.3.33',date:'2026-11-11',title:'Centred imported chassis and direct transform tools',items:['Imported visual body GLBs now rotate around their geometric centre, with automatic upright/length alignment and a 180° facing correction.', 'The Chassis Workshop uses one adaptive precision slider for X/Y/Z, pitch/yaw/roll, and scale; numeric steppers were removed.', 'A dedicated Three.js transform gizmo allows direct Move, Rotate and Scale editing of the imported shell without changing wheels, passengers or collision bodies.']},
  {v:'0.3.32',date:'2026-11-11',title:'Guided chassis AI workflow and safer cloud model sync',items:['Chassis Workshop now prefers keys already entered in AI / API Keys, hides duplicate key fields when available, and adds direct links back to the settings drawer only when needed.', 'AI body studio now auto-captures clean white-background procedural shell angles, shows a larger reference preview, and offers prompt examples built from the current procedural body settings.', 'Cloud model backup retries conflicting local client IDs with a fresh server binding instead of failing the whole sync when older local IDs already map to different cloud content.']},
  {v:'0.3.31',date:'2026-11-11',title:'Unified dialogs, sculpt shortcuts and consistent controls',items:['All native browser confirm and prompt flows now use one accessible in-app modal with keyboard and cancel support.', '3D sculpt raises with Command/Ctrl-drag and carves with Shift+Command/Ctrl-drag; range labels show compact shortcut keys.', 'Colour swatches have no browser-native white frame; minimized window buttons remain transparent until hover; numeric input contrast and control typography are normalized.']},
  {v:'0.3.30',date:'2026-11-11',title:'Ground-surface alignment and editable vehicle highlights',items:['Camera clearance now samples the visible terrain triangles and ignores off-map terrain.', 'GPU vegetation is grounded to the visible mesh during sculpting; existing maps and physics data are unchanged.', 'Green selection and Material Studio target support added to lights, seats, dashboard, glass, rims and tyres.']},
@@ -10343,23 +10390,99 @@ new MutationObserver(()=>{
 for(const [id,field] of [['bodyRakeFront','frontRake'],['bodyRakeRear','rearRake'],['bodyRoofWidth','roofWidth']]){
  $(id).addEventListener('change',()=>{cfg[field]=clamp(Number($(id).value),field==='roofWidth'?.3:.04,field==='roofWidth'?1:1.8);if(!modelSource){buildVehicle()}refreshChassisPromptExamples();scheduleHistory('Chassis '+field)});
 }
+const BODY_FIT_PROPERTIES={
+ modelOffsetX:{label:'Position X',min:-12,max:12,step:.01,unit:'m'},
+ modelOffsetY:{label:'Position Y',min:-12,max:12,step:.01,unit:'m'},
+ modelOffsetZ:{label:'Position Z',min:-12,max:12,step:.01,unit:'m'},
+ modelPitch:{label:'Pitch',min:-180,max:180,step:1,unit:'°'},
+ modelRotation:{label:'Yaw',min:-180,max:180,step:1,unit:'°'},
+ modelRoll:{label:'Roll',min:-180,max:180,step:1,unit:'°'},
+ modelScale:{label:'Size',min:.2,max:4,step:.01,unit:'×'}
+};
 function syncBodyFitInputs(){
- for(const [id,key] of [
-  ['bodyOffsetX','modelOffsetX'],['bodyOffsetY','modelOffsetY'],['bodyOffsetZ','modelOffsetZ'],
-  ['bodyRotX','modelPitch'],['bodyRotY','modelRotation'],['bodyRotZ','modelRoll']])$(id).value=Number(cfg[key]||0).toFixed(2);
- $('bodyFitScale').value=Number(cfg.modelScale)||1;
- $('bodyFitScaleValue').textContent=(Number(cfg.modelScale)||1).toFixed(2)+'×';
+ const key=Object.hasOwn(BODY_FIT_PROPERTIES,$('bodyFitProperty').value)?$('bodyFitProperty').value:'modelOffsetX';
+ const setting=BODY_FIT_PROPERTIES[key],n=Number(cfg[key])||0;
+ $('bodyFitSlider').min=setting.min;$('bodyFitSlider').max=setting.max;$('bodyFitSlider').step=setting.step;
+ $('bodyFitSlider').value=String(clamp(n,setting.min,setting.max));
+ $('bodyFitSlider').setAttribute('aria-label',setting.label+' '+setting.unit);
+ $('bodyFitValue').value=n.toFixed(setting.step>=1?0:2);
+ $('bodyFitReadout').textContent=n.toFixed(setting.step>=1?0:2)+setting.unit;
  $('chassisFitPanel').hidden=!modelSource;
  $('chassisDownloadGLB').disabled=!modelBlob;
+ $('chassisGizmoToggle').setAttribute('aria-pressed',String(chassisGizmoEnabled));
+ $('chassisGizmoToggle').textContent=chassisGizmoEnabled?'3D gizmo on':'Edit in 3D';
+ for(const btn of document.querySelectorAll('[data-chassis-gizmo]'))btn.setAttribute('aria-pressed',String(chassisGizmoEnabled&&chassisGizmoMode===btn.dataset.chassisGizmo));
 }
-for(const [id,key,min,max] of [
- ['bodyOffsetX','modelOffsetX',-12,12],['bodyOffsetY','modelOffsetY',-12,12],['bodyOffsetZ','modelOffsetZ',-12,12],
- ['bodyRotX','modelPitch',-180,180],['bodyRotY','modelRotation',-180,180],['bodyRotZ','modelRoll',-180,180]]){
- $(id).oninput=()=>{const n=Number($(id).value);if(!Number.isFinite(n))return;cfg[key]=clamp(n,min,max);fitImportedShell()};
- $(id).onchange=()=>scheduleHistory('Imported body '+key);
+function applyBodyFitValue(value,complete=false){
+ const key=$('bodyFitProperty').value,setting=BODY_FIT_PROPERTIES[key];if(!setting)return;
+ const n=Number(String(value).replace(',','.'));
+ if(!Number.isFinite(n))return;
+ cfg[key]=clamp(n,setting.min,setting.max);
+ fitImportedShell();syncBodyFitInputs();
+ if(complete)scheduleHistory('Imported chassis '+setting.label);
 }
-$('bodyFitScale').oninput=()=>{cfg.modelScale=Number($('bodyFitScale').value);fitImportedShell();$('bodyFitScaleValue').textContent=cfg.modelScale.toFixed(2)+'×'};
-$('bodyFitScale').onchange=()=>scheduleHistory('Imported body size');
+$('bodyFitProperty').onchange=syncBodyFitInputs;
+$('bodyFitSlider').oninput=e=>applyBodyFitValue(e.target.value);
+$('bodyFitSlider').onchange=e=>applyBodyFitValue(e.target.value,true);
+$('bodyFitValue').onchange=e=>applyBodyFitValue(e.target.value,true);
+$('bodyFitValue').addEventListener('keydown',e=>{if(e.key==='Enter'){$('bodyFitValue').blur();e.preventDefault()}});
+function updateChassisGizmo(){
+ if(!chassisGizmo)return;
+ const win=$('chassisWindow');
+ const show=Boolean(chassisGizmoEnabled&&modelSource&&importedShell&&win&&
+  win.style.display!=='none'&&!win.classList.contains('is-minimized')&&mode==='build');
+ if(show){if(objectGizmo?.object)objectGizmo.detach();
+  if(chassisGizmo.object!==importedShell)chassisGizmo.attach(importedShell);
+  chassisGizmo.setMode(chassisGizmoMode);
+ }else if(chassisGizmo.object)chassisGizmo.detach();
+ syncBodyFitInputs();
+}
+function alignGizmoToImportedShell(){
+ if(!importedShell||!modelSource)return;
+ const fit=importedShellFitSpec();if(!fit)return;
+ const position=importedShell.position.clone();
+ cfg.modelPitch=THREE.MathUtils.radToDeg(importedShell.rotation.x);
+ cfg.modelRotation=THREE.MathUtils.radToDeg(importedShell.rotation.y);
+ cfg.modelRoll=THREE.MathUtils.radToDeg(importedShell.rotation.z);
+ // In Scale mode any drag axis controls one uniform-size value, preventing
+ // anisotropic distortion and keeping physics independent.
+ if(chassisGizmoMode==='scale'&&chassisGizmoStart){
+  const start=chassisGizmoStart;
+  const current=[importedShell.scale.x,importedShell.scale.y,importedShell.scale.z];
+  const ratio=current.map(n=>n/start.scale).sort((a,b)=>Math.abs(b-1)-Math.abs(a-1))[0]||1;
+  cfg.modelScale=clamp(start.size*ratio,.2,4);
+ }
+ const updated=importedShellFitSpec();
+ if(!updated)return;
+ cfg.modelOffsetX=clamp(position.x,-12,12);
+ cfg.modelOffsetZ=clamp(position.z,-12,12);
+ cfg.modelOffsetY=clamp(position.y-updated.baseY,-12,12);
+ fitImportedShell();syncBodyFitInputs();
+}
+chassisGizmo=new TransformControls(camera,renderer.domElement);
+scene.add(chassisGizmo.getHelper());chassisGizmo.setSize(.8);chassisGizmo.setSpace('local');
+chassisGizmo.addEventListener('dragging-changed',e=>{
+ transformDragging=Boolean(e.value);
+ if(e.value){
+  if(mode==='drive')beginDriveSceneEditing();
+  chassisGizmoStart={size:Number(cfg.modelScale)||1,scale:importedShell?.scale.x||1};
+ }else if(chassisGizmoStart){
+  chassisGizmoStart=null;
+  scheduleHistory('3D imported chassis '+chassisGizmoMode);
+ }
+ orbit.enabled=!e.value&&(mode!=='drive'||driveSceneEditing||cfg.cameraMode!=='driver')&&!xrActive;
+});
+chassisGizmo.addEventListener('objectChange',alignGizmoToImportedShell);
+$('chassisGizmoToggle').onclick=()=>{chassisGizmoEnabled=!chassisGizmoEnabled;updateChassisGizmo()};
+for(const btn of document.querySelectorAll('[data-chassis-gizmo]'))btn.onclick=()=>{
+ chassisGizmoEnabled=true;chassisGizmoMode=btn.dataset.chassisGizmo;
+ if(chassisGizmoMode==='translate')$('bodyFitProperty').value='modelOffsetX';
+ else if(chassisGizmoMode==='rotate')$('bodyFitProperty').value='modelRotation';
+ else $('bodyFitProperty').value='modelScale';
+ updateChassisGizmo();
+};
+$('chassisAutoAlign').onclick=()=>{autoAlignImportedShell();syncBodyFitInputs()};
+$('chassisFlipFront').onclick=()=>{cfg.modelRotation=(((Number(cfg.modelRotation)||0)+180+180)%360)-180;fitImportedShell();syncBodyFitInputs();scheduleHistory('Flip imported chassis front')};
 $('chassisFitReset').onclick=resetImportedShellFit;
 $('chassisDownloadGLB').onclick=()=>{
  if(!modelBlob){note('Load a chassis GLB before downloading.',true);return}

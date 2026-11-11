@@ -481,15 +481,36 @@ CHASSIS_HTML=Path(__file__).resolve().parents[1]/'index.html'
 class ChassisAssetRegression(unittest.TestCase):
     def test_shell_transform_ui_does_not_require_vehicle_rebuild(self):
         text=CHASSIS_HTML.read_text(encoding='utf8')
-        for ident in ('bodyOffsetX','bodyOffsetY','bodyOffsetZ','bodyRotX','bodyRotY',
-                      'bodyRotZ','bodyFitScale','chassisDownloadGLB','chassisReferenceDownload'):
+        for ident in ('bodyFitProperty','bodyFitSlider','bodyFitValue','bodyFitReadout',
+                      'chassisGizmoToggle','chassisAutoAlign','chassisFlipFront',
+                      'chassisDownloadGLB','chassisReferenceDownload'):
             self.assertIn('id="'+ident+'"',text)
+        for retired in ('bodyOffsetX','bodyOffsetY','bodyOffsetZ','bodyRotX','bodyRotY',
+                        'bodyRotZ','bodyFitScale'):
+            self.assertNotIn('id="'+retired+'"',text)
+        self.assertIn('function importedShellFitSpec()',text)
+        self.assertIn('const bodyBottom=-Math.min(cfg.H*.42,.78);',text)
+        self.assertIn('scene.add(chassisGizmo.getHelper())',text)
+        self.assertIn("chassisGizmo.addEventListener('dragging-changed'",text)
+        self.assertIn("chassisGizmo.addEventListener('objectChange'",text)
+        self.assertIn('visual.position.sub(center)',text)
         fit=re.search(r'function fitImportedShell\(\)\{(.*?)\n \}',text,re.S)
         self.assertIsNotNone(fit)
-        self.assertIn('bodyBottom',fit.group(1))
+        self.assertIn('importedShell.rotation.copy',fit.group(1))
         self.assertNotIn('buildVehicle(',fit.group(1))
-        self.assertIn('fitImportedShell();',text)
         self.assertNotIn('cfg.H*.35-center.y*s',text)
+
+    def test_shared_fit_slider_and_gizmo_do_not_change_binary_or_collision_geometry(self):
+        text=CHASSIS_HTML.read_text(encoding='utf8')
+        self.assertIn('const BODY_FIT_PROPERTIES={',text)
+        for key in ('modelOffsetX','modelOffsetY','modelOffsetZ','modelPitch',
+                    'modelRotation','modelRoll','modelScale'):
+            self.assertIn(key+':{label:',text)
+        self.assertIn('fitImportedShell();syncBodyFitInputs();',text)
+        self.assertIn('car.add(importedShell);fitImportedShell();bodyRoot.visible=false;',text)
+        self.assertIn('if(chassisGizmo?.object)chassisGizmo.detach();',text)
+        self.assertIn('if(objectGizmo?.object)objectGizmo.detach()',text)
+        self.assertIn('const visual=modelSource.clone(true);',text)
 
     def test_cloud_binary_is_fetched_before_any_vehicle_state_reset(self):
         text=CHASSIS_HTML.read_text(encoding='utf8')

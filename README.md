@@ -1,3 +1,10 @@
+# Vehicle Lab v0.3.33 — Imported body fit and live Three.js gizmo (2026-11-11)
+
+- Imported GLB vehicle bodies have an independent centred visual pivot, so rotation/scale does not orbit around the external file origin. The source GLB bytes are never edited.
+- Chassis Workshop uses one selected transform-property slider (X/Y/Z position, pitch/yaw/roll, uniform scale) with an optional exact text entry; no seven separate numeric steppers. Three.js TransformControls offers Move, Rotate and Scale in the scene, with explicit Auto-align and 180-degree facing correction.
+- Editing the visual chassis does not modify physics wheels, colliders, passenger models or terrain. Values remain in the saved vehicle blueprint. Existing saved layouts are read without resetting their transform values.
+- This client-side improvement requires live WebGL/Three.js acceptance after deployment. No server dependency or database migration is required.
+
 # Vehicle Lab — v0.3.31 — Consistent editor UI and safe in-app prompts (2026-11-11)
 
 - **Unified dialogs:** All existing native browser confirm/prompt invocations now use an accessible, focus-restoring application overlay. Notes, geology preset names, deletion, publishing, profile switching, gallery, radio and world reset use the same confirmation/input UI. Escape and backdrop click cancel; no destructive work happens on cancellation. Clipboard fallback shows a selectable public link.
