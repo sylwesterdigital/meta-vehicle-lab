@@ -775,7 +775,7 @@ assert.equal(specs[0].ry,21*Math.PI/180);
             'function updateTerrainBiomeColors()',
             "geometry.setAttribute('terrainBiome',buffer)",
             'vTerrainBiome = terrainBiome;',
-            'diffuseColor.rgb = mix(diffuseColor.rgb, vTerrainBiome.rgb, vTerrainBiome.a);',
+            'diffuseColor.rgb=mix(biomeSource,clamp(biomeTarget,0.0,1.0),vTerrainBiome.a);',
             'function mapBiomeSnapshot()',
             'function applyMapBiomeSettings(data)',
             'biome:mapBiomeSnapshot()',
@@ -798,7 +798,7 @@ class BufferAttribute {constructor(a,n){this.array=a;this.itemSize=n;this.count=
 class MeshStandardMaterial{constructor(options){this.options=options}}
 class Vector2{constructor(x,y){this.x=x;this.y=y}}
 const THREE={Color,BufferAttribute,MeshStandardMaterial,Vector2,DoubleSide:2};
-const cfg={biomeEnabled:false,biomePalette:'alpine',biomeRelativeSea:false,biomeBlend:.9,biomeSlope:.6,biomeExposure:1,
+const cfg={biomeEnabled:false,biomePalette:'alpine',biomeBlendMode:'mix',biomeRelativeSea:false,biomeBlend:.9,biomeSlope:.6,biomeExposure:1,
  biomeValleyAltitude:-12,biomeRockAltitude:15,biomeSnowAltitude:34,biomeValleyColor:'#252d36',biomeGroundColor:'#688754',biomeRockColor:'#838d96',biomeSnowColor:'#f2f7ff',waterLevel:0};
 const pos=[-15,0,10,24,36,50],normal=[[0,1,0],[0,1,0],[0,1,0],[0,.7,-.7],[0,1,0],[0,1,0]],attrs={
  position:{count:pos.length,getY:i=>pos[i]},normal:{getY:i=>normal[i][1],getZ:i=>normal[i][2]}};
@@ -818,7 +818,7 @@ const material=makeTerrainMaterial({map:{id:1}});
 const shader={vertexShader:'#include <common>\nvoid main(){#include <begin_vertex>}',fragmentShader:'#include <common>\nvoid main(){#include <map_fragment>}'};
 material.onBeforeCompile(shader);
 assert(shader.vertexShader.includes('attribute vec4 terrainBiome;'));
-assert(shader.fragmentShader.includes('diffuseColor.rgb = mix('));
+assert(shader.fragmentShader.includes('diffuseColor.rgb=mix(biomeSource'));
 '''
         result=subprocess.run(['node','-e',script,str(self.path)],capture_output=True,text=True,timeout=12)
         self.assertEqual(result.returncode,0,result.stdout+result.stderr)
@@ -880,9 +880,9 @@ class GeologicalWindowVisibility0328Tests(unittest.TestCase):
         end=html.index('function refreshWindowButtons(){',start)
         handler=html[start:end]
         self.assertIn("win.style.display=show?'flex':'none';",handler)
-        self.assertIn("if(show&&id==='geologyWindow')syncGeologyEditor();",handler)
+        self.assertIn("if(show&&id==='geologyWindow'){syncGeologyEditor();void geoRefreshPresets()}",handler)
         self.assertLess(handler.index("win.style.display=show?'flex':'none';"),
-                        handler.index("if(show&&id==='geologyWindow')syncGeologyEditor();"))
+                        handler.index("if(show&&id==='geologyWindow'){syncGeologyEditor();void geoRefreshPresets()}"))
         self.assertNotIn("else win.style.display=show?'flex':'none';",handler)
         self.assertIn("geology.add({visual:()=>{setWindowVisible('geologyWindow',true);syncGeologyEditor()}},'visual')",html)
         self.assertIn("'geologyWindow'",html)

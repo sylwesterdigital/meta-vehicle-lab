@@ -484,3 +484,91 @@ class PrivateNotesTests(unittest.TestCase):
         self.store.notes_upsert(self.owner,one,'Exists','Stable','ongoing')
         with self.assertRaises(InvalidLayout):self.store.notes_bulk(self.owner,[one,one],'delete',revisions={one:1})
         self.assertEqual(len(self.store.notes_snapshot(self.owner)['notes']),1)
+
+
+class GeologicalPresets0329Tests(unittest.TestCase):
+    """Private saved gradients must be validated and never cross profile boundaries."""
+    def setUp(self):
+        self.tmp=tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        self.store=Storage(self.tmp.name)
+        self.owner,_=self.store.create_guest('Geology Artist')
+        self.other,_=self.store.create_guest('Separate Account')
+
+    def test_named_preset_persists_and_can_be_removed_without_touching_maps(self):
+        import copy
+        values=copy.deepcopy(self.store.GEO_PRESET_DEFAULTS)
+        values['biomeEnabled']=True
+        values['biomeBlendMode']='overlay'
+        record=self.store.geology_save(self.owner['id'],'Winter alpine',values)
+        self.assertEqual(self.store.geology_list(self.other['id']),[])
+        reopened=Storage(self.tmp.name)
+        saved=reopened.geology_list(self.owner['id'])
+        self.assertEqual(saved[0]['name'],'Winter alpine')
+        self.assertEqual(saved[0]['values'],values)
+        self.assertFalse(reopened.geology_delete(self.other['id'],record['id']))
+        self.assertEqual(len(reopened.geology_list(self.owner['id'])),1)
+        self.assertTrue(reopened.geology_delete(self.owner['id'],record['id']))
+        self.assertEqual(reopened.geology_list(self.owner['id']),[])
+
+    def test_geology_rejects_unknown_keys_and_unsorted_elevations(self):
+        base=dict(self.store.GEO_PRESET_DEFAULTS)
+        for bad in ({**base,'apiKey':'NEVER'},
+                    {**base,'biomeBlendMode':'script'},
+                    {**base,'biomeRockColor':'url(http://somewhere)'},
+                    {**base,'biomeSnowAltitude':-25},
+                    {**base,'biomeEnabled':1}):
+            with self.subTest(bad=bad),self.assertRaises(InvalidLayout):
+                self.store.geology_save(self.owner['id'],'Invalid',bad)
+        self.assertEqual(self.store.geology_list(self.owner['id']),[])
+
+
+class CommunitySharing0329Tests(unittest.TestCase):
+    """Every public artifact is shared explicitly; revoking access keeps private originals."""
+    def setUp(self):
+        import hashlib
+        self.tmp=tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        self.store=Storage(self.tmp.name)
+        self.owner,_=self.store.create_guest('Public Author')
+        self.other,_=self.store.create_guest('Other Author')
+        self.car_id=str(uuid.uuid4())
+        self.map_id=str(uuid.uuid4())
+        self.model_id=str(uuid.uuid4())
+        self.store.user_save_layout(self.owner['id'],self.car_id,'Test Car',blueprint(),visibility='private')
+        map_payload=json.dumps({'schema':'vehiclelab-testmap/v3','objects':[]}).encode()
+        self.store.save_media(self.owner['id'],'map','Private Valley',map_payload,'application/json',identifier=self.map_id)
+        glb=b'glTF'+b'\x02\0\0\0'+b'\x14\0\0\0'+b'\0'*8
+        self.store.add_asset(identifier=self.model_id,filename='mine.glb',size=len(glb),
+                             sha256=hashlib.sha256(glb).hexdigest(),owner_id=self.owner['id'],kind='wheel')
+
+    def test_explicit_share_revocation_and_owner_isolation(self):
+        self.assertEqual(self.store.community_list(),[])
+        with self.assertRaises(InvalidLayout):
+            self.store.community_create(self.other['id'],'map',self.map_id)
+        shared=self.store.community_create(self.owner['id'],'map',self.map_id)
+        self.assertEqual(len(self.store.community_list()),1)
+        self.assertNotIn('profile_id',self.store.community_list()[0])
+        self.assertEqual(self.store.community_content(shared['id'])['map_name'],'Private Valley')
+        self.assertFalse(self.store.community_delete(self.other['id'],shared['id']))
+        self.assertEqual(self.store.community_create(self.owner['id'],'map',self.map_id)['id'],shared['id'])
+        self.assertTrue(self.store.community_delete(self.owner['id'],shared['id']))
+        self.assertEqual(self.store.community_list(),[])
+        self.assertEqual(self.store.own_media(self.owner['id'],self.map_id)['name'],'Private Valley')
+
+    def test_world_requires_public_linked_car_and_model_requires_ownership(self):
+        with self.assertRaises(InvalidLayout):
+            self.store.community_create(self.owner['id'],'world',self.map_id,car_id=self.car_id)
+        with self.assertRaises(InvalidLayout):
+            self.store.community_create(self.other['id'],'model',self.model_id)
+        model=self.store.community_create(self.owner['id'],'model',self.model_id)
+        self.assertEqual(self.store.community_content(model['id'])['asset_id'],self.model_id)
+        self.store.user_save_layout(self.owner['id'],self.car_id,'Test Car',blueprint(),visibility='public',revision=1)
+        world=self.store.community_create(self.owner['id'],'world',self.map_id,car_id=self.car_id)
+        payload=self.store.community_content(world['id'])
+        self.assertEqual(payload['kind'],'world')
+        self.assertEqual(payload['car']['id'],self.car_id)
+        self.assertEqual(payload['map']['objects'],[])
+        self.assertTrue(self.store.community_delete(self.owner['id'],world['id']))
+        self.assertIsNotNone(self.store.own_layout(self.owner['id'],self.car_id))
+        self.assertIsNotNone(self.store.own_media(self.owner['id'],self.map_id))

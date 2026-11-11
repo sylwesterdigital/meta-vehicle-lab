@@ -276,6 +276,22 @@ class Storage:
               FOREIGN KEY (profile_id) REFERENCES profiles(id) ON DELETE CASCADE
             );
             CREATE INDEX IF NOT EXISTS ix_user_media_owner ON user_media(profile_id,kind,updated_at DESC);
+            CREATE TABLE IF NOT EXISTS community_shares (
+              id TEXT PRIMARY KEY, profile_id TEXT NOT NULL,
+              kind TEXT NOT NULL CHECK(kind IN ('map','model','world')),
+              source_id TEXT NOT NULL, car_id TEXT,
+              created_at INTEGER NOT NULL,
+              FOREIGN KEY(profile_id) REFERENCES profiles(id) ON DELETE CASCADE,
+              UNIQUE(profile_id,kind,source_id,car_id)
+            );
+            CREATE INDEX IF NOT EXISTS ix_community_owner ON community_shares(profile_id,created_at DESC);
+            CREATE TABLE IF NOT EXISTS geology_presets (
+              id TEXT PRIMARY KEY, profile_id TEXT NOT NULL,
+              name TEXT NOT NULL, values_json TEXT NOT NULL,
+              created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL,
+              FOREIGN KEY(profile_id) REFERENCES profiles(id) ON DELETE CASCADE
+            );
+            CREATE INDEX IF NOT EXISTS ix_geology_owner ON geology_presets(profile_id, updated_at DESC);
             CREATE TABLE IF NOT EXISTS note_folders (
               id TEXT PRIMARY KEY, profile_id TEXT NOT NULL, name TEXT NOT NULL,
               created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL,
@@ -726,6 +742,148 @@ class Storage:
         with self.connect() as db:
             db.execute('INSERT INTO assets(id,filename,bytes,sha256,created_at,owner_id,kind,client_id) VALUES (?,?,?,?,?,?,?,?)',
                        (identifier,filename,size,sha256,int(time.time()*1000),owner_id,kind,client_id))
+
+    # Private, named geological styles. Presets contain only bounded scalar values
+    # and validated hex colours; there are no executable expressions or file paths.
+    GEO_PRESET_DEFAULTS = {
+      'biomeEnabled': False, 'biomePalette':'alpine','biomeBlendMode':'mix',
+      'biomeRelativeSea':False, 'biomeBlend':.88,'biomeSlope':.6,'biomeExposure':.45,
+      'biomeValleyAltitude':-12,'biomeRockAltitude':15,'biomeSnowAltitude':34,
+      'biomeValleyColor':'#252d36','biomeGroundColor':'#688754',
+      'biomeRockColor':'#838d96','biomeSnowColor':'#f2f7ff'
+    }
+
+    @classmethod
+    def validate_geology(cls, values):
+        if not isinstance(values,dict) or set(values) != set(cls.GEO_PRESET_DEFAULTS):
+            raise InvalidLayout('Geological preset must contain only the known colour and altitude settings')
+        output={}
+        for key,value in values.items():
+            if key in ('biomeEnabled','biomeRelativeSea'):
+                if type(value) is not bool:raise InvalidLayout('Geological toggle must be boolean')
+            elif key=='biomePalette':
+                if value not in ('alpine','canyon','volcanic','custom'):raise InvalidLayout('Unknown geology palette')
+            elif key=='biomeBlendMode':
+                if value not in ('mix','multiply','overlay'):raise InvalidLayout('Unknown texture blend mode')
+            elif key.endswith('Color'):
+                if not isinstance(value,str) or not re.fullmatch(r'#[0-9a-fA-F]{6}',value):raise InvalidLayout('Invalid geology colour')
+            else:
+                if type(value) not in (float,int) or not math.isfinite(value):raise InvalidLayout('Invalid geology number')
+                low,high=(-50,120) if key.endswith('Altitude') else (0,1)
+                if not low<=value<=high:raise InvalidLayout('Geology value outside permitted range')
+            output[key]=value
+        if not output['biomeValleyAltitude'] < output['biomeRockAltitude'] < output['biomeSnowAltitude']:
+            raise InvalidLayout('Geological elevations must increase from valley to snow')
+        return output
+
+    def geology_list(self,owner):
+        with self.connect() as db:
+            rows=db.execute('SELECT id,name,values_json,created_at,updated_at FROM geology_presets WHERE profile_id=? ORDER BY updated_at DESC LIMIT 80',
+                            (validate_uuid(owner),)).fetchall()
+            return [{**{key:row[key] for key in ('id','name','created_at','updated_at')},'values':json.loads(row['values_json'])} for row in rows]
+
+    def geology_save(self,owner,name,values):
+        owner=validate_uuid(owner);name=validate_name(name);values=self.validate_geology(values)
+        identifier=str(uuid.uuid4());now=int(time.time()*1000)
+        with self.connect() as db:
+            db.execute('BEGIN IMMEDIATE')
+            count=db.execute('SELECT COUNT(*) FROM geology_presets WHERE profile_id=?',(owner,)).fetchone()[0]
+            if count>=80:raise InvalidLayout('Maximum 80 geological presets per profile')
+            db.execute('INSERT INTO geology_presets(id,profile_id,name,values_json,created_at,updated_at) VALUES(?,?,?,?,?,?)',
+                       (identifier,owner,name,json.dumps(values,separators=(',',':')),now,now))
+        return {'id':identifier,'name':name,'values':values,'created_at':now,'updated_at':now}
+
+    def geology_delete(self,owner,identifier):
+        with self.connect() as db:
+            cursor=db.execute('DELETE FROM geology_presets WHERE profile_id=? AND id=?',
+                              (validate_uuid(owner),validate_uuid(identifier)))
+            return cursor.rowcount>0
+
+    # Explicit public links: private media/model bytes never become public merely
+    # by being uploaded. A share is a separate, revocable, profile-owned record.
+    def community_list(self,owner=None):
+        with self.connect() as db:
+            if owner:
+                rows=db.execute('SELECT s.*,p.name AS creator_name FROM community_shares s JOIN profiles p ON p.id=s.profile_id '
+                                'WHERE s.profile_id=? ORDER BY s.created_at DESC LIMIT 90',(validate_uuid(owner),)).fetchall()
+            else:
+                rows=db.execute('SELECT s.*,p.name AS creator_name FROM community_shares s JOIN profiles p ON p.id=s.profile_id '
+                                'ORDER BY s.created_at DESC LIMIT 120').fetchall()
+            entries=[]
+            for row in rows:
+                item=dict(row)
+                if row['kind'] in ('map','world'):
+                    target=db.execute('SELECT name FROM user_media WHERE id=? AND profile_id=? AND kind=?',
+                                      (row['source_id'],row['profile_id'],'map')).fetchone()
+                    if row['kind']=='world':
+                        car=db.execute('SELECT name FROM user_layouts WHERE id=? AND profile_id=? AND visibility=?',
+                                       (row['car_id'],row['profile_id'],'public')).fetchone()
+                        if car:item['name']=car['name']+' + '+(target['name'] if target else 'Map')
+                        else:target=None
+                    elif target:item['name']=target['name']
+                else:
+                    target=db.execute('SELECT filename FROM assets WHERE id=? AND owner_id=?',
+                                      (row['source_id'],row['profile_id'])).fetchone()
+                    if target:item['name']=target['filename']
+                if not target:continue
+                item.pop('profile_id',None)
+                entries.append(item)
+            return entries
+
+    def community_create(self,owner,kind,source_id,car_id=None):
+        owner=validate_uuid(owner);source_id=validate_uuid(source_id)
+        if kind not in ('map','model','world'):raise InvalidLayout('Unknown share category')
+        if kind=='world':car_id=validate_uuid(car_id)
+        elif car_id is not None:raise InvalidLayout('Unexpected linked vehicle')
+        now=int(time.time()*1000)
+        with self.connect() as db:
+            db.execute('BEGIN IMMEDIATE')
+            count=db.execute('SELECT COUNT(*) FROM community_shares WHERE profile_id=?',(owner,)).fetchone()[0]
+            if count>=60:raise InvalidLayout('Maximum 60 public shares per profile')
+            if kind in ('map','world'):
+                target=db.execute('SELECT id FROM user_media WHERE id=? AND profile_id=? AND kind=?',
+                                  (source_id,owner,'map')).fetchone()
+                if not target:raise InvalidLayout('Save the map to your private server library before publishing')
+            else:
+                target=db.execute('SELECT id FROM assets WHERE id=? AND owner_id=?',
+                                  (source_id,owner)).fetchone()
+                if not target:raise InvalidLayout('Only your own uploaded 3D model can be shared')
+            if kind=='world' and not db.execute(
+                'SELECT 1 FROM user_layouts WHERE id=? AND profile_id=? AND visibility=?',(car_id,owner,'public')).fetchone():
+                raise InvalidLayout('Publish the linked car first, then publish this world')
+            existing=db.execute('SELECT id,created_at FROM community_shares WHERE profile_id=? AND kind=? AND source_id=? AND car_id IS ?',
+                                (owner,kind,source_id,car_id)).fetchone()
+            if existing:return {'id':existing['id'],'kind':kind,'source_id':source_id,'car_id':car_id,'created_at':existing['created_at']}
+            ident=str(uuid.uuid4())
+            db.execute('INSERT INTO community_shares(id,profile_id,kind,source_id,car_id,created_at) VALUES(?,?,?,?,?,?)',
+                       (ident,owner,kind,source_id,car_id,now))
+            return {'id':ident,'kind':kind,'source_id':source_id,'car_id':car_id,'created_at':now}
+
+    def community_delete(self,owner,identifier):
+        with self.connect() as db:
+            result=db.execute('DELETE FROM community_shares WHERE id=? AND profile_id=?',
+                              (validate_uuid(identifier),validate_uuid(owner)))
+            return result.rowcount>0
+
+    def community_content(self,identifier):
+        with self.connect() as db:
+            row=db.execute('SELECT * FROM community_shares WHERE id=?',(validate_uuid(identifier),)).fetchone()
+            if not row:return None
+            if row['kind']=='model':
+                asset=db.execute('SELECT id,filename FROM assets WHERE id=? AND owner_id=?',
+                                 (row['source_id'],row['profile_id'])).fetchone()
+                return {'kind':'model','asset_id':asset['id'],'filename':asset['filename']} if asset else None
+            entry=db.execute('SELECT name,payload FROM user_media WHERE id=? AND profile_id=? AND kind=?',
+                             (row['source_id'],row['profile_id'],'map')).fetchone()
+            if not entry:return None
+            content={'kind':row['kind'],'map':json.loads(entry['payload']),'map_name':entry['name']}
+            if row['kind']=='world':
+                car=db.execute('SELECT id,name,blueprint,asset_id FROM user_layouts WHERE id=? AND profile_id=? AND visibility=?',
+                               (row['car_id'],row['profile_id'],'public')).fetchone()
+                if not car:return None
+                content['car']={'id':car['id'],'name':car['name'],'blueprint':json.loads(car['blueprint']),
+                                'asset_id':car['asset_id']}
+            return content
 
     def get_asset(self,identifier):
         validate_uuid(identifier)

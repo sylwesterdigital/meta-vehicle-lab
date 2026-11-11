@@ -192,7 +192,7 @@ def create_app(config=None):
         # Public gallery and guest profile routes have scoped, per-profile
         # authentication below. Never let them fall through to the server
         # administrator's legacy layout token.
-        guest_paths=('/api/identity/', '/api/me/', '/api/gallery', '/api/radio/', '/api/providers/test', '/api/providers/lux3d/', '/api/vehicle/generate-image')
+        guest_paths=('/api/identity/', '/api/me/', '/api/gallery', '/api/community', '/api/radio/', '/api/providers/test', '/api/providers/lux3d/', '/api/vehicle/generate-image')
         if request.path.startswith(guest_paths):
             if request.method not in ('GET','HEAD'):
                 origin=request.headers.get('Origin')
@@ -396,6 +396,70 @@ def create_app(config=None):
         return ('',204) if store.user_delete_layout(member['id'],identifier,data.get('revision')) else (jsonify(error='Layout not found'),404)
 
 
+    @app.get('/api/me/geology-presets')
+    def geology_presets_list():
+        member,error=guest_or_error()
+        if error:return error
+        return jsonify(presets=store.geology_list(member['id']))
+
+    @app.post('/api/me/geology-presets')
+    def geology_preset_save():
+        member,error=guest_or_error()
+        if error:return error
+        data=request.get_json(silent=True)
+        if not isinstance(data,dict):return jsonify(error='Expected geological preset object'),400
+        item=store.geology_save(member['id'],data.get('name'),data.get('values'))
+        return jsonify(preset=item),201
+
+    @app.delete('/api/me/geology-presets/<identifier>')
+    def geology_preset_delete(identifier):
+        member,error=guest_or_error()
+        if error:return error
+        return ('',204) if store.geology_delete(member['id'],identifier) else (jsonify(error='Preset not found'),404)
+
+    @app.get('/api/me/community')
+    def owned_community_shares():
+        member,error=guest_or_error()
+        if error:return error
+        return jsonify(shares=store.community_list(member['id']))
+
+    @app.post('/api/me/community')
+    def create_community_share():
+        member,error=guest_or_error()
+        if error:return error
+        data=request.get_json(silent=True)
+        if not isinstance(data,dict) or data.get('consent') is not True:
+            return jsonify(error='Explicit permission to publish this item is required'),400
+        item=store.community_create(member['id'],data.get('kind'),data.get('source_id'),data.get('car_id'))
+        return jsonify(share=item),201
+
+    @app.delete('/api/me/community/<identifier>')
+    def delete_community_share(identifier):
+        member,error=guest_or_error()
+        if error:return error
+        return ('',204) if store.community_delete(member['id'],identifier) else (jsonify(error='Share not found'),404)
+
+    @app.get('/api/community')
+    def community_shares():
+        return jsonify(shares=store.community_list())
+
+    @app.get('/api/community/<identifier>')
+    def community_shared_content(identifier):
+        item=store.community_content(identifier)
+        if not item:return jsonify(error='Shared item unavailable'),404
+        if item['kind']=='model':return jsonify(error='Use the model download URL'),400
+        return jsonify(item)
+
+    @app.get('/api/community/<identifier>/glb')
+    def community_shared_model(identifier):
+        item=store.community_content(identifier)
+        if not item or item['kind']!='model':return jsonify(error='Shared model unavailable'),404
+        ident=item['asset_id'];path=store.assets/(ident+'.glb')
+        if not path.is_file():path=store.dir/'asset-backups'/(ident+'.glb')
+        if not path.is_file():return jsonify(error='Model binary temporarily unavailable'),503
+        return send_file(path,mimetype='model/gltf-binary',as_attachment=True,
+                         download_name=item['filename'],max_age=0)
+
     # Private ideas / notes. No public endpoints or account-global notes.
     @app.get('/api/me/notes')
     def my_notes():
@@ -590,6 +654,8 @@ def create_app(config=None):
                                   (owner,)).fetchall()
             note_rows=db.execute('SELECT id,folder_id,title,body,priority,revision,created_at,updated_at FROM user_notes WHERE profile_id=?',(owner,)).fetchall()
             folder_rows=db.execute('SELECT id,name,created_at,updated_at FROM note_folders WHERE profile_id=?',(owner,)).fetchall()
+            geo_rows=db.execute('SELECT id,name,values_json,created_at,updated_at FROM geology_presets WHERE profile_id=?',(owner,)).fetchall()
+            public_rows=db.execute('SELECT id,kind,source_id,car_id,created_at FROM community_shares WHERE profile_id=?',(owner,)).fetchall()
             total=sum(row['bytes'] for row in asset_rows)+sum(len(row['payload']) for row in media_rows)+sum(len(row['body'].encode('utf-8')) for row in note_rows)
             if total>1024*1024*1024 or len(asset_rows)>500 or len(car_rows)>500 or len(media_rows)>500:
                 return jsonify(error='Private backup exceeds the 1 GiB archive limit; download models individually'),413
@@ -607,6 +673,8 @@ def create_app(config=None):
                     z.writestr('notes/notes.json',json.dumps({'schema':'vehiclelab-notes/v1',
                                'folders':[dict(r) for r in folder_rows],
                                'notes':[dict(r) for r in note_rows]},ensure_ascii=False,indent=2))
+                    z.writestr('community/shares.json',json.dumps([dict(row) for row in public_rows],ensure_ascii=False,indent=2))
+                    z.writestr('geology/presets.json',json.dumps([{'id':row['id'],'name':row['name'],'values':json.loads(row['values_json'])} for row in geo_rows],ensure_ascii=False,indent=2))
                     for row in media_rows:
                         suffix='.json' if row['kind']=='map' else '.jpg'
                         z.writestr('media/'+row['id']+suffix,row['payload'])

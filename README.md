@@ -1,3 +1,15 @@
+# Vehicle Lab — v0.3.29 — Geological presets, publishing, weather and editor UX (2026-11-11)
+
+- Geological Layers has private, named server-backed presets with load and confirmed deletion, plus Mix / Multiply / Overlay texture blends; saved map gradients continue to use existing private map saves.
+- Explicit public publishing is available from Actions for selected saved cars, maps, licensed GLB models and paired car+map worlds. Community links can be revoked; uploaded files remain private unless explicitly shared. This is *not* a multi-car/multiplayer world publishing service.
+- Optional GPU particle rain/snow, fog/mist, night stars, moon, sun azimuth/elevation controls. Rain/snow are visual prototypes (not precipitation physics or accumulation). Performance depends on GPU and chosen particle budget.
+- DRIVE parameter changes rebuild the active physics vehicle without intentionally leaving DRIVE or resetting its pose. True runtime behaviour requires testing with Cannon-es, Rapier and Ammo in browsers.
+- Change Vehicle Library to Car Templates; refresh minimize/expand icons using supplied vector shapes; fix radio transport icon and Notes contrast; remove inert Gallery+; simplify Configuration text; dismiss release notes on backdrop click.
+- Seat count uses numeric controls, selectable occupant seats and direct seat/steering/dashboard offsets; selected body part gets a more visible green editor outline and the Material Studio target follows selection.
+- Correct GLB cloud-download endpoint to profile-scoped `/api/me/assets/<id>`.
+- Blender thumbnail rendering and distribution of locally installed system font files are **not** part of this release. Blender requires a trusted, resource-limited backend render worker and a separate release-dependency plan; users' locally installed fonts cannot automatically be shipped to other clients without explicit licensing and server-hosted assets.
+- No destructive migration, deletion, automatic publication or new Python dependencies. The added SQLite tables are additive. Browser/Flask end-to-end and GPU acceptance tests remain necessary on production.
+
 # Vehicle Lab — v0.3.28 — Geological layers visibility fix (2026-11-11)
 
 - **Geological layers window:** Fix `setWindowVisible` so its `display` state is always applied before the geology editor synchronizes values. The previous `else` branch accidentally skipped showing this particular window.

@@ -1,3 +1,12 @@
+## v0.3.29 — November 11, 2026
+- Named, private geological colour presets; Mix, Multiply and Overlay blending.
+- Explicit private-to-public publishing controls for cloud cars, maps, individual 3D assets, and a linked car + map bundle; revocable shares.
+- Optional fog/mist, rain/snow particle weather, sun azimuth, night stars and moon.
+- In-place DRIVE vehicle parameter rebuilds, direct seat and cockpit positioning, green part highlight and material auto-targeting.
+- Car Templates naming, compact Configuration descriptions, supplied minimize icons, contrast fixes and radio play visibility.
+- Fix private cloud GLB download route; no destructive data migration. Blender headless thumbnails and font distribution not included.
+- Local test coverage cannot substitute for live physics/WebGL or Flask integration verification.
+
 ## v0.3.28 — November 11, 2026
 - Fix Geological layers panel remaining invisible despite being enabled: setting its inline `display` was skipped by a misplaced `else` in the shared window visibility function.
 - Show the geological editor via either workspace presets or Parameters toolbar while keeping saved minimized state, position and size.
