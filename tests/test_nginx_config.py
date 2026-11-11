@@ -355,17 +355,33 @@ class ChassisImageTests(unittest.TestCase):
         self.backend=(ROOT/'backend/app.py').read_text()
     def test_chassis_prompt_provider_and_direct_3d_wiring(self):
         parser=Ids();parser.feed(self.html)
-        for element in ('chassisPrompt','chassisImageProvider','chassisImageKey',
-                        'chassisImagePreview','chassisGenerateImage','chassis3DReference',
-                        'chassisLuxKey','chassisLuxTest','chassisLuxModel',
-                        'chassisLuxStyle','chassisSpendAck','chassisGenerate3D',
-                        'chassisImageStatus','chassis3DStatus'):
+        for element in ('chassisPrompt','chassisImageProvider','chassisImagePreview',
+                        'chassisGenerateImage','chassis3DReference','chassisCaptureSet',
+                        'chassisCaptureFullSet','chassisShotStrip','chassisPromptOptions',
+                        'chassis3DOptions','chassisOpenImageKeys','chassisOpenLuxKeys',
+                        'chassisLuxModel','chassisLuxStyle','chassisSpendAck',
+                        'chassisGenerate3D','chassisImageStatus','chassis3DStatus'):
             self.assertEqual(parser.ids.count(element),1,element)
         self.assertFalse(parser.bad_nested)
         self.assertEqual(len(parser.ids),len(set(parser.ids)),'duplicate DOM IDs')
         self.assertIn("$('chassisPrompt').value.trim()",self.html)
         self.assertIn("$('lux3dCreateForm').requestSubmit()",self.html)
         self.assertIn("$('chassisCreative').hidden",self.html)
+        # Provider secrets must have one visible entry point, in Configuration.
+        for removed in ('chassisImageKey','chassisLuxKey','wheelImageKey','wheelLuxKey',
+                        'chassisLuxTest','wheelUseImageKey','wheelTestLuxKey'):
+            self.assertNotIn(f'id="{removed}"',self.html)
+        self.assertIn('id="providerKey"',self.html)
+        self.assertIn('id="lux3dSection" hidden',self.html)
+        self.assertIn('function syncChassisKeyState()',self.html)
+        self.assertIn('function openProviderSettings(provider)',self.html)
+        self.assertIn("if(provider==='lux3d'){",self.html)
+        self.assertNotIn('id="chassisImageKeyPanel"',self.html)
+        self.assertNotIn('id="chassisLuxKeyPanel"',self.html)
+        # Long examples remain computed on demand, never displayed as a wall.
+        self.assertIn('id="chassisPromptOptions"',self.html)
+        self.assertIn('id="chassisPromptExamples" hidden',self.html)
+        self.assertIn('const span=Math.max(hx,hy)*1.7',self.html)
     def test_meta_muse_generative_endpoint_and_key_scoping(self):
         self.assertIn("if provider not in ('openai','xai','meta')",self.backend)
         self.assertIn("'model':'muse-image-1.0'",self.backend)

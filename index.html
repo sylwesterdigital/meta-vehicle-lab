@@ -5,7 +5,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Vehicle Lab — Procedural Studio</title>
-  <meta name="vehicle-lab-version" content="0.3.33">
+  <meta name="vehicle-lab-version" content="0.3.34">
   <style>
     :root {
       color-scheme:dark;
@@ -561,44 +561,52 @@
 #wheelGeneratedPreview{max-width:100%;height:160px;object-fit:contain;border-radius:6px;background:#dde8f0;margin:5px auto;display:block}
 #wheelGeneratedPreview[hidden]{display:none}
 
-/* Chassis AI workflow — deliberately independent of the global API drawer. */
-#chassisWindow .chassis-creative{margin:12px 0 7px;border:1px solid #698ea4;border-radius:10px;padding:10px;background:#162b3bdc;color:#edf7fc}
+/* v0.3.34 · single-purpose, progressive body studio */
+#chassisWindow .chassis-creative{margin:12px 0 8px;border:1px solid #55788e;border-radius:12px;padding:12px;background:#142b3be8;color:#eaf5fc}
 #chassisWindow .chassis-creative[hidden]{display:none!important}
-#chassisWindow .chassis-creative-title{display:flex;align-items:baseline;gap:12px;justify-content:space-between;margin-bottom:8px}
-#chassisWindow .chassis-creative-title small{color:#b8d4e0}
-#chassisWindow .chassis-creative textarea{width:100%;resize:vertical;min-height:86px;max-height:170px;background:#10212f;color:#fff;border:1px solid #6a94aa;border-radius:7px;padding:8px}
-#chassisWindow .chassis-creative label{font-size:11px;color:#e7f3fa}
-#chassisWindow .chassis-creative button{font-size:11px;min-height:32px;background:#23455d;color:#f5fbff;border:1px solid #719ab0;border-radius:7px;cursor:pointer}
-#chassisWindow .chassis-creative button:hover{background:#38647a}
-#chassisWindow .chassis-creative .chassis-quick,#chassisWindow .chassis-reference-panel{display:flex;flex-wrap:wrap;gap:5px;margin:7px 0}
-#chassisWindow .chassis-creative .chassis-quick button{min-height:26px;padding:3px 9px}
-#chassisWindow .chassis-prompt-tools{display:flex;flex-wrap:wrap;gap:5px;margin:7px 0}
-#chassisWindow .chassis-prompt-examples{font-size:10px;line-height:1.45;color:#cfe5f0;background:#0f2230;border:1px solid #46657b;border-radius:7px;padding:7px 8px;margin:6px 0 4px;white-space:pre-wrap}
-#chassisWindow .chassis-key-status{display:flex;align-items:center;justify-content:space-between;gap:8px;background:#102332;border:1px solid #47677e;border-radius:7px;padding:7px 9px;margin:6px 0;font-size:10px;color:#dceef8}
-#chassisWindow .chassis-key-status strong{font-size:11px;color:#f6fcff}
-#chassisWindow .chassis-key-status button{min-height:26px;padding:4px 9px}
-#chassisWindow .chassis-shot-strip{display:grid;grid-template-columns:repeat(auto-fit,minmax(92px,1fr));gap:6px;margin:8px 0}
-#chassisWindow .chassis-shot{display:grid;gap:4px;padding:4px;background:#0e2130;border:1px solid #587a91;border-radius:8px;text-align:left}
-#chassisWindow .chassis-shot[aria-pressed=true]{outline:2px solid var(--accent);background:#173145}
-#chassisWindow .chassis-shot img{width:100%;aspect-ratio:1.2;object-fit:contain;border-radius:5px;background:#fff}
-#chassisWindow .chassis-shot small{font-size:10px;color:#d8edf8}
-#chassisWindow .chassis-shot em{font-style:normal;font-size:9px;color:#99bfce}
-#chassisWindow .chassis-compact-row{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1.3fr) auto;align-items:end;gap:5px;margin:8px 0}
-#chassisWindow .chassis-3d-options{grid-template-columns:repeat(3,minmax(0,1fr))}
-#chassisWindow .chassis-compact-row label{display:grid;gap:3px;min-width:0}
-#chassisWindow .chassis-compact-row input,#chassisWindow .chassis-compact-row select{width:100%;min-width:0;background:#0c1d2b;color:#fff;border:1px solid #6a92a8;border-radius:6px;padding:7px 5px;font-size:11px}
-#chassisWindow .chassis-check{display:flex;align-items:center;gap:7px;margin:8px 0;line-height:1.35}
+#chassisWindow .chassis-creative-title{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:12px}
+#chassisWindow .chassis-creative-title strong{font-size:13px}
+#chassisWindow .chassis-creative-title small{font-size:11px;color:#a9c6d6}
+#chassisWindow .chassis-step-label{display:flex;align-items:center;gap:8px;margin:13px 0 8px;font-size:12px}
+#chassisWindow .chassis-step-label span{border-radius:50%;display:grid;place-items:center;width:22px;height:22px;background:#3c6d86;color:white;font-weight:700;flex-shrink:0}
+#chassisWindow .chassis-step-label small{margin-left:auto;color:#a8cadb;font-size:11px}
+#chassisWindow .chassis-creative button{font-size:11px;min-height:32px;background:#23475e;color:#f5fbff;border:1px solid #547b93;border-radius:7px;cursor:pointer;padding:6px 10px}
+#chassisWindow .chassis-creative button:hover{background:#396c87}
+#chassisWindow .chassis-reference-panel{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 9px}
+#chassisWindow .chassis-primary-capture button:first-child,#chassisWindow .chassis-primary-capture button:nth-child(2){background:#326581}
+#chassisWindow #chassisImagePreviewButton{display:grid;place-items:center;width:100%;height:auto;aspect-ratio:16/10;padding:6px;overflow:hidden;background:#f7fbff;border:1px solid #7296a6;border-radius:10px;cursor:zoom-in}
+#chassisWindow #chassisImagePreview{display:block;width:100%;height:100%;object-fit:contain;min-height:0}
+#chassisWindow #chassisImagePreview[hidden]{display:none!important}
+#chassisWindow #chassisImageEmpty{font-size:12px;color:#39566a}
+#chassisWindow .chassis-shot-strip{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px;margin:9px 0 12px}
+#chassisWindow .chassis-shot{display:grid;gap:4px;min-width:0;padding:4px;background:#173449;border:1px solid #5b7d90;border-radius:7px;text-align:left}
+#chassisWindow .chassis-shot[aria-pressed=true]{outline:2px solid #a9dceb;background:#27516c}
+#chassisWindow .chassis-shot img{width:100%;aspect-ratio:4/3;object-fit:contain;border-radius:4px;background:white}
+#chassisWindow .chassis-shot small{font-size:10px;color:#d6eaf6;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#chassisWindow .chassis-shot em{display:none}
+#chassisWindow .chassis-provider-line{display:flex;align-items:center;flex-wrap:wrap;gap:6px;padding:6px 0;margin-bottom:6px}
+#chassisWindow .chassis-provider-line label{display:flex;align-items:center;gap:8px;font-size:11px;color:#cfdfeb}
+#chassisWindow .chassis-provider-line select{width:auto;max-width:160px;min-height:32px;background:#0f283a;color:#eef8ff;border:1px solid #628da3;border-radius:6px;padding:5px;font-size:11px}
+#chassisWindow .chassis-provider-status{color:#d8f0fa;font-size:11px;flex:1;min-width:130px}
+#chassisWindow .chassis-provider-line button{min-height:28px}
+#chassisWindow .chassis-generation-actions{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:7px;margin:5px 0}
+#chassisWindow .chassis-generation-actions button{background:#2a6482;flex:1}
+#chassisWindow .chassis-check{display:flex;align-items:center;gap:6px;margin:6px 0;font-size:11px;line-height:1.4}
 #chassisWindow .chassis-check input{width:16px;height:16px;flex:none}
-#chassisWindow .chassis-preview-row{display:flex;gap:8px;align-items:stretch;margin:9px 0}
-#chassisWindow #chassisImagePreviewButton{width:min(46%,240px);min-width:180px;height:180px;flex:none;display:grid;place-items:center;overflow:hidden;padding:4px;background:#0d1d2b;border-radius:8px}
-#chassisWindow #chassisImagePreview{width:100%;height:100%;object-fit:contain}
-#chassisWindow #chassisImageEmpty{color:#a9c6d2;font-size:10px}
-#chassisWindow .chassis-preview-actions{flex:1;min-width:0;display:flex;flex-direction:column;gap:6px}
-#chassisWindow .chassis-preview-actions small{font-size:10px;color:#b5cfdd}
-#chassisWindow #chassisImageStatus,#chassisWindow #chassis3DStatus{display:block;white-space:pre-wrap;overflow-wrap:anywhere;font-size:11px;color:#d5eaf7;line-height:1.45}
-#chassisWindow .chassis-3d-title{border-top:1px solid #526e83;margin:12px 0 7px;padding-top:10px;font-weight:700}
-#chassisWindow .chassis-main-action{width:100%;font-weight:700!important;background:#265b78!important}
-@media(max-width:540px){#chassisWindow .chassis-compact-row{grid-template-columns:1fr 1fr}#chassisWindow .chassis-compact-row button{min-width:0}#chassisWindow .chassis-3d-options{grid-template-columns:repeat(3,minmax(0,1fr))}}
+#chassisWindow .chassis-studio-details{margin:9px 0 10px;border:1px solid #54778d;border-radius:8px;padding:8px;background:#102636}
+#chassisWindow .chassis-studio-details summary{cursor:pointer;font-size:11px;font-weight:650}
+#chassisWindow .chassis-studio-details summary small{font-weight:400;opacity:.8}
+#chassisWindow .chassis-studio-details textarea{width:100%;margin:9px 0;min-height:74px;max-height:200px;resize:vertical;background:#091e2f;color:#f5fbff;border:1px solid #61859c;border-radius:7px;font-size:11px;padding:8px}
+#chassisWindow .chassis-quick,#chassisWindow .chassis-prompt-tools{display:flex;flex-wrap:wrap;gap:5px;margin:6px 0}
+#chassisWindow .chassis-quick button,#chassisWindow .chassis-prompt-tools button{min-height:28px}
+#chassisWindow .chassis-compact-row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;margin:8px 0}
+#chassisWindow .chassis-compact-row label{display:grid;gap:3px;min-width:0}
+#chassisWindow .chassis-compact-row select,#chassisWindow .chassis-studio-details>label>select{width:100%;min-width:0;background:#0b2334;color:#f3faff;border:1px solid #7297aa;border-radius:6px;min-height:32px;padding:5px;font-size:11px}
+#chassisWindow #chassisImageStatus,#chassisWindow #chassis3DStatus{display:block;color:#cde4ef;font-size:11px;white-space:pre-wrap;overflow-wrap:anywhere;margin:7px 0;line-height:1.4}
+#chassisWindow .chassis-consent{margin:9px 0}
+#chassisWindow .chassis-main-action{width:100%;font-weight:700;background:#27617c!important}
+#lux3dSection[hidden]{display:none!important}
+@media(max-width:520px){#chassisWindow .chassis-shot-strip{grid-template-columns:repeat(2,minmax(0,1fr))}}
 
 /* v0.3.11 · editable imported-shell fit, small controls and clear download UX */
 #chassisFitPanel{margin:8px 0;padding:8px;background:#162d3c;border:1px solid #63879e;border-radius:8px;color:#e9f5ff}
@@ -934,7 +942,7 @@ input[type=color]:focus-visible{outline:2px solid var(--accent)!important;outlin
 
   <div id="stage">
   <div id="hud">
-    <div class="stage-badge"><strong>Vehicle Lab</strong><small id="appVersionBadge">v0.3.33</small></div>
+    <div class="stage-badge"><strong>Vehicle Lab</strong><small id="appVersionBadge">v0.3.34</small></div>
     <p id="vehicleName">City Car</p><p id="vehicleInfo">Procedural vehicle</p>
     <div id="speedHud"><strong id="speed">0</strong><div>km/h</div></div>
     <div id="cameraModeReadout" style="padding:3px 6px;margin-top:4px;width:max-content;max-width:260px;border-radius:5px;background:#132d3cc0;color:#e9f5fc;font:10px ui-monospace,monospace">Camera · Orbit follow</div>
@@ -1195,12 +1203,8 @@ input[type=color]:focus-visible{outline:2px solid var(--accent)!important;outlin
         <small id="wheelAlignStatus">The GLB is fitted to the axle width and radius without changing its physics collider.</small>
       </div>
       <details id="wheelAISection"><summary>AI generation · optional</summary>
-        <form id="wheelAiCredentials" class="wheel-ai-keys" autocomplete="off"><label>Image model<select id="wheelAIProvider"><option value="openai">OpenAI</option><option value="meta">Meta Muse</option><option value="xai">xAI</option></select></label>
-          <label>Image API key<input type="password" id="wheelImageKey" autocomplete="off" placeholder="Paste key (tab only)"></label>
-          <button type="button" id="wheelUseImageKey">Use key</button>
-          <label>Lux3D key<input type="password" id="wheelLuxKey" autocomplete="off" placeholder="Optional Lux3D key"></label>
-          <button type="button" id="wheelTestLuxKey">Test Lux3D key</button>
-          <label><input type="checkbox" id="wheelSpendAck"> Authorize potentially billable 3D generation</label></form>
+        <div class="wheel-provider-row"><label>Image provider <select id="wheelAIProvider"><option value="openai">OpenAI</option><option value="meta">Meta Muse</option><option value="xai">xAI</option></select></label><button type="button" id="wheelOpenProviderSettings">Configure API keys</button></div>
+        <label class="chassis-check"><input type="checkbox" id="wheelSpendAck"> Authorize potentially billable 3D generation</label>
         <div id="wheelAIStatus" role="status">Text → image → review → optional 3D. Paid jobs require permission.</div>
 
         <textarea id="wheelPrompt" rows="2" placeholder="Describe your wheel or hubcap"></textarea>
@@ -1216,44 +1220,45 @@ input[type=color]:focus-visible{outline:2px solid var(--accent)!important;outlin
       <div class="body-library" id="chassisAssets" role="list" aria-label="Imported 3D body shells"></div>
       <div class="drawer-actions"><button type="button" id="chassisImport">＋ Import GLB</button><button type="button" id="chassisReset">↺ Procedural body</button><button type="button" id="chassisAI">✦ Design body with AI</button></div>
       <section class="chassis-creative" id="chassisCreative" hidden aria-label="AI chassis creation workflow">
-        <div class="chassis-creative-title"><strong>AI body studio</strong><small>Design → reference image → Lux3D → GLB</small></div>
-        <label for="chassisPrompt">Body design brief — this text controls the generated shell</label>
-        <textarea id="chassisPrompt" rows="4" maxlength="600" spellcheck="true">Compact aerodynamic hatchback with a gently sloped nose, smooth roofline, wide windscreen, rear hatch, defined wheel arches and realistic door seams. Isolated exterior body shell, without wheels, tyres, chassis rails, occupants or background.</textarea>
-        <div class="chassis-quick" role="group" aria-label="Design suggestions">
-          <button type="button" data-body-style="city">City</button><button type="button" data-body-style="sport">Sport</button><button type="button" data-body-style="utility">Utility</button><button type="button" data-body-style="retro">Retro</button>
+        <div class="chassis-creative-title"><strong>Body studio</strong><small>Capture · Refine · Generate</small></div>
+        <div class="chassis-step-label"><span>1</span><strong>Capture current vehicle</strong><small>White studio · no terrain</small></div>
+        <div class="chassis-reference-panel chassis-primary-capture">
+          <button type="button" id="chassisCaptureSet">Body only</button>
+          <button type="button" id="chassisCaptureFullSet">With wheels</button>
+          <button type="button" id="chassisUpload">Upload image</button>
+          <button type="button" id="chassisReferenceDownload">Download</button>
+          <button type="button" id="chassisReferenceClear" title="Remove the current reference">Clear</button>
+          <button id="chassisCapture" type="button" hidden>Capture 3/4 shell</button>
         </div>
-        <form id="chassisImageKeyPanel" class="chassis-compact-row" autocomplete="off">
-          <label>Image AI<select id="chassisImageProvider"><option value="meta">Meta Muse Image</option><option value="openai">OpenAI</option><option value="xai">xAI Grok Imagine</option></select></label>
-          <label id="chassisImageKeyFieldWrap">Image key<input id="chassisImageKey" type="password" autocomplete="off" placeholder="Paste only if not already set in AI / API Keys"></label>
-          <button type="submit" id="chassisSaveImageKey" title="Keep image API key in this tab only">Use key</button>
-        </form>
-        <div class="chassis-key-status"><strong id="chassisImageKeyStatus">Image key source not checked.</strong><button type="button" id="chassisOpenImageKeys">Open AI / API Keys</button></div>
-        <div class="chassis-prompt-tools"><button type="button" id="chassisPromptFromProcedural">Use current procedural shell</button><button type="button" id="chassisPromptExample">Insert example</button></div>
-        <div id="chassisPromptExamples" class="chassis-prompt-examples" aria-live="polite">Prompt examples will appear here.</div>
-        <div class="chassis-reference-panel">
-          <button type="button" id="chassisCapture">Capture shell · 3/4</button><button type="button" id="chassisCaptureSet">Auto-capture shell views</button><button type="button" id="chassisCaptureFullSet">Auto-capture full car views</button><button type="button" id="chassisUpload">Upload reference</button>
-          <button type="button" id="chassisReferenceClear">Clear</button><button type="button" id="chassisReferenceDownload">↓ Image</button>
-          <label class="chassis-check"><input id="chassisUseReference" type="checkbox"> Refine from image</label>
-        </div>
-        <div id="chassisShotStrip" class="chassis-shot-strip" aria-label="Captured procedural reference angles"></div>
-        <div class="chassis-preview-row">
-          <button id="chassisImagePreviewButton" type="button" title="Open reference preview"><img id="chassisImagePreview" alt="Current reference or generated car body concept" hidden><span id="chassisImageEmpty">No reference yet</span></button>
-          <div class="chassis-preview-actions"><button type="button" id="chassisGenerateImage">✦ Generate concept image</button>
-            <small>Generate from the active prompt and the currently selected studio capture. Use the procedural captures to prepare a clean white-background reference before ordering a 3D shell.</small>
-            <output id="chassisImageStatus" role="status" aria-live="polite">Ready. No request submitted.</output></div>
-        </div>
-        <div class="chassis-3d-title">Convert approved design to a wheel-free 3D shell</div>
-        <div class="chassis-compact-row chassis-3d-options">
-          <label>Lux3D model<select id="chassisLuxModel"><option value="G1">G1 quality</option><option value="G1-Turbo">G1 Turbo</option></select></label>
-          <label>Style<select id="chassisLuxStyle"><option value="photorealistic">Photoreal</option><option value="cartoon">Cartoon</option><option value="cyberpunk">Cyberpunk</option><option value="hand_painted">Painted</option><option value="anime">Anime</option><option value="fantasy">Fantasy</option></select></label>
-          <label>Region<select id="chassisLuxRegion"><option value="international">International</option><option value="china">China</option></select></label>
-        </div>
-        <form id="chassisLuxKeyPanel" class="chassis-compact-row" autocomplete="off"><label id="chassisLuxKeyFieldWrap">Lux3D key<input type="password" autocomplete="off" id="chassisLuxKey" placeholder="Paste only if not already set in AI / API Keys"></label><button type="submit" id="chassisLuxUseKey">Use key</button><button type="button" id="chassisLuxTest">Test key · free</button></form>
-        <div class="chassis-key-status"><strong id="chassisLuxKeyStatus">Lux3D key source not checked.</strong><button type="button" id="chassisOpenLuxKeys">Open AI / API Keys</button></div>
-        <div class="chassis-compact-row"><label>3D batch size<select id="chassisBatchCount" aria-label="Number of paid Lux3D jobs"><option value="1">1 job</option><option value="2">2 sequential jobs</option><option value="3">3 sequential jobs</option></select></label><small>Each job may spend credits. Pending jobs can be cancelled.</small></div>
-        <label class="chassis-check"><input id="chassis3DReference" type="checkbox" checked> Use preview image as 3D reference (when present)</label>
-        <label class="chassis-check"><input id="chassisSpendAck" type="checkbox"> Authorize potentially billable 3D generation</label>
-        <button type="button" id="chassisGenerate3D" class="chassis-main-action">Generate wheel-free GLB · import automatically</button>
+        <button id="chassisImagePreviewButton" type="button" title="Open the selected reference at full size"><img id="chassisImagePreview" alt="Current studio capture or generated concept" hidden><span id="chassisImageEmpty">Capture a reference to begin</span></button>
+        <div id="chassisShotStrip" class="chassis-shot-strip" aria-label="Studio camera angles"></div>
+        <div class="chassis-step-label"><span>2</span><strong>Refine the body</strong></div>
+        <div class="chassis-provider-line"><label>Image AI<select id="chassisImageProvider"><option value="meta">Meta Muse</option><option value="openai">OpenAI</option><option value="xai">xAI</option></select></label>
+          <span id="chassisImageKeyStatus" role="status" class="chassis-provider-status"></span>
+          <button type="button" id="chassisOpenImageKeys">API settings</button></div>
+        <div class="chassis-generation-actions"><label class="chassis-check"><input id="chassisUseReference" type="checkbox" checked> Use selected reference</label>
+          <button type="button" id="chassisGenerateImage">Generate concept image</button></div>
+        <details id="chassisPromptOptions" class="chassis-studio-details"><summary>Edit design prompt <small>optional</small></summary>
+          <textarea id="chassisPrompt" rows="4" maxlength="600" spellcheck="true">Compact aerodynamic hatchback with a gently sloped nose, smooth roofline, wide windscreen, rear hatch, defined wheel arches and realistic door seams. Isolated exterior body shell, without wheels, tyres, chassis rails, occupants or background.</textarea>
+          <div class="chassis-quick" role="group" aria-label="Design styles">
+            <button type="button" data-body-style="city">City</button><button type="button" data-body-style="sport">Sport</button><button type="button" data-body-style="utility">Utility</button><button type="button" data-body-style="retro">Retro</button>
+          </div>
+          <div class="chassis-prompt-tools"><button type="button" id="chassisPromptFromProcedural">Use current geometry</button><button type="button" id="chassisPromptExample">Sport variation</button></div>
+          <div id="chassisPromptExamples" hidden></div>
+        </details>
+        <output id="chassisImageStatus" role="status" aria-live="polite">Capture a reference or generate a concept.</output>
+        <div class="chassis-step-label"><span>3</span><strong>Generate a 3D shell</strong></div>
+        <div class="chassis-provider-line"><span id="chassisLuxKeyStatus" role="status" class="chassis-provider-status"></span>
+          <button type="button" id="chassisOpenLuxKeys">API settings</button></div>
+        <details id="chassis3DOptions" class="chassis-studio-details"><summary>3D options <small>optional</small></summary>
+          <div class="chassis-compact-row chassis-3d-options"><label>Quality<select id="chassisLuxModel"><option value="G1">G1 quality</option><option value="G1-Turbo">G1 Turbo</option></select></label>
+            <label>Style<select id="chassisLuxStyle"><option value="photorealistic">Photoreal</option><option value="cartoon">Cartoon</option><option value="cyberpunk">Cyberpunk</option><option value="hand_painted">Painted</option><option value="anime">Anime</option><option value="fantasy">Fantasy</option></select></label>
+            <label>Region<select id="chassisLuxRegion"><option value="international">International</option><option value="china">China</option></select></label></div>
+          <label>Batch<select id="chassisBatchCount" aria-label="Number of paid 3D jobs"><option value="1">1 job</option><option value="2">2 jobs</option><option value="3">3 jobs</option></select></label>
+          <label class="chassis-check"><input id="chassis3DReference" type="checkbox" checked> Use selected concept/reference</label>
+        </details>
+        <label class="chassis-check chassis-consent"><input id="chassisSpendAck" type="checkbox"> I authorize the potentially billable 3D generation</label>
+        <button type="button" id="chassisGenerate3D" class="chassis-main-action">Generate 3D body · save to My Media</button>
         <output id="chassis3DStatus" aria-live="polite" role="status">Not started.</output>
       </section>
       <section id="chassisFitPanel" aria-label="Imported chassis fit and alignment" hidden>
@@ -1358,11 +1363,11 @@ input[type=color]:focus-visible{outline:2px solid var(--accent)!important;outlin
       <div class="drawer-actions"><button type="submit" id="saveProviderKey">Use in tab</button><button id="testProviderKey" type="button">Test + list models</button><button id="clearProviderKey" type="button">Forget key</button></div>
     </form><pre id="providerResult" style="white-space:pre-wrap;overflow-wrap:anywhere;font-size:11px"></pre>
   </details>
-  <details id="lux3dSection"><summary>Lux3D · chassis generator & API diagnostics</summary>
+  <details id="lux3dSection" hidden aria-hidden="true"><summary>Internal Lux3D generator form</summary>
     <p>Read-only key test uses task history. It starts no generation job and does not consume generation credits. Your credit balance is not available through the published OpenAPI.</p>
     <form id="lux3dTestForm" autocomplete="off">
       <label>Region <select id="lux3dRegion"><option value="international">International / aholo.ai</option><option value="china">China / aholo3d.cn</option></select></label>
-      <label>Lux3D API key <input id="lux3dKey" type="password" autocomplete="off" spellcheck="false" placeholder="API key (kept in this tab only)"></label>
+      <input id="lux3dKey" type="hidden" value="">
       <div class="drawer-actions"><button type="submit" id="lux3dTest">Test key · no generation</button><button id="lux3dForget" type="button">Forget key</button></div>
     </form>
     <div id="lux3dDiagnostics" class="lux-diagnostics" role="status" aria-live="polite">Not tested. Balance: unavailable from documented API.</div>
@@ -1904,7 +1909,7 @@ let ghostObject=null,ghostSamples=[],ghostElapsed=0,ghostTick=0;
  function appConfirm(message){return showAppDialog('confirm',message)}
  function appPrompt(message,value='',options={}){return showAppDialog('prompt',message,value,options)}
 
- const VERSION='0.3.33';
+ const VERSION='0.3.34';
  document.getElementById('appVersionBadge').textContent='v'+VERSION;
  let imageReference=null,busyAI=false;
 
@@ -5886,24 +5891,25 @@ function captureChassisStudioShot({includeWheels=false,label='Studio body shell 
  }}
  const bbox=new THREE.Box3().setFromObject(shell);
  if(bbox.isEmpty())throw Error('No vehicle geometry for reference capture');
- const center=bbox.getCenter(new THREE.Vector3());shell.position.sub(center);
+ const center=bbox.getCenter(new THREE.Vector3());shell.position.sub(center);shell.updateMatrixWorld(true);
  const shifted=new THREE.Box3().setFromObject(shell);
  // Orthographic auto-fit uses all eight corners projected into camera space.
  // A fixed FOV and radius previously produced a close-up of the hood only.
- const cam=new THREE.OrthographicCamera(-1,1,1,-1,.1,250);
+ const size=shifted.getSize(new THREE.Vector3()),diagonal=Math.max(1,size.length());
+ const cam=new THREE.OrthographicCamera(-1,1,1,-1,.1,Math.max(250,diagonal*10));
  const shotDirection=new THREE.Vector3(...direction).normalize();
- cam.position.copy(shotDirection).multiplyScalar(30);cam.lookAt(0,0,0);cam.updateMatrixWorld(true);
+ cam.position.copy(shotDirection).multiplyScalar(Math.max(30,diagonal*3));cam.lookAt(0,0,0);cam.updateMatrixWorld(true);
  const points=[];for(const x of [shifted.min.x,shifted.max.x])for(const y of [shifted.min.y,shifted.max.y])
   for(const z of [shifted.min.z,shifted.max.z])points.push(new THREE.Vector3(x,y,z).applyMatrix4(cam.matrixWorldInverse));
- const hx=Math.max(1,...points.map(v=>Math.abs(v.x)))*1.3,hy=Math.max(1,...points.map(v=>Math.abs(v.y)))*1.3;
- const span=Math.max(hx,hy);cam.left=-span;cam.right=span;cam.top=span;cam.bottom=-span;cam.updateProjectionMatrix();
+ const hx=Math.max(.5,...points.map(v=>Math.abs(v.x))),hy=Math.max(.5,...points.map(v=>Math.abs(v.y)));
+ const span=Math.max(hx,hy)*1.7;cam.left=-span;cam.right=span;cam.top=span;cam.bottom=-span;cam.updateProjectionMatrix();
  const sz=900,rt=new THREE.WebGLRenderTarget(sz,sz,{depthBuffer:true});
  const oldTarget=renderer.getRenderTarget(),oldViewport=renderer.getViewport(new THREE.Vector4());
  const oldScissor=renderer.getScissor(new THREE.Vector4()),oldScissorTest=renderer.getScissorTest();
  const oldClear=renderer.getClearColor(new THREE.Color()).clone(),oldAlpha=renderer.getClearAlpha();
  const oldExposure=renderer.toneMappingExposure;
  try{
-  renderer.toneMappingExposure=2.05;
+  renderer.toneMappingExposure=1.1;
   renderer.setRenderTarget(rt);renderer.setScissorTest(false);renderer.setViewport(0,0,sz,sz);
   renderer.render(clean,cam);
   const pixels=new Uint8Array(sz*sz*4);renderer.readRenderTargetPixels(rt,0,0,sz,sz,pixels);
@@ -6526,7 +6532,7 @@ aiFolder.add({captureReference},'captureReference').name('Capture reference');
 aiFolder.add({upload:()=>$('importImage').click()},'upload').name('Upload reference');
 aiFolder.add({generateImage},'generateImage').name('Generate AI image');
 aiFolder.add({generateTripo},'generateTripo').name('Create 3D via Tripo');
-aiFolder.add({openLux3d:()=>{showDrawer('config');$('lux3dSection').open=true;$('lux3dSection').scrollIntoView({behavior:'smooth',block:'start'});}},'openLux3d').name('Lux3D · body shell / key test');
+aiFolder.add({openLux3d:()=>{setWindowVisible('chassisWindow',true);$('chassisCreative').hidden=false;syncChassisKeyState();}},'openLux3d').name('Open Body Studio');
 aiFolder.close();
 if(Array.isArray(gui.folders))for(const folder of gui.folders)folder.close();
 
@@ -7001,7 +7007,7 @@ function renderWheelStudio(){
   }else{
    const p=$('wheelAISection');p.open=true;
    $('wheelAIStatus').textContent='Enter a provider key once. Subsequent ✦ taps will generate directly.';
-   $('wheelImageKey').focus();
+   openProviderSettings($('wheelAIProvider').value);
   }
  };target.append(createCard);
  $('wheelTargetTitle').textContent=prefix==='front'?'Front wheels · selectable':'Rear wheels · selectable';
@@ -7074,13 +7080,7 @@ const wheelAiPrompt=()=>{
   `${(cfg[wheel+'WheelRadius']*2).toFixed(2)} metre diameter, ${(cfg[wheel+'WheelWidth']).toFixed(2)} metre tyre width, `+
   `front three-quarter product shot, realistic physically based materials, no car, white studio background`;
 };
-$('wheelUseImageKey').onclick=()=>{const k=$('wheelImageKey').value.trim();if(!k)return;
- keys[$('wheelAIProvider').value]=k;ai.provider=$('wheelAIProvider').value;$('wheelImageKey').value='';
- $('wheelAIStatus').textContent='Image key stored in this tab.';};
-$('wheelAIProvider').onchange=e=>{ai.provider=e.target.value};
-$('wheelTestLuxKey').onclick=()=>{const k=$('wheelLuxKey').value.trim();if(k)keys.lux3d=k;
- $('lux3dKey').value=keys.lux3d;$('lux3dTestForm').requestSubmit();$('wheelLuxKey').value='';
- $('wheelAIStatus').textContent='Testing Lux3D key without generation. Results are mirrored below.';};
+$('wheelAIProvider').onchange=e=>{ai.provider=e.target.value;syncChassisKeyState()};
 new MutationObserver(()=>{$('wheelAIStatus').textContent=$('lux3dTaskStatus').textContent+' · '+$('lux3dDiagnostics').textContent;})
  .observe($('lux3dTaskStatus'),{childList:true,characterData:true,subtree:true});
 $('wheelTextImage').onclick=()=>{wheelAiPrompt();pendingWheelImage=true;imageEditMode=false;ai.provider=$('wheelAIProvider').value;void generateImage()};
@@ -7089,9 +7089,8 @@ $('wheelEditImage').onclick=()=>{if(!imageReference){$('importImage').click();no
 $('wheelImage3D').onclick=()=>{wheelAiPrompt();pendingTripoComponent='wheel';void generateTripo()};
 $('wheelLux3D').onclick=()=>{
  if(!$('wheelSpendAck').checked){$('wheelAIStatus').textContent='Check authorization before starting a potentially billable Lux3D task.';return}
- if($('wheelLuxKey').value.trim())keys.lux3d=$('wheelLuxKey').value.trim();
- if(!keys.lux3d){$('wheelAIStatus').textContent='Enter a Lux3D key in the wheel workshop.';return}
- wheelAiPrompt();$('lux3dKey').value=keys.lux3d;$('lux3dComponent').value='wheel';
+ if(!keys.lux3d){$('wheelAIStatus').textContent='Add your Lux3D key in Configuration → AI providers & API keys.';openProviderSettings('lux3d');return}
+ wheelAiPrompt();$('lux3dComponent').value='wheel';
  $('lux3dPrompt').value=ai.prompt;$('lux3dSpendAck').checked=true;$('lux3dAutoImport').checked=true;
  $('lux3dCreateForm').requestSubmit();$('wheelSpendAck').checked=false;
  $('wheelAIStatus').textContent='Lux3D wheel generation requested. The completed GLB will be attached to this axle.';
@@ -9544,6 +9543,7 @@ $('galleryRefreshBtn').onclick=()=>{gallerySource='public';setWindowVisible('gal
 $('layoutPublic').onchange=()=>{serverVisibility=$('layoutPublic').checked?'public':'private'};
 
 const RELEASE_NOTES=[
+ {v:'0.3.34',date:'2026-11-11',title:'One place for API credentials, compact chassis studio',items:['API keys are entered only in Configuration. Wheel and Chassis workshops no longer contain credential fields.', 'Chassis Body Studio now puts its large white-background preview and four camera angles first. Prompts and 3D tuning are optional, collapsed controls.', 'Lux3D model creation remains available from the workshop and requires explicit credit authorization; obsolete generator controls are hidden in Configuration.']},
  {v:'0.3.33',date:'2026-11-11',title:'Centred imported chassis and direct transform tools',items:['Imported visual body GLBs now rotate around their geometric centre, with automatic upright/length alignment and a 180° facing correction.', 'The Chassis Workshop uses one adaptive precision slider for X/Y/Z, pitch/yaw/roll, and scale; numeric steppers were removed.', 'A dedicated Three.js transform gizmo allows direct Move, Rotate and Scale editing of the imported shell without changing wheels, passengers or collision bodies.']},
  {v:'0.3.32',date:'2026-11-11',title:'Guided chassis AI workflow and safer cloud model sync',items:['Chassis Workshop now prefers keys already entered in AI / API Keys, hides duplicate key fields when available, and adds direct links back to the settings drawer only when needed.', 'AI body studio now auto-captures clean white-background procedural shell angles, shows a larger reference preview, and offers prompt examples built from the current procedural body settings.', 'Cloud model backup retries conflicting local client IDs with a fresh server binding instead of failing the whole sync when older local IDs already map to different cloud content.']},
  {v:'0.3.31',date:'2026-11-11',title:'Unified dialogs, sculpt shortcuts and consistent controls',items:['All native browser confirm and prompt flows now use one accessible in-app modal with keyboard and cancel support.', '3D sculpt raises with Command/Ctrl-drag and carves with Shift+Command/Ctrl-drag; range labels show compact shortcut keys.', 'Colour swatches have no browser-native white frame; minimized window buttons remain transparent until hover; numeric input contrast and control typography are normalized.']},
@@ -9796,7 +9796,16 @@ $('clearProviderKey').onclick=()=>{
 $('testProviderKey').onclick=async()=>{
  const provider=$('providerChoice').value;
  if(provider==='tripo'){$('providerResult').textContent='Tripo model-list endpoint is not verified; no request made.';return}
- if(provider==='lux3d'){$('lux3dSection').open=true; $('lux3dKey').value=$('providerKey').value.trim()||keys.lux3d; $('providerKey').value=''; $('lux3dSection').scrollIntoView({behavior:'smooth',block:'start'}); $('providerResult').textContent='Lux3D has a dedicated read-only task-list test below.';return}
+ if(provider==='lux3d'){
+  const key=$('providerKey').value.trim()||keys.lux3d;
+  if(!key){$('providerResult').textContent='Enter Lux3D key in this Settings form first.';return}
+  $('providerResult').textContent='Checking Lux3D task history without creating a job…';
+  try{const data=await lux3dPost('/api/providers/lux3d/test',{key,region:'international'});
+   keys.lux3d=key;$('providerKey').value='';syncChassisKeyState();
+   $('providerResult').textContent='Lux3D key verified. Tasks: '+(data.total_tasks??data.recent_tasks?.length??'not reported')+' · No generation started.';
+  }catch(error){$('providerResult').textContent='Lux3D test failed: '+error.message;}
+  return;
+ }
  const key=$('providerKey').value.trim()||keys[provider];
  if(!key){$('providerResult').textContent='Paste an API key first.';return}
  if(!guestToken){$('providerResult').textContent='Create a profile before testing providers.';return}
@@ -9825,7 +9834,7 @@ const lux3dComponentPrompts={
  taillight:'A single red rear taillamp assembly for a modular passenger car, molded lens, accurate mounting points, no car body.'
 };
 const lux3dStatus=msg=>{$('lux3dDiagnostics').textContent=msg};
-function getLux3dKey(){return $('lux3dKey').value.trim()||keys.lux3d||''}
+function getLux3dKey(){return keys.lux3d||''}
 async function lux3dPost(path, body){
  if(!guestToken)throw Error('Create or import your Vehicle Lab profile first.');
  const response=await fetch(path,{method:'POST',credentials:'same-origin',cache:'no-store',
@@ -10260,19 +10269,18 @@ function buildChassisPromptExamples(){
  ];
 }
 function refreshChassisPromptExamples(){
- const examples=buildChassisPromptExamples();
- $('chassisPromptExamples').textContent=examples.map((line,i)=>String(i+1)+'. '+line).join('\n\n');
+ // Prompts are generated on demand, not rendered as a large wall of text.
+ $('chassisPromptExamples').textContent='';
 }
 function syncChassisKeyState(){
- const imageProvider=$('chassisImageProvider').value;
- const imageReady=Boolean(keys[imageProvider]);
- $('chassisImageKeyStatus').textContent=imageReady?('Using '+imageProvider.toUpperCase()+' key already stored in AI / API Keys for this tab.'):'No '+imageProvider.toUpperCase()+' image key in memory yet.';
- $('chassisImageKeyFieldWrap').hidden=imageReady;
- $('chassisSaveImageKey').hidden=imageReady;
- const luxReady=Boolean(keys.lux3d);
- $('chassisLuxKeyStatus').textContent=luxReady?'Using Lux3D key already stored in AI / API Keys for this tab.':'No Lux3D key in memory yet.';
- $('chassisLuxKeyFieldWrap').hidden=luxReady;
- $('chassisLuxUseKey').hidden=luxReady;
+ const provider=$('chassisImageProvider').value;
+ const ready=Boolean(keys[provider]),luxReady=Boolean(keys.lux3d);
+ $('chassisImageKeyStatus').textContent=ready?'Key ready':'Key required';
+ $('chassisOpenImageKeys').hidden=ready;
+ $('chassisLuxKeyStatus').textContent=luxReady?'Lux3D ready':'Lux3D key required';
+ $('chassisOpenLuxKeys').hidden=luxReady;
+ const wheelProvider=$('wheelAIProvider').value;
+ $('wheelOpenProviderSettings').hidden=Boolean(keys[wheelProvider]&&keys.lux3d);
 }
 function setActiveChassisReference(data,label='Reference ready'){
  if(!data)return;
@@ -10311,16 +10319,16 @@ $('chassisAI').onclick=()=>{
 };
 $('chassisPromptFromProcedural').onclick=()=>{$('chassisPrompt').value=proceduralBodyPrompt();$('chassisImageStatus').textContent='Prompt rebuilt from the current procedural shell settings.';refreshChassisPromptExamples()};
 $('chassisPromptExample').onclick=()=>{$('chassisPrompt').value=buildChassisPromptExamples()[1].replace(/^Sport variation → /,'');$('chassisImageStatus').textContent='Example prompt inserted. Edit it as needed.';refreshChassisPromptExamples()};
-$('chassisOpenImageKeys').onclick=()=>{showDrawer('config');$('providerChoice').value=$('chassisImageProvider').value;$('providerKey').focus();};
-$('chassisOpenLuxKeys').onclick=()=>{showDrawer('config');$('providerChoice').value='lux3d';$('lux3dSection').open=true;$('lux3dSection').scrollIntoView({behavior:'smooth',block:'start'});$('lux3dKey').focus();};
+function openProviderSettings(provider){
+ showDrawer('config');$('providerChoice').value=provider;
+ const details=$('aiKeysForm').closest('details');if(details)details.open=true;
+ $('providerKey').focus();
+}
+$('chassisOpenImageKeys').onclick=()=>openProviderSettings($('chassisImageProvider').value);
+$('chassisOpenLuxKeys').onclick=()=>openProviderSettings('lux3d');
+$('wheelOpenProviderSettings').onclick=()=>openProviderSettings(keys[$('wheelAIProvider').value]?'lux3d':$('wheelAIProvider').value);
 for(const item of $('chassisCreative').querySelectorAll('[data-body-style]'))item.onclick=()=>{
  $('chassisPrompt').value=chassisDesigns[item.dataset.bodyStyle];$('chassisImageStatus').textContent='Design brief updated. No generation started.';
-};
-$('chassisImageKeyPanel').onsubmit=e=>{e.preventDefault();
- const provider=$('chassisImageProvider').value,entered=$('chassisImageKey').value.trim();
- if(entered){keys[provider]=entered;$('chassisImageKey').value='';}
- syncChassisKeyState();
- $('chassisImageStatus').textContent=keys[provider]?provider.toUpperCase()+' key ready in this tab.':'Paste a key first.';
 };
 $('chassisImageProvider').onchange=()=>{
  const provider=$('chassisImageProvider').value;syncChassisKeyState();
@@ -10340,8 +10348,7 @@ $('chassisImagePreviewButton').onclick=()=>{
 $('lux3dReferenceFile').addEventListener('change',()=>{chassisConceptImage=null;});
 $('chassisGenerateImage').onclick=async()=>{
  const provider=$('chassisImageProvider').value;
- const key=$('chassisImageKey').value.trim();if(key){keys[provider]=key;$('chassisImageKey').value='';}
- if(!keys[provider]){$('chassisImageStatus').textContent='Enter a '+provider+' image API key first.';return}
+ if(!keys[provider]){$('chassisImageStatus').textContent='Add the '+provider+' image key in Configuration → AI providers & API keys.';openProviderSettings(provider);return}
  const brief=$('chassisPrompt').value.trim();if(brief.length<12){$('chassisImageStatus').textContent='Describe the body shape first.';return}
  ai.provider=provider;
  ai.prompt='Automotive OEM engineering catalog photography, front-LEFT three-quarter view (front and the left side both clearly visible), slightly elevated camera looking down 12 degrees, fully visible vehicle body occupying about 76 percent of the frame. A single isolated EMPTY exterior CAR BODY SHELL, with realistic open wheel-arch cutouts, open windshield and side-window apertures, hollow interior cavity, no wheels, no tyres, no axles, no chassis rails, no people, no seats, no ground, no scenery, no lettering and no watermark. Entire uninterrupted PURE WHITE (#FFFFFF) seamless studio background, high-key neutral lighting, soft contact shadows, accurate body proportions, crisp panel edges and architectural orthographic-like perspective. '+brief;
@@ -10352,28 +10359,13 @@ $('chassisGenerateImage').onclick=async()=>{
  renderChassisShotStrip();$('lux3dUseReference').checked=true;}else $('chassisImageStatus').textContent='Image request failed. See app logs.';}
  finally{button.disabled=false;button.classList.remove('ai-running');button.setAttribute('aria-busy','false');imageEditMode=false;}
 };
-$('chassisLuxKeyPanel').onsubmit=e=>{e.preventDefault();
- const k=$('chassisLuxKey').value.trim();if(k){keys.lux3d=k;$('chassisLuxKey').value='';}
- syncChassisKeyState();
- $('chassis3DStatus').textContent=keys.lux3d?'Lux3D key ready in tab.':'Paste a Lux3D key first.';
-};
-$('chassisLuxTest').onclick=async()=>{
- const k=$('chassisLuxKey').value.trim();if(k){keys.lux3d=k;$('chassisLuxKey').value='';syncChassisKeyState();}
- if(!keys.lux3d){$('chassis3DStatus').textContent='Enter a Lux3D key first.';return}
- const button=$('chassisLuxTest');button.disabled=true;$('chassis3DStatus').textContent='Checking Lux3D task list (read-only)…';
- try{const result=await lux3dPost('/api/providers/lux3d/test',{key:keys.lux3d,region:$('chassisLuxRegion').value});
- $('chassis3DStatus').textContent='Authenticated · tasks: '+(result.total_tasks??result.recent_tasks?.length??0)+'. No model generated.';}
- catch(e){$('chassis3DStatus').textContent='Lux3D test failed: '+e.message;}
- finally{button.disabled=false;}
-};
 $('chassisGenerate3D').onclick=()=>{
- const k=$('chassisLuxKey').value.trim();if(k){keys.lux3d=k;$('chassisLuxKey').value='';syncChassisKeyState();}
- if(!keys.lux3d){$('chassis3DStatus').textContent='Enter a Lux3D key first.';return}
+ if(!keys.lux3d){$('chassis3DStatus').textContent='Add the Lux3D key in Configuration → AI providers & API keys.';openProviderSettings('lux3d');return}
  if(!$('chassisSpendAck').checked){$('chassis3DStatus').textContent='Check the billable-generation confirmation first.';return}
  const brief=$('chassisPrompt').value.trim();if(brief.length<12){$('chassis3DStatus').textContent='Describe the body shell first.';return}
  const useImage=$('chassis3DReference').checked&&Boolean(chassisConceptImage||imageReference);
  if(useImage)imageReference=chassisConceptImage||imageReference;
- $('lux3dKey').value=keys.lux3d;$('lux3dComponent').value='chassis';$('lux3dPrompt').value=brief;
+ $('lux3dComponent').value='chassis';$('lux3dPrompt').value=brief;
  $('lux3dStyle').value=$('chassisLuxStyle').value;
  $('lux3dModel').value=$('chassisLuxModel').value;
  $('lux3dBatchCount').value=$('chassisBatchCount').value;

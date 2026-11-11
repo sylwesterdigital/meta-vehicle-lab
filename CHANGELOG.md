@@ -1,3 +1,10 @@
+## v0.3.34 — November 11, 2026
+- Remove API key inputs from Chassis and Wheel workshops. Configuration → AI providers & API keys is the only visible credential form; the same tab-scoped keys are reused for generation and testing.
+- Replace cluttered Chassis AI controls with a compact Body Studio: large white-background preview, four selectable views, Body-only / With-wheels capture, image-generation action and 3D generation action. Design prompt and detailed 3D options are collapsed until requested.
+- Move the duplicate visible Lux3D generator away from Configuration; retain its existing form as a hidden runtime adapter to preserve the tested generation workflow without changing the provider API.
+- Increase margins/dynamic camera distance for GLB studio captures and reduce overexposure. Exact live WebGL capture with user models remains a production acceptance test.
+- Keep explicit consent for billable generation. No SQLite migration, model deletion, or changes to existing profiles/maps/asset binaries.
+
 ## v0.3.33 — November 11, 2026
 - Imported GLB shell uses a centred visual pivot, correcting rotations around remote authoring origins. Auto-align detects the likely up axis and positions the long body axis along the car. Model binary and physical wheels remain unchanged.
 - Chassis Workshop fit panel replaces seven independent steppers with one parameter selector and adaptive range slider plus optional precise text input.
