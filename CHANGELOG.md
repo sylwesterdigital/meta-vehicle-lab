@@ -1,3 +1,9 @@
+## v0.3.40 — November 11, 2026
+- Vector chassis canvas uses a translucent, blurred material instead of a solid opaque background.
+- Docked wider collapsible properties column does not cover the vector shapes, points, or drafting area; collapse frees more canvas space.
+- Front/rear views show body/glass guide contours and a visible symmetry axis; shape paths and their Three.js extrusion preview mirror live across x=0. Mirroring is enabled by default and saved in vector JSON with backward-compatible schema.
+- Existing cloud vehicles, GLB files, maps and profiles are untouched. No new backend dependency or destructive migration.
+
 ## v0.3.39 — November 11, 2026
 - Vector Chassis: left and right views now edit the same 2D profile, extruded into a single body shell rather than two independently drawn bodies. Secondary side panels are mirrored as visual overlays.
 - Front/rear wheel roundels can be dragged to reposition the actual axle offsets and wheel vertical mounting; wheel radius is adjustable in the contextual inspector. These values remain in the vehicle blueprint and update all supported physics engine wheel mount points.

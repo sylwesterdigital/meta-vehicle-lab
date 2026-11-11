@@ -1327,3 +1327,46 @@ class VectorChassis039Tests(unittest.TestCase):
         self.assertIn('layer.opacity', self.html)
         self.assertIn("if(!layer.closed&&layer.role==='body'&&layer.nodes.length>=3)layer.closed=true", self.html)
         self.assertIn('color:/^#[0-9a-f]{6}$/i', self.html)
+
+class VectorChassis040Tests(unittest.TestCase):
+    """Guard glass drafting, docked properties, and mirrored front/rear shapes."""
+    @classmethod
+    def setUpClass(cls):
+        cls.html=(Path(__file__).resolve().parents[1]/'index.html').read_text(encoding='utf-8')
+
+    def test_canvas_glass_and_docked_collapse(self):
+        for marker in (
+            'id="vectorInspectorToggle"',
+            'aria-expanded="true"',
+            'grid-template-columns:minmax(0,1fr) minmax(265px,295px)',
+            'data-inspector-collapsed="true"',
+            "workspace.dataset.inspectorCollapsed=String(collapsed)",
+            "requestAnimationFrame(vectorDrawCanvas)",
+            "fill:'rgba(13,31,46,.24)'",
+            '#vectorWindow .vector-canvas-wrap{position:relative!important',
+        ):
+            self.assertIn(marker,self.html,marker)
+
+    def test_symmetric_front_and_rear_without_new_schema(self):
+        for marker in (
+            'id="vectorMirror"',
+            "function vectorMirroringActive()",
+            "mirrorFrontRear:data.mirrorFrontRear!==false",
+            "function vectorSyncMirrorControls()",
+            "data-vector-mirror':'true'",
+            "transform:'scale(-1 1)'",
+            "if((layer.view==='front'||layer.view==='rear')&&vectorDesign().mirrorFrontRear!==false)",
+            "const opposite=group.clone(true);opposite.scale.x=-1;parent.add(opposite)",
+            "if(vectorMirroringActive()&&vectorDraftMirror)nodes=nodes.map",
+            "vectorDesign().mirrorFrontRear=$('vectorMirror').checked",
+            "'aria-label':'Mirror symmetry axis'",
+        ):
+            # The x=0 axis has the same role whether the SVG uses a different label.
+            if marker == "'aria-label':'Mirror symmetry axis'":
+                self.assertIn("'aria-label':'Mirror symmetry axis'",self.html)
+            else:
+                self.assertIn(marker,self.html,marker)
+
+    def test_source_does_not_change_persistent_back_end(self):
+        self.assertIn("const VECTOR_SCHEMA='vehiclelab-vector-chassis/v1'",self.html)
+        self.assertIn("view:vectorView==='right'?'left':vectorView",self.html)
