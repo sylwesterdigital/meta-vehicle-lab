@@ -1,3 +1,11 @@
+## v0.3.41 — November 11, 2026
+- Vector wheel arches share one sampled true-circle outline for 2D and 3D; removes mismatched arc sweeps and angular 3D wheel wells.
+- Shift+D duplicates and Ctrl/Cmd+C/V copy/paste selected vector parts within the editor; new layer IDs and offset nodes protect source shapes.
+- Collapsed Properties now consumes zero canvas width; a persistent button in the view toolbar reopens the panel.
+- Top and bottom views show full car footprint, roof/cabin reference, mirrored wheels and axle lines.
+- Hollow visual chassis is assembled from two thin side skins and perimeter panels with window cutouts; interior and passengers can be seen behind semitransparent glass. Visual-only; existing procedural chassis collider is unchanged.
+- No new dependencies or schema changes, and no change to stored models/maps/vehicles.
+
 ## v0.3.40 — November 11, 2026
 - Vector chassis canvas uses a translucent, blurred material instead of a solid opaque background.
 - Docked wider collapsible properties column does not cover the vector shapes, points, or drafting area; collapse frees more canvas space.

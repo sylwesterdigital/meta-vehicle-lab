@@ -1299,9 +1299,11 @@ class VectorChassis039Tests(unittest.TestCase):
     def test_arc_primitives_have_three_handles(self):
         self.assertIn("make('Outer body', 'body',points,{arcs:[{start:8,mid:9,end:10},{start:11,mid:12,end:13}]})", self.html)
         self.assertIn('function vectorCircleThrough(a,b,c)', self.html)
-        self.assertIn('shape.absarc(c.x,c.y,c.radius,c.start,c.end,c.clockwise)', self.html)
+        self.assertIn('function vectorOutlinePoints(layer)', self.html)
+        self.assertIn('const delta=c.clockwise?-norm(c.start-c.end):norm(c.end-c.start)', self.html)
+        self.assertIn('function vectorSvgPath(layer)', self.html)
         self.assertIn('data-vector-tool="arch"', self.html)
-        self.assertIn("new THREE.TubeGeometry(curve,48,.017,6,false)", self.html)
+        self.assertIn('new THREE.TubeGeometry(curve,Math.min(240,Math.max(16,sampled.length*3)),.017,6,false)', self.html)
 
     def test_physical_wheel_mounts_and_guides_are_linked(self):
         self.assertIn('frontWheelMountY:-.3,rearWheelMountY:-.3', self.html)
@@ -1370,3 +1372,40 @@ class VectorChassis040Tests(unittest.TestCase):
     def test_source_does_not_change_persistent_back_end(self):
         self.assertIn("const VECTOR_SCHEMA='vehiclelab-vector-chassis/v1'",self.html)
         self.assertIn("view:vectorView==='right'?'left':vectorView",self.html)
+
+
+class VectorChassis041Tests(unittest.TestCase):
+    """Updated vector UI, duplication, hollow-cabin and geometry contracts."""
+    @classmethod
+    def setUpClass(cls):
+        cls.html=(Path(__file__).resolve().parents[1] / 'index.html').read_text()
+
+    def test_shared_wheel_arc_samples_in_2d_and_3d(self):
+        self.assertIn('function vectorOutlinePoints(layer)',self.html)
+        self.assertIn('const points=vectorOutlinePoints(layer);if(!points.length)',self.html)
+        self.assertIn('const points=vectorOutlinePoints(layer);',self.html)
+        self.assertIn('const samples=Math.max(20,Math.ceil(Math.abs(delta)*20))',self.html)
+
+    def test_hollow_side_skins_and_window_openings(self):
+        self.assertIn('function vectorBodyHoles(body)',self.html)
+        self.assertIn('shape.holes.push(...vectorBodyHoles(layer))',self.html)
+        self.assertIn("const depth=layer.role==='body'?.035:layer.depth",self.html)
+        self.assertIn('function vectorBodyPerimeterGeometry(layer)',self.html)
+        self.assertIn("farSide.add(mesh.clone());parent.add(farSide)",self.html)
+
+    def test_copy_paste_is_independent_and_scoped(self):
+        for piece in ('function vectorCopySelected()', 'function vectorPasteSelected()',
+                      "layer.id=vectorId()", "e.code==='KeyD'",
+                      "e.code==='KeyC'", "e.code==='KeyV'",
+                      "!document.activeElement?.closest?.('#vectorWindow')"):
+            self.assertIn(piece,self.html)
+
+    def test_collapsed_properties_do_not_consume_canvas(self):
+        self.assertIn('id="vectorPropertiesButton"',self.html)
+        self.assertIn('data-inspector-collapsed="true"]{grid-template-columns:minmax(0,1fr)!important',self.html)
+        self.assertIn('data-inspector-collapsed="true"] .vector-inspector{display:none!important',self.html)
+
+    def test_top_bottom_have_vehicle_guides(self):
+        self.assertIn("if(['top','bottom'].includes(vectorView))",self.html)
+        self.assertIn('Vehicle footprint and roof plan reference',self.html)
+        self.assertIn('const z=wheelZ(axle)',self.html)
