@@ -1,3 +1,8 @@
+## v0.3.30 — November 11, 2026
+- Editable car parts (body, glass, wheels, tyres, rims, seats, dashboard, steering, lamps) show the same green selection highlight and select the related Material Studio target.
+- Camera terrain collision/clearance is bounded by the visible terrain geometry; vegetation shares the visible surface and updates its positions during sculpting.
+- Preserves existing maps, vehicles, profiles and models. No server migration.
+
 ## v0.3.29 — November 11, 2026
 - Named, private geological colour presets; Mix, Multiply and Overlay blending.
 - Explicit private-to-public publishing controls for cloud cars, maps, individual 3D assets, and a linked car + map bundle; revocable shares.

@@ -886,3 +886,84 @@ class GeologicalWindowVisibility0328Tests(unittest.TestCase):
         self.assertNotIn("else win.style.display=show?'flex':'none';",handler)
         self.assertIn("geology.add({visual:()=>{setWindowVisible('geologyWindow',true);syncGeologyEditor()}},'visual')",html)
         self.assertIn("'geologyWindow'",html)
+
+class VehicleLab0330SurfaceCoherenceTests(unittest.TestCase):
+    """No new live-server dependencies. Exercise visible-mesh geometry in Node."""
+    def setUp(self):
+        self.source=(Path(__file__).resolve().parents[1]/'index.html').read_text(encoding='utf-8')
+
+    def test_editable_categories_and_material_targets(self):
+        src=self.source
+        for snippet in (
+            'function registerEditableVehiclePart(root,key,label,materialTarget)',
+            "registerEditableVehiclePart(lampRoot,",
+            "registerEditableVehiclePart(seatGroup,",
+            "registerEditableVehiclePart(dash,",
+            "registerEditableVehiclePart(steeringWheel,",
+            "registerEditableVehiclePart(root,`wheel:",
+            "if(material===glass)registerEditableVehiclePart(piece,",
+            'const hits=car?raycaster.intersectObject(car,true):[];',
+            'selectEditableVehiclePart(obj.userData.vehicleSelect.key,materialTarget);',
+            "const selected=editableVehicleParts.get(selectedVehicleTargetKey);",
+            "face.userData.materialTarget=prefix+'TireSidewall'",
+            "rim.userData.materialTarget=prefix+'RimColor'",
+            "selectedVehicleTargetKey='module:'+selectedPart;",
+            "const colour=front?cfg.headlightColor:cfg.tailLightColor;",
+        ):
+            self.assertIn(snippet,src)
+        for name in ('frontRimColor','rearRimColor','frontTireSidewall',
+                     'rearTireSidewall','headlightColor','tailLightColor'):
+            self.assertIn(f'<option value="{name}">',src)
+        self.assertNotIn("raycaster.intersectObjects(bodyRoot?.children||[],true)",src)
+
+    def test_camera_clearance_requires_visible_geometry(self):
+        self.assertIn('const visibleGround=visibleTerrainHeightAt(x,z);',self.source)
+        self.assertIn('if(visibleGround===null)continue;',self.source)
+        self.assertIn('alignVegetationToVisibleTerrain(dirty);',self.source)
+        for token in ('update(farGrassMesh,farGrassXZ,.015)',
+                      'update(nearGrassMesh,nearGrassXZ,.02)',
+                      'for(const {mesh,coords,offsets} of shrubRockMeshes)'):
+            self.assertIn(token,self.source)
+
+    def test_visible_triangle_interpolation_and_instance_alignment(self):
+        import shutil
+        if not shutil.which('node'):
+            self.skipTest('Node unavailable')
+        src=self.source
+        surface=src[src.index('function visibleTerrainHeightAt('):src.index('let seaSurface=null,skyDome=null;')]
+        align=src[src.index('function alignVegetationToVisibleTerrain('):src.index('function updateVegetation(dt)')]
+        script='''
+          const assert=require('node:assert/strict');
+          const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+          let SIZE=1.5,STEP=1.5,N=1;
+          let heights=[0,8,6,30];
+          let terrain={geometry:{getAttribute(k){return k==='position'?{count:4,getY(i){return heights[i]}}:null}}};
+          let farGrassMesh=null,nearGrassMesh=null,farGrassXZ=null,nearGrassXZ=null,shrubRockMeshes=[];
+          %s
+          %s
+          assert(Math.abs(visibleTerrainHeightAt(-.45,.3)-3.6)<1e-8);
+          assert(Math.abs(visibleTerrainHeightAt(.45,-.15)-16)<1e-8);
+          assert.equal(visibleTerrainHeightAt(5,0),null);
+          assert.equal(visibleTerrainHeightAt(0,-5),null);
+          assert.equal(visibleTerrainHeightAt(NaN,0),null);
+          const makeMesh=(count)=>({count,instanceMatrix:{array:new Float32Array(count*16),needsUpdate:false}});
+          farGrassMesh=makeMesh(1);farGrassXZ=new Float32Array([-.45,.3]);
+          nearGrassMesh=makeMesh(1);nearGrassXZ=new Float32Array([.45,-.15]);
+          const rock=makeMesh(1);
+          shrubRockMeshes=[{mesh:rock,coords:new Float32Array([.45,-.15]),offsets:new Float32Array([.24])}];
+          alignVegetationToVisibleTerrain();
+          assert(Math.abs(farGrassMesh.instanceMatrix.array[13]-3.615)<1e-5);
+          assert(Math.abs(nearGrassMesh.instanceMatrix.array[13]-16.02)<1e-5);
+          assert(Math.abs(rock.instanceMatrix.array[13]-16.24)<1e-5);
+          assert(farGrassMesh.instanceMatrix.needsUpdate);
+          assert(nearGrassMesh.instanceMatrix.needsUpdate);
+          assert(rock.instanceMatrix.needsUpdate);
+          const old=farGrassMesh.instanceMatrix.array[13];
+          heights=[0,18,16,30];
+          alignVegetationToVisibleTerrain({x0:0,x1:1,z0:0,z1:1});
+          assert.equal(farGrassMesh.instanceMatrix.array[13],old);
+          alignVegetationToVisibleTerrain();
+          assert(farGrassMesh.instanceMatrix.array[13]>old);
+        '''%(surface,align)
+        result=subprocess.run(['node','-e',script],capture_output=True,text=True,timeout=10)
+        self.assertEqual(result.returncode,0,result.stdout+result.stderr)

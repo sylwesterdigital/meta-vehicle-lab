@@ -1,3 +1,9 @@
+# Vehicle Lab — v0.3.30 — Editable component highlighting and visible-surface terrain alignment (2026-11-11)
+
+- **Editable component selection:** Dedicated green glow/bounds highlighting and material targeting for procedural body modules, glass, wheels/tyres/rims/sidewalls, seats, dashboard, steering and lamps. Avatar meshes can be highlighted without claiming recolouring of imported materials. Selected semantic component is re-bound after vehicle rebuild.
+- **Terrain coherence:** Camera clearance now samples the actual visible terrain triangle mesh, ignoring samples outside its footprint rather than sampling invisible procedural hills; grass, shrubs and rocks use mesh-derived elevations and adjust during live sculpt strokes. Map and collider rebuild behaviour remains in place on stroke completion.
+- **Compatibility:** No map/schema/SQLite migrations, no new dependencies, existing cloud and local assets unchanged. Visual WebGL/physics on production hardware require acceptance testing.
+
 # Vehicle Lab — v0.3.29 — Geological presets, publishing, weather and editor UX (2026-11-11)
 
 - Geological Layers has private, named server-backed presets with load and confirmed deletion, plus Mix / Multiply / Overlay texture blends; saved map gradients continue to use existing private map saves.
