@@ -1,3 +1,9 @@
+## v0.3.35 — November 11, 2026
+- Drive Test Map dropdown lists private cloud maps returned by the profile-owned media endpoint, in addition to IndexedDB-only device maps and built-in presets. Cloud maps take precedence over device copies sharing the same ID.
+- Cloud map selection fetches the authoritative server map before changing any world state; request errors are reported instead of silently using an empty or stale device cache. Only explicit Load changes the world; cars remain in the scene.
+- Refresh the dropdown after profile authentication, profile switch, map save, opening the Map window or clicking its small refresh control. Discard late list responses from a previous profile or refresh.
+- No data deletion, migrations, external packages, or server-side asset changes.
+
 ## v0.3.34 — November 11, 2026
 - Remove API key inputs from Chassis and Wheel workshops. Configuration → AI providers & API keys is the only visible credential form; the same tab-scoped keys are reused for generation and testing.
 - Replace cluttered Chassis AI controls with a compact Body Studio: large white-background preview, four selectable views, Body-only / With-wheels capture, image-generation action and 3D generation action. Design prompt and detailed 3D options are collapsed until requested.

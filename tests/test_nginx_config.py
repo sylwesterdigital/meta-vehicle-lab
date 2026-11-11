@@ -1035,3 +1035,89 @@ class DialogAndSculptUI0311Tests(unittest.TestCase):
         self.assertIn('input[type=color]::-moz-color-swatch', self.html)
         self.assertIn('.window-head .mini-btn.minimize:hover', self.html)
         self.assertIn('color-scheme:dark!important', self.html)
+
+class CloudMapPicker035Tests(unittest.TestCase):
+    """Run the actual dropdown and Load handlers with mocked private media data."""
+
+    def test_cloud_only_map_is_selectable_and_loads_from_server(self):
+        html=str(Path(__file__).resolve().parents[1]/'index.html')
+        script=r'''
+const assert=require('assert');
+const fs=require('fs');
+const source=fs.readFileSync(process.argv[1],'utf8');
+const begin=source.indexOf('let mapListRefreshSerial=0;');
+const finish=source.indexOf('const mapSaveDialog=',begin);
+assert(begin>=0&&finish>begin);
+const pickerSource=source.slice(begin,finish);
+class Opt { constructor(label,value){this.text=label;this.value=value;this.disabled=false;} }
+class Group {constructor(){this.label='';this.items=[];} append(option){this.items.push(option)}}
+class Picker {
+ constructor(){this.children=[];this._value='';this.title=''}
+ replaceChildren(){this.children=[];this._value=''}
+ append(entry){this.children.push(entry)}
+ prepend(entry){this.children.unshift(entry)}
+ get options(){return this.children.flatMap(entry=>entry.items||[entry])}
+ get value(){return this._value}
+ set value(next){this._value=next}
+ querySelector(){return this.options.find(item=>!item.disabled)||null}
+}
+const picker=new Picker(),refreshButton={},loadButton={disabled:false};
+const lookup=id=>({'mapSaved':picker,'mapRefreshList':refreshButton,'mapLoad':loadButton})[id];
+const document={createElement(kind){assert.equal(kind,'optgroup');return new Group()}};
+const entries=[{id:'shared',name:'Cache copy',modified:1},{id:'device1',name:'Offline map',modified:2}];
+let failure=false,owner={id:'profile1'},token='token';
+let loaded=null;const notices=[];
+const getMedia=async(path)=>{
+ assert(path.startsWith('/api/me/media'));
+ if(failure)throw Error('Network offline');
+ if(path==='/api/me/media?kind=map')return {media:[
+  {id:'shared',kind:'map',name:'Cloud copy',updated_at:99},
+  {id:'cloudOnly',kind:'map',name:'Rocky hills X - Winter',updated_at:100},
+  {id:'picture',kind:'image',name:'Not a map',updated_at:101}
+ ]};
+ if(path==='/api/me/media/cloudOnly')return {media:{id:'cloudOnly',kind:'map',name:'Rocky hills X - Winter',
+  data:{schema:'vehiclelab-testmap/v3',objects:[{kind:'hill',x:10,z:12,w:10,d:8,h:4}],terrainProfile:'flat'}}};
+ throw Error('Bad route '+path);
+};
+const run=new Function('$','document','Option','mapTransaction','identityRequest','testMapPresets',
+ 'recordEvent','note','getOwner','getToken',`
+ let activeProfile=getOwner(),guestToken=getToken();
+ ${pickerSource}
+ return {refreshMapList,setSession:(profile,token)=>{activeProfile=profile;guestToken=token}};
+`);
+const warnings=[];
+const app=run(lookup,document,Opt,async()=>entries,getMedia,{'Practice ground':[]},
+ (_level,message)=>warnings.push(message),message=>notices.push(message),()=>owner,()=>token);
+(async()=>{
+ await app.refreshMapList();
+ assert(picker.options.some(item=>item.value==='cloud:cloudOnly'&&item.text==='Rocky hills X - Winter'));
+ assert(picker.options.some(item=>item.value==='cloud:shared'));
+ assert(!picker.options.some(item=>item.value==='local:shared'));
+ assert(picker.options.some(item=>item.value==='local:device1'));
+ assert(picker.options.some(item=>item.value==='preset:Practice ground'));
+ // The same map must load directly from the server, not IndexedDB.
+ const loadBegin=source.indexOf("$('mapLoad').onclick=async()=>{");
+ const loadFinish=source.indexOf("$('mapExport').onclick=",loadBegin);
+ assert(loadBegin>=0&&loadFinish>loadBegin);
+ const loadSource=source.slice(loadBegin,loadFinish);
+ const action=new Function('$','activeProfile','guestToken','identityRequest','mapTransaction',
+  'applySavedTestMap','testMapPresets','note','recordEvent',loadSource);
+ action(lookup,{id:'profile1'},'token',getMedia,async()=>{throw Error('Local cache was read')},
+  async data=>{loaded=data}, {'Practice ground':[]},message=>notices.push(message),
+  (_level,message)=>warnings.push(message));
+ picker.value='cloud:cloudOnly';await loadButton.onclick();
+ assert.equal(loaded.name,'Rocky hills X - Winter');
+ assert.equal(loaded.objects[0].kind,'hill');
+ assert.equal(loadButton.disabled,false);
+ // If cloud listing fails, offline maps remain accessible and aren't reported deleted.
+ failure=true;await app.refreshMapList();
+ assert(picker.options.some(item=>item.value==='local:device1'));
+ assert(picker.options.some(item=>item.text.includes('Cloud maps unavailable')));
+ app.setSession(null,'');await app.refreshMapList();
+ assert(!picker.options.some(item=>item.value.startsWith('cloud:')));
+ assert(picker.options.some(item=>item.value.startsWith('local:')));
+ console.log('Private cloud picker, cache deduplication, load and error handling passed');
+})().catch(error=>{console.error(error);process.exitCode=1});
+'''
+        result=subprocess.run(['node','-e',script,html],capture_output=True,text=True,timeout=20)
+        self.assertEqual(result.returncode,0,result.stdout+result.stderr)
