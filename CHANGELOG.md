@@ -1,3 +1,15 @@
+## v0.3.32 — November 11, 2026
+- Chassis Workshop AI flow is now guided around the current procedural shell: larger center preview, one-click procedural prompt generation, example prompt text, and automatic white-background shell/full-car studio captures from multiple angles.
+- Workshop no longer insists on re-entering provider keys when the same image or Lux3D keys are already present in AI / API Keys. Inline key fields collapse when keys are already available, with direct links back to settings only when needed.
+- Cloud model backup retries a conflicting local client ID with a fresh cloud binding instead of failing the whole sync when an older local ID already points at different uploaded content.
+- Frontend + client-sync release only. No destructive migration of stored vehicles, maps, profiles or model binaries.
+
+## v0.3.31 — November 11, 2026
+- Unified accessible in-app confirm/name/link dialogs replace native browser popups across the current editor (including private-library actions). Cancel is non-destructive and focus returns to the invoking control.
+- Sculpture window removes redundant descriptions; compact keyboard hints accompany slider labels. Command/Ctrl-drag raises 3D terrain, Shift+Command/Ctrl-drag carves; map buttons still choose direction.
+- Native colour-picker frames removed for swatches across UI; minimize/restore controls have transparent background until hover. Standardised controls/fonts, dark numeric input contrast, and geological editor readability.
+- No new dependency, database migration, or modifications to stored private assets. Isolated browser tests do not substitute for production physics/WebGL acceptance.
+
 ## v0.3.30 — November 11, 2026
 - Editable car parts (body, glass, wheels, tyres, rims, seats, dashboard, steering, lamps) show the same green selection highlight and select the related Material Studio target.
 - Camera terrain collision/clearance is bounded by the visible terrain geometry; vegetation shares the visible surface and updates its positions during sculpting.

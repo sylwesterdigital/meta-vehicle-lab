@@ -5,7 +5,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Vehicle Lab — Procedural Studio</title>
-  <meta name="vehicle-lab-version" content="0.3.30">
+  <meta name="vehicle-lab-version" content="0.3.32">
   <style>
     :root {
       color-scheme:dark;
@@ -572,6 +572,17 @@
 #chassisWindow .chassis-creative button:hover{background:#38647a}
 #chassisWindow .chassis-creative .chassis-quick,#chassisWindow .chassis-reference-panel{display:flex;flex-wrap:wrap;gap:5px;margin:7px 0}
 #chassisWindow .chassis-creative .chassis-quick button{min-height:26px;padding:3px 9px}
+#chassisWindow .chassis-prompt-tools{display:flex;flex-wrap:wrap;gap:5px;margin:7px 0}
+#chassisWindow .chassis-prompt-examples{font-size:10px;line-height:1.45;color:#cfe5f0;background:#0f2230;border:1px solid #46657b;border-radius:7px;padding:7px 8px;margin:6px 0 4px;white-space:pre-wrap}
+#chassisWindow .chassis-key-status{display:flex;align-items:center;justify-content:space-between;gap:8px;background:#102332;border:1px solid #47677e;border-radius:7px;padding:7px 9px;margin:6px 0;font-size:10px;color:#dceef8}
+#chassisWindow .chassis-key-status strong{font-size:11px;color:#f6fcff}
+#chassisWindow .chassis-key-status button{min-height:26px;padding:4px 9px}
+#chassisWindow .chassis-shot-strip{display:grid;grid-template-columns:repeat(auto-fit,minmax(92px,1fr));gap:6px;margin:8px 0}
+#chassisWindow .chassis-shot{display:grid;gap:4px;padding:4px;background:#0e2130;border:1px solid #587a91;border-radius:8px;text-align:left}
+#chassisWindow .chassis-shot[aria-pressed=true]{outline:2px solid var(--accent);background:#173145}
+#chassisWindow .chassis-shot img{width:100%;aspect-ratio:1.2;object-fit:contain;border-radius:5px;background:#fff}
+#chassisWindow .chassis-shot small{font-size:10px;color:#d8edf8}
+#chassisWindow .chassis-shot em{font-style:normal;font-size:9px;color:#99bfce}
 #chassisWindow .chassis-compact-row{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1.3fr) auto;align-items:end;gap:5px;margin:8px 0}
 #chassisWindow .chassis-3d-options{grid-template-columns:repeat(3,minmax(0,1fr))}
 #chassisWindow .chassis-compact-row label{display:grid;gap:3px;min-width:0}
@@ -579,7 +590,7 @@
 #chassisWindow .chassis-check{display:flex;align-items:center;gap:7px;margin:8px 0;line-height:1.35}
 #chassisWindow .chassis-check input{width:16px;height:16px;flex:none}
 #chassisWindow .chassis-preview-row{display:flex;gap:8px;align-items:stretch;margin:9px 0}
-#chassisWindow #chassisImagePreviewButton{width:125px;height:108px;flex:none;display:grid;place-items:center;overflow:hidden;padding:3px;background:#0d1d2b}
+#chassisWindow #chassisImagePreviewButton{width:min(46%,240px);min-width:180px;height:180px;flex:none;display:grid;place-items:center;overflow:hidden;padding:4px;background:#0d1d2b;border-radius:8px}
 #chassisWindow #chassisImagePreview{width:100%;height:100%;object-fit:contain}
 #chassisWindow #chassisImageEmpty{color:#a9c6d2;font-size:10px}
 #chassisWindow .chassis-preview-actions{flex:1;min-width:0;display:flex;flex-direction:column;gap:6px}
@@ -862,6 +873,43 @@ body.ui-colored-headers .window-header-swatch{display:block}
 #notesWindow .notes-priority-pills button{color:#f4f8ff!important}
 #notesWindow .notes-entry button{color:var(--text)!important}
 
+
+/* v0.3.31: consistent compact controls, accessible modal and sculpt shortcuts. */
+.sr-only{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important}
+#sculptWindow .sculpt-panel>label[for]{display:flex;align-items:center;flex-wrap:wrap;gap:5px;font-size:calc(11px * var(--ui-scale));font-weight:500}
+#sculptWindow .sculpt-panel>label[for] output{margin-left:auto;font-variant-numeric:tabular-nums;font-weight:650}
+.sculpt-key-hint{display:inline-flex;align-items:center;gap:4px;font-size:9px;white-space:normal;color:var(--muted)}
+.sculpt-key-hint kbd{font:600 9px/1.3 ui-monospace,monospace;background:color-mix(in srgb,var(--pane) 77%,#172632);color:var(--text);border:1px solid var(--pane-border);padding:2px 4px;border-radius:4px;white-space:nowrap}
+#sculptWindow .sculpt-mode-pills button{font-size:calc(11px * var(--ui-scale))!important}
+/* Native browser colour well borders and padding are inconsistent across Chromium, Safari and Firefox. */
+input[type=color],.window-header-swatch{appearance:none;-webkit-appearance:none;border:0!important;padding:0!important;box-shadow:none!important;background:transparent!important;border-radius:5px!important;overflow:hidden;cursor:pointer;vertical-align:middle}
+input[type=color]::-webkit-color-swatch-wrapper{padding:0!important;border:0!important}
+input[type=color]::-webkit-color-swatch{border:0!important;border-radius:4px!important}
+input[type=color]::-moz-color-swatch{border:0!important;border-radius:4px!important}
+input[type=color]:focus-visible{outline:2px solid var(--accent)!important;outline-offset:3px}
+.window-header-swatch{width:16px!important;height:16px!important;min-width:16px!important;min-height:16px!important}
+.window-head .mini-btn.minimize{background:transparent!important;border:0!important;box-shadow:none!important;color:inherit!important;border-radius:5px!important;transition:background-color .12s ease}
+.window-head .mini-btn.minimize:hover,.window-head .mini-btn.minimize:focus-visible{background:color-mix(in srgb,var(--text) 19%,transparent)!important}
+/* Consistent control sizing; dark inputs must have legible text even on light or translucent panels. */
+.float-window :is(input[type=number],input[type=text],input[type=search],select,textarea){font-size:calc(11px * var(--ui-scale))!important;color:#edf8ff!important;caret-color:#fff!important;color-scheme:dark!important}
+.float-window :is(input[type=number],input[type=text],input[type=search],select,textarea):not(.lil-gui *){background-color:#102634!important}
+.float-window input[type=number]::-webkit-inner-spin-button,.float-window input[type=number]::-webkit-outer-spin-button{opacity:.85;filter:invert(.85)}
+#geoWindow .window-body :is(label,select,input,button,output){font-size:calc(11px * var(--ui-scale))!important}
+#geoWindow .geo-colors input[type=color]{width:44px;height:30px;border-radius:5px}
+#geoWindow .geo-ruler{font-size:10px;color:white}
+#appDialog{z-index:160}
+#appDialog .app-dialog-card{width:min(425px,calc(100vw - 28px));background:var(--pane);color:var(--text);border:1px solid var(--pane-border);box-shadow:var(--panel-shadow)}
+#appDialogTitle{font-size:calc(17px * var(--ui-scale));margin:0 0 8px}
+#appDialogMessage{font-size:calc(12px * var(--ui-scale));color:var(--text);overflow-wrap:anywhere;line-height:1.5;margin:0 0 11px}
+#appDialogForm{display:grid;gap:13px;margin:0}
+#appDialogInputRow{display:grid;gap:6px;font-size:calc(11px * var(--ui-scale))}
+#appDialogInputRow[hidden]{display:none}
+#appDialogInput{font-size:calc(13px * var(--ui-scale));color:#f5f9ff;background:#102634;color-scheme:dark}
+#appDialog .drawer-actions{display:flex;justify-content:flex-end;gap:7px;flex-wrap:wrap;margin:0}
+#appDialog .drawer-actions button{min-height:34px;min-width:94px;font-size:calc(11px * var(--ui-scale));padding:7px 11px}
+#appDialog .app-dialog-danger{background:#883744;border-color:#bf7180;color:#fff}
+#appDialog .app-dialog-danger:hover{background:#a94452}
+#appDialog button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 </style>
 
  <script type="importmap">
@@ -882,7 +930,7 @@ body.ui-colored-headers .window-header-swatch{display:block}
 
   <div id="stage">
   <div id="hud">
-    <div class="stage-badge"><strong>Vehicle Lab</strong><small id="appVersionBadge">v0.3.30</small></div>
+    <div class="stage-badge"><strong>Vehicle Lab</strong><small id="appVersionBadge">v0.3.32</small></div>
     <p id="vehicleName">City Car</p><p id="vehicleInfo">Procedural vehicle</p>
     <div id="speedHud"><strong id="speed">0</strong><div>km/h</div></div>
     <div id="cameraModeReadout" style="padding:3px 6px;margin-top:4px;width:max-content;max-width:260px;border-radius:5px;background:#132d3cc0;color:#e9f5fc;font:10px ui-monospace,monospace">Camera · Orbit follow</div>
@@ -987,14 +1035,13 @@ body.ui-colored-headers .window-header-swatch{display:block}
   <section id="sculptWindow" class="float-window" aria-label="Terrain sculpt brush" style="display:none">
     <div class="window-head"><strong>Terrain sculpt · sphere brush</strong><button class="mini-btn minimize" title="Minimize" aria-label="Minimize terrain sculpt"><svg class="collapse-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path class="icon-minify" d="M6 12h12"/><rect class="icon-expand" x="7" y="7" width="10" height="10" rx="2"/></svg></button></div>
     <div class="window-body sculpt-panel">
-      <p>Drag on the map, or hold Command (Mac) / Ctrl (Windows) and left-drag on the 3D terrain. Normal dragging orbits the camera. Numpad 7 opens top view.</p>
       <div class="sculpt-mode-pills" role="group" aria-label="Sculpt brush direction">
-        <button id="sculptRaise" type="button" aria-pressed="false">Raise terrain</button>
-        <button id="sculptLower" type="button" aria-pressed="true">Carve valley</button>
+        <button id="sculptRaise" type="button" aria-pressed="false" title="3D: Command/Ctrl + drag">Raise</button>
+        <button id="sculptLower" type="button" aria-pressed="true" title="3D: Shift + Command/Ctrl + drag">Carve</button>
       </div>
-      <label for="sculptRadius">Sphere radius <output id="sculptRadiusText">8 m</output></label>
+      <label for="sculptRadius">Sphere radius <span class="sculpt-key-hint"><kbd>[</kbd><kbd>]</kbd></span><output id="sculptRadiusText">8 m</output></label>
       <input id="sculptRadius" type="range" min="2" max="35" step="0.5" value="8" aria-label="Sculpt brush radius in metres">
-      <label for="sculptStrength">Strength <output id="sculptStrengthText">1 m</output></label>
+      <label for="sculptStrength">Strength <span class="sculpt-key-hint"><kbd>⌘ / Ctrl</kbd> Raise <kbd>Shift + ⌘ / Ctrl</kbd> Carve</span><output id="sculptStrengthText">1 m</output></label>
       <input id="sculptStrength" type="range" min="0.1" max="4" step="0.1" value="1" aria-label="Sculpt height strength per pass in metres">
       <label for="sculptBrushThickness">Outline thickness <output id="sculptBrushThicknessText">0.30 m</output></label>
       <input id="sculptBrushThickness" type="range" min="0.05" max="0.8" step="0.05" value="0.3" aria-label="Sculpt outline thickness in metres">
@@ -1003,7 +1050,7 @@ body.ui-colored-headers .window-header-swatch{display:block}
       <label for="sculptBrushColor">Brush colour <input id="sculptBrushColor" type="color" value="#64ed91" aria-label="Sculpt guide colour"></label>
       <label class="sculpt-checkbox"><input id="sculptOnStage" type="checkbox" checked> Show brush preview on 3D terrain</label>
       <div class="drawer-actions"><button id="sculptMap" type="button">Sculpt on map</button><button id="sculptTop" type="button">Top view (Numpad 7)</button><button id="sculptClear" type="button" title="Erase all sculpted height changes">Clear sculpted heights</button></div>
-      <small id="sculptStatus" role="status">Command/Ctrl + left-drag sculpts in 3D · [ / ] adjust radius · Ctrl+Z undoes strokes. BUILD and DRIVE supported.</small>
+      <small id="sculptStatus" class="sr-only" role="status" aria-live="polite"></small>
     </div>
   </section>
   <section id="mediaWindow" class="float-window" aria-label="My media library" style="display:none">
@@ -1171,20 +1218,24 @@ body.ui-colored-headers .window-header-swatch{display:block}
         <div class="chassis-quick" role="group" aria-label="Design suggestions">
           <button type="button" data-body-style="city">City</button><button type="button" data-body-style="sport">Sport</button><button type="button" data-body-style="utility">Utility</button><button type="button" data-body-style="retro">Retro</button>
         </div>
-        <form id="chassisImageKeysForm" class="chassis-compact-row" autocomplete="off">
+        <form id="chassisImageKeyPanel" class="chassis-compact-row" autocomplete="off">
           <label>Image AI<select id="chassisImageProvider"><option value="meta">Meta Muse Image</option><option value="openai">OpenAI</option><option value="xai">xAI Grok Imagine</option></select></label>
-          <label>Image key<input id="chassisImageKey" type="password" autocomplete="off" placeholder="Paste if needed"></label>
-          <button type="button" id="chassisSaveImageKey" title="Keep image API key in this tab only">Use key</button>
+          <label id="chassisImageKeyFieldWrap">Image key<input id="chassisImageKey" type="password" autocomplete="off" placeholder="Paste only if not already set in AI / API Keys"></label>
+          <button type="submit" id="chassisSaveImageKey" title="Keep image API key in this tab only">Use key</button>
         </form>
+        <div class="chassis-key-status"><strong id="chassisImageKeyStatus">Image key source not checked.</strong><button type="button" id="chassisOpenImageKeys">Open AI / API Keys</button></div>
+        <div class="chassis-prompt-tools"><button type="button" id="chassisPromptFromProcedural">Use current procedural shell</button><button type="button" id="chassisPromptExample">Insert example</button></div>
+        <div id="chassisPromptExamples" class="chassis-prompt-examples" aria-live="polite">Prompt examples will appear here.</div>
         <div class="chassis-reference-panel">
-          <button type="button" id="chassisCapture">Capture body only</button><button type="button" id="chassisUpload">Upload reference</button>
+          <button type="button" id="chassisCapture">Capture shell · 3/4</button><button type="button" id="chassisCaptureSet">Auto-capture shell views</button><button type="button" id="chassisCaptureFullSet">Auto-capture full car views</button><button type="button" id="chassisUpload">Upload reference</button>
           <button type="button" id="chassisReferenceClear">Clear</button><button type="button" id="chassisReferenceDownload">↓ Image</button>
           <label class="chassis-check"><input id="chassisUseReference" type="checkbox"> Refine from image</label>
         </div>
+        <div id="chassisShotStrip" class="chassis-shot-strip" aria-label="Captured procedural reference angles"></div>
         <div class="chassis-preview-row">
           <button id="chassisImagePreviewButton" type="button" title="Open reference preview"><img id="chassisImagePreview" alt="Current reference or generated car body concept" hidden><span id="chassisImageEmpty">No reference yet</span></button>
           <div class="chassis-preview-actions"><button type="button" id="chassisGenerateImage">✦ Generate concept image</button>
-            <small>Potentially billable image request. You review the concept before ordering a 3D model.</small>
+            <small>Generate from the active prompt and the currently selected studio capture. Use the procedural captures to prepare a clean white-background reference before ordering a 3D shell.</small>
             <output id="chassisImageStatus" role="status" aria-live="polite">Ready. No request submitted.</output></div>
         </div>
         <div class="chassis-3d-title">Convert approved design to a wheel-free 3D shell</div>
@@ -1193,7 +1244,8 @@ body.ui-colored-headers .window-header-swatch{display:block}
           <label>Style<select id="chassisLuxStyle"><option value="photorealistic">Photoreal</option><option value="cartoon">Cartoon</option><option value="cyberpunk">Cyberpunk</option><option value="hand_painted">Painted</option><option value="anime">Anime</option><option value="fantasy">Fantasy</option></select></label>
           <label>Region<select id="chassisLuxRegion"><option value="international">International</option><option value="china">China</option></select></label>
         </div>
-        <form id="chassisLuxKeysForm" class="chassis-compact-row" autocomplete="off"><label>Lux3D key<input type="password" autocomplete="off" id="chassisLuxKey" placeholder="Paste if needed"></label><button type="button" id="chassisLuxUseKey">Use key</button><button type="button" id="chassisLuxTest">Test key · free</button></form>
+        <form id="chassisLuxKeyPanel" class="chassis-compact-row" autocomplete="off"><label id="chassisLuxKeyFieldWrap">Lux3D key<input type="password" autocomplete="off" id="chassisLuxKey" placeholder="Paste only if not already set in AI / API Keys"></label><button type="submit" id="chassisLuxUseKey">Use key</button><button type="button" id="chassisLuxTest">Test key · free</button></form>
+        <div class="chassis-key-status"><strong id="chassisLuxKeyStatus">Lux3D key source not checked.</strong><button type="button" id="chassisOpenLuxKeys">Open AI / API Keys</button></div>
         <div class="chassis-compact-row"><label>3D batch size<select id="chassisBatchCount" aria-label="Number of paid Lux3D jobs"><option value="1">1 job</option><option value="2">2 sequential jobs</option><option value="3">3 sequential jobs</option></select></label><small>Each job may spend credits. Pending jobs can be cancelled.</small></div>
         <label class="chassis-check"><input id="chassis3DReference" type="checkbox" checked> Use preview image as 3D reference (when present)</label>
         <label class="chassis-check"><input id="chassisSpendAck" type="checkbox"> Authorize potentially billable 3D generation</label>
@@ -1423,6 +1475,20 @@ body.ui-colored-headers .window-header-swatch{display:block}
   <div class="drawer-actions"><button type="button" id="publishConfirm">Publish selected</button><button type="button" id="publishRefresh">Refresh library</button></div>
   <small id="publishStatus" role="status">Your uploaded assets remain private until you confirm publication.</small>
   <h3>My public map / model / world links</h3><div id="publishMine" class="publish-links"></div>
+ </div>
+</div>
+<div id="appDialog" class="utility-overlay" hidden role="dialog" aria-modal="true" aria-labelledby="appDialogTitle" aria-describedby="appDialogMessage">
+ <div class="modal-card compact-dialog app-dialog-card">
+  <h2 id="appDialogTitle">Confirm action</h2>
+  <p id="appDialogMessage"></p>
+  <form id="appDialogForm" novalidate>
+   <label id="appDialogInputRow" hidden><span id="appDialogInputLabel">Value</span>
+    <input id="appDialogInput" type="text" autocomplete="off" spellcheck="false"></label>
+   <div class="drawer-actions">
+    <button id="appDialogCancel" type="button">Cancel</button>
+    <button id="appDialogAccept" type="submit">Confirm</button>
+   </div>
+  </form>
  </div>
 </div>
 <div id="releaseOverlay" hidden><div class="modal-card">
@@ -1777,7 +1843,58 @@ let ghostObject=null,ghostSamples=[],ghostElapsed=0,ghostTick=0;
     if(result&&typeof result.catch==='function')result.catch(()=>{});}}
   catch{/* analytics must never affect the app */}
  }
- const VERSION='0.3.30';
+ // All destructive actions and naming prompts use this accessible in-app dialog.
+ // Requests are queued: concurrent events cannot steal focus or confirm another action.
+ let appDialogQueue=Promise.resolve();
+ function showAppDialog(kind,message,value='',options={}){
+  const task=appDialogQueue.then(()=>new Promise(resolve=>{
+   const overlay=$('appDialog'),input=$('appDialogInput'),row=$('appDialogInputRow');
+   const title=$('appDialogTitle'),body=$('appDialogMessage'),accept=$('appDialogAccept');
+   const previous=document.activeElement;let finished=false;
+   const isPrompt=kind==='prompt',readOnly=Boolean(options.readOnly);
+   title.textContent=isPrompt?(readOnly?'Copy link':'Enter a name'):'Confirm action';
+   body.textContent=String(message);row.hidden=!isPrompt;
+   input.readOnly=readOnly;input.required=isPrompt&&!readOnly;
+   input.maxLength=readOnly?4096:Math.max(1,Math.min(500,Number(options.maxLength)||200));
+   input.value=isPrompt?String(value):'';
+   accept.textContent=readOnly?'Close':isPrompt?'Save':'Confirm';
+   accept.classList.toggle('app-dialog-danger',kind==='confirm'&&/delete|remove|erase|reset|switch away|replace/i.test(message));
+   $('appDialogCancel').hidden=readOnly;
+   const valid=()=>{accept.disabled=isPrompt&&!readOnly&&!input.value.trim()};
+   const cleanup=result=>{if(finished)return;finished=true;
+    overlay.hidden=true;overlay.removeEventListener('click',onBackdrop);
+    $('appDialogForm').removeEventListener('submit',onSubmit);
+    $('appDialogCancel').removeEventListener('click',onCancel);
+    input.removeEventListener('input',valid);window.removeEventListener('keydown',onKeys,true);
+    if(previous?.isConnected&&typeof previous.focus==='function')previous.focus({preventScroll:true});
+    resolve(result);
+   };
+   const onCancel=()=>cleanup(isPrompt?null:false);
+   const onSubmit=e=>{e.preventDefault();if(isPrompt&&!readOnly&&!input.value.trim())return;
+    cleanup(isPrompt?input.value.trim():true)};
+   const onBackdrop=e=>{if(e.target===overlay)onCancel()};
+   const onKeys=e=>{if(overlay.hidden)return;
+    if(e.key==='Escape'){e.preventDefault();e.stopImmediatePropagation();onCancel();return}
+    if(e.key==='Tab'){const controls=[...(row.hidden?[]:[input]),...(!readOnly?[$('appDialogCancel')]:[]),accept].filter(el=>!el.hidden&&!el.disabled);
+     if(!controls.length)return;const first=controls[0],last=controls.at(-1);
+     if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus()}
+     else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus()}
+    }
+   };
+   $('appDialogForm').addEventListener('submit',onSubmit);
+   $('appDialogCancel').addEventListener('click',onCancel);
+   overlay.addEventListener('click',onBackdrop);input.addEventListener('input',valid);
+   window.addEventListener('keydown',onKeys,true);
+   overlay.hidden=false;valid();
+   (isPrompt?input:accept).focus({preventScroll:true});
+   if(isPrompt)input.select();
+  }));
+  appDialogQueue=task.then(()=>undefined,()=>undefined);return task;
+ }
+ function appConfirm(message){return showAppDialog('confirm',message)}
+ function appPrompt(message,value='',options={}){return showAppDialog('prompt',message,value,options)}
+
+ const VERSION='0.3.32';
  document.getElementById('appVersionBadge').textContent='v'+VERSION;
  let imageReference=null,busyAI=false;
 
@@ -5269,7 +5386,7 @@ async function refreshSaved(){
   const remove=document.createElement('button');
   remove.textContent='×';remove.title='Delete saved layout';
   remove.onclick=async()=>{
-   if(!confirm('Delete "'+item.name+'"?'))return;
+   if(!await appConfirm('Delete "'+item.name+'"?'))return;
    await transaction('readwrite','delete',item.id);
    if(layoutId===item.id)layoutId=null;
    refreshSaved();
@@ -5353,7 +5470,7 @@ async function persistProtectedModel(record){
  const form=new FormData();
  form.append('file',record.blob,String(record.name||'model.glb').slice(0,115).replace(/\.glb$/i,'')+'.glb');
  form.append('kind',record.kind||'chassis');
- form.append('client_id',record.id);
+ form.append('client_id',record.clientId||record.id);
  const result=await serverRequest('POST','/api/assets',form);
  if(!result?.asset?.id)throw Error('Cloud upload did not return a model ID');
  record.cloudId=result.asset.id;
@@ -5361,6 +5478,9 @@ async function persistProtectedModel(record){
  return record.cloudId;
 }
 let cloudModelSyncPromise=null;
+function findLocalAssetByClientId(items,clientId){
+ return (items||[]).find(entry=>entry&&(entry.id===clientId||entry.clientId===clientId));
+}
 // Safe to invoke again: server-side client_id prevents duplicate uploads.
 async function syncProtectedModelLibrary(){
  if(!guestServerMode())return;
@@ -5374,19 +5494,30 @@ async function syncProtectedModelLibrary(){
    try{
     const remote=await persistProtectedModel(row);
     if(row.cloudId!==remote){row.cloudId=remote;await avatarStore('readwrite','put',row)}
-   }catch(error){failedBackups.push(row.id);recordEvent('ERROR','Model '+(row.name||row.id)+' NOT backed up to cloud: '+error.message)}
+   }catch(error){
+    if(/already points to different cloud content/i.test(error.message||'')){
+     try{
+      row.clientId=crypto.randomUUID();
+      row.cloudId=await persistProtectedModel(row);
+      await avatarStore('readwrite','put',row);
+      recordEvent('WARN','Model '+(row.name||row.id)+' was rebound to a fresh cloud client ID and backed up successfully.');
+      continue;
+     }catch(retryError){error=retryError;}
+    }
+    failedBackups.push(row.id);recordEvent('ERROR','Model '+(row.name||row.id)+' NOT backed up to cloud: '+error.message)
+   }
   }
   if(failedBackups.length)throw Error(failedBackups.length+' local GLB models were not backed up. No cloud save is confirmed until uploads succeed.');
   const response=await identityRequest('/api/me/models');
   let restored=0,failed=0;
   for(const item of response.models||[]){
    if(!item.client_id)continue; // legacy cloud chassis remains available via saved car link
-   const existing=await avatarStore('readonly','get',item.client_id).catch(()=>null);
+   const existing=findLocalAssetByClientId(local,item.client_id)||await avatarStore('readonly','get',item.client_id).catch(()=>null);
    if(existing?.blob)continue;
    try{
     const blob=await cloudModelBlob(item.id);
     const row={id:item.client_id,name:item.name,kind:item.kind||'chassis',blob,
-     cloudId:item.id,ownerId:activeProfile.id,created:item.created_at,scale:.72,axis:'auto',rx:0,ry:0,rz:0};
+     clientId:item.client_id,cloudId:item.id,ownerId:activeProfile.id,created:item.created_at,scale:.72,axis:'auto',rx:0,ry:0,rz:0};
     await avatarStore('readwrite','put',row);restored++;
    }catch(error){failed++;recordEvent('ERROR','Cloud model '+item.id+' could not be restored: '+error.message)}
   }
@@ -5412,7 +5543,7 @@ async function refreshServer(){
    const remove=document.createElement('button');remove.textContent='×';
    remove.title='Delete server layout';
    remove.onclick=async()=>{
-    if(!confirm('Delete server layout "'+item.name+'"?'))return;
+    if(!await appConfirm('Delete server layout "'+item.name+'"?'))return;
     try{
      await serverRequest('DELETE','/api/layouts/'+encodeURIComponent(item.id),{revision:item.revision});
      if(serverLayoutId===item.id){serverLayoutId=null;serverRevision=null;}
@@ -5692,7 +5823,7 @@ function captureReference(){
 // This reference renders only the vehicle body in a separate transparent studio scene;
 // wheels, passengers, ground, grid and sky are never included. The stage renderer's
 // size / camera / viewport are preserved (no thumbnail resizing regression).
-function captureChassisReference(includeWheels=false){
+function captureChassisStudioShot({includeWheels=false,label='Studio body shell · 3/4',direction=[.9,.58,1.05],activate=true}={}){
  if(!car||!bodyRoot)throw Error('Build a vehicle before taking its reference.');
  const clean=new THREE.Scene();clean.background=new THREE.Color('#ffffff');
  clean.add(new THREE.HemisphereLight(0xffffff,0x8e9daa,3.8));
@@ -5720,8 +5851,8 @@ function captureChassisReference(includeWheels=false){
  // Orthographic auto-fit uses all eight corners projected into camera space.
  // A fixed FOV and radius previously produced a close-up of the hood only.
  const cam=new THREE.OrthographicCamera(-1,1,1,-1,.1,250);
- const direction=new THREE.Vector3(.9,.58,1.05).normalize();
- cam.position.copy(direction).multiplyScalar(30);cam.lookAt(0,0,0);cam.updateMatrixWorld(true);
+ const shotDirection=new THREE.Vector3(...direction).normalize();
+ cam.position.copy(shotDirection).multiplyScalar(30);cam.lookAt(0,0,0);cam.updateMatrixWorld(true);
  const points=[];for(const x of [shifted.min.x,shifted.max.x])for(const y of [shifted.min.y,shifted.max.y])
   for(const z of [shifted.min.z,shifted.max.z])points.push(new THREE.Vector3(x,y,z).applyMatrix4(cam.matrixWorldInverse));
  const hx=Math.max(1,...points.map(v=>Math.abs(v.x)))*1.3,hy=Math.max(1,...points.map(v=>Math.abs(v.y)))*1.3;
@@ -5740,16 +5871,32 @@ function captureChassisReference(includeWheels=false){
   const cx=canvas.getContext('2d'),image=cx.createImageData(sz,sz);
   for(let y=0;y<sz;y++)image.data.set(pixels.subarray((sz-y-1)*sz*4,(sz-y)*sz*4),y*sz*4);
   cx.putImageData(image,0,0);
-  imageReference=canvas.toDataURL('image/jpeg',.88);
-  updateLuxReferencePreview(includeWheels?'Studio complete car · 3/4':'Studio body shell · 3/4 (no tyres, avatars, terrain)');
-  $('referenceImage').src=imageReference;
-  note((includeWheels?'Full vehicle':'Chassis-only')+' studio image captured. Click the preview to inspect.');
-  return imageReference;
+  const data=canvas.toDataURL('image/jpeg',.88);
+  if(activate){imageReference=data;updateLuxReferencePreview(label);$('referenceImage').src=data;note((includeWheels?'Full vehicle':'Chassis-only')+' studio image captured. Click the preview to inspect.');}
+  return data;
  }finally{
   renderer.toneMappingExposure=oldExposure;renderer.setRenderTarget(oldTarget);
   renderer.setViewport(oldViewport);renderer.setScissor(oldScissor);
   renderer.setScissorTest(oldScissorTest);renderer.setClearColor(oldClear,oldAlpha);rt.dispose();
  }
+}
+function captureChassisReference(includeWheels=false){
+ const label=includeWheels?'Studio complete car · 3/4':'Studio body shell · 3/4 (no tyres, avatars, terrain)';
+ const data=captureChassisStudioShot({includeWheels,label,activate:true});
+ chassisReferenceShots=[{label:includeWheels?'Full car · 3/4':'Shell · 3/4',data,mode:includeWheels?'full':'shell'}];
+ return data;
+}
+function captureChassisReferenceSet(includeWheels=false){
+ chassisConceptImage=null;
+ const presets=CHASSIS_CAPTURE_PRESETS.filter(item=>includeWheels?item.mode==='full'||item.mode==='shell':item.mode==='shell').slice(0,includeWheels?5:4);
+ chassisReferenceShots=presets.map((preset,index)=>({
+  label:preset.label,
+  mode:includeWheels&&preset.mode==='full'?'full':(includeWheels?'full':'shell'),
+  data:captureChassisStudioShot({includeWheels,label:preset.label,direction:preset.direction,activate:false})
+ }));
+ if(chassisReferenceShots[0])setActiveChassisReference(chassisReferenceShots[0].data,(includeWheels?'Full-car':'Shell-only')+' studio capture set ready. Choose the best angle below.');
+ renderChassisShotStrip();
+ return chassisReferenceShots;
 }
 function updateLuxReferencePreview(message='Reference ready'){
  const img=$('lux3dReferencePreview');img.hidden=!imageReference;if(imageReference)img.src=imageReference;else img.removeAttribute('src');
@@ -6478,10 +6625,13 @@ async function populatePublishOverlay(){
   const label=document.createElement('span');label.textContent=(row.kind==='world'?'World':row.kind==='model'?'Model':'Map')+' · '+row.name;
   const copy=document.createElement('button');copy.type='button';copy.textContent='Copy link';copy.onclick=()=>{
    const url=location.origin+'/api/community/'+encodeURIComponent(row.id)+(row.kind==='model'?'/glb':'');
-   navigator.clipboard?.writeText(url).then(()=>{$('publishStatus').textContent='Link copied';}).catch(()=>{window.prompt('Copy public link:',url)});
+   if(navigator.clipboard?.writeText){
+    void navigator.clipboard.writeText(url).then(()=>{$('publishStatus').textContent='Link copied';})
+     .catch(()=>{void appPrompt('Copy public link',url,{readOnly:true})});
+   }else void appPrompt('Copy public link',url,{readOnly:true});
   };
   const revoke=document.createElement('button');revoke.type='button';revoke.textContent='Unpublish';revoke.onclick=()=>void(async()=>{
-   if(!confirm('Remove the public link for "'+row.name+'"? The original private asset is retained.'))return;
+   if(!await appConfirm('Remove the public link for "'+row.name+'"? The original private asset is retained.'))return;
    await identityRequest('/api/me/community/'+encodeURIComponent(row.id),'DELETE');
    await populatePublishOverlay();
   })().catch(error=>{$('publishStatus').textContent='Unpublish failed: '+error.message});
@@ -6504,7 +6654,7 @@ $('publishConfirm').onclick=()=>void(async()=>{
  const models=$('publishModels').checked?publishSelected($('publishModelList')):[];
  if(!cars.length&&!maps.length&&!models.length)throw Error('Select at least one item to publish.');
  if($('publishWorld').checked&&(!cars.length||!maps.length))throw Error('World bundle needs one selected car and map.');
- if(!confirm('Publish '+cars.length+' car(s), '+($('publishMaps').checked?maps.length:0)+' map(s), '+models.length+' model(s)'+($('publishWorld').checked?' and a world bundle':'')+'? They will become publicly accessible.'))return;
+ if(!await appConfirm('Publish '+cars.length+' car(s), '+($('publishMaps').checked?maps.length:0)+' map(s), '+models.length+' model(s)'+($('publishWorld').checked?' and a world bundle':'')+'? They will become publicly accessible.'))return;
  const button=$('publishConfirm');button.disabled=true;let published=0;
  try{
   for(const id of cars){const result=await identityRequest('/api/me/layouts/'+encodeURIComponent(id));const row=result.layout;
@@ -7173,22 +7323,22 @@ for(const [id,direction] of [['sculptRaise','raise'],['sculptLower','lower']])$(
 $('sculptMap').onclick=()=>{setWindowVisible('mapWindow',true);setMapTool('sculpt')};
 $('sculptTop').onclick=()=>{setViewportAxis('top');note('Top view selected · scroll to zoom, paint on the map or enable 3D sculpt.')};
 $('sculptOnStage').onchange=e=>{sculpt3DPaint=e.target.checked;
- $('sculptStatus').textContent=sculpt3DPaint?'3D brush preview on · Command/Ctrl + left-drag paints, normal drag orbits.':'Preview off · Command/Ctrl + left-drag still paints.';
+ $('sculptStatus').textContent=sculpt3DPaint?'Brush preview enabled.':'Brush preview disabled.';
  if(!sculpt3DPaint)sculptBrushSphere.visible=false;
 };
 const flatWorldButton=document.createElement('button');flatWorldButton.id='sculptFlatWorld';flatWorldButton.type='button';
 flatWorldButton.textContent='New completely flat world';flatWorldButton.title='Clear terrain profile, sculpt offsets, map objects and cell elevations (undoable)';
 $('sculptClear').after(flatWorldButton);
-flatWorldButton.onclick=()=>{
- if(!window.confirm('Reset this unsaved world to a completely flat, empty map? All existing terrain objects and sculpt strokes will be removed from the scene. Map Undo can restore them. Saved cloud maps are not deleted.'))return;
+flatWorldButton.onclick=async()=>{
+ if(!await appConfirm('Reset this unsaved world to a completely flat, empty map? All existing terrain objects and sculpt strokes will be removed from the scene. Map Undo can restore them. Saved cloud maps are not deleted.'))return;
  sculptField.fill(0);sculptChangedCells.clear();sculptReliefDirty=null;storeSculptData();
  cfg.terrainProfile='flat';cfg.terrainBaseElevation=0;cfg.courseObjects=[];cfg.worldCells={};cfg.worldEdgeMode='cliff';cfg.seaEnabled=false;
  selectCourseObject(null);rememberMapEdit('New flat world');updateMinimapBackground();
  void refreshEnvironmentForMap().then(()=>{setupGUI();note('Flat world created. Existing saved maps are unchanged until you explicitly save.');});
 };
-$('sculptClear').onclick=()=>{
+$('sculptClear').onclick=async()=>{
  if(!cfg.sculptData&&!sculptField.some(v=>v))return;
- if(!window.confirm('Erase all sculpted height changes on this map? You can Undo this change.'))return;
+ if(!await appConfirm('Erase all sculpted height changes on this map? You can Undo this change.'))return;
  sculptField.fill(0);sculptChangedCells.clear();storeSculptData();rememberMapEdit('Clear terrain sculpture');
  updateMinimapBackground();void refreshEnvironmentForMap();
 };
@@ -7290,7 +7440,7 @@ function sculptFinish(){
  sculptStrokeChanged=false;storeSculptData();rememberMapEdit('Sculpt terrain '+cfg.sculptDirection);
  sculptReliefDirty=null;
  updateMinimapBackground();void refreshEnvironmentForMap();
- $('sculptStatus').textContent='Stroke saved · physics terrain updating. Undo reverts this stroke.';
+ $('sculptStatus').textContent='Sculpt stroke saved.';
 }
 const sculptRay=new THREE.Raycaster();
 function sculptGroundHit(e){
@@ -7307,6 +7457,9 @@ function positionSculptSphere(pt){if(!pt){sculptBrushSphere.visible=false;return
 renderer.domElement.addEventListener('pointerdown',e=>{
  if(!windowCurrentlyVisible('sculptWindow')||$('sculptWindow').classList.contains('is-minimized')||e.button!==0||!(e.metaKey||e.ctrlKey)||!terrain||transformDragging||xrActive)return;
  const pt=sculptGroundHit(e);if(!pt)return;
+ // 3D shortcut always raises with Command/Ctrl; Shift + Command/Ctrl carves.
+ // The two buttons remain the direction selector for strokes drawn on the map.
+ cfg.sculptDirection=e.shiftKey?'lower':'raise';syncSculptControls();
  sculpt3DStroke=true;sculptStagePointer=e.pointerId;sculptStageOrbitWasEnabled=orbit.enabled;orbit.enabled=false;
  renderer.domElement.setPointerCapture(e.pointerId);sculptBegin(pt);positionSculptSphere(pt);
  e.preventDefault();e.stopImmediatePropagation();
@@ -8698,7 +8851,7 @@ async function notesBulk(action){
  if(notesDirty&&!await notesSave(true))return;
  const ids=notesSelectedIds();if(!ids.length){notesMessage('Select notes using their checkboxes.');return}
  if(action==='merge'&&ids.length<2){notesMessage('Select at least two notes to merge.');return}
- if(action==='delete'&&!window.confirm('Permanently delete '+ids.length+' selected private notes? This cannot be undone. Export a backup first.'))return;
+ if(action==='delete'&&!await appConfirm('Permanently delete '+ids.length+' selected private notes? This cannot be undone. Export a backup first.'))return;
  try{
   const res=await identityRequest('/api/me/notes/bulk','POST',{ids,action,folder_id:$('notesBulkFolder').value||null,revisions:Object.fromEntries(notesState.notes.filter(n=>ids.includes(n.id)).map(n=>[n.id,n.revision]))});
   notesSelected.clear();await notesLoad();
@@ -8724,20 +8877,20 @@ $('notesSelectAll').onchange=e=>{for(const n of filteredNotes()){
 $('notesMove').onclick=()=>void notesBulk('move');$('notesDelete').onclick=()=>void notesBulk('delete');
 $('notesMerge').onclick=()=>void notesBulk('merge');
 $('notesNewFolder').onclick=async()=>{
- const name=window.prompt('New folder name (up to 80 characters)');if(!name?.trim())return;
+ const name=await appPrompt('New folder name (up to 80 characters)', '', {maxLength:80});if(!name?.trim())return;
  try{await identityRequest('/api/me/note-folders','POST',{name:name.trim()});await notesLoad();notesMessage('Folder created on server.')}
  catch(error){notesMessage(error.message,true)}
 };
 $('notesRenameFolder').onclick=async()=>{
  const id=$('notesFilterFolder').value;if(!id){notesMessage('Choose a folder in the filter first.',true);return}
  const f=notesState.folders.find(n=>n.id===id);if(!f)return;
- const name=window.prompt('Rename folder',f.name);if(!name?.trim())return;
+ const name=await appPrompt('Rename folder', f.name, {maxLength:80});if(!name?.trim())return;
  try{await identityRequest('/api/me/note-folders/'+encodeURIComponent(id),'PUT',{name:name.trim()});await notesLoad();notesMessage('Folder renamed.')}
  catch(error){notesMessage(error.message,true)}
 };
 $('notesDeleteFolder').onclick=async()=>{
  const id=$('notesFilterFolder').value;if(!id){notesMessage('Choose a folder in the filter first.',true);return}
- if(!confirm('Remove this folder? Its notes will be moved to Inbox, not deleted.'))return;
+ if(!await appConfirm('Remove this folder? Its notes will be moved to Inbox, not deleted.'))return;
  try{await identityRequest('/api/me/note-folders/'+encodeURIComponent(id),'DELETE');await notesLoad();notesMessage('Folder removed; all notes moved to Inbox.')}
  catch(error){notesMessage(error.message,true)}
 };
@@ -8827,7 +8980,7 @@ async function geoRefreshPresets(){
 }
 $('geoSavePreset').onclick=()=>void(async()=>{
  if(!guestToken)throw Error('Create or restore your profile before saving presets');
- const name=window.prompt('Name this geological gradient (up to 100 characters):');
+ const name=await appPrompt('Name this geological gradient (up to 100 characters)', '', {maxLength:100});
  if(!name?.trim())return;
  const values=Object.fromEntries(GEO_PRESET_FIELDS.map(k=>[k,cfg[k]]));
  // Every save creates a new immutable named preset; no silent overwrite.
@@ -8844,7 +8997,7 @@ $('geoLoadPreset').onclick=()=>{
 };
 $('geoDeletePreset').onclick=()=>void(async()=>{
  const item=geoPresetRecords.find(row=>row.id===$('geoSavedPresets').value);if(!item)return;
- if(!window.confirm('Permanently delete geological preset "'+item.name+'"? The current terrain and saved maps will not change.'))return;
+ if(!await appConfirm('Permanently delete geological preset "'+item.name+'"? The current terrain and saved maps will not change.'))return;
  await identityRequest('/api/me/geology-presets/'+encodeURIComponent(item.id),'DELETE');
  await geoRefreshPresets();$('geoPresetStatus').textContent='Preset deleted from server; current terrain unchanged.';
 })().catch(error=>{$('geoPresetStatus').textContent='Delete failed: '+error.message});
@@ -8999,8 +9152,8 @@ $('profileBackupFile').onchange=async e=>{
  catch(error){note('Backup restoration failed: '+error.message,true)}
  e.target.value='';
 };
-$('switchGuest').onclick=()=>{
- if(!confirm('Switch away from this profile? Export your backup first or this device may lose access.'))return;
+$('switchGuest').onclick=async()=>{
+ if(!await appConfirm('Switch away from this profile? Export your backup first or this device may lose access.'))return;
  clearTimeout(notesTimer);notesState={notes:[],folders:[]};notesDirty=false;notesActiveId=null;notesSelected.clear();
  guestToken='';activeProfile=null;safeStore('vehiclelab.guest.v1','');
  $('profileRoundel').textContent='?';$('welcomeOverlay').hidden=false;showDrawer(null);
@@ -9279,7 +9432,7 @@ async function duplicateLocal(item){
  note('Duplicated '+record.name);
 }
 async function deleteLocal(item){
- if(!confirm('Delete local vehicle "'+item.name+'"?'))return;
+ if(!await appConfirm('Delete local vehicle "'+item.name+'"?'))return;
  await transaction('readwrite','delete',item.id);
  if(layoutId===item.id)layoutId=null;await refreshSaved();
 }
@@ -9345,6 +9498,8 @@ $('galleryRefreshBtn').onclick=()=>{gallerySource='public';setWindowVisible('gal
 $('layoutPublic').onchange=()=>{serverVisibility=$('layoutPublic').checked?'public':'private'};
 
 const RELEASE_NOTES=[
+ {v:'0.3.32',date:'2026-11-11',title:'Guided chassis AI workflow and safer cloud model sync',items:['Chassis Workshop now prefers keys already entered in AI / API Keys, hides duplicate key fields when available, and adds direct links back to the settings drawer only when needed.', 'AI body studio now auto-captures clean white-background procedural shell angles, shows a larger reference preview, and offers prompt examples built from the current procedural body settings.', 'Cloud model backup retries conflicting local client IDs with a fresh server binding instead of failing the whole sync when older local IDs already map to different cloud content.']},
+ {v:'0.3.31',date:'2026-11-11',title:'Unified dialogs, sculpt shortcuts and consistent controls',items:['All native browser confirm and prompt flows now use one accessible in-app modal with keyboard and cancel support.', '3D sculpt raises with Command/Ctrl-drag and carves with Shift+Command/Ctrl-drag; range labels show compact shortcut keys.', 'Colour swatches have no browser-native white frame; minimized window buttons remain transparent until hover; numeric input contrast and control typography are normalized.']},
  {v:'0.3.30',date:'2026-11-11',title:'Ground-surface alignment and editable vehicle highlights',items:['Camera clearance now samples the visible terrain triangles and ignores off-map terrain.', 'GPU vegetation is grounded to the visible mesh during sculpting; existing maps and physics data are unchanged.', 'Green selection and Material Studio target support added to lights, seats, dashboard, glass, rims and tyres.']},
  {v:'0.3.29',date:'2026-11-11',title:'Geological presets and workspace refinements',items:['Named private geological presets with save/load and confirmed deletion, plus texture blending modes.', 'Improved window icons, Notes contrast, radio controls and release-overlay dismissal.', 'Environment settings, scene-publishing and live editing improvements with compatibility-focused regression tests.']},
  {v:'0.3.29',date:'2026-11-11',title:'Geological presets, publishing and workspace/weather controls',items:[
@@ -9584,12 +9739,12 @@ $('aiKeysForm').onsubmit=e=>{
  e.preventDefault();const provider=$('providerChoice').value;
  keys[provider]=$('providerKey').value.trim();
  $('providerResult').textContent=keys[provider]?'Key in memory (not saved).':'No key provided.';
- $('providerKey').value='';
+ $('providerKey').value='';syncChassisKeyState();
 };
 $('providerChoice').onchange=()=>{$('providerKey').value='';$('providerResult').textContent='';};
 $('clearProviderKey').onclick=()=>{
  const provider=$('providerChoice').value;keys[provider]='';$('providerKey').value='';
- $('providerResult').textContent='Key forgotten.';
+ $('providerResult').textContent='Key forgotten.';syncChassisKeyState();
 };
 $('testProviderKey').onclick=async()=>{
  const provider=$('providerChoice').value;
@@ -9604,7 +9759,7 @@ $('testProviderKey').onclick=async()=>{
    headers:{'Content-Type':'application/json',...authHeaders()},
    body:JSON.stringify({provider,key})});
   const result=await response.json();if(!response.ok)throw Error(result.error||'Provider failed');
-  keys[provider]=key;ai.provider=provider;$('providerKey').value='';
+  keys[provider]=key;ai.provider=provider;$('providerKey').value='';syncChassisKeyState();
   $('providerResult').textContent=result.count+' accessible models:\\n'+result.models.join(', ')+
     (result.truncated?'\\n(first 50 shown)':'');
   note(provider+' key tested against the model-list endpoint.');
@@ -9850,7 +10005,7 @@ function viewportShortcutMatches(id,e){
 function isEditingText(target){return !!target?.closest?.('input,textarea,select,[contenteditable=""],[contenteditable="true"]');}
 function keyboardContextReady(){return $('welcomeOverlay').hidden&&$('releaseOverlay').hidden&&$('publishOverlay').hidden&&
  $('shortcutOverlay').hidden&&$('saveOverlay').hidden&&$('cameraOverlay').hidden&&$('addObjectOverlay').hidden&&
- $('fontBrowser').hidden;}
+ $('fontBrowser').hidden&&$('appDialog').hidden;}
 function validateCombo(combo){
  if(typeof combo!=='string'||combo.length>70)return false;
  const tokens=combo.split('+'),code=tokens.at(-1),mod=tokens.slice(0,-1);
@@ -10033,6 +10188,63 @@ const chassisDesigns={
  retro:'Elegant 1960s-inspired compact coupe shell, long flowing hood, soft rounded wings, chrome-compatible trim surfaces and gently sloping rear window.'
 };
 let chassisConceptImage=null;
+let chassisReferenceShots=[];
+const CHASSIS_CAPTURE_PRESETS=[
+ {label:'Front 3/4',mode:'shell',direction:[.9,.58,1.05]},
+ {label:'Side',mode:'shell',direction:[1,.24,.05]},
+ {label:'Rear 3/4',mode:'shell',direction:[-.95,.56,-1.02]},
+ {label:'Top',mode:'shell',direction:[.1,1.4,.08]},
+ {label:'Full front 3/4',mode:'full',direction:[.9,.58,1.05]}
+];
+function proceduralBodyPrompt(){
+ const front=Number(cfg.frontRake||0.52),rear=Number(cfg.rearRake||0.52),roof=Number(cfg.roofWidth||0.62);
+ const nose=front>rear?('higher nose and a more utility-oriented front stance'):front<rear?('lower front stance with a more dynamic nose'):'balanced front and rear ride heights';
+ const roofShape=roof<0.48?'narrow roof and compact greenhouse':roof>0.72?'wide roof and generous greenhouse':'balanced roof width';
+ const shellType=front<0.55&&rear<0.55?'compact hatchback':rear-front>0.18?'utility wagon':'modern crossover hatchback';
+ return 'Use the current procedural Vehicle Lab body as the base. Design a '+shellType+' shell with '+nose+', '+roofShape+', realistic wheel arches, clean door seams, accurate glazing openings and a production-ready exterior surface. Keep it as an isolated body shell without wheels, tyres, occupants, terrain or background.';
+}
+function buildChassisPromptExamples(){
+ const base=proceduralBodyPrompt();
+ return [
+  'Current shell → '+base,
+  'Sport variation → '+base.replace('production-ready exterior surface','tighter surfacing, sharper shoulders and a more aggressive stance'),
+  'Utility variation → '+base.replace('isolated body shell','practical five-door shell').replace('clean door seams','clean door seams, taller roof and cargo-friendly rear opening'),
+  'Studio remake → Front-left three-quarter white studio render of the current procedural Vehicle Lab shell, fully visible, centered, clean shadows, precise wheel-arch openings, no wheels and no scenery.'
+ ];
+}
+function refreshChassisPromptExamples(){
+ const examples=buildChassisPromptExamples();
+ $('chassisPromptExamples').textContent=examples.map((line,i)=>String(i+1)+'. '+line).join('\n\n');
+}
+function syncChassisKeyState(){
+ const imageProvider=$('chassisImageProvider').value;
+ const imageReady=Boolean(keys[imageProvider]);
+ $('chassisImageKeyStatus').textContent=imageReady?('Using '+imageProvider.toUpperCase()+' key already stored in AI / API Keys for this tab.'):'No '+imageProvider.toUpperCase()+' image key in memory yet.';
+ $('chassisImageKeyFieldWrap').hidden=imageReady;
+ $('chassisSaveImageKey').hidden=imageReady;
+ const luxReady=Boolean(keys.lux3d);
+ $('chassisLuxKeyStatus').textContent=luxReady?'Using Lux3D key already stored in AI / API Keys for this tab.':'No Lux3D key in memory yet.';
+ $('chassisLuxKeyFieldWrap').hidden=luxReady;
+ $('chassisLuxUseKey').hidden=luxReady;
+}
+function setActiveChassisReference(data,label='Reference ready'){
+ if(!data)return;
+ imageReference=data;
+ $('chassisUseReference').checked=true;
+ updateLuxReferencePreview(label);
+ syncChassisPreview(label);
+}
+function renderChassisShotStrip(){
+ const root=$('chassisShotStrip');root.replaceChildren();
+ if(!chassisReferenceShots.length){root.textContent='No studio captures yet. Use Auto-capture shell views to build a clean reference set from the current procedural car.';return;}
+ chassisReferenceShots.forEach((shot,index)=>{
+  const button=document.createElement('button');button.type='button';button.className='chassis-shot';
+  button.setAttribute('aria-pressed',String((chassisConceptImage||imageReference)===shot.data));
+  button.innerHTML='<img alt="'+shot.label.replace(/"/g,'&quot;')+'" src="'+shot.data+'"><small>'+shot.label+'</small><em>'+(shot.mode==='full'?'with wheels / tyres':'body shell only')+'</em>';
+  button.onclick=()=>{chassisConceptImage=null;setActiveChassisReference(shot.data,shot.label+' selected as the active reference.');renderChassisShotStrip();};
+  root.append(button);
+ });
+}
 function syncChassisPreview(message='Reference ready'){
  const img=$('chassisImagePreview'),has=Boolean(chassisConceptImage||imageReference);
  img.hidden=!has;img.src=chassisConceptImage||imageReference||'';
@@ -10041,25 +10253,37 @@ function syncChassisPreview(message='Reference ready'){
 }
 $('chassisAI').onclick=()=>{
  const box=$('chassisCreative');box.hidden=!box.hidden;
- if(!box.hidden){$('chassisImageProvider').value=keys[ai.provider]?ai.provider:(keys.meta?'meta':keys.openai?'openai':keys.xai?'xai':'meta');syncChassisPreview();}
+ if(!box.hidden){
+  $('chassisImageProvider').value=keys[ai.provider]?ai.provider:(keys.meta?'meta':keys.openai?'openai':keys.xai?'xai':'meta');
+  refreshChassisPromptExamples();
+  syncChassisKeyState();
+  if(!chassisReferenceShots.length)try{captureChassisReferenceSet(false);}catch(error){$('chassisImageStatus').textContent=error.message;renderChassisShotStrip();}
+  else renderChassisShotStrip();
+  syncChassisPreview();
+ }
 };
+$('chassisPromptFromProcedural').onclick=()=>{$('chassisPrompt').value=proceduralBodyPrompt();$('chassisImageStatus').textContent='Prompt rebuilt from the current procedural shell settings.';refreshChassisPromptExamples()};
+$('chassisPromptExample').onclick=()=>{$('chassisPrompt').value=buildChassisPromptExamples()[1].replace(/^Sport variation → /,'');$('chassisImageStatus').textContent='Example prompt inserted. Edit it as needed.';refreshChassisPromptExamples()};
+$('chassisOpenImageKeys').onclick=()=>{showDrawer('config');$('providerChoice').value=$('chassisImageProvider').value;$('providerKey').focus();};
+$('chassisOpenLuxKeys').onclick=()=>{showDrawer('config');$('providerChoice').value='lux3d';$('lux3dSection').open=true;$('lux3dSection').scrollIntoView({behavior:'smooth',block:'start'});$('lux3dKey').focus();};
 for(const item of $('chassisCreative').querySelectorAll('[data-body-style]'))item.onclick=()=>{
  $('chassisPrompt').value=chassisDesigns[item.dataset.bodyStyle];$('chassisImageStatus').textContent='Design brief updated. No generation started.';
 };
-$('chassisImageKeysForm').onsubmit=e=>{e.preventDefault();$('chassisSaveImageKey').click()};
-$('chassisLuxKeysForm').onsubmit=e=>{e.preventDefault();$('chassisLuxUseKey').click()};
-$('chassisSaveImageKey').onclick=()=>{
+$('chassisImageKeyPanel').onsubmit=e=>{e.preventDefault();
  const provider=$('chassisImageProvider').value,entered=$('chassisImageKey').value.trim();
  if(entered){keys[provider]=entered;$('chassisImageKey').value='';}
+ syncChassisKeyState();
  $('chassisImageStatus').textContent=keys[provider]?provider.toUpperCase()+' key ready in this tab.':'Paste a key first.';
 };
 $('chassisImageProvider').onchange=()=>{
- const provider=$('chassisImageProvider').value;
+ const provider=$('chassisImageProvider').value;syncChassisKeyState();
  $('chassisImageStatus').textContent=keys[provider]?provider+' key available in this tab.':'Enter a '+provider+' key for image generation.';
 };
-$('chassisCapture').onclick=()=>{try{chassisConceptImage=null;captureChassisReference(false);$('chassisUseReference').checked=true;syncChassisPreview('Wheel-free 3/4 body reference captured. Click the thumbnail to inspect.')}catch(e){$('chassisImageStatus').textContent=e.message}};
+$('chassisCapture').onclick=()=>{try{chassisConceptImage=null;captureChassisReference(false);$('chassisUseReference').checked=true;syncChassisPreview('Wheel-free 3/4 body reference captured. Click the thumbnail to inspect.');renderChassisShotStrip();}catch(e){$('chassisImageStatus').textContent=e.message}};
+$('chassisCaptureSet').onclick=()=>{try{captureChassisReferenceSet(false);}catch(e){$('chassisImageStatus').textContent=e.message}};
+$('chassisCaptureFullSet').onclick=()=>{try{captureChassisReferenceSet(true);}catch(e){$('chassisImageStatus').textContent=e.message}};
 $('chassisUpload').onclick=()=>{chassisConceptImage=null;$('chassisUseReference').checked=true;$('lux3dReferenceFile').click()};
-$('chassisReferenceClear').onclick=()=>{chassisConceptImage=null;imageReference=null;updateLuxReferencePreview();syncChassisPreview()};
+$('chassisReferenceClear').onclick=()=>{chassisConceptImage=null;imageReference=null;chassisReferenceShots=[];updateLuxReferencePreview();syncChassisPreview();renderChassisShotStrip()};
 $('chassisImagePreviewButton').onclick=()=>{
  const src=chassisConceptImage||imageReference;if(!src)return;
  $('referenceImage').src=src;$('referenceCard').hidden=false;
@@ -10078,15 +10302,16 @@ $('chassisGenerateImage').onclick=async()=>{
  $('chassisImageStatus').textContent='Generating '+provider+' concept…';
  const button=$('chassisGenerateImage');button.disabled=true;button.classList.add('ai-running');button.setAttribute('aria-busy','true');
  try{const image=await generateImage();if(image){chassisConceptImage=image;syncChassisPreview(provider+' concept ready. Inspect the image, then optionally generate Lux3D model.');
- $('lux3dUseReference').checked=true;}else $('chassisImageStatus').textContent='Image request failed. See app logs.';}
+ renderChassisShotStrip();$('lux3dUseReference').checked=true;}else $('chassisImageStatus').textContent='Image request failed. See app logs.';}
  finally{button.disabled=false;button.classList.remove('ai-running');button.setAttribute('aria-busy','false');imageEditMode=false;}
 };
-$('chassisLuxUseKey').onclick=()=>{
+$('chassisLuxKeyPanel').onsubmit=e=>{e.preventDefault();
  const k=$('chassisLuxKey').value.trim();if(k){keys.lux3d=k;$('chassisLuxKey').value='';}
+ syncChassisKeyState();
  $('chassis3DStatus').textContent=keys.lux3d?'Lux3D key ready in tab.':'Paste a Lux3D key first.';
 };
 $('chassisLuxTest').onclick=async()=>{
- const k=$('chassisLuxKey').value.trim();if(k){keys.lux3d=k;$('chassisLuxKey').value='';}
+ const k=$('chassisLuxKey').value.trim();if(k){keys.lux3d=k;$('chassisLuxKey').value='';syncChassisKeyState();}
  if(!keys.lux3d){$('chassis3DStatus').textContent='Enter a Lux3D key first.';return}
  const button=$('chassisLuxTest');button.disabled=true;$('chassis3DStatus').textContent='Checking Lux3D task list (read-only)…';
  try{const result=await lux3dPost('/api/providers/lux3d/test',{key:keys.lux3d,region:$('chassisLuxRegion').value});
@@ -10095,7 +10320,7 @@ $('chassisLuxTest').onclick=async()=>{
  finally{button.disabled=false;}
 };
 $('chassisGenerate3D').onclick=()=>{
- const k=$('chassisLuxKey').value.trim();if(k){keys.lux3d=k;$('chassisLuxKey').value='';}
+ const k=$('chassisLuxKey').value.trim();if(k){keys.lux3d=k;$('chassisLuxKey').value='';syncChassisKeyState();}
  if(!keys.lux3d){$('chassis3DStatus').textContent='Enter a Lux3D key first.';return}
  if(!$('chassisSpendAck').checked){$('chassis3DStatus').textContent='Check the billable-generation confirmation first.';return}
  const brief=$('chassisPrompt').value.trim();if(brief.length<12){$('chassis3DStatus').textContent='Describe the body shell first.';return}
@@ -10116,7 +10341,7 @@ new MutationObserver(()=>{
  if(!$('chassisCreative').hidden)$('chassis3DStatus').textContent=$('lux3dTaskStatus').textContent;
 }).observe($('lux3dTaskStatus'),{childList:true,characterData:true,subtree:true});
 for(const [id,field] of [['bodyRakeFront','frontRake'],['bodyRakeRear','rearRake'],['bodyRoofWidth','roofWidth']]){
- $(id).addEventListener('change',()=>{cfg[field]=clamp(Number($(id).value),field==='roofWidth'?.3:.04,field==='roofWidth'?1:1.8);if(!modelSource){buildVehicle()}scheduleHistory('Chassis '+field)});
+ $(id).addEventListener('change',()=>{cfg[field]=clamp(Number($(id).value),field==='roofWidth'?.3:.04,field==='roofWidth'?1:1.8);if(!modelSource){buildVehicle()}refreshChassisPromptExamples();scheduleHistory('Chassis '+field)});
 }
 function syncBodyFitInputs(){
  for(const [id,key] of [
@@ -10216,7 +10441,7 @@ async function refreshMediaBrowser(){
         const blob=await verifiedGLB(await response.blob(),'Shared GLB');
         download(blob,row.name||'community-model.glb','model/gltf-binary');return;
        }
-       if(!confirm('Open public '+row.kind+' "'+row.name+'"? This will replace the currently edited map. Save your map first.'))return;
+       if(!await appConfirm('Open public '+row.kind+' "'+row.name+'"? This will replace the currently edited map. Save your map first.'))return;
        const response=await fetch('/api/community/'+encodeURIComponent(row.id),{cache:'no-store'});
        const item=await response.json();if(!response.ok)throw Error(item.error||'Public world unavailable');
        await applySavedTestMap({...item.map,name:item.map_name});
@@ -10383,7 +10608,7 @@ function radioRenderQueue(){
   if(!t.demo){
    const del=document.createElement('button');del.type='button';del.textContent='×';del.title='Delete this audio file';
    del.onclick=()=>void (async()=>{
-    if(!confirm('Delete audio track '+t.title+'?'))return;
+    if(!await appConfirm('Delete audio track '+t.title+'?'))return;
     await radioRequest('/api/radio/tracks/'+t.id,'DELETE');
     if(radioTrackId===t.id){radioAudio.pause();radioAudio.removeAttribute('src');radioTrackId=null;}
     await radioLoad(true);radioStatus('Audio file deleted.');
@@ -10463,7 +10688,7 @@ $('radioPlaylistSave').onclick=()=>void(async()=>{
 })().catch(e=>radioStatus(e.message,true));
 $('radioPlaylistDelete').onclick=()=>void(async()=>{
  const pl=radioActivePlaylist();if(!pl||pl.demo)throw Error('Select one of your playlists');
- if(!confirm('Delete playlist '+pl.name+'? Audio tracks will not be deleted.'))return;
+ if(!await appConfirm('Delete playlist '+pl.name+'? Audio tracks will not be deleted.'))return;
  await radioRequest('/api/radio/playlists/'+pl.id,'DELETE');await radioLoad(true);radioStatus('Playlist deleted.');
 })().catch(e=>radioStatus(e.message,true));
 $('radioUploadBtn').onclick=()=>void(async()=>{

@@ -651,7 +651,7 @@ class VehicleLab0319TerrainTests(unittest.TestCase):
             "'terrainBaseElevation','sculptData','seaEnabled','waterLevel'",
             'function sculptGroundHit(e)',
             "const hit=sculptRay.intersectObject(terrain,false)[0]",
-            "window.confirm('Erase all sculpted height changes on this map?",
+            "await appConfirm('Erase all sculpted height changes on this map?",
             "if(!terrainChanged&&waterChanged)updateEnvironment()",
             "if(cfg.terrainProfile==='beach'||cfg.seaEnabled)",
         ):
@@ -967,3 +967,34 @@ class VehicleLab0330SurfaceCoherenceTests(unittest.TestCase):
         '''%(surface,align)
         result=subprocess.run(['node','-e',script],capture_output=True,text=True,timeout=10)
         self.assertEqual(result.returncode,0,result.stdout+result.stderr)
+
+
+class DialogAndSculptUI0311Tests(unittest.TestCase):
+    def setUp(self):
+        self.html = (Path(__file__).resolve().parents[1] / 'index.html').read_text(encoding='utf-8')
+
+    def test_native_dialogs_replaced_and_single_shared_modal(self):
+        self.assertIn('id="appDialog"', self.html)
+        self.assertEqual(self.html.count('id="appDialog"'), 1)
+        self.assertIn('function appConfirm(message)', self.html)
+        self.assertIn('function appPrompt(message', self.html)
+        self.assertIn('appDialogQueue=task.then(', self.html)
+        self.assertNotRegex(self.html, r'(?<!app)(?<![A-Za-z])(?:window\.)?(?:confirm|prompt|alert)\s*\(')
+        for key in ('notesNewFolder', 'geoSavePreset', 'sculptFlatWorld', 'radioPlaylistDelete'):
+            self.assertIn(key, self.html)
+        self.assertIn("$('appDialog').hidden", self.html)
+
+    def test_3d_brush_requires_modifier_and_shift_carves(self):
+        self.assertIn("cfg.sculptDirection=e.shiftKey?'lower':'raise'", self.html)
+        self.assertIn('!(e.metaKey||e.ctrlKey)||!terrain', self.html)
+        self.assertIn('if(sculpt3DStroke&&e.pointerId===sculptStagePointer)', self.html)
+        self.assertNotIn('Drag on the map, or hold Command', self.html)
+        self.assertNotIn('Command/Ctrl + left-drag sculpts in 3D', self.html)
+        self.assertIn('<kbd>[</kbd><kbd>]</kbd>', self.html)
+        self.assertIn('<kbd>Shift + ⌘ / Ctrl</kbd>', self.html)
+
+    def test_native_colour_wells_and_contrast(self):
+        self.assertIn('input[type=color]::-webkit-color-swatch-wrapper', self.html)
+        self.assertIn('input[type=color]::-moz-color-swatch', self.html)
+        self.assertIn('.window-head .mini-btn.minimize:hover', self.html)
+        self.assertIn('color-scheme:dark!important', self.html)

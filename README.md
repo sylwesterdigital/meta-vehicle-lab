@@ -1,3 +1,10 @@
+# Vehicle Lab — v0.3.31 — Consistent editor UI and safe in-app prompts (2026-11-11)
+
+- **Unified dialogs:** All existing native browser confirm/prompt invocations now use an accessible, focus-restoring application overlay. Notes, geology preset names, deletion, publishing, profile switching, gallery, radio and world reset use the same confirmation/input UI. Escape and backdrop click cancel; no destructive work happens on cancellation. Clipboard fallback shows a selectable public link.
+- **Sculpt shortcut clarity:** Remove verbose introductory/status descriptions; put key badges next to brush controls. 3D Command/Ctrl + drag raises; Shift + Command/Ctrl + drag carves. The Raise and Carve buttons still control map strokes. The radius shortcuts remain `[` and `]`.
+- **Control consistency:** Colour wells across the UI (including header swatches) show their actual colour without native white frames; minimized-window icons use transparent buttons except on hover or focus. Input and numeric-stepper contrast/colour scheme are corrected; geological editor controls use consistent sizes.
+- **Compatibility:** Client-side only. Existing saved map, vehicle, notes, theme and server records are untouched; no SQLite schema change, server installation or dependency. Full running Three.js/physics and production browser behaviour require verification.
+
 # Vehicle Lab — v0.3.30 — Editable component highlighting and visible-surface terrain alignment (2026-11-11)
 
 - **Editable component selection:** Dedicated green glow/bounds highlighting and material targeting for procedural body modules, glass, wheels/tyres/rims/sidewalls, seats, dashboard, steering and lamps. Avatar meshes can be highlighted without claiming recolouring of imported materials. Selected semantic component is re-bound after vehicle rebuild.
