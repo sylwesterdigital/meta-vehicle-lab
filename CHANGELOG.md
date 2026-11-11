@@ -1,3 +1,8 @@
+## v0.3.28 — November 11, 2026
+- Fix Geological layers panel remaining invisible despite being enabled: setting its inline `display` was skipped by a misplaced `else` in the shared window visibility function.
+- Show the geological editor via either workspace presets or Parameters toolbar while keeping saved minimized state, position and size.
+- Frontend-only fix. No changes to data storage, profiles, maps or 3D assets.
+
 ## v0.3.27 — November 10, 2026
 - Fix macOS Python 3.15 watcher regression caused by SQLite file descriptors not closed after transactions. `Storage.connect()` now guarantees close on success and exception, while preserving rollback/commit.
 - Close SQLite snapshot destination handles explicitly. Add repeat-transaction and exception/rollback test coverage, with constrained file-descriptor validation.

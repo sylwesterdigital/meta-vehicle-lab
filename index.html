@@ -5,7 +5,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Vehicle Lab — Procedural Studio</title>
-  <meta name="vehicle-lab-version" content="0.3.27">
+  <meta name="vehicle-lab-version" content="0.3.28">
   <style>
     :root {
       color-scheme:dark;
@@ -849,7 +849,7 @@ body.ui-colored-headers .window-header-swatch{display:block}
 
   <div id="stage">
   <div id="hud">
-    <div class="stage-badge"><strong>Vehicle Lab</strong><small id="appVersionBadge">v0.3.27</small></div>
+    <div class="stage-badge"><strong>Vehicle Lab</strong><small id="appVersionBadge">v0.3.28</small></div>
     <p id="vehicleName">City Car</p><p id="vehicleInfo">Procedural vehicle</p>
     <div id="speedHud"><strong id="speed">0</strong><div>km/h</div></div>
     <div id="cameraModeReadout" style="padding:3px 6px;margin-top:4px;width:max-content;max-width:260px;border-radius:5px;background:#132d3cc0;color:#e9f5fc;font:10px ui-monospace,monospace">Camera · Orbit follow</div>
@@ -1695,7 +1695,7 @@ let ghostObject=null,ghostSamples=[],ghostElapsed=0,ghostTick=0;
     if(result&&typeof result.catch==='function')result.catch(()=>{});}}
   catch{/* analytics must never affect the app */}
  }
- const VERSION='0.3.27';
+ const VERSION='0.3.28';
  document.getElementById('appVersionBadge').textContent='v'+VERSION;
  let imageReference=null,busyAI=false;
 
@@ -7637,9 +7637,12 @@ function snapshotWindow(win){
 function setWindowVisible(id,show,restore=false){
  const win=$(id);if(!win)return;
  if(id==='logWindow')win.classList.toggle('is-visible',show);
+ // Visibility is independent of panel-specific initialization. In v0.3.27
+ // this assignment was an else branch of the geology sync condition, so
+ // enabling Geological layers left its inline display:none unchanged.
+ win.style.display=show?'flex':'none';
  if(show&&id==='notesWindow'&&activeProfile)void notesLoad().catch(e=>notesMessage(e.message,true));
  if(show&&id==='geologyWindow')syncGeologyEditor();
- else win.style.display=show?'flex':'none';
  // Showing a hidden panel must never expand its minimized state.
  if(show){
   win.style.zIndex=String(++highestZ);
@@ -8891,6 +8894,10 @@ $('galleryRefreshBtn').onclick=()=>{gallerySource='public';setWindowVisible('gal
 $('layoutPublic').onchange=()=>{serverVisibility=$('layoutPublic').checked?'public':'private'};
 
 const RELEASE_NOTES=[
+ {v:'0.3.28',date:'2026-11-11',title:'Geological layers window visibility repair',items:[
+  'Fix the shared floating-window visibility handler so Geological layers is displayed when enabled in BUILD/DRIVE workspace or opened from Parameters.',
+  'Preserve saved window geometry and minimized state; geological editor controls are synchronized after the window is shown.',
+  'Frontend-only maintenance release; no browser storage, profiles, SQLite records or 3D assets are changed.' ]},
  {v:'0.3.27',date:'2026-11-10',title:'SQLite connection lifecycle and watcher compatibility',items:[
   'Fix SQLite connection handles left open after successful and failed operations; close deterministically after each transaction, including exceptions.',
   'Close the second connection used to create safety snapshots and add repeated-transaction, rollback and cleanup regression tests.',

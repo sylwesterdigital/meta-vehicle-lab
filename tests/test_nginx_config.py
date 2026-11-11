@@ -871,3 +871,18 @@ class VehicleLab0326NotesAndTerrainTests(unittest.TestCase):
                          "sculptField.fill(0)","cfg.terrainProfile='flat'",'sculptBoundPoint(pt)',
                          "rememberMapEdit('New flat world')",'if(e.type===\'pointerup\')sculptContinue'):
             self.assertIn(fragment,self.html)
+
+
+class GeologicalWindowVisibility0328Tests(unittest.TestCase):
+    def test_geology_visibility_is_not_conditional_on_sync(self):
+        html=(Path(__file__).resolve().parents[1]/'index.html').read_text(encoding='utf-8')
+        start=html.index('function setWindowVisible(id,show,restore=false){')
+        end=html.index('function refreshWindowButtons(){',start)
+        handler=html[start:end]
+        self.assertIn("win.style.display=show?'flex':'none';",handler)
+        self.assertIn("if(show&&id==='geologyWindow')syncGeologyEditor();",handler)
+        self.assertLess(handler.index("win.style.display=show?'flex':'none';"),
+                        handler.index("if(show&&id==='geologyWindow')syncGeologyEditor();"))
+        self.assertNotIn("else win.style.display=show?'flex':'none';",handler)
+        self.assertIn("geology.add({visual:()=>{setWindowVisible('geologyWindow',true);syncGeologyEditor()}},'visual')",html)
+        self.assertIn("'geologyWindow'",html)

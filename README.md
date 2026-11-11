@@ -1,3 +1,10 @@
+# Vehicle Lab — v0.3.28 — Geological layers visibility fix (2026-11-11)
+
+- **Geological layers window:** Fix `setWindowVisible` so its `display` state is always applied before the geology editor synchronizes values. The previous `else` branch accidentally skipped showing this particular window.
+- **Opening paths:** Configuration → Windows & workspace → Geological layers and Parameters → Terrain & sky → Altitude · geological colours → Open visual geological editor now both reveal the window. BUILD/DRIVE layout choices, minimized state and position are still honored.
+- **Scope:** Frontend-only. Existing Notes, terrain data, model assets, maps, authentication, SQLite and deployment settings are unchanged. No new dependencies or migrations.
+- **Validation:** Source regression check, isolated Chromium interaction, JavaScript syntax, full local test suite and watcher dry-run. Production browser deployment remains to be checked.
+
 # Vehicle Lab — v0.3.27 — Database connection lifecycle fix (2026-11-10)
 
 - **Deployment fix:** v0.3.26 was rejected by the macOS watcher before deployment because Python 3.15 exhausted open file descriptors during the SQLite regression suite. The cause was `Storage.connect()` returning a raw `sqlite3.Connection`, whose `with` block commits but does not close it. Fixed using a transactional contextmanager with guaranteed `finally: db.close()`.
