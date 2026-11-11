@@ -66,7 +66,61 @@ class FlaskAPITests(unittest.TestCase):
         self.assertEqual(self.client.post('/api/me/layouts',headers={**member_headers,
             'Origin':'https://attacker.invalid'},json=data).status_code,403)
         self.assertEqual(self.client.post('/api/providers/test',headers=member_headers,
-            json={'provider':'tripo','key':'some-secret'}).status_code,422)
+            json={'provider':'tripo','key':'short'}).status_code,400)
+
+    def test_tripo_v3_balance_check_is_read_only_and_validates_credentials(self):
+        import io, json, urllib.error
+        from unittest.mock import patch
+        profile=self.client.post('/api/identity/guest',json={'name':'Tripo Tester'}).json
+        headers={'Authorization':'Bearer '+profile['token']}
+        endpoint='https://openapi.tripo3d.ai/v3/account/balance'
+        calls=[]
+        class ReadOnlyResponse(io.BytesIO):
+            def __enter__(self):return self
+            def __exit__(self,*args):self.close()
+        class FakeOpener:
+            def open(self,request,timeout):
+                calls.append((request.full_url,request.get_method(),request.get_header('Authorization'),timeout))
+                return ReadOnlyResponse(json.dumps({'code':0,'data':{'balance':42.25,'frozen':4.5}}).encode())
+        with patch('backend.app.urllib.request.build_opener',return_value=FakeOpener()) as build:
+            missing=self.client.post('/api/providers/test',headers=headers,json={'provider':'tripo','key':'bad'})
+            self.assertEqual(missing.status_code,400)
+            self.assertEqual(calls,[])
+            success=self.client.post('/api/providers/test',headers=headers,
+                json={'provider':'tripo','key':'tsk_TEST_1234567890'})
+            self.assertEqual(success.status_code,200,success.json)
+            self.assertEqual(success.json['balance'],42.25)
+            self.assertEqual(success.json['frozen'],4.5)
+            self.assertFalse(success.json['generation_enabled'])
+            self.assertEqual(calls,[(endpoint,'GET','Bearer tsk_TEST_1234567890',9)])
+            self.assertEqual(build.call_count,1)
+        class InvalidKeyOpener:
+            def open(self,request,timeout):
+                raise urllib.error.HTTPError(endpoint,401,'Invalid token',None,None)
+        with patch('backend.app.urllib.request.build_opener',return_value=InvalidKeyOpener()):
+            denied=self.client.post('/api/providers/test',headers=headers,
+                json={'provider':'tripo','key':'tsk_TEST_1234567890'})
+            self.assertEqual(denied.status_code,401)
+            self.assertNotIn('tsk_TEST',str(denied.json))
+        self.assertEqual(self.client.post('/api/providers/test',
+            json={'provider':'tripo','key':'tsk_TEST_1234567890'}).status_code,401)
+
+    def test_tripo_business_error_does_not_verify_key(self):
+        import io, json
+        from unittest.mock import patch
+        profile=self.client.post('/api/identity/guest',json={'name':'Tripo API Error'}).json
+        headers={'Authorization':'Bearer '+profile['token']}
+        class InvalidResponse(io.BytesIO):
+            def __enter__(self):return self
+            def __exit__(self,*args):self.close()
+        class FakeOpener:
+            def open(self,request,timeout):
+                return InvalidResponse(json.dumps({'code':2010,'message':'Insufficient credits'}).encode())
+        with patch('backend.app.urllib.request.build_opener',return_value=FakeOpener()):
+            result=self.client.post('/api/providers/test',headers=headers,
+                json={'provider':'tripo','key':'tsk_TEST_1234567890'})
+            self.assertEqual(result.status_code,502)
+            self.assertFalse(result.json.get('ok',False))
 
     def test_profile_media_gallery_private_cloud_isolation(self):
         import io

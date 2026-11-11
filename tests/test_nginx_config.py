@@ -689,7 +689,7 @@ class VehicleLab0319TerrainTests(unittest.TestCase):
             'function sculptGroundHit(e)',
             "const hit=sculptRay.intersectObject(terrain,false)[0]",
             "await appConfirm('Erase all sculpted height changes on this map?",
-            "if(!terrainChanged&&waterChanged)updateEnvironment()",
+            "if(!terrainChanged&&(waterChanged||environmentChanged))updateEnvironment()",
             "if(cfg.terrainProfile==='beach'||cfg.seaEnabled)",
         ):
             self.assertIn(fragment,self.html)
@@ -1101,13 +1101,15 @@ const app=run(lookup,document,Opt,async()=>entries,getMedia,{'Practice ground':[
  assert(loadBegin>=0&&loadFinish>loadBegin);
  const loadSource=source.slice(loadBegin,loadFinish);
  const action=new Function('$','activeProfile','guestToken','identityRequest','mapTransaction',
-  'applySavedTestMap','testMapPresets','note','recordEvent',loadSource);
+  'applySavedTestMap','testMapPresets','note','recordEvent','rememberActiveCloudMap',loadSource);
+ let savedPointer=null;
  action(lookup,{id:'profile1'},'token',getMedia,async()=>{throw Error('Local cache was read')},
   async data=>{loaded=data}, {'Practice ground':[]},message=>notices.push(message),
-  (_level,message)=>warnings.push(message));
+  (_level,message)=>warnings.push(message),(_owner,id)=>{savedPointer=id});
  picker.value='cloud:cloudOnly';await loadButton.onclick();
  assert.equal(loaded.name,'Rocky hills X - Winter');
  assert.equal(loaded.objects[0].kind,'hill');
+ assert.equal(savedPointer,'cloudOnly');
  assert.equal(loadButton.disabled,false);
  // If cloud listing fails, offline maps remain accessible and aren't reported deleted.
  failure=true;await app.refreshMapList();
@@ -1121,3 +1123,122 @@ const app=run(lookup,document,Opt,async()=>entries,getMedia,{'Practice ground':[
 '''
         result=subprocess.run(['node','-e',script,html],capture_output=True,text=True,timeout=20)
         self.assertEqual(result.returncode,0,result.stdout+result.stderr)
+
+class LastCloudMapAndLiveTexture036Tests(unittest.TestCase):
+    """Execute the new startup selector and appearance validation with Node mocks."""
+
+    def setUp(self):
+        self.html=(Path(__file__).resolve().parents[1]/'index.html').read_text(encoding='utf-8')
+
+    def test_last_cloud_map_restores_only_after_verified_login_without_overwriting_edits(self):
+        script=r'''
+const fs=require('fs'),assert=require('assert');
+const source=fs.readFileSync(process.argv[1],'utf8');
+const begin=source.indexOf("const LAST_CLOUD_MAP_KEY=");
+const end=source.indexOf('// The server is authoritative',begin);
+assert(begin>=0&&end>begin);
+const module=source.slice(begin,end);
+function createApp(state){
+ const memory=new Map(state.memory||[]),logs=[];
+ const statuses={mapSaved:{value:''},mapStatus:{textContent:''}};
+ let current={id:state.owner||'profile1'},edited=!!state.edited;
+ let attempted=false,requests=0,applied=[];
+ const maps=[
+   {id:'11111111-1111-4111-8111-111111111111',name:'Older map',kind:'map',updated_at:1},
+   {id:'22222222-2222-4222-8222-222222222222',name:'Newest map',kind:'map',updated_at:2}];
+ const identityRequest=async path=>{
+  requests++;
+  if(state.fail)throw Error('Server offline');
+  if(path==='/api/me/media?kind=map')return {media:maps};
+  const m=maps.find(item=>path.endsWith(item.id));
+  if(!m)throw Error('Missing map');
+  return {media:{id:m.id,name:m.name,kind:'map',data:{objects:[],weather:{fogEnabled:true},terrainProfile:'flat'}}};
+ };
+ const Fn=new Function('safeStore','safeRead','$','identityRequest','applySavedTestMap',
+  'refreshMapList','recordEvent','getProfile','initialEdits',`
+ let activeProfile=getProfile(),mapEditedSinceStartup=initialEdits;
+ let startupMapRestoreAttempted=false;
+ ${module}
+ return {restoreLastCloudMapOnStartup};`);
+ const app=Fn((key,value)=>memory.set(key,value),key=>memory.get(key)||'',id=>statuses[id],identityRequest,
+  async (value,options)=>applied.push([value,options]),async()=>{},
+  (level,message)=>logs.push([level,message]),()=>current,edited);
+ return {app,memory,logs,statuses,applied,get requests(){return requests}};
+}
+(async()=>{
+ const first=createApp({});
+ await first.app.restoreLastCloudMapOnStartup('profile1');
+ assert.equal(first.applied.length,1);
+ assert.equal(first.applied[0][0].name,'Newest map');
+ assert.equal(first.applied[0][1].startup,true);
+ assert.equal(first.statuses.mapSaved.value,'cloud:22222222-2222-4222-8222-222222222222');
+ assert(first.memory.has('vehiclelab.active-cloud-map.v1.profile1'));
+ await first.app.restoreLastCloudMapOnStartup('profile1');
+ assert.equal(first.applied.length,1,'startup must not run twice');
+ const older='11111111-1111-4111-8111-111111111111';
+ const saved=createApp({memory:[['vehiclelab.active-cloud-map.v1.profile1',
+  JSON.stringify({schema:'vehiclelab-active-map/v1',map_id:older})]]});
+ await saved.app.restoreLastCloudMapOnStartup('profile1');
+ assert.equal(saved.applied[0][0].name,'Older map','explicitly active map wins');
+ const editing=createApp({edited:true});
+ await editing.app.restoreLastCloudMapOnStartup('profile1');
+ assert.equal(editing.requests,0,'never overwrite an already edited world');
+ const offline=createApp({fail:true});
+ await offline.app.restoreLastCloudMapOnStartup('profile1');
+ assert.equal(offline.applied.length,0);
+ assert(offline.logs.some(v=>v[0]==='WARN'));
+ const other=createApp({owner:'profile2',memory:[['vehiclelab.active-cloud-map.v1.profile1',
+  JSON.stringify({schema:'vehiclelab-active-map/v1',map_id:older})]]});
+ await other.app.restoreLastCloudMapOnStartup('profile2');
+ assert.equal(other.applied[0][0].name,'Newest map','pointer must be profile-scoped');
+ console.log('Cloud map automatic restore, profile isolation, no overwrite and errors passed');
+})().catch(error=>{console.error(error);process.exitCode=1});
+'''
+        result=subprocess.run(['node','-e',script,str(Path(__file__).resolve().parents[1]/'index.html')],
+                              capture_output=True,text=True,timeout=15)
+        self.assertEqual(result.returncode,0,result.stdout+result.stderr)
+
+    def test_map_appearance_is_bounded_and_schema_backward_compatible(self):
+        script=r'''
+const fs=require('fs'),assert=require('assert');
+const source=fs.readFileSync(process.argv[1],'utf8');
+const a=source.indexOf('// Map-scoped appearance settings.');
+const b=source.indexOf('// Weather remains part',a);
+assert(a>=0&&b>a);
+const fragment=source.slice(a,b);
+const run=new Function('clamp',`let cfg={seed:11,noiseScale:26,grassDensity:8000,puddles:true};
+${fragment}
+return {snapshot:mapAppearanceSnapshot,apply:applyMapAppearance,cfg};`);
+const obj=run((v,a,b)=>Math.min(b,Math.max(a,v)));
+const original=obj.snapshot();assert.equal(original.seed,11);
+obj.apply({appearance:{seed:123,noiseScale:70,grassDensity:999999,puddles:false,
+  __proto__:{seed:999},random:'bad'}});
+assert.equal(obj.cfg.seed,123);
+assert.equal(obj.cfg.noiseScale,70);
+assert.equal(obj.cfg.grassDensity,20000);
+assert.equal(obj.cfg.puddles,false);
+obj.apply({appearance:{seed:'not a number',noiseScale:null}});
+assert.equal(obj.cfg.seed,123);
+assert.equal(obj.cfg.noiseScale,70);
+obj.apply({});assert.equal(obj.cfg.seed,123);
+assert(source.includes('appearance:mapAppearanceSnapshot()'));
+assert(source.includes('applyMapAppearance(data)'));
+console.log('Validated map appearance and backwards-compatible missing fields');
+'''
+        result=subprocess.run(['node','-e',script,str(Path(__file__).resolve().parents[1]/'index.html')],
+                              capture_output=True,text=True,timeout=15)
+        self.assertEqual(result.returncode,0,result.stdout+result.stderr)
+
+    def test_noise_edits_do_not_leave_drive_or_recreate_terrain_collision(self):
+        a=self.html.index(' const rebuildNoise=()=>{')
+        b=self.html.index(" noiseFolder.add(cfg,'seed'",a)
+        body=self.html[a:b]
+        for required in ('textureCanvasCache.clear();','terrainMaps(', 'makeTerrainMaterial(',
+                         'scheduleBuild();',"rememberMapEdit('Procedural noise / texture lab')"):
+            self.assertIn(required,body)
+        for forbidden in ('leaveDrive()', 'buildTerrain()', 'buildCourse()',
+                          'world.removeBody(', 'makeCannonAdapter('):
+            self.assertNotIn(forbidden,body)
+        self.assertIn('previousEnvironmentSignature=currentEnvironmentSignature()',self.html)
+        self.assertIn("if(!terrainChanged&&(waterChanged||environmentChanged))updateEnvironment()",self.html)
+        self.assertIn("...WEATHER_MAP_KEYS",self.html)

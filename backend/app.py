@@ -946,6 +946,46 @@ def create_app(config=None):
         endpoints={'openai':'https://api.openai.com/v1/models',
                    'xai':'https://api.x.ai/v1/models',
                    'meta':'https://api.meta.ai/v1/models'}
+        if provider=='tripo':
+            # Official Tripo v3 GET balance endpoint is read-only. Never probe
+            # generation endpoints: they can freeze/spend the user's credits.
+            # Keys must not be logged or persisted, and redirects are forbidden
+            # to prevent forwarding Authorization to an arbitrary server.
+            if (not isinstance(token,str) or not 12<=len(token)<=512 or
+                any(char in token for char in ('\r','\n','\x00'))):
+                return jsonify(error='Invalid Tripo API key format'),400
+            url='https://openapi.tripo3d.ai/v3/account/balance'
+            req=urllib.request.Request(url,headers={
+                'Authorization':'Bearer '+token,'Accept':'application/json',
+                'User-Agent':'VehicleLab/0.3.37'},method='GET')
+            opener=urllib.request.build_opener(_RejectRedirect())
+            try:
+                with opener.open(req,timeout=9) as resp:
+                    raw=resp.read(65537)
+                if len(raw)>65536:raise ValueError('Tripo returned an oversized response')
+                result=json.loads(raw.decode('utf-8'))
+                if not isinstance(result,dict) or result.get('code')!=0:
+                    return jsonify(error='Tripo rejected the key or balance request'),502
+                account=result.get('data',{})
+                if (not isinstance(account,dict) or
+                    isinstance(account.get('balance'),bool) or
+                    not isinstance(account.get('balance'),(int,float)) or
+                    isinstance(account.get('frozen'),bool) or
+                    not isinstance(account.get('frozen'),(int,float))):
+                    return jsonify(error='Tripo balance response was invalid'),502
+                return jsonify(ok=True,provider='tripo',verification='balance',
+                    balance=account['balance'],frozen=account['frozen'],
+                    generation_enabled=False)
+            except urllib.error.HTTPError as exc:
+                if exc.code in (401,403):
+                    return jsonify(error='Tripo API key is invalid or not authorized',http_status=exc.code),401
+                if exc.code==429:
+                    return jsonify(error='Tripo rate limit reached. Try again later.',http_status=429),503
+                app.logger.warning('Tripo balance request returned HTTP %d',exc.code)
+                return jsonify(error='Tripo balance service is temporarily unavailable',http_status=exc.code),502
+            except (TimeoutError,urllib.error.URLError,OSError,ValueError,UnicodeError) as exc:
+                app.logger.warning('Tripo balance check unavailable (%s)',type(exc).__name__)
+                return jsonify(error='Tripo connection failed or returned invalid data'),502
         if provider not in endpoints:
             return jsonify(error='Model listing is not supported for this provider. No request was sent.'),422
         if not isinstance(token,str) or not 5<len(token)<500:

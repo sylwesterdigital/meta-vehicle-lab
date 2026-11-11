@@ -1,3 +1,15 @@
+## v0.3.37 — November 11, 2026
+- Configuration now validates Tripo v3 API credentials using the official read-only GET /v3/account/balance endpoint via the authenticated Flask backend and displays available/frozen credits. Never creates a generation job, never stores/logs user keys, and disallows redirects on authenticated provider requests.
+- Replace placeholder Tripo verification response and update button label to distinguish balance verification from model listing. Invalid credentials and connection failures produce actionable messages.
+- Tripo 3D generation is still a separate, currently unimplemented adapter: a verified key must not be represented as successful model-generation support.
+- No changes to persistent SQLite schema, saved vehicles/maps, or 3D assets.
+
+## v0.3.36 — November 11, 2026
+- Restore the last confirmed private cloud map automatically after profile sign-in; on upgrade without a stored selection, use the latest saved map. Never auto-load over an already edited scene and never modify the server during restoration. The remembered map ID is scoped to the profile.
+- Map save/export includes procedural ground-noise parameters, vegetation and selected water settings in addition to existing weather, sculpting and geological colours. Older saved maps remain compatible without destructive migration.
+- Noise and texture lab no longer calls `leaveDrive()` or rebuilds terrain heightfields/physics; refresh only ground appearance and the DRIVE-preserving vehicle materials. Keep camera, velocity, active workspace and model scene intact.
+- No new server dependency, database schema change or deletion of private models and cars.
+
 ## v0.3.35 — November 11, 2026
 - Drive Test Map dropdown lists private cloud maps returned by the profile-owned media endpoint, in addition to IndexedDB-only device maps and built-in presets. Cloud maps take precedence over device copies sharing the same ID.
 - Cloud map selection fetches the authoritative server map before changing any world state; request errors are reported instead of silently using an empty or stale device cache. Only explicit Load changes the world; cars remain in the scene.
