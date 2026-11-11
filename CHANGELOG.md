@@ -1,3 +1,10 @@
+## v0.3.38 — November 11, 2026
+- Adds a separate resizable Vector Chassis workbench (Shift+C or Shift+A → Vector chassis) while retaining previous procedural and GLB workshops.
+- Draw/edit profile nodes with multi-selection, insert/delete nodes, line, polygon, freehand, ellipse, rectangle, circle and triangle; change straight/Bézier edges and assign semantic materials for body, glass, door, lights, bumper, grille, mirrors, nameplates and trim.
+- Displays live 3D extruded visual geometry, per-layer selectable parts and Three.js Move/Rotate/Scale gizmo, with wheel placement guides. Five orthographic drafting views store independent layers.
+- Stores the vector definition in the existing vehicle blueprint; no schema migration, new API endpoints, or mutation of saved GLB binaries or maps.
+- Limitations: six-view watertight lofting, wheel-arch boolean subtraction, physics collider updates and wheel-radius auto-fitting from vector arcs are future work. New shapes are visual-only and use existing procedural vehicle physics.
+
 ## v0.3.37 — November 11, 2026
 - Configuration now validates Tripo v3 API credentials using the official read-only GET /v3/account/balance endpoint via the authenticated Flask backend and displays available/frozen credits. Never creates a generation job, never stores/logs user keys, and disallows redirects on authenticated provider requests.
 - Replace placeholder Tripo verification response and update button label to distinguish balance verification from model listing. Invalid credentials and connection failures produce actionable messages.

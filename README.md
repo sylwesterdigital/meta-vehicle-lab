@@ -1,3 +1,9 @@
+## Vector Chassis Editor (v0.3.38 experimental alternative)
+
+Open **Vehicle tools → Vector chassis**, press **Shift+C**, or use **Shift+A → Vector chassis**. The new independent workspace does not replace the old Wheel or Chassis Workshops. Start a new profile with **New chassis**, choose a role in **Draw as**, then add or select shapes on one of six orthographic drafting views. Click and drag nodes, Shift-click to multiselect, press G over the focused 2D canvas to grab selected nodes, X to delete nodes, and Enter to finish a drawn path. The Insert Node tool adds a point along an existing segment. Each layer supports straight or smoothed Bézier paths, extrusion depth, and a linked material role. Select a part to use its Three.js Move/Rotate/Scale gizmo in BUILD mode. The source vectors are saved in the existing vehicle blueprint and can also be downloaded as separate JSON. `Vector body OFF` restores the original procedural or imported visual shell without deleting vector data.
+
+**Scope / limits:** This is an early editable geometry workflow. The six views hold separate sketches rather than driving a watertight multi-view loft. Front/rear/top/bottom shapes are shallow visual extrusions, with no boolean cuts or rounded nameplate corners yet. Wheel circles are guides; automatically updating physics wheel positions and radii from sketched arcs, direct transform controls for every procedural part, and per-surface panel lofting remain separate engineering work. Physics still uses the procedural chassis. Confirm an imported vector design visually before driving.
+
 # Vehicle Lab v0.3.33 — Imported body fit and live Three.js gizmo (2026-11-11)
 
 - Imported GLB vehicle bodies have an independent centred visual pivot, so rotation/scale does not orbit around the external file origin. The source GLB bytes are never edited.

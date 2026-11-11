@@ -705,7 +705,7 @@ class VehicleLab0319TerrainTests(unittest.TestCase):
             'const WINDOW_IDS=',"'radioWindow','sculptWindow'",
         ):
             self.assertIn(fragment,self.html)
-        self.assertEqual(self.html.count('class="mini-btn minimize"'),17)
+        self.assertEqual(self.html.count('class="mini-btn minimize"'),18)
 
 class VehicleLab0320WorldEditingTests(unittest.TestCase):
     def setUp(self):
@@ -1242,3 +1242,43 @@ console.log('Validated map appearance and backwards-compatible missing fields');
         self.assertIn('previousEnvironmentSignature=currentEnvironmentSignature()',self.html)
         self.assertIn("if(!terrainChanged&&(waterChanged||environmentChanged))updateEnvironment()",self.html)
         self.assertIn("...WEATHER_MAP_KEYS",self.html)
+
+class VectorChassis038Tests(unittest.TestCase):
+    """Source regressions for the alternative, non-destructive vector workspace."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.html = (Path(__file__).resolve().parents[1] / 'index.html').read_text()
+
+    def test_editor_window_and_access_paths(self):
+        self.assertIn('id="vectorWindow"', self.html)
+        self.assertIn('id="vectorCanvas"', self.html)
+        self.assertIn('id="vectorLayerList"', self.html)
+        self.assertIn('id="vectorEditorBtn"', self.html)
+        self.assertIn("['vectorChassis','Open vector chassis editor','Shift+KeyC'",self.html)
+        self.assertIn('Vector chassis · Shift+C',self.html)
+        self.assertEqual(self.html.count('class="mini-btn minimize"'),18)
+
+    def test_complete_view_and_tool_palette(self):
+        for view in ('left','right','front','rear','top','bottom'):
+            self.assertIn(f'<option value="{view}">',self.html)
+        for tool in ('select','polyline','poly','free','rect','ellipse','circle','triangle','insert'):
+            self.assertIn(f'data-vector-tool="{tool}"',self.html)
+        for component in ('body','glass','door','light','bumper','grille','mirror','nameplate','trim'):
+            self.assertIn(f'<option value="{component}">',self.html)
+
+    def test_vector_persistence_is_blueprint_scoped(self):
+        self.assertIn('vectorChassis:null',self.html)
+        self.assertIn('const VECTOR_SCHEMA=',self.html)
+        self.assertIn('cfg.vectorChassis=vectorSanitize(cfg.vectorChassis)',self.html)
+        self.assertIn('vehicle:structuredClone(cfg)',self.html)
+        self.assertIn('function vectorApplyToScene()',self.html)
+        self.assertIn('vectorApplyToScene();\nupdateLights()',self.html)
+
+    def test_scene_gizmo_protects_imported_assets(self):
+        self.assertIn('new TransformControls(camera,renderer.domElement);vectorGizmo',self.html)
+        self.assertIn('vectorGizmo.addEventListener(\'objectChange\'',self.html)
+        self.assertIn('function vectorReleaseMeshes()',self.html)
+        self.assertIn('if(vectorGizmo?.object)vectorGizmo.detach()',self.html)
+        self.assertIn('vectorRoot=new THREE.Group();',self.html)
+

@@ -5,7 +5,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Vehicle Lab — Procedural Studio</title>
-  <meta name="vehicle-lab-version" content="0.3.37">
+  <meta name="vehicle-lab-version" content="0.3.38">
   <style>
     :root {
       color-scheme:dark;
@@ -922,6 +922,36 @@ input[type=color]:focus-visible{outline:2px solid var(--accent)!important;outlin
 #appDialog .app-dialog-danger{background:#883744;border-color:#bf7180;color:#fff}
 #appDialog .app-dialog-danger:hover{background:#a94452}
 #appDialog button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+/* v0.3.38: independent vector chassis workbench (draw in 2D, extrude in 3D). */
+#vectorWindow{left:7%;top:9%;width:min(960px,82vw);height:min(750px,82vh);min-width:420px;min-height:270px}
+#vectorWindow .window-body{display:flex;flex-direction:column;gap:7px;min-height:0;padding:9px;overflow:hidden}
+.vector-actions{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+.vector-actions button{padding:5px 9px;min-height:30px;font-size:11px}
+.vector-actions button[aria-pressed=true],.vector-toolbar button[aria-pressed=true],.vector-inspector button[aria-pressed=true]{background:var(--accent);color:#14242e}
+.vector-workspace{display:grid;grid-template-columns:46px minmax(0,1fr) 190px;gap:7px;flex:1;min-height:0}
+.vector-toolbar{display:flex;flex-direction:column;gap:4px;overflow-y:auto;overflow-x:hidden}
+.vector-toolbar button{padding:2px;min-width:38px;min-height:36px;font-size:12px;font-weight:650;line-height:1.1}
+.vector-toolbar button small{display:block;font-size:9px;font-weight:400}
+.vector-canvas-wrap{min-width:0;min-height:0;display:flex;flex-direction:column;border:1px solid #52697c;border-radius:9px;background:#0e2030;overflow:hidden}
+.vector-canvas-top{display:flex;gap:7px;align-items:center;flex-wrap:wrap;padding:5px;background:#193447}
+.vector-canvas-top label{display:flex;gap:6px;align-items:center;font-size:11px}
+.vector-canvas-top select{font-size:11px;padding:5px;background:#102634;color:#ebf7ff;min-height:26px}
+#vectorCanvas{width:100%;height:100%;min-height:140px;flex:1;touch-action:none;cursor:crosshair;outline-offset:-3px}
+.vector-canvas-foot{padding:5px 8px;color:#bfd8e5;font-size:10px;min-height:24px}
+.vector-inspector{padding:8px;background:#162d3e;border:1px solid #4b6f85;border-radius:8px;overflow:auto;display:flex;flex-direction:column;gap:9px}
+.vector-layer-list{display:grid;gap:3px;max-height:118px;overflow-y:auto}
+.vector-layer-item{display:flex;align-items:center;gap:5px;min-width:0;min-height:26px;text-align:left;font-size:10px!important;padding:4px 5px!important}
+.vector-layer-item[aria-pressed=true]{background:#456c80}
+.vector-layer-item>span:last-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.vector-layer-dot{flex:none;width:10px;height:10px;border-radius:3px}
+.vector-inspector label{display:grid;gap:4px;font-size:11px;color:#d1e6f4}
+.vector-inspector input:not([type=checkbox]),.vector-inspector select{font-size:11px;min-width:0;width:100%;min-height:30px;background:#0d2434;color:#f0f8ff;border:1px solid #51778d;border-radius:5px;padding:5px}
+.vector-inspector button{padding:5px;min-height:30px;font-size:11px}
+.vector-inspector .vector-gizmo-controls{display:flex;gap:3px}
+.vector-inspector .vector-gizmo-controls button{flex:1;padding:5px 2px}
+.vector-inspector small{color:#b0cddb;line-height:1.5;font-size:10px}
+@media(max-width:760px){#vectorWindow{min-width:320px;width:94vw;left:3vw}.vector-workspace{grid-template-columns:38px minmax(0,1fr)}.vector-inspector{grid-column:1/-1;flex-direction:row;flex-wrap:wrap;max-height:150px}.vector-inspector label{min-width:112px}.vector-toolbar button{min-width:32px;min-height:31px;font-size:10px}}
 </style>
 
  <script type="importmap">
@@ -942,7 +972,7 @@ input[type=color]:focus-visible{outline:2px solid var(--accent)!important;outlin
 
   <div id="stage">
   <div id="hud">
-    <div class="stage-badge"><strong>Vehicle Lab</strong><small id="appVersionBadge">v0.3.37</small></div>
+    <div class="stage-badge"><strong>Vehicle Lab</strong><small id="appVersionBadge">v0.3.38</small></div>
     <p id="vehicleName">City Car</p><p id="vehicleInfo">Procedural vehicle</p>
     <div id="speedHud"><strong id="speed">0</strong><div>km/h</div></div>
     <div id="cameraModeReadout" style="padding:3px 6px;margin-top:4px;width:max-content;max-width:260px;border-radius:5px;background:#132d3cc0;color:#e9f5fc;font:10px ui-monospace,monospace">Camera · Orbit follow</div>
@@ -963,7 +993,7 @@ input[type=color]:focus-visible{outline:2px solid var(--accent)!important;outlin
   <section id="toolsWindow" class="float-window" aria-label="Vehicle tools">
     <div class="window-head"><strong>Vehicle tools</strong><button class="mini-btn minimize" title="Minimize"><svg class="collapse-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path class="icon-minify" d="M6 12h12"/><rect class="icon-expand" x="7" y="7" width="10" height="10" rx="2"/></svg></button></div>
     <div class="window-body"><div id="boarding"><button type="button" id="openOccupants" title="Choose driver and passenger 3D models">Driver / passengers</button>
-      <button id="exitBtn">Exit −</button><button id="boardBtn">Board +</button><button id="doorsBtn">Open doors</button><button id="wheelEditorBtn" title="Wheel styles / GLB models">Wheel workshop</button><button id="chassisEditorBtn" title="3D chassis asset library">Body workshop</button><button id="fleetBtn" title="Scene vehicle instances">Fleet</button><button id="mapEditorBtn" title="Test track / obstacles / hills">Test map</button><button id="mediaBrowserBtn" title="Cars, models, images, maps, music and public gallery">My media</button><button id="radioBtn" title="Music playlists and in-vehicle radio">♫ Radio</button><button id="xrBtn" title="WebXR immersive VR">Enter XR</button><button id="xrSeatBtn" title="Teleport into the cabin (XR only)">Cabin</button>
+      <button id="exitBtn">Exit −</button><button id="boardBtn">Board +</button><button id="doorsBtn">Open doors</button><button id="wheelEditorBtn" title="Wheel styles / GLB models">Wheel workshop</button><button id="chassisEditorBtn" title="3D chassis asset library">Body workshop</button><button type="button" id="vectorEditorBtn" title="Draw an editable vector car body (Shift+C)">Vector chassis</button><button id="fleetBtn" title="Scene vehicle instances">Fleet</button><button id="mapEditorBtn" title="Test track / obstacles / hills">Test map</button><button id="mediaBrowserBtn" title="Cars, models, images, maps, music and public gallery">My media</button><button id="radioBtn" title="Music playlists and in-vehicle radio">♫ Radio</button><button id="xrBtn" title="WebXR immersive VR">Enter XR</button><button id="xrSeatBtn" title="Teleport into the cabin (XR only)">Cabin</button>
     </div></div>
   </section>
   <section id="catalogWindow" class="float-window" aria-label="Car templates">
@@ -1287,6 +1317,47 @@ input[type=color]:focus-visible{outline:2px solid var(--accent)!important;outlin
         <label>Rear rake <input id="bodyRakeRear" type="number" step=".02" min=".04" max="1.8"></label>
         <label>Roof width <input id="bodyRoofWidth" type="number" step=".02" min=".3" max="1"></label></div>
       <small id="chassisAssetInfo" style="color:var(--muted)">Imported shells replace visual body geometry. Procedural physics and wheel geometry stay independent.</small>
+    </div>
+  </section>
+  <section id="vectorWindow" class="float-window" style="display:none" aria-label="Vector chassis editor">
+    <div class="window-head"><strong>Vector chassis · 2D / 3D</strong><button class="mini-btn minimize" title="Minimize"><svg class="collapse-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path class="icon-minify" d="M6 12h12"/><rect class="icon-expand" x="7" y="7" width="10" height="10" rx="2"/></svg></button></div>
+    <div class="window-body">
+      <div class="vector-actions">
+        <button type="button" id="vectorNewChassis" title="New editable car body profile">＋ New chassis</button>
+        <button type="button" id="vectorEnable" aria-pressed="false" title="Toggle this vector shell without deleting it">Vector body OFF</button>
+        <button type="button" id="vectorExport">↓ Save vector JSON</button><button type="button" id="vectorImport">↑ Open vector JSON</button>
+        <input id="vectorImportFile" type="file" accept=".json,application/json" hidden>
+      </div>
+      <div class="vector-workspace">
+        <nav class="vector-toolbar" aria-label="Vector drawing tools">
+          <button type="button" data-vector-tool="select" title="Select and move nodes">↖<small>Select</small></button>
+          <button type="button" data-vector-tool="polyline" title="Single line / multi line · Enter finishes">╱<small>Line</small></button>
+          <button type="button" data-vector-tool="poly" title="Polygon path · Enter finishes">⬡<small>Polygon</small></button>
+          <button type="button" data-vector-tool="free" title="Freehand path">〰<small>Free</small></button>
+          <button type="button" data-vector-tool="rect" title="Drag to draw a rectangle">▭<small>Rect</small></button>
+          <button type="button" data-vector-tool="ellipse" title="Drag to draw an ellipse">⬭<small>Oval</small></button>
+          <button type="button" data-vector-tool="circle" title="Drag to draw a circle">◯<small>Circle</small></button>
+          <button type="button" data-vector-tool="triangle" title="Drag to draw a triangle">△<small>Triangle</small></button>
+          <button type="button" data-vector-tool="insert" title="Click a segment to insert a node">＋<small>Node</small></button>
+        </nav>
+        <div class="vector-canvas-wrap">
+          <div class="vector-canvas-top"><label>View<select id="vectorView"><option value="left">Left side</option><option value="right">Right side</option><option value="front">Front</option><option value="rear">Rear</option><option value="top">Top</option><option value="bottom">Bottom</option></select></label>
+            <label>Draw as<select id="vectorNewRole"><option value="body">Body</option><option value="glass">Glass</option><option value="door">Door</option><option value="light">Light</option><option value="bumper">Bumper</option><option value="grille">Air intake</option><option value="mirror">Mirror</option><option value="nameplate">Plate</option><option value="trim">Trim</option></select></label><label><input id="vectorSnap" type="checkbox" checked> Snap 5 cm</label><small id="vectorViewLabel">SIDE · select</small></div>
+          <svg id="vectorCanvas" xmlns="http://www.w3.org/2000/svg" viewBox="-5 -3 10 6" tabindex="0" role="img" aria-label="Editable orthographic vector profile; click or drag nodes"></svg>
+          <div class="vector-canvas-foot">Click nodes to move · Shift: multi-select · G: grab · X: delete · Enter: finish path · wheel guides in amber</div>
+        </div>
+        <aside class="vector-inspector" aria-label="Selected vector layer properties">
+          <strong id="vectorSelectedName">Select a shape</strong><div id="vectorLayerList" class="vector-layer-list" aria-label="Parts in current view"></div>
+          <label>Part type<select id="vectorLayerRole"><option value="body">Body shell</option><option value="glass">Window / glass</option><option value="door">Door</option><option value="light">Lights</option><option value="bumper">Bumper</option><option value="grille">Air intake</option><option value="mirror">Mirror</option><option value="nameplate">Nameplate</option><option value="trim">Trim / frame</option></select></label>
+          <label>Layer name<input id="vectorLayerName" type="text" maxlength="72" placeholder="Part name"></label>
+          <label>Line type<select id="vectorCurve"><option value="straight">Straight</option><option value="bezier">Smoothed Bézier</option></select></label>
+          <label>Extrusion (m)<input id="vectorDepth" type="number" step=".01" min=".01" max="7" value=".035"></label>
+          <div class="vector-gizmo-controls" role="group" aria-label="3D transform mode"><button type="button" data-vector-gizmo="translate" title="Move selected part (G)">Move</button><button type="button" data-vector-gizmo="rotate" title="Rotate selected part (R)">Rotate</button><button type="button" data-vector-gizmo="scale" title="Scale selected part (E)">Scale</button></div>
+          <button type="button" id="vectorAddNode">＋ Insert node</button><button type="button" id="vectorDelete" title="Delete selected nodes or layer">Delete selection</button>
+          <small id="vectorGeometryInfo">Vector body preview · visual only; physics stays procedural.</small>
+          <small>Use Material Studio to colour body, glass and trim. Six views are independent drawings; automatic watertight lofting between them is not yet available.</small>
+        </aside>
+      </div>
     </div>
   </section>
   <section id="fleetWindow" class="float-window" aria-label="Scene vehicles" style="display:none">
@@ -1719,7 +1790,7 @@ input[type=color]:focus-visible{outline:2px solid var(--accent)!important;outlin
    courseName:'Open practice ground',courseObjects:[],ghostMode:'off',cameraMode:'orbit',cameraClearance:true,
    cameraFollowLag:.07,cameraVerticalLag:.20,cameraClearanceLag:.22,
    autopilot:false,autopilotRoute:'terrain-aware',groundRoughness:.9,
-   seatOffsets:{}
+   seatOffsets:{},vectorChassis:null
  };
 
  let cfg=structuredClone(defaults);
@@ -1734,6 +1805,7 @@ let objectGizmo=null,chassisGizmo=null,chassisGizmoEnabled=false,chassisGizmoMod
 // lil-gui fails while creating a numeric controller for an absent property.
 function normalizeVehicleConfig(){
  if(!['cliff','barrier','ramp','wrap','cells'].includes(cfg.worldEdgeMode))cfg.worldEdgeMode='barrier';
+ if(cfg.vectorChassis!==null&&cfg.vectorChassis!==undefined)cfg.vectorChassis=vectorSanitize(cfg.vectorChassis);
  normalizeBiomeSettings();
  for(const key of ['fogEnabled','fogColor','fogNear','fogFar','mistEnabled','precipitation',
   'precipitationDensity','precipitationSize','precipitationSpeed','moonEnabled','moonIntensity','starsIntensity','sunAzimuth','sunElevation',
@@ -1785,6 +1857,7 @@ function normalizeVehicleConfig(){
   selectedVehicleTargetKey=key;
   if(key.startsWith('module:'))selectedPart=key.slice(7);
   if(key.startsWith('wheel:'))selectedWheelAxle=key.split(':')[1];
+  if(key.startsWith('vector:')){setWindowVisible('vectorWindow',true);vectorPickLayer(key.slice(7));}
   updateHighlight();
   const target=materialTarget||record.materialTarget;
   if(target&&$('materialTarget')?.querySelector(`option[value="${target}"]`)){
@@ -1909,7 +1982,7 @@ let ghostObject=null,ghostSamples=[],ghostElapsed=0,ghostTick=0;
  function appConfirm(message){return showAppDialog('confirm',message)}
  function appPrompt(message,value='',options={}){return showAppDialog('prompt',message,value,options)}
 
- const VERSION='0.3.37';
+ const VERSION='0.3.38';
  document.getElementById('appVersionBadge').textContent='v'+VERSION;
  let imageReference=null,busyAI=false;
 
@@ -3421,6 +3494,8 @@ if(['mixer','roller','tractor','mining'].includes(kind)){
 }
 
 function clearVehicle(){
+ if(vectorGizmo?.object)vectorGizmo.detach();
+ vectorReleaseMeshes();
  if(chassisGizmo?.object)chassisGizmo.detach();
  if(highlight){highlight.dispose();scene.remove(highlight);highlight=null}
  for(const w of wheels)if(w.parent===scene)disposeTree(w);
@@ -3769,6 +3844,7 @@ for(let i=0;i<cfg.seats;i++){
 }
 for(const {hinge,side,wing} of doorHinges){hinge.rotation.y=wing?0:-side*1.13*doorMotion;hinge.rotation.z=wing?side*1.15*doorMotion:0;}
 addImportedModel();
+vectorApplyToScene();
 updateLights();
 
 $('vehicleName').textContent=cfg.name;
@@ -4752,6 +4828,7 @@ async function enterDrive(){
   orbit.autoRotate=false;
   orbit.enabled=cfg.cameraMode!=='driver'&&!xrActive;
   if(objectGizmo?.object)objectGizmo.detach();
+  if(vectorGizmo?.object)vectorGizmo.detach();
   hidePanelsForDrive();makeGhost();
   if(highlight){highlight.dispose();scene.remove(highlight);highlight=null}
   if(highlightGlow){highlightGlow.dispose();scene.remove(highlightGlow);highlightGlow=null}
@@ -7961,7 +8038,7 @@ function activateCourseGizmo(kind){
  note('Gizmo '+kind+' · drag its handles to edit the selected object.');
 }
 window.addEventListener('keydown',e=>{
- if(!selectedCourseId||isEditingText(e.target)||!keyboardContextReady()||e.metaKey||e.ctrlKey||e.altKey)return;
+ if(e.target.closest?.('#vectorWindow')||!selectedCourseId||isEditingText(e.target)||!keyboardContextReady()||e.metaKey||e.ctrlKey||e.altKey)return;
  if(shortcutMatches('duplicateObject',e)){e.preventDefault();e.stopImmediatePropagation();duplicateSelectedCourse();return;}
  for(const [id,action] of [['moveObject','translate'],['rotateObject','rotate'],['scaleObject','scale']]){
   if(shortcutMatches(id,e)){
@@ -8079,6 +8156,7 @@ document.addEventListener('pointerdown',event=>{
  if(!$('addObjectOverlay').hidden&&!event.target.closest('.add-palette')&&!event.target.closest('#mapObjectAdd'))closeAddPalette();
 },true);
 function renderAddPalette(){const text=$('addObjectSearch').value.trim().toLowerCase(),root=$('addObjectResults');root.replaceChildren();
+ if('vector chassis car body editor'.includes(text)){const entry=document.createElement('button');entry.type='button';entry.textContent='Vector chassis · Shift+C';entry.onclick=()=>{closeAddPalette();vectorOpen(true)};root.append(entry);}
  for(const [label,kind] of OBJECT_CHOICES.filter(([name])=>name.toLowerCase().includes(text))){
   const b=document.createElement('button');b.type='button';b.textContent=label;b.onclick=()=>{
    closeAddPalette();placeObjectInScene(kind,label)};root.append(b)}
@@ -8088,6 +8166,7 @@ $('addObjectSearch').oninput=renderAddPalette;
 $('addObjectSearch').onkeydown=e=>{if(e.key==='Enter'){$('addObjectResults').querySelector('button')?.click();e.preventDefault()}}
 window.addEventListener('keydown',e=>{
  if(e.key==='Escape'&&!$('addObjectOverlay').hidden){closeAddPalette();return}
+ if(shortcutMatches('vectorChassis',e)&&!e.repeat&&!isEditingText(e.target)&&keyboardContextReady()){e.preventDefault();e.stopImmediatePropagation();closeAddPalette();vectorOpen(true);return}
  if(shortcutMatches('addObject',e)&&!e.repeat&&!isEditingText(e.target)&&keyboardContextReady()){
   e.preventDefault();e.stopImmediatePropagation();openAddPalette()}
 },true);
@@ -8446,8 +8525,8 @@ $('mapTool').closest('label').after(patchSelector);
 updateMapZoomUI();let mapFrame=0;
 
 // Workspace windows: pointer dragging + native CSS resize + minimize.
-const WINDOW_IDS=['toolbarWindow','toolsWindow','catalogWindow','galleryWindow','paramsWindow','logWindow','paletteWindow','wheelWindow','mapWindow','objectWindow','fleetWindow','chassisWindow','mediaWindow','radioWindow','sculptWindow','notesWindow','geologyWindow'];
-const WINDOW_NAMES=['Actions','Tools','Car templates','Gallery','Parameters','Logs','Materials','Wheel workshop','Test map','Object','Scene vehicles','Chassis workshop','My media','Radio','Terrain sculpt','Notes','Geological layers'];
+const WINDOW_IDS=['toolbarWindow','toolsWindow','catalogWindow','galleryWindow','paramsWindow','logWindow','paletteWindow','wheelWindow','mapWindow','objectWindow','fleetWindow','chassisWindow','mediaWindow','radioWindow','sculptWindow','notesWindow','geologyWindow','vectorWindow'];
+const WINDOW_NAMES=['Actions','Tools','Car templates','Gallery','Parameters','Logs','Materials','Wheel workshop','Test map','Object','Scene vehicles','Chassis workshop','My media','Radio','Terrain sculpt','Notes','Geological layers','Vector chassis'];
 let highestZ=18;
 const safeStore=(name,value)=>{try{localStorage.setItem(name,value)}catch(e){}};
 const safeRead=name=>{try{return localStorage.getItem(name)}catch(e){return null}};
@@ -8469,6 +8548,7 @@ function setWindowVisible(id,show,restore=false){
  if(show&&id==='geologyWindow'){syncGeologyEditor();void geoRefreshPresets()}
  if(show&&id==='mapWindow')void refreshMapList().catch(error=>recordEvent('WARN','Map list: '+error.message));
  if(id==='chassisWindow')updateChassisGizmo();
+ if(id==='vectorWindow'){vectorDrawCanvas();vectorRefreshGizmo();}
  // Showing a hidden panel must never expand its minimized state.
  if(show){
   win.style.zIndex=String(++highestZ);
@@ -9760,6 +9840,7 @@ $('galleryRefreshBtn').onclick=()=>{gallerySource='public';setWindowVisible('gal
 $('layoutPublic').onchange=()=>{serverVisibility=$('layoutPublic').checked?'public':'private'};
 
 const RELEASE_NOTES=[
+ {v:'0.3.38',date:'2026-11-11',title:'Vector Chassis Editor · first editable prototype',items:['New independent 2D Vector Chassis window (Shift+C or Shift+A) with six orthographic view outlines, line/polygon/freehand and primitive shape tools; live 3D extrusion and material types.', 'Selectable vector parts with Three.js Move/Rotate/Scale gizmo; multiple orthographic drafting views and wheel-radius guides.', 'Vector design is stored in the existing vehicle blueprint; original GLB models and procedural chassis remain available. Six-view watertight lofting and procedural wheel auto-fit are not yet implemented.']},
  {v:'0.3.37',date:'2026-11-11',title:'Tripo v3 account verification',items:['Configuration can validate a Tripo key and view credit balance with a read-only official v3 API request. No generation is triggered or charged.', 'Tripo generation remains unavailable until a full, separately reviewed v3 generation adapter is implemented.']},
  {v:'0.3.36',date:'2026-11-11',title:'Restore last cloud map and keep DRIVE while editing textures',items:['The last confirmed private map is restored automatically on startup after profile sign-in; existing map libraries are not overwritten.', 'Map saves include noise, texture, vegetation and water appearance alongside weather and sculpting; older maps remain readable.', 'Procedural noise/texture controls refresh ground appearance without switching to BUILD or recreating terrain colliders.']},
  {v:'0.3.35',date:'2026-11-11',title:'Cloud maps in Drive Test Map selector',items:['Saved private maps appear directly in the Drive Test Map dropdown alongside device copies and built-in presets.', 'A selected cloud map loads from the server; map-list failures are visible without treating the private cloud library as empty.', 'Refreshing or opening the map window updates the list; loading a map leaves current cars intact.']},
@@ -10264,6 +10345,7 @@ const SHORTCUT_DEFS=[
  ['steerRight','Steer right','ArrowRight','Driving'],
  ['brake','Hold service brake','Space','Driving'],
  ['addObject','Add 3D/map object palette','Shift+KeyA','World editor'],
+ ['vectorChassis','Open vector chassis editor','Shift+KeyC','Vehicle editor'],
  ['duplicateObject','Duplicate selected object','Shift+KeyD','World editor'],
  ['moveObject','Translation gizmo (G)','KeyG','World editor'],
  ['rotateObject','Rotation gizmo (R)','KeyR','World editor'],
@@ -10479,6 +10561,7 @@ window.addEventListener('keydown',e=>{
 
 $('wheelEditorBtn').onclick=()=>{renderWheelStudio();setWindowVisible('wheelWindow',true)};
 $('chassisEditorBtn').onclick=()=>{renderChassisAssets();setWindowVisible('chassisWindow',true)};
+$('vectorEditorBtn').onclick=()=>vectorOpen(true);
 $('chassisImport').onclick=()=>$('importGLB').click();
 $('chassisReset').onclick=()=>{modelSource=null;modelBlob=null;modelName=null;currentChassisAssetId=null;buildVehicle();renderChassisAssets()};
 // Local chassis design flow: every image and 3D request uses the visible prompt.
@@ -11074,6 +11157,432 @@ $('radioAdminKey').oninput=radioRenderQueue;
 $('radioAdminForm').onsubmit=e=>e.preventDefault();
 // ===== End radio =====
 
+// ===== Vector Chassis: non-destructive alternative to procedural / imported body =====
+// Model is stored in cfg.vectorChassis, which is already included in vehicle blueprints.
+// All stored coordinates are local metres. No server asset or IndexedDB schema changes.
+const VECTOR_SCHEMA='vehiclelab-vector-chassis/v1';
+const VECTOR_VIEWS=['left','right','front','rear','top','bottom'];
+const VECTOR_ROLES=['body','glass','door','light','bumper','grille','mirror','nameplate','trim'];
+const VECTOR_ROLE_LABELS={body:'Body shell',glass:'Window / glass',door:'Door skin',light:'Lights',bumper:'Bumper',grille:'Air intake',mirror:'Mirror',nameplate:'Nameplate',trim:'Trim / frame'};
+const VECTOR_ROLE_COLORS={body:'#7bb0d7',glass:'#91d5f0',door:'#e6a870',light:'#ffdfa0',bumper:'#e07c85',grille:'#719ba4',mirror:'#c6a9ff',nameplate:'#dcd9ca',trim:'#b5d5df'};
+let vectorRoot=null,vectorGizmo=null,vectorGizmoMode='translate';
+let vectorView='left',vectorTool='select',vectorSelectedId=null,vectorNodesSelected=new Set();
+let vectorPointer=null,vectorDraft=[],vectorGArmed=false,vectorGrabBase=null,vectorRenderScheduled=false,vectorDragChanged=false;
+let vectorCurrentMode='body',vectorNewLayerCount=0;
+const vectorSvgNS='http://www.w3.org/2000/svg';
+function vectorId(){return crypto.randomUUID()}
+function vectorDefaultDesign(){
+ const L=clamp(Number(cfg.L)||4,2.5,18),H=clamp(Number(cfg.H)||1.6,1,6),W=clamp(Number(cfg.W)||1.8,1,5);
+ const wheelR=clamp(Number(cfg.radius)||.4,.23,1.5),archY=-H*.42;
+ const frontZ=L*.31,rearZ=-L*.31,arch=wheelR*1.17;
+ const points=[
+  [-L*.49,archY],[-L*.49,-H*.07],[-L*.27,H*.17],[-L*.13,H*.43],[L*.17,H*.43],
+  [L*.29,H*.16],[L*.49,H*.05],[L*.49,archY],
+  [frontZ+arch,archY],[frontZ+arch*.90,archY+arch*.52],[frontZ+arch*.48,archY+arch*.9],
+  [frontZ,archY+arch],[frontZ-arch*.48,archY+arch*.9],[frontZ-arch*.90,archY+arch*.52],
+  [frontZ-arch,archY],[rearZ+arch,archY],[rearZ+arch*.90,archY+arch*.52],
+  [rearZ+arch*.48,archY+arch*.9],[rearZ,archY+arch],
+  [rearZ-arch*.48,archY+arch*.9],[rearZ-arch*.90,archY+arch*.52],
+  [rearZ-arch,archY]
+ ];
+ const make=(name,role,nodes,extra={})=>({id:vectorId(),name,role,view:'left',type:'polygon',closed:true,
+  curve:'straight',nodes:nodes.map(([x,y])=>({x:+x.toFixed(3),y:+y.toFixed(3)})),
+  depth:role==='body'?W:0.035,transform:{x:0,y:0,z:0,rx:0,ry:0,rz:0,scale:1},...extra});
+ return {schema:VECTOR_SCHEMA,enabled:true,layers:[
+   make('Outer body', 'body',points),
+   make('Side window', 'glass',[[-L*.13,H*.36],[L*.13,H*.36],[L*.235,H*.115],[-L*.255,H*.115]]),
+   make('Driver door', 'door',[[L*.02,H*.10],[L*.22,H*.10],[L*.22,-H*.32],[L*.02,-H*.32]])
+ ]};
+}
+function vectorSanitize(data){
+ if(!data||data.schema!==VECTOR_SCHEMA||!Array.isArray(data.layers)||data.layers.length>40)return null;
+ const layers=[];
+ for(const item of data.layers){
+  if(!VECTOR_VIEWS.includes(item.view)||!VECTOR_ROLES.includes(item.role)||!Array.isArray(item.nodes)||item.nodes.length>100)continue;
+  if(item.nodes.some(p=>!Number.isFinite(p.x)||!Number.isFinite(p.y)||Math.abs(p.x)>40||Math.abs(p.y)>40))continue;
+  const tf=item.transform||{};
+  layers.push({id:typeof item.id==='string'&&item.id.length<90?item.id:vectorId(),
+   name:String(item.name||VECTOR_ROLE_LABELS[item.role]).slice(0,72),role:item.role,view:item.view,
+   type:['polygon','polyline','ellipse','freehand'].includes(item.type)?item.type:'polygon',
+   closed:item.closed!==false,curve:item.curve==='bezier'?'bezier':'straight',
+   nodes:item.nodes.map(p=>({x:p.x,y:p.y})),
+   depth:clamp(Number(item.depth)||.04,.01,7),
+   transform:{x:clamp(Number(tf.x)||0,-12,12),y:clamp(Number(tf.y)||0,-12,12),z:clamp(Number(tf.z)||0,-12,12),
+    rx:clamp(Number(tf.rx)||0,-180,180),ry:clamp(Number(tf.ry)||0,-180,180),rz:clamp(Number(tf.rz)||0,-180,180),
+    scale:clamp(Number(tf.scale)||1,.05,10)}});
+ }
+ return {schema:VECTOR_SCHEMA,enabled:data.enabled===true,layers};
+}
+function vectorDesign(){
+ if(cfg.vectorChassis?.schema!==VECTOR_SCHEMA)cfg.vectorChassis={schema:VECTOR_SCHEMA,enabled:false,layers:[]};
+ return cfg.vectorChassis;
+}
+function vectorActiveLayer(){return vectorDesign().layers.find(l=>l.id===vectorSelectedId)||null}
+function vectorMaterialFor(layer){
+ const key={body:'paint',glass:'glass',door:'paint',light:'headlightColor',bumper:'trimColor',grille:'trimColor',mirror:'trimColor',nameplate:'trimColor',trim:'trimColor'}[layer.role];
+ const color=String(cfg[key]||VECTOR_ROLE_COLORS[layer.role]);
+ return new THREE.MeshStandardMaterial({color,metalness:layer.role==='body'?.48:layer.role==='glass'?.04:.36,
+  roughness:layer.role==='glass'?.12:.53,
+  transparent:layer.role==='glass',opacity:layer.role==='glass'?.56:1,side:THREE.DoubleSide});
+}
+function vectorLocalPath(layer){
+ const pts=layer.nodes;if(pts.length<2)return null;
+ const shape=new THREE.Shape();shape.moveTo(pts[0].x,pts[0].y);
+ if(layer.curve==='bezier'&&pts.length>=3){
+  const end=layer.closed?pts.length:pts.length-1;
+  for(let i=0;i<end;i++){
+   const a=pts[i],b=pts[(i+1)%pts.length],before=pts[(i-1+pts.length)%pts.length],after=pts[(i+2)%pts.length]||b;
+   const f=.16;shape.bezierCurveTo(a.x+(b.x-before.x)*f,a.y+(b.y-before.y)*f,
+      b.x-(after.x-a.x)*f,b.y-(after.y-a.y)*f,b.x,b.y);
+  }
+ }else for(const p of pts.slice(1))shape.lineTo(p.x,p.y);
+ if(layer.closed)shape.closePath();return shape;
+}
+function vectorMeshGeometry(layer){
+ if(layer.nodes.length<2)return null;
+ if(layer.closed&&layer.nodes.length>=3){
+  const shape=vectorLocalPath(layer);
+  return new THREE.ExtrudeGeometry(shape,{depth:layer.depth,steps:1,bevelEnabled:false,curveSegments:12});
+ }
+ const points=layer.nodes.map(p=>new THREE.Vector3(p.x,p.y,0));
+ const curve=new THREE.CatmullRomCurve3(points,false,'centripetal');
+ return new THREE.TubeGeometry(curve,clamp(points.length*7,8,140),.017,5,false);
+}
+function vectorCreateLayerMesh(layer){
+ const geometry=vectorMeshGeometry(layer);if(!geometry)return null;
+ const parent=new THREE.Group();parent.name='Vector · '+layer.name;
+ const group=new THREE.Group();parent.add(group);
+ const material=vectorMaterialFor(layer),mesh=new THREE.Mesh(geometry,material);
+ mesh.name='Vector extrusion · '+layer.role;mesh.castShadow=true;mesh.receiveShadow=true;group.add(mesh);
+ if(layer.view==='left'){
+  group.rotation.y=-Math.PI/2;
+  group.position.x=layer.role==='body'?layer.depth/2:Math.max(.01,cfg.W*.5+.014);
+ }else if(layer.view==='right'){
+  group.rotation.y=Math.PI/2;
+  group.position.x=layer.role==='body'?-layer.depth/2:-Math.max(.01,cfg.W*.5+.014);
+ }else if(layer.view==='front'){
+  group.position.z=cfg.L*.5+.015;
+ }else if(layer.view==='rear'){
+  group.rotation.y=Math.PI;group.position.z=-cfg.L*.5-.015;
+ }else if(layer.view==='top'){
+  group.rotation.x=-Math.PI/2;group.position.y=cfg.H*.55;
+ }else if(layer.view==='bottom'){
+  group.rotation.x=Math.PI/2;group.position.y=-cfg.H*.5;
+ }
+ const tr=layer.transform;
+ parent.position.set(tr.x,tr.y,tr.z);parent.rotation.set(rad(tr.rx),rad(tr.ry),rad(tr.rz));parent.scale.setScalar(tr.scale);
+ const matKey={body:'paint',glass:'glass',door:'paint',light:'headlightColor',bumper:'trimColor',grille:'trimColor',mirror:'trimColor',nameplate:'trimColor',trim:'trimColor'}[layer.role];
+ registerEditableVehiclePart(parent,'vector:'+layer.id,layer.name,matKey);
+ return parent;
+}
+function vectorReleaseMeshes(){
+ if(vectorGizmo?.object)vectorGizmo.detach();
+ if(!vectorRoot)return;
+ vectorRoot.traverse(n=>{if(n.isMesh){n.geometry?.dispose();if(Array.isArray(n.material))n.material.forEach(m=>m?.dispose());else n.material?.dispose()}});
+ vectorRoot.removeFromParent();vectorRoot=null;
+ for(const key of [...editableVehicleParts.keys()])if(key.startsWith('vector:'))editableVehicleParts.delete(key);
+}
+function vectorApplyToScene(){
+ vectorReleaseMeshes();
+ if(!car)return;
+ const design=vectorSanitize(cfg.vectorChassis);
+ if(!design?.enabled||!design.layers.length){if(bodyRoot)bodyRoot.visible=!modelSource;if(importedShell)importedShell.visible=!!modelSource;return;}
+ vectorRoot=new THREE.Group();vectorRoot.name='Editable vector chassis';car.add(vectorRoot);
+ if(bodyRoot)bodyRoot.visible=false;if(importedShell)importedShell.visible=false;
+ for(const layer of design.layers){const part=vectorCreateLayerMesh(layer);if(part)vectorRoot.add(part)}
+ if(selectedVehicleTargetKey.startsWith('vector:'))updateHighlight();
+ vectorRefreshGizmo();
+}
+function vectorRefreshPreview(){
+ // Defer costly geometry replacement to at most one requestAnimationFrame per drag.
+ vectorDrawCanvas();
+ if(vectorRenderScheduled)return;vectorRenderScheduled=true;
+ requestAnimationFrame(()=>{vectorRenderScheduled=false;if(car)vectorApplyToScene();});
+}
+function vectorPickLayer(id){
+ if(!vectorDesign().layers.some(l=>l.id===id))return;
+ vectorSelectedId=id;vectorNodesSelected.clear();vectorGArmed=false;
+ selectedVehicleTargetKey='vector:'+id;const target={body:'paint',glass:'glass',door:'paint',light:'headlightColor',bumper:'trimColor',grille:'trimColor',mirror:'trimColor',nameplate:'trimColor',trim:'trimColor'}[vectorActiveLayer()?.role];
+ if(target&&$('materialTarget')?.querySelector(`option[value="${target}"]`)){$('materialTarget').value=target;renderMaterialPalette()}
+ updateHighlight();vectorDrawCanvas();vectorUpdateInspector();vectorRefreshGizmo();
+}
+function vectorRefreshGizmo(){
+ if(!vectorGizmo)return;
+ const panel=$('vectorWindow');
+ const active=vectorRoot?.children.find(g=>g.userData.vehicleSelect?.key==='vector:'+vectorSelectedId);
+ const canAttach=!!active&&mode==='build'&&panel?.style.display!=='none'&&!panel.classList.contains('is-minimized');
+ if(canAttach){if(objectGizmo?.object)objectGizmo.detach();if(chassisGizmo?.object)chassisGizmo.detach();
+  if(vectorGizmo.object!==active)vectorGizmo.attach(active);vectorGizmo.setMode(vectorGizmoMode);
+ }else vectorGizmo.detach();
+}
+function vectorUpdateInspector(){
+ const layer=vectorActiveLayer();
+ $('vectorEnable').setAttribute('aria-pressed',String(vectorDesign().enabled));
+ $('vectorEnable').textContent=vectorDesign().enabled?'Vector body ON':'Vector body OFF';
+ $('vectorSelectedName').textContent=layer?layer.name:'Select a shape or draw a new one';
+ $('vectorLayerRole').value=layer?.role||vectorCurrentMode;
+ $('vectorCurve').value=layer?.curve||'straight';
+ $('vectorDepth').value=layer?layer.depth.toFixed(2):'0.04';
+ $('vectorLayerName').value=layer?.name||'';
+ $('vectorDepth').disabled=!layer;$('vectorCurve').disabled=!layer;$('vectorLayerName').disabled=!layer;
+ for(const b of document.querySelectorAll('[data-vector-gizmo]'))b.setAttribute('aria-pressed',String(b.dataset.vectorGizmo===vectorGizmoMode));
+ $('vectorGeometryInfo').textContent='3D preview: '+vectorDesign().layers.length+' vector shape(s) · geometry is visual only; chassis physics stays procedural.';
+}
+function vectorSvgElement(tag,attrs={},text=null){const el=document.createElementNS(vectorSvgNS,tag);
+ for(const [k,v] of Object.entries(attrs))el.setAttribute(k,String(v));if(text!==null)el.textContent=text;return el;}
+function vectorViewport(){
+ const length=['left','right'].includes(vectorView)?cfg.L:vectorView==='front'||vectorView==='rear'?cfg.W:cfg.W;
+ const height=['left','right'].includes(vectorView)||vectorView==='front'||vectorView==='rear'?cfg.H:cfg.L;
+ return {xmin:-length*.66,ymin:-height*.78,width:length*1.32,height:height*1.56};
+}
+function vectorCanvasPoint(e){
+ const svg=$('vectorCanvas'),pt=svg.createSVGPoint();pt.x=e.clientX;pt.y=e.clientY;
+ const matrix=svg.getScreenCTM();return matrix?pt.matrixTransform(matrix.inverse()):{x:0,y:0};
+}
+function vectorSvgPath(layer){
+ const pts=layer.nodes;if(!pts.length)return '';
+ let d=`M${pts[0].x},${-pts[0].y}`;
+ if(layer.curve==='bezier'&&pts.length>=3){
+  const end=layer.closed?pts.length:pts.length-1;
+  for(let i=0;i<end;i++){
+   const a=pts[i],b=pts[(i+1)%pts.length],prior=pts[(i-1+pts.length)%pts.length],next=pts[(i+2)%pts.length]||b;
+   const f=.16;d+=` C${a.x+(b.x-prior.x)*f},${-(a.y+(b.y-prior.y)*f)} ${b.x-(next.x-a.x)*f},${-(b.y-(next.y-a.y)*f)} ${b.x},${-b.y}`;
+  }
+ }else for(const p of pts.slice(1))d+=` L${p.x},${-p.y}`;
+ if(layer.closed)d+=' Z';return d;
+}
+function vectorRenderLayerList(){
+ const list=$('vectorLayerList');if(!list)return;list.replaceChildren();
+ for(const layer of vectorDesign().layers.filter(l=>l.view===vectorView)){
+  const button=document.createElement('button');button.type='button';button.className='vector-layer-item';
+  button.setAttribute('aria-pressed',String(layer.id===vectorSelectedId));
+  const dot=document.createElement('span');dot.className='vector-layer-dot';dot.style.background=VECTOR_ROLE_COLORS[layer.role];
+  const title=document.createElement('span');title.textContent=layer.name;button.append(dot,title);
+  button.title=VECTOR_ROLE_LABELS[layer.role];button.onclick=()=>vectorPickLayer(layer.id);list.append(button);
+ }
+}
+function vectorDrawCanvas(){
+ const svg=$('vectorCanvas');if(!svg)return;
+ const v=vectorViewport();svg.setAttribute('viewBox',`${v.xmin} ${-v.ymin-v.height} ${v.width} ${v.height}`);
+ svg.replaceChildren();
+ const bg=vectorSvgElement('rect',{x:v.xmin,y:-v.ymin-v.height,width:v.width,height:v.height,fill:'#101f2c'});svg.append(bg);
+ const grid=vectorSvgElement('g',{'pointer-events':'none','aria-hidden':'true'});
+ const xmin=v.xmin,xmax=v.xmin+v.width,ymin=-v.ymin-v.height,ymax=-v.ymin;
+ for(let x=Math.ceil(xmin*2)/2;x<=xmax;x+=.5)grid.append(vectorSvgElement('line',{x1:x,y1:ymin,x2:x,y2:ymax,stroke:Math.abs(x)<.01?'#668496':'#284558','stroke-width':.009}));
+ for(let y=Math.ceil(ymin*2)/2;y<=ymax;y+=.5)grid.append(vectorSvgElement('line',{x1:xmin,y1:y,x2:xmax,y2:y,stroke:Math.abs(y)<.01?'#668496':'#284558','stroke-width':.009}));
+ svg.append(grid);
+ if(['left','right'].includes(vectorView)){
+  const guides=vectorSvgElement('g',{'pointer-events':'none','aria-hidden':'true'});
+  for(let axle=0;axle<Math.min(2,cfg.axles);axle++){
+   const x=wheelZ(axle),r=wheelRadiusFor(axle);
+   guides.append(vectorSvgElement('circle',{cx:x,cy:'.3',r:r,fill:'none',stroke:'#f8bd74','stroke-dasharray':'.06 .04','stroke-width':.018}));
+   guides.append(vectorSvgElement('circle',{cx:x,cy:'.3',r:'.035',fill:'#f8bd74'}));
+  }
+  svg.append(guides);
+ }
+ for(const layer of vectorDesign().layers.filter(l=>l.view===vectorView)){
+  const selected=layer.id===vectorSelectedId,roleColor=VECTOR_ROLE_COLORS[layer.role];
+  const path=vectorSvgElement('path',{d:vectorSvgPath(layer),fill:layer.closed?roleColor:'none',
+   'fill-opacity':layer.role==='body'?.32:layer.role==='glass'?.24:.14,stroke:roleColor,
+   'stroke-width':selected?.035:.02,'stroke-linejoin':'round','data-vector-layer':layer.id});
+  path.style.cursor=vectorTool==='insert'?'copy':vectorTool==='select'?'pointer':'crosshair';svg.append(path);
+  if(selected){
+   layer.nodes.forEach((p,i)=>{const node=vectorSvgElement('circle',{cx:p.x,cy:-p.y,r:.055,
+    fill:vectorNodesSelected.has(i)?'#faad70':'#eaf9ff',stroke:'#102432','stroke-width':.015,
+    'data-vector-node':i,'data-vector-layer':layer.id,tabindex:'0',role:'button','aria-label':'Node '+(i+1)});
+    node.style.cursor='grab';svg.append(node)});
+  }
+ }
+ if(vectorDraft.length){
+  const d=vectorDraft.map((p,i)=>(i?' L':'M')+p.x+','+(-p.y)).join('');
+  svg.append(vectorSvgElement('path',{d,stroke:'#fff5a1','stroke-width':.025,'stroke-dasharray':'.08 .05',fill:'none','pointer-events':'none'}));
+ }
+ vectorRenderLayerList();
+ $('vectorViewLabel').textContent=vectorView.toUpperCase()+' · '+vectorTool;
+ for(const b of document.querySelectorAll('[data-vector-tool]'))b.setAttribute('aria-pressed',String(b.dataset.vectorTool===vectorTool));
+}
+function vectorSaveEdit(label='Vector chassis edit'){
+ cfg.vectorChassis=vectorSanitize(vectorDesign());
+ scheduleHistory(label);vectorRefreshPreview();
+}
+function vectorAddShape(nodes,closed=true,curve='straight',type='polygon'){
+ if(nodes.length<2)return;
+ const design=vectorDesign();if(design.layers.length>=40){note('Maximum 40 vector layers.',true);return;}
+ const role=$('vectorNewRole').value;
+ const layer={id:vectorId(),name:VECTOR_ROLE_LABELS[role]+' '+(++vectorNewLayerCount),role,view:vectorView,
+  type,curve,closed,nodes:nodes.map(p=>({x:clamp(p.x,-20,20),y:clamp(p.y,-20,20)})),
+  depth:role==='body'?clamp(cfg.W,1,5):.035,transform:{x:0,y:0,z:0,rx:0,ry:0,rz:0,scale:1}};
+ design.layers.push(layer);design.enabled=true;vectorSelectedId=layer.id;vectorNodesSelected.clear();
+ vectorSaveEdit('Added vector '+role);vectorUpdateInspector();
+}
+function vectorNearestSegment(layer,point){
+ const nodes=layer.nodes;let best={distance:Infinity,index:0,point:null};
+ const count=layer.closed?nodes.length:nodes.length-1;
+ for(let i=0;i<count;i++){
+  const a=nodes[i],b=nodes[(i+1)%nodes.length];const dx=b.x-a.x,dy=b.y-a.y;
+  const t=clamp(((point.x-a.x)*dx+(point.y-a.y)*dy)/(dx*dx+dy*dy||1),0,1);
+  const x=a.x+t*dx,y=a.y+t*dy,distance=Math.hypot(point.x-x,point.y-y);
+  if(distance<best.distance)best={distance,index:i,point:{x,y}};
+ }return best;
+}
+function vectorInsertNode(point){
+ const layer=vectorActiveLayer();if(!layer)return;
+ const near=vectorNearestSegment(layer,point);if(near.distance>.32)return;
+ if(layer.nodes.length>=100){note('Maximum 100 nodes per shape',true);return;}
+ layer.nodes.splice(near.index+1,0,near.point);vectorNodesSelected=new Set([near.index+1]);vectorSaveEdit('Insert chassis node');
+}
+function vectorRemoveSelection(){
+ const layer=vectorActiveLayer();if(!layer)return;
+ if(vectorNodesSelected.size){
+  layer.nodes=layer.nodes.filter((p,i)=>!vectorNodesSelected.has(i));vectorNodesSelected.clear();
+  if(layer.nodes.length<2){vectorDesign().layers=vectorDesign().layers.filter(l=>l.id!==layer.id);vectorSelectedId=null;selectedVehicleTargetKey='module:cabin';}
+ }else{vectorDesign().layers=vectorDesign().layers.filter(l=>l.id!==layer.id);vectorSelectedId=null;selectedVehicleTargetKey='module:cabin';}
+ vectorSaveEdit('Delete vector nodes / shape');vectorUpdateInspector();
+}
+function vectorSetTool(tool){
+ vectorTool=tool;vectorDraft=[];vectorGArmed=false;vectorGrabBase=null;vectorPointer=null;vectorDrawCanvas();
+}
+function vectorFinishPath(){
+ if(vectorDraft.length>=2){vectorAddShape(vectorDraft,vectorTool==='poly'||vectorTool==='free','straight',vectorTool==='polyline'?'polyline':'polygon');}
+ vectorDraft=[];vectorSetTool('select');
+}
+function vectorOpen(newDesign=false){
+ if(newDesign){
+  if(!vectorDesign().layers.length){cfg.vectorChassis=vectorDefaultDesign();vectorSelectedId=cfg.vectorChassis.layers[0].id;}
+  else cfg.vectorChassis.enabled=true;
+  vectorSaveEdit('Enable vector chassis');
+ }
+ setWindowVisible('vectorWindow',true);
+ vectorView='left';$('vectorView').value=vectorView;
+ if(!vectorSelectedId)vectorSelectedId=vectorDesign().layers.find(l=>l.view===vectorView)?.id||null;
+ vectorTool='select';vectorUpdateInspector();vectorDrawCanvas();vectorRefreshGizmo();
+}
+function vectorInit(){
+ // SVG retains the local original vector data, while Three.js renders an extruded visual preview.
+ const svg=$('vectorCanvas');
+ for(const button of document.querySelectorAll('[data-vector-tool]'))button.onclick=()=>vectorSetTool(button.dataset.vectorTool);
+ $('vectorView').onchange=()=>{vectorView=$('vectorView').value;vectorSelectedId=vectorDesign().layers.find(l=>l.view===vectorView)?.id||null;vectorNodesSelected.clear();vectorDrawCanvas();vectorUpdateInspector();vectorRefreshGizmo()};
+ $('vectorNewRole').onchange=()=>{vectorCurrentMode=$('vectorNewRole').value};
+ $('vectorLayerRole').onchange=()=>{vectorCurrentMode=$('vectorLayerRole').value;const layer=vectorActiveLayer();if(layer){layer.role=vectorCurrentMode;vectorSaveEdit('Vector layer material')}};
+ $('vectorLayerName').onchange=()=>{const layer=vectorActiveLayer();if(!layer)return;layer.name=$('vectorLayerName').value.slice(0,72);vectorSaveEdit('Rename vector layer')};
+ $('vectorCurve').onchange=()=>{const layer=vectorActiveLayer();if(!layer)return;layer.curve=$('vectorCurve').value;vectorSaveEdit('Vector curve style')};
+ $('vectorDepth').onchange=()=>{const layer=vectorActiveLayer();if(!layer)return;layer.depth=clamp(Number($('vectorDepth').value)||.035,.01,7);vectorSaveEdit('Vector extrusion depth')};
+ $('vectorNewChassis').onclick=async()=>{
+  if(vectorDesign().layers.length&&!await appConfirm('Start a new vector chassis? Existing vector shapes in the current vehicle will be replaced; saved car blueprints are unaffected.'))return;
+  cfg.vectorChassis=vectorDefaultDesign();vectorSelectedId=cfg.vectorChassis.layers[0].id;vectorView='left';$('vectorView').value='left';
+  vectorSaveEdit('New vector chassis');vectorUpdateInspector();
+ };
+ $('vectorEnable').onclick=()=>{const design=vectorDesign();if(!design.layers.length){cfg.vectorChassis=vectorDefaultDesign();vectorSelectedId=cfg.vectorChassis.layers[0].id;}
+  else design.enabled=!design.enabled;
+  $('vectorEnable').setAttribute('aria-pressed',String(vectorDesign().enabled));
+  $('vectorEnable').textContent=vectorDesign().enabled?'Vector body ON':'Vector body OFF';
+  vectorSaveEdit('Toggle vector body');vectorUpdateInspector();};
+ $('vectorAddNode').onclick=()=>vectorSetTool('insert');
+ $('vectorDelete').onclick=vectorRemoveSelection;
+ $('vectorExport').onclick=()=>download(JSON.stringify(vectorDesign(),null,2),'vehiclelab-vector-chassis.json','application/json');
+ $('vectorImport').onclick=()=>$('vectorImportFile').click();
+ $('vectorImportFile').onchange=async e=>{
+  try{const file=e.target.files?.[0];if(!file)return;if(file.size>250000)throw Error('Vector JSON exceeds 250 KB');
+   const data=vectorSanitize(JSON.parse(await file.text()));if(!data)throw Error('Invalid vector chassis JSON');
+   if(!await appConfirm('Import vector shapes into the current vehicle? Existing vector shapes will be replaced.'))return;
+   cfg.vectorChassis=data;vectorSelectedId=data.layers[0]?.id||null;vectorSaveEdit('Import vector chassis');vectorUpdateInspector();
+  }catch(error){note('Vector import failed: '+error.message,true)}finally{e.target.value=''};
+ };
+ for(const btn of document.querySelectorAll('[data-vector-gizmo]'))btn.onclick=()=>{
+  vectorGizmoMode=btn.dataset.vectorGizmo;vectorRefreshGizmo();vectorUpdateInspector();};
+ svg.addEventListener('pointerdown',e=>{
+  if(e.button!==0)return;svg.focus({preventScroll:true});
+  if(vectorGArmed){vectorGArmed=false;vectorGrabBase=null;vectorSaveEdit('Grab selected chassis nodes');return;}
+  const pt=vectorCanvasPoint(e),p={x:pt.x,y:-pt.y};
+  const target=e.target,node=target.getAttribute('data-vector-node'),id=target.getAttribute('data-vector-layer');
+  if(vectorTool==='insert'){vectorInsertNode(p);return}
+  if(vectorTool==='select'&&node!==null&&id){
+   if(vectorSelectedId!==id)vectorPickLayer(id);
+   const i=Number(node);if(!e.shiftKey)vectorNodesSelected.clear();
+   if(e.shiftKey&&vectorNodesSelected.has(i))vectorNodesSelected.delete(i);else vectorNodesSelected.add(i);
+   vectorPointer={kind:'nodes',start:p,original:vectorActiveLayer().nodes.map(n=>({...n}))};
+   svg.setPointerCapture(e.pointerId);vectorDrawCanvas();e.preventDefault();return;
+  }
+  if(vectorTool==='select'&&id){vectorPickLayer(id);return}
+  if(vectorTool==='select'){vectorNodesSelected.clear();vectorDrawCanvas();return}
+  if(vectorTool==='poly'||vectorTool==='polyline'){
+   vectorDraft.push(p);vectorDrawCanvas();return;
+  }
+  vectorPointer={kind:vectorTool,start:p,points:[p]};svg.setPointerCapture(e.pointerId);
+  if(vectorTool==='free')vectorDraft=[p];e.preventDefault();
+ });
+ svg.addEventListener('pointermove',e=>{
+  if(!vectorPointer&&!vectorGArmed)return;
+  const pt=vectorCanvasPoint(e),p={x:pt.x,y:-pt.y},snap=$('vectorSnap').checked?0.05:0;
+  if(vectorGArmed&&!vectorPointer){
+   const layer=vectorActiveLayer();if(!layer||!vectorNodesSelected.size)return;
+   if(!vectorGrabBase){vectorGrabBase={origin:p,nodes:layer.nodes.map(n=>({...n}))};return;}
+   const dx=p.x-vectorGrabBase.origin.x,dy=p.y-vectorGrabBase.origin.y;
+   layer.nodes=vectorGrabBase.nodes.map((n,i)=>vectorNodesSelected.has(i)?{x:clamp(n.x+dx,-20,20),y:clamp(n.y+dy,-20,20)}:n);
+   vectorRefreshPreview();return;
+  }
+  if(snap){p.x=Math.round(p.x/snap)*snap;p.y=Math.round(p.y/snap)*snap;}
+  if(vectorPointer.kind==='nodes'){
+   const layer=vectorActiveLayer();if(!layer)return;
+   const dx=p.x-vectorPointer.start.x,dy=p.y-vectorPointer.start.y;
+   layer.nodes=vectorPointer.original.map((v,i)=>vectorNodesSelected.has(i)?{x:clamp(v.x+dx,-20,20),y:clamp(v.y+dy,-20,20)}:v);
+   vectorDragChanged=vectorDragChanged||Math.abs(dx)+Math.abs(dy)>.001;vectorRefreshPreview();return;
+  }
+  if(vectorPointer.kind==='free'){
+   const points=vectorPointer.points;if(!points.length||Math.hypot(p.x-points.at(-1).x,p.y-points.at(-1).y)>.055)points.push(p);
+   vectorDraft=points;vectorDrawCanvas();return;
+  }
+  const start=vectorPointer.start,dx=p.x-start.x,dy=p.y-start.y;
+  if(vectorPointer.kind==='rect')vectorDraft=[start,{x:p.x,y:start.y},p,{x:start.x,y:p.y}];
+  else if(vectorPointer.kind==='triangle')vectorDraft=[{x:start.x+dx*.5,y:start.y},{x:p.x,y:p.y},{x:start.x,y:p.y}];
+  else if(vectorPointer.kind==='circle'||vectorPointer.kind==='ellipse'){
+   const rx=vectorPointer.kind==='circle'?Math.max(Math.abs(dx),Math.abs(dy))*.5:Math.abs(dx)*.5;
+   const ry=vectorPointer.kind==='circle'?rx:Math.abs(dy)*.5;
+   vectorDraft=Array.from({length:24},(_,i)=>({x:(start.x+p.x)/2+Math.cos(2*Math.PI*i/24)*rx,y:(start.y+p.y)/2+Math.sin(2*Math.PI*i/24)*ry}));
+  }vectorDrawCanvas();
+ });
+ svg.addEventListener('pointercancel',()=>{vectorPointer=null;vectorDraft=[];vectorSetTool('select')});
+ svg.addEventListener('pointerup',e=>{
+  if(!vectorPointer)return;
+  const kind=vectorPointer.kind,points=vectorDraft.slice();vectorPointer=null;
+  if(kind==='nodes'){if(vectorDragChanged){vectorSaveEdit('Grab vector nodes');vectorDragChanged=false;}else vectorDrawCanvas();return;}
+  if(kind==='free'){if(points.length>2){
+   // Local point decimation limits allocations and keeps freehand sketches responsive.
+   const simplified=points.filter((p,i)=>i===0||i===points.length-1||i%3===0).slice(0,100);
+   vectorAddShape(simplified,false,'bezier','freehand');
+  }}else if(points.length>2)vectorAddShape(points,true,'straight',kind==='ellipse'||kind==='circle'?'ellipse':'polygon');
+  vectorDraft=[];vectorSetTool('select');vectorUpdateInspector();
+ });
+ svg.addEventListener('dblclick',e=>{if(vectorTool==='poly'||vectorTool==='polyline'){e.preventDefault();vectorFinishPath()}});
+ window.addEventListener('keydown',e=>{
+  if($('vectorWindow').style.display==='none'||!keyboardContextReady()||isEditingText(e.target)||!e.target.closest?.('#vectorWindow'))return;
+  if(e.code==='Enter'&&['poly','polyline'].includes(vectorTool)){e.preventDefault();vectorFinishPath()}
+  else if(e.code==='KeyG'&&vectorTool==='select'&&vectorNodesSelected.size){e.preventDefault();e.stopImmediatePropagation();vectorGArmed=!vectorGArmed;vectorGrabBase=null;$('vectorSelectedName').textContent=vectorGArmed?'Move pointer · click to place · Esc to cancel':'Selected nodes';}
+  else if(['KeyX','Delete','Backspace'].includes(e.code)&&vectorTool==='select'){e.preventDefault();e.stopImmediatePropagation();vectorRemoveSelection()}
+  else if(['KeyR','KeyE'].includes(e.code)&&vectorActiveLayer()){e.preventDefault();e.stopImmediatePropagation();vectorGizmoMode=e.code==='KeyR'?'rotate':'scale';vectorRefreshGizmo();vectorUpdateInspector();}
+  else if(e.code==='Escape'){e.preventDefault();if(vectorGArmed&&vectorGrabBase){const layer=vectorActiveLayer();if(layer)layer.nodes=vectorGrabBase.nodes;}vectorDraft=[];vectorSetTool('select');vectorRefreshPreview()}
+ },true);
+ vectorGizmo=new TransformControls(camera,renderer.domElement);vectorGizmo.setSize(.8);scene.add(vectorGizmo.getHelper());
+ vectorGizmo.addEventListener('dragging-changed',e=>{
+  transformDragging=Boolean(e.value);orbit.enabled=!e.value;
+  if(!e.value)scheduleHistory('3D vector part transform');
+ });
+ vectorGizmo.addEventListener('objectChange',()=>{
+  const layer=vectorActiveLayer(),obj=vectorGizmo.object;if(!layer||!obj)return;
+  layer.transform={x:clamp(obj.position.x,-12,12),y:clamp(obj.position.y,-12,12),z:clamp(obj.position.z,-12,12),
+   rx:clamp(THREE.MathUtils.radToDeg(obj.rotation.x),-180,180),
+   ry:clamp(THREE.MathUtils.radToDeg(obj.rotation.y),-180,180),
+   rz:clamp(THREE.MathUtils.radToDeg(obj.rotation.z),-180,180),
+   scale:clamp(obj.scale.x,.05,10)};
+ });
+ vectorUpdateInspector();vectorDrawCanvas();
+}
+// ===== End Vector Chassis =====
+
+
+
+
+vectorInit();
 initWorkspace();initTheme();renderMaterialPalette();renderChassisAssets();initReleaseHistory();
  buildCourse();buildVegetation();
 void initIdentity();void refreshGallery();void refreshVehicleGallery();
