@@ -5,7 +5,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Vehicle Lab — Procedural Studio</title>
-  <meta name="vehicle-lab-version" content="0.3.43">
+  <meta name="vehicle-lab-version" content="0.3.44">
   <style>
     :root {
       color-scheme:dark;
@@ -1018,6 +1018,18 @@ input[type=color]:focus-visible{outline:2px solid var(--accent)!important;outlin
 .scene-tree-toolbar input{min-width:0;width:100%;background:#102939;color:#f2f9ff;border:1px solid #69869b;border-radius:7px;padding:9px}
 .scene-tree-toolbar button{padding:6px 9px}
 #sceneTreeList{overflow:auto;flex:1;min-height:0;display:flex;flex-direction:column;gap:7px;padding:2px}
+.scene-tree-bulk{display:flex;flex-wrap:wrap;align-items:center;gap:5px;padding:6px 3px;border-top:1px solid var(--pane-border);border-bottom:1px solid var(--pane-border)}
+.scene-tree-bulk select{min-width:125px;flex:1 1 135px;max-width:100%;border:1px solid var(--pane-border);border-radius:6px;background:#112e41;color:#f0f9ff;font-size:calc(12px * var(--ui-scale));padding:7px}
+.scene-tree-bulk button{padding:7px 9px;font-size:calc(12px * var(--ui-scale));min-height:34px}
+.scene-tree-select-all{display:flex;gap:4px;align-items:center;white-space:nowrap;font-size:calc(12px * var(--ui-scale))}
+#sceneTreeSelectedCount{color:var(--muted);font-size:calc(11px * var(--ui-scale));white-space:nowrap}
+.scene-tree-check{width:19px;height:19px;flex:none;accent-color:var(--accent);cursor:pointer}
+.scene-tree-row.is-bulk-selected{outline:1px solid var(--accent);background:#345769}
+.scene-tree-danger{color:#ffd8dd!important;border-color:#9b5065!important}
+.scene-tree-part-group{border:1px solid #52748a;border-radius:7px;margin:4px 0;padding:3px;background:#1a3446}
+.scene-tree-part-group summary{cursor:pointer;font-size:calc(12px * var(--ui-scale));font-weight:650;color:#e0f3ff;padding:6px;list-style-position:inside}
+.scene-tree-part-group .scene-tree-children{margin-left:3px;padding-left:9px}
+.scene-tree-car-head .scene-tree-row{flex:1;min-width:0}
 .scene-tree-folder{border:1px solid var(--pane-border);border-radius:9px;overflow:hidden;background:#152f40eb}
 .scene-tree-folder-head{display:flex;gap:4px;align-items:center;padding:5px;background:#29465d}
 .scene-tree-folder-head .scene-tree-group-toggle{flex:1;min-width:0;text-align:left;background:transparent!important;border:0!important;color:#f4fbff!important;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -1057,7 +1069,13 @@ input[type=color]:focus-visible{outline:2px solid var(--accent)!important;outlin
 #objectWindow .object-slider output{font-size:calc(12px * var(--ui-scale));min-width:52px;text-align:right;color:var(--txt)}
 #objectWindow .part-inspector-coords input{cursor:ew-resize}
 #objectWindow .part-inspector-coords input[data-slider-selected=true]{outline:2px solid var(--accent);outline-offset:1px}
-#objectWindow[data-selected-type='part'] .object-slider{position:sticky;bottom:0;background:var(--pane);border-radius:8px;z-index:3}
+#objectWindow[data-selected-type='part'] .object-slider{position:relative;bottom:auto;background:var(--pane);border-radius:8px;z-index:3}
+#objectWindow[data-selected-type='part'] .window-body{display:flex;flex-direction:column}
+#objectWindow[data-selected-type='part'] #partInspector{display:contents}
+#objectWindow[data-selected-type='part'] #partInspector[hidden]{display:none!important}
+#objectWindow[data-selected-type='part'] .object-slider{order:7}
+#objectWindow[data-selected-type='part'] .part-inspector-actions:last-of-type{order:8}
+#objectWindow[data-selected-type='part'] .part-inspector-note{order:9}
 
 #partInspector label{display:grid;gap:3px;font-size:calc(11px * var(--ui-scale));color:#deeff9}
 #partInspector input,#partInspector select{width:100%;min-width:0;color:#f2faff;background:#112c3b;border:1px solid #6f95ab;border-radius:6px;padding:8px}
@@ -1101,7 +1119,7 @@ input[type=color]:focus-visible{outline:2px solid var(--accent)!important;outlin
 
   <div id="stage">
   <div id="hud">
-    <div class="stage-badge"><strong>Vehicle Lab</strong><small id="appVersionBadge">v0.3.43</small></div>
+    <div class="stage-badge"><strong>Vehicle Lab</strong><small id="appVersionBadge">v0.3.44</small></div>
     <p id="vehicleName">City Car</p><p id="vehicleInfo">Procedural vehicle</p>
     <div id="speedHud"><strong id="speed">0</strong><div>km/h</div></div>
     <div id="cameraModeReadout" style="padding:3px 6px;margin-top:4px;width:max-content;max-width:260px;border-radius:5px;background:#132d3cc0;color:#e9f5fc;font:10px ui-monospace,monospace">Camera · Orbit follow</div>
@@ -1282,9 +1300,6 @@ input[type=color]:focus-visible{outline:2px solid var(--accent)!important;outlin
      <div class="part-inspector-actions"><button id="partInspectorVisibility" type="button">Hide part</button><button id="partInspectorLock" type="button">Lock part</button><button id="partInspectorReset" type="button">Reset transform</button></div>
      <small class="part-inspector-note">Component changes are visual. The wheel and vehicle physics are unchanged until dedicated physics settings are edited.</small>
     </div>
-    <div class="object-slider"><span id="objectSlideLabel">X position</span>
-      <input id="objectQuickSlider" type="range" min="-150" max="150" step="0.1" value="0">
-      <output id="objectSlideValue">0</output></div>
     <div class="object-mode" id="objectGizmoModes"><button data-gizmo="translate" aria-pressed="true">Move</button><button data-gizmo="rotate">Rotate</button><button data-gizmo="scale">Scale</button></div>
     <div class="object-vector"><span>Position</span>
       <label>X <input id="objectX" type="number" step="0.1"></label>
@@ -1306,7 +1321,9 @@ input[type=color]:focus-visible{outline:2px solid var(--accent)!important;outlin
      <label>Bounce<input id="objectBounce" type="number" min="0" max="1" step="0.05"></label>
      <label>Texture<select id="objectTexture"><option value="none">Solid</option><option value="speckle">Fine noise</option><option value="checker">Checker / panels</option><option value="grain">Natural grain</option><option value="stripes">Striped / industrial</option></select></label>
      <label>Seed<input id="objectSeed" type="number" min="0" max="99999" step="1"></label>
-    </div><small class="object-course-help" style="display:block;margin:9px 0;color:var(--muted)">Primitive rigid bodies use collision-box approximations when a precise mesh collider is unavailable. Terrain and surface patches are edited on the map.</small>
+    </div><div class="object-slider"><span id="objectSlideLabel">X position</span>
+      <input id="objectQuickSlider" type="range" min="-150" max="150" step="0.1" value="0" aria-label="Selected transform property value">
+      <output id="objectSlideValue">0</output></div><small class="object-course-help" style="display:block;margin:9px 0;color:var(--muted)">Primitive rigid bodies use collision-box approximations when a precise mesh collider is unavailable. Terrain and surface patches are edited on the map.</small>
     <div class="drawer-actions"><button id="objectDuplicate">Duplicate</button><button id="objectDelete">Delete</button><button id="objectDeselect">Deselect</button></div>
    </div>
   </section>
@@ -1315,6 +1332,14 @@ input[type=color]:focus-visible{outline:2px solid var(--accent)!important;outlin
    <div class="window-body">
     <div class="scene-tree-toolbar"><input id="sceneTreeSearch" type="search" placeholder="Find cars, parts, objects…" aria-label="Find scene objects"><button type="button" id="sceneTreeNewGroup" title="Create a group">+ Group</button><button type="button" id="sceneTreeRefresh" title="Refresh objects">↻</button></div>
     <small id="sceneTreeSummary" aria-live="polite">Scene hierarchy</small>
+    <div class="scene-tree-bulk" aria-label="Bulk scene object actions">
+      <label class="scene-tree-select-all"><input id="sceneTreeSelectAll" type="checkbox"> All shown</label>
+      <output id="sceneTreeSelectedCount" aria-live="polite">0 selected</output>
+      <select id="sceneTreeDestination" aria-label="Choose existing destination folder" title="Existing scene folders"></select>
+      <button type="button" id="sceneTreeMoveSelected" title="Move selected items to the chosen folder">Move</button>
+      <button type="button" id="sceneTreeDeleteSelected" class="scene-tree-danger" title="Delete selected items after confirmation">Delete</button>
+      <button type="button" id="sceneTreeClearSelected" title="Clear selection">Clear</button>
+    </div>
     <div id="sceneTreeList" role="tree" aria-label="Scene hierarchy"></div>
     <div class="scene-tree-footer"><button type="button" id="sceneTreeFocus">Focus selected</button><button type="button" id="sceneTreeInspect">Inspector</button><button type="button" id="sceneTreeSave">Save vehicle</button></div>
    </div>
@@ -2182,7 +2207,7 @@ let ghostObject=null,ghostSamples=[],ghostElapsed=0,ghostTick=0;
  function appConfirm(message){return showAppDialog('confirm',message)}
  function appPrompt(message,value='',options={}){return showAppDialog('prompt',message,value,options)}
 
- const VERSION='0.3.43';
+ const VERSION='0.3.44';
  document.getElementById('appVersionBadge').textContent='v'+VERSION;
  let imageReference=null,busyAI=false;
 
@@ -10005,6 +10030,54 @@ $('fleetDuplicate').onclick=duplicateActiveFleet;
 // cfg.courseObjects, fleetRecords and the live editableVehicleParts registry.
 const sceneTreeCollapsed=new Set();
 const sceneTreeCarExpanded=new Set();
+// Stable IDs, not list indices; selection survives sorting, folding and searching.
+const sceneTreeBulkSelection=new Set();
+const sceneTreePartSections=new Map();
+const sceneTreeBulkKey=(kind,id)=>kind+':'+id;
+function sceneTreeIsBulkSelected(kind,id){return sceneTreeBulkSelection.has(sceneTreeBulkKey(kind,id));}
+function sceneTreeSetBulkSelection(kind,id,checked){
+ const key=sceneTreeBulkKey(kind,id);checked?sceneTreeBulkSelection.add(key):sceneTreeBulkSelection.delete(key);
+ renderSceneTree();
+}
+function sceneTreeSelectedRecords(){
+ const course=new Map((cfg.courseObjects||[]).map(o=>[o.id,o]));
+ const fleet=new Map(fleetRecords.map(row=>[row.id,row]));
+ const parts=new Map(sceneTreeParts());
+ const selected=[];
+ for(const key of sceneTreeBulkSelection){
+  const sep=key.indexOf(':'),kind=key.slice(0,sep),id=key.slice(sep+1);
+  const item=kind==='course'?course.get(id):kind==='car'?fleet.get(id):kind==='part'?parts.get(id):null;
+  if(item)selected.push({kind,id,item});
+ }
+ return selected;
+}
+function sceneTreeSelectionMatchesSearch(kind,id,name,folder,search){
+ if(!search)return true;
+ return (name+' '+id+' '+folder).toLowerCase().includes(search);
+}
+function sceneTreeUpdateBulkControls(visibleKeys){
+ const selected=sceneTreeSelectedRecords();
+ $('sceneTreeSelectedCount').textContent=selected.length+' selected';
+ const selectAll=$('sceneTreeSelectAll');
+ const shown=[...new Set([...$('sceneTreeList').querySelectorAll('.scene-tree-check')].filter(el=>!el.closest('details:not([open])')).map(el=>el.dataset.bulkKey))];const count=shown.filter(key=>sceneTreeBulkSelection.has(key)).length;
+ selectAll.indeterminate=count>0&&count<shown.length;selectAll.checked=!!shown.length&&count===shown.length;
+ $('sceneTreeMoveSelected').disabled=!selected.length;
+ $('sceneTreeDeleteSelected').disabled=!selected.length;
+ $('sceneTreeClearSelected').disabled=!selected.length;
+ const picker=$('sceneTreeDestination');const before=picker.value;
+ const groups=new Set(['World objects','Vehicles',...(cfg.sceneFolders||[])]);
+ (cfg.courseObjects||[]).forEach(o=>groups.add(sceneFolderPath(sceneObjectGroupName(o))));
+ fleetRecords.forEach(row=>groups.add(sceneFolderPath(row.sceneFolder||'Vehicles')));
+ for(const path of [...groups]){const bits=path.split('/');for(let i=1;i<bits.length;i++)groups.add(bits.slice(0,i).join('/'))}
+ picker.replaceChildren();picker.add(new Option('Move to folder…',''));
+ [...groups].sort((a,b)=>a.localeCompare(b)).forEach(folder=>picker.add(new Option(folder,folder)));
+ picker.value=groups.has(before)?before:'';
+}
+function sceneTreeMoveSingle(kind,id){
+ sceneTreeBulkSelection.clear();sceneTreeBulkSelection.add(sceneTreeBulkKey(kind,id));
+ renderSceneTree();$('sceneTreeDestination').focus();
+ note('Choose an existing folder, then click Move. Create new folders using + Group.');
+}
 let sceneGroupPivot=null,sceneGroupEntries=[],sceneGroupPath='';
 function sceneTreeOpen(){return $('sceneTreeWindow').style.display==='flex'}
 function sceneFolderPath(raw,fallback='World objects'){
@@ -10117,7 +10190,7 @@ function sceneTreeCourseMenu(o){return [
  ['Rename',async()=>{const name=await appPrompt('Rename scene object',o.name||o.kind,{maxLength:80});if(name===null)return;o.name=name.trim().slice(0,80)||o.kind;rememberMapEdit('Rename scene object');renderSceneTree()}],
  [o.hidden?'Show object':'Hide object',()=>{o.hidden=!o.hidden;syncSceneTreeCourseVisibility(o);rememberMapEdit('Object visibility');renderSceneTree()}],
  [o.locked?'Unlock':'Lock',()=>{o.locked=!o.locked;if(o.locked&&selectedCourseId===o.id)selectCourseObject(null);rememberMapEdit('Object lock');renderSceneTree()}],
- ['Move to group',async()=>{const target=await appPrompt('Group name (create new or use existing)',sceneObjectGroupName(o),{maxLength:70});if(target===null)return;const name=target.trim().slice(0,70)||'World objects';o.sceneFolder=name;if(!cfg.sceneFolders.includes(name))cfg.sceneFolders.push(name);rememberMapEdit('Move scene object');renderSceneTree()}],
+ ['Move to group…',()=>sceneTreeMoveSingle('course',o.id)],
  ['Duplicate',()=>{selectCourseObject(o.id);return duplicateSelectedCourse()}],
  ['Delete…',async()=>{if(!await appConfirm('Delete "'+(o.name||o.kind)+'" from this map?'))return;cfg.courseObjects=cfg.courseObjects.filter(x=>x.id!==o.id);if(selectedCourseId===o.id)selectCourseObject(null);rememberMapEdit('Delete scene object');await refreshEnvironmentForMap();renderSceneTree()}]
 ]}
@@ -10132,6 +10205,7 @@ function sceneTreePartMenu(key,root){const rec=root.userData.vehicleSelect,ov=cf
   cfg.partOverrides[key]={...ov,name:name.trim()||rec.label};rec.label=cfg.partOverrides[key].name;scheduleHistory('Name vehicle component');renderSceneTree()}],
  [root.visible?'Hide part':'Show part',()=>{root.visible=!root.visible;writePartOverride(key,root);scheduleHistory('Part visibility');renderSceneTree();updateHighlight()}],
  [ov.locked?'Unlock part':'Lock part',()=>{cfg.partOverrides[key]={...ov,locked:!ov.locked};scheduleHistory('Part lock');renderSceneTree()}],
+ ['Move part to folder…',()=>sceneTreeMoveSingle('part',key)],
  ['Reset part transform',()=>{delete cfg.partOverrides[key];buildVehicle();scheduleHistory('Reset component transform');renderSceneTree()}],
  ['Open material controls',()=>{selectEditableVehiclePart(key);setWindowVisible('paletteWindow',true)}],
  ['Open 3D model library',()=>{setWindowVisible('chassisWindow',true);renderChassisAssets()}],
@@ -10143,7 +10217,7 @@ function sceneTreeCarMenu(row){return [
  ['Rename',async()=>{const name=await appPrompt('Name this vehicle',row.id===activeFleetId?cfg.name:row.config?.name,{maxLength:90});if(name===null)return;
   if(row.id===activeFleetId){cfg.name=name.trim()||cfg.name;$('vehicleName').textContent=cfg.name;row.config.name=cfg.name;}
   else if(row.config)row.config.name=name.trim()||row.config.name;renderFleetList();renderSceneTree();scheduleHistory('Rename vehicle')}],
- ['Move vehicle to group',async()=>{const target=await appPrompt('Move vehicle to group',row.sceneFolder||'Vehicles',{maxLength:70});if(target===null)return;row.sceneFolder=target.trim().slice(0,70)||'Vehicles';if(!cfg.sceneFolders.includes(row.sceneFolder))cfg.sceneFolders.push(row.sceneFolder);renderSceneTree()}],
+ ['Move vehicle to group…',()=>sceneTreeMoveSingle('car',row.id)],
  [row.hidden?'Show vehicle':'Hide vehicle',()=>{row.hidden=!row.hidden;const visual=row.id===activeFleetId?car:row.visual;if(visual)visual.visible=!row.hidden;renderSceneTree()}],
  [row.locked?'Unlock vehicle':'Lock vehicle',()=>{row.locked=!row.locked;renderSceneTree()}],
  ['Show procedural body',async()=>{if(row.id!==activeFleetId)await activateFleetVehicle(row.id);chooseVehicleGeometrySource('procedural')}],
@@ -10154,9 +10228,16 @@ function sceneTreeCarMenu(row){return [
  ['Duplicate vehicle',async()=>{if(row.id!==activeFleetId)await activateFleetVehicle(row.id);duplicateActiveFleet();renderSceneTree()}],
  ['Remove vehicle…',async()=>{if(fleetRecords.length<=1){note('The final vehicle cannot be removed.',true);return}if(!await appConfirm('Remove "'+(row.config?.name||'vehicle')+'" from the scene?'))return;await removeFleetVehicle(row.id);renderSceneTree()}]
 ]}
-function sceneTreeRow(name,icon,selected,muted,choose,actions,hidden,locked,canHide=true){
+function sceneTreeRow(name,icon,selected,muted,choose,actions,hidden,locked,canHide=true,bulkKind='',bulkId=''){
  const row=document.createElement('div');row.className='scene-tree-row'+(selected?' is-selected':'')+(muted?' is-muted':'');
  row.setAttribute('role','treeitem');row.setAttribute('aria-selected',String(selected));
+ if(bulkKind){
+  const check=document.createElement('input');check.type='checkbox';check.className='scene-tree-check';
+  check.setAttribute('aria-label','Select '+name+' for bulk operations');check.dataset.bulkKey=sceneTreeBulkKey(bulkKind,bulkId);check.checked=sceneTreeIsBulkSelected(bulkKind,bulkId);
+  if(check.checked)row.classList.add('is-bulk-selected');
+  check.onclick=e=>e.stopPropagation();check.onchange=e=>{e.stopPropagation();sceneTreeSetBulkSelection(bulkKind,bulkId,e.target.checked)};
+  row.append(check);
+ }
  const glyph=document.createElement('span');glyph.className='scene-tree-icon';glyph.textContent=icon;row.append(glyph);
  row.append(treeButton(name,name,choose,'scene-tree-title'));
  if(canHide)row.append(treeButton(hidden?'◌':'◉',hidden?'Show':'Hide',()=>actions.find(x=>x[0]===(hidden?'Show object':'Hide object'))?.[1]?.()||actions.find(x=>x[0]===(hidden?'Show part':'Hide part'))?.[1]?.()||actions.find(x=>x[0]===(hidden?'Show vehicle':'Hide vehicle'))?.[1]?.() ));
@@ -10170,7 +10251,7 @@ function sceneTreeRow(name,icon,selected,muted,choose,actions,hidden,locked,canH
 function renderSceneTree(){
  const root=$('sceneTreeList');if(!root)return;
  const search=$('sceneTreeSearch').value.trim().toLowerCase(),course=cfg.courseObjects||[],fleet=fleetRecords||[];
- root.replaceChildren();
+ const visibleKeys=[];root.replaceChildren();
  const groupNames=new Set(['Vehicles','World objects',...(cfg.sceneFolders||[])]);
  for(const o of course)groupNames.add(sceneFolderPath(sceneObjectGroupName(o)));
  for(const row of fleet)groupNames.add(sceneFolderPath(row.sceneFolder||'Vehicles'));
@@ -10196,6 +10277,7 @@ function renderSceneTree(){
   if(search&&!name.toLowerCase().includes(search)&&!matchingParts.length)continue;
   const wrapper=document.createElement('div');wrapper.className='scene-tree-car';
   const actions=sceneTreeCarMenu(row);
+  visibleKeys.push(sceneTreeBulkKey('car',row.id));
   const expanded=sceneTreeCarExpanded.has(row.id)||(fleet.length===1&&!sceneTreeCollapsed.has('car:'+row.id));
   const header=document.createElement('div');header.className='scene-tree-car-head';
   header.append(treeButton((expanded?'▾':'▸'),expanded?'Collapse vehicle components':'Expand vehicle components',()=>{
@@ -10204,15 +10286,33 @@ function renderSceneTree(){
    renderSceneTree();
   },'scene-tree-car-toggle'));
   header.append(sceneTreeRow(name+(row.id===activeFleetId?' · active':''),'🚘',selectedSceneItem?.kind==='car'&&row.id===activeFleetId,row.hidden,
-   async()=>{if(row.locked)return;if(row.id!==activeFleetId)await activateFleetVehicle(row.id);selectSceneTreeVehicle()},actions,!!row.hidden,!!row.locked));
+   async()=>{if(row.locked)return;if(row.id!==activeFleetId)await activateFleetVehicle(row.id);selectSceneTreeVehicle()},actions,!!row.hidden,!!row.locked,true,'car',row.id));
   wrapper.append(header);
   if(expanded&&row.id===activeFleetId&&parts.length){
    const children=document.createElement('div');children.className='scene-tree-children';
+   const categories=new Map();
+   const kindOf=key=>key.startsWith('seat:')||key.startsWith('avatar:')||['dashboard','steering','instrument-panel'].includes(key)?'Cabin · seats · passengers':
+    key.startsWith('wheel:')||key.startsWith('lamp:')?'Wheels · lighting':
+    'Body · windows · trim';
    for(const [key,part] of parts){
-    if(search&&!name.toLowerCase().includes(search)&&!((key+' '+part.userData.vehicleSelect.label).toLowerCase().includes(search)))continue;
-    const override=cfg.partOverrides?.[key]||{},partActions=sceneTreePartMenu(key,part);
-    children.append(sceneTreeRow(part.userData.vehicleSelect.label,'◈',selectedSceneItem?.kind==='part'&&selectedSceneItem.key===key,!part.visible,
-     ()=>{if(override.locked){note('Unlock this part before editing.',true);return}selectSceneTreePart(key)},partActions,!part.visible,!!override.locked));
+    const override=cfg.partOverrides?.[key]||{},label=part.userData.vehicleSelect.label;
+    const group=override.sceneFolder||kindOf(key);
+    if(search&&!sceneTreeSelectionMatchesSearch('part',key,label,group,search)&&!name.toLowerCase().includes(search))continue;
+    visibleKeys.push(sceneTreeBulkKey('part',key));
+    if(!categories.has(group))categories.set(group,[]);
+    const partActions=sceneTreePartMenu(key,part);
+    categories.get(group).push(sceneTreeRow(label,'◈',selectedSceneItem?.kind==='part'&&selectedSceneItem.key===key,!part.visible,
+     ()=>{if(override.locked){note('Unlock this part before editing.',true);return}selectSceneTreePart(key)},partActions,!part.visible,!!override.locked,true,'part',key));
+   }
+   for(const [category,rows] of categories){
+    const details=document.createElement('details');details.className='scene-tree-part-group';
+    const groupKey=row.id+'|'+category;
+    details.open=search?true:!sceneTreePartSections.has(groupKey)||sceneTreePartSections.get(groupKey);
+    details.ontoggle=()=>sceneTreePartSections.set(groupKey,details.open);
+    const summary=document.createElement('summary');summary.textContent=category+' · '+rows.length;
+    details.append(summary);
+    const inner=document.createElement('div');inner.className='scene-tree-children';rows.forEach(child=>inner.append(child));
+    details.append(inner);children.append(details);
    }
    wrapper.append(children);
   }
@@ -10222,7 +10322,8 @@ function renderSceneTree(){
   const name=o.name||o.kind,folder=sceneFolderPath(sceneObjectGroupName(o));
   if(search&&!name.toLowerCase().includes(search)&&!folder.toLowerCase().includes(search))continue;
   pushRow(folder,sceneTreeRow(name,'◇',selectedSceneItem?.kind==='course'&&selectedSceneItem.id===o.id,!!o.hidden,
-   ()=>{if(o.locked){note('Unlock this object first.',true);return}selectCourseObject(o.id,true)},sceneTreeCourseMenu(o),!!o.hidden,!!o.locked));
+   ()=>{if(o.locked){note('Unlock this object first.',true);return}selectCourseObject(o.id,true)},sceneTreeCourseMenu(o),!!o.hidden,!!o.locked,true,'course',o.id));
+  visibleKeys.push(sceneTreeBulkKey('course',o.id));
  }
  function renderFolder(path){
   const children=(folderChildren.get(path)||[]).map(renderFolder).filter(Boolean);
@@ -10275,10 +10376,60 @@ function renderSceneTree(){
  }
  for(const path of folderChildren.get('')||[]){const section=renderFolder(path);if(section)root.append(section)}
  $('sceneTreeSummary').textContent=fleet.length+' vehicles · '+course.length+' world objects · '+sceneTreeParts().length+' editable parts';
+ sceneTreeUpdateBulkControls(visibleKeys);
  if(!root.children.length)root.textContent='No matching objects';
 }
 $('sceneTreeSearch').addEventListener('input',renderSceneTree);
 $('sceneTreeRefresh').onclick=renderSceneTree;
+$('sceneTreeSelectAll').onchange=e=>{
+ const keys=[...$('sceneTreeList').querySelectorAll('.scene-tree-check')]
+  .filter(el=>!el.closest('details:not([open])')).map(el=>el.dataset.bulkKey);
+ // Only currently visible, expanded rows are affected.
+ for(const key of keys)e.target.checked?sceneTreeBulkSelection.add(key):sceneTreeBulkSelection.delete(key);
+ renderSceneTree();
+};
+$('sceneTreeClearSelected').onclick=()=>{sceneTreeBulkSelection.clear();renderSceneTree()};
+$('sceneTreeMoveSelected').onclick=()=>{
+ const destination=$('sceneTreeDestination').value;
+ if(!destination){note('Choose an existing destination folder first.',true);$('sceneTreeDestination').focus();return}
+ const selected=sceneTreeSelectedRecords();if(!selected.length)return;
+ if(sceneGroupPivot)clearSceneGroupPivot();
+ let worldChanged=false,partChanged=false;
+ for(const {kind,id,item} of selected){
+  if(kind==='course'){item.sceneFolder=destination;worldChanged=true}
+  if(kind==='car'){item.sceneFolder=destination;worldChanged=true}
+  if(kind==='part'){cfg.partOverrides=cfg.partOverrides||{};cfg.partOverrides[id]={...(cfg.partOverrides[id]||{}),sceneFolder:destination};partChanged=true}
+ }
+ if(worldChanged)rememberMapEdit('Move selected scene objects to group');
+ if(partChanged)scheduleHistory('Group vehicle components');
+ sceneTreeBulkSelection.clear();
+ renderSceneTree();note(selected.length+' item(s) moved to '+destination+'. Save map / vehicle to preserve changes.');
+};
+$('sceneTreeDeleteSelected').onclick=()=>void(async()=>{
+ const selected=sceneTreeSelectedRecords();if(!selected.length)return;
+ const vehicleDeletes=selected.filter(entry=>entry.kind==='car');
+ if(vehicleDeletes.length>=fleetRecords.length){note('At least one vehicle must remain in the scene. Deselect a vehicle.',true);return}
+ const courseDeletes=selected.filter(entry=>entry.kind==='course');
+ const partDeletes=selected.filter(entry=>entry.kind==='part');
+ const message='Delete '+courseDeletes.length+' world object(s) and '+vehicleDeletes.length+' vehicle(s)? '+
+  (partDeletes.length?'The '+partDeletes.length+' procedural vehicle part(s) will be hidden, not permanently destroyed. ':'')+
+  'This changes the current scene only; cloud maps/cars are not deleted.';
+ if(!await appConfirm(message))return;
+ if(sceneGroupPivot)clearSceneGroupPivot();
+ const ids=new Set(courseDeletes.map(e=>e.id));
+ if(ids.size){cfg.courseObjects=cfg.courseObjects.filter(o=>!ids.has(o.id));if(ids.has(selectedCourseId))selectCourseObject(null)}
+ // Hide selected active-vehicle parts BEFORE activating or removing another car.
+ // Otherwise an active-car switch would write their overrides into the wrong blueprint.
+ for(const {id,item} of partDeletes){
+  item.visible=false;writePartOverride(id,item);
+ }
+ if(partDeletes.length)scheduleHistory('Hide selected procedural parts');
+ // Reuse established fleet deletion and activation logic, never clear the entire fleet.
+ for(const {id} of vehicleDeletes)await removeFleetVehicle(id);
+ if(courseDeletes.length||vehicleDeletes.length){rememberMapEdit('Bulk delete scene objects');if(courseDeletes.length)await refreshEnvironmentForMap()}
+ sceneTreeBulkSelection.clear();selectedSceneItem=null;renderSceneTree();
+ note('Selected scene items updated. Save map / vehicle to preserve changes.');
+})().catch(error=>note('Bulk deletion failed: '+error.message,true));
 $('sceneTreeNewGroup').onclick=()=>void(async()=>{
  const label=await appPrompt('New group (use Parent/Subfolder for nesting)','New group',{maxLength:70});if(!label)return;
  const group=sceneFolderPath(label);if(!group)return;
@@ -10505,6 +10656,7 @@ $('galleryRefreshBtn').onclick=()=>{gallerySource='public';setWindowVisible('gal
 $('layoutPublic').onchange=()=>{serverVisibility=$('layoutPublic').checked?'public':'private'};
 
 const RELEASE_NOTES=[
+ {v:'0.3.44',date:'2026-11-12',title:'Scene Objects bulk actions and grouped vehicle interiors',items:['Select multiple scene objects with checkboxes, move them to existing groups from a real dropdown, or delete with confirmation.', 'Vehicle components are grouped by cabin, body, wheels and lighting; seats, passengers, steering and dashboard are easier to find.', 'Object Inspector shared transform slider now sits after the transform fields.']},
  {v:'0.3.43',date:'2026-11-12',title:'Universal transform slider and nested scene object groups',items:['The Object Inspector uses one adaptive range slider for all vehicle-part and world-object position, rotation and scale fields. Select a numeric field to bind the same slider; drag to adjust its value live.', 'Each vehicle has its own collapsible parts branch; scene groups may contain nested subfolders using Parent/Subfolder paths.', 'Select a folder to move, rotate or scale its contained scene objects as a group with the inspector or Three.js transform gizmo.']},
  {v:'0.3.42',date:'2026-11-11',title:'Scene objects hierarchy and publishing improvements',items:['New searchable Scene objects outliner organizes vehicles, editable vehicle parts and world objects with visibility, lock, rename, group and safe delete controls.', 'Vehicle components can be inspected and transformed with the 3D gizmo, with adjustments stored in the vehicle blueprint.', 'Publishing uses visible per-item checkboxes and a sticky confirm footer rather than hard-to-use multi-select lists.']},
  {v:'0.3.41',date:'2026-11-11',title:'Vector chassis precision and hollow cabin',items:['Wheel arch outlines use the same circular sampling for 2D drafting and 3D geometry.', 'Selected vector parts support Shift+D and Ctrl/Cmd+C/V duplication; collapsing Properties removes the entire sidebar.', 'Top/bottom show car footprint, roof, wheel and axle guides; the body is generated with separate side skins, glass openings and an open interior instead of a solid slab.']},

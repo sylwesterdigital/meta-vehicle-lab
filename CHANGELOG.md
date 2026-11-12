@@ -1,3 +1,10 @@
+## v0.3.44 — November 12, 2026
+- Scene Objects supports multi-selection checkboxes, select all visible items, bulk move to an existing folder, and confirmed bulk delete. The target is always selected from real existing folders, including subfolders, rather than entered as a prompt.
+- Procedural vehicle parts deleted in bulk are hidden reversibly (original generator data retained), and at least one vehicle must remain.
+- Vehicle components are grouped in collapsible Body/Windows/Trim, Wheels/Lighting, and Cabin/Seats/Passengers sections; existing per-part IDs and transforms are retained.
+- Object Inspector shared slider moves below the transform/physics controls.
+- No database migration, cloud deletion, or new server dependency.
+
 ## v0.3.43 — November 12, 2026
 - Restore a single adaptive Object Inspector slider for all selected vehicle-component and world-object transform values. Clicking X/Y/Z position, rotation or scale selects that one slider; drag updates the selected mesh live, and releasing commits edit history. Existing precise numeric input remains available.
 - Give each vehicle a separate independently collapsible branch in Scene Objects. Nested groups use slash-separated paths, and parent groups show their descendants.

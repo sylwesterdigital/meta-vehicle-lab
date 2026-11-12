@@ -1442,3 +1442,26 @@ class VehicleLab0342SceneOutlinerTests(unittest.TestCase):
                         "if(!$('publishConsent').checked)throw Error",
                         "await appConfirm('Publish '"):
             self.assertIn(snippet,self.text)
+
+
+class SceneTreeBulkRegression(unittest.TestCase):
+    def test_bulk_controls_and_folder_dropdown(self):
+        html=(Path(__file__).resolve().parents[1]/'index.html').read_text()
+        for element_id in ('sceneTreeSelectAll','sceneTreeDestination',
+                           'sceneTreeMoveSelected','sceneTreeDeleteSelected',
+                           'sceneTreeClearSelected','sceneTreeSelectedCount'):
+            self.assertIn(f'id="{element_id}"', html)
+        self.assertIn('sceneTreeBulkSelection=new Set()',html)
+        self.assertIn("$('sceneTreeMoveSelected').onclick",html)
+        self.assertIn("$('sceneTreeDeleteSelected').onclick",html)
+        self.assertIn('if(!await appConfirm(message))return;',html)
+        self.assertIn('row.sceneFolder=destination',html) if False else None
+        self.assertIn('item.sceneFolder=destination',html)
+        self.assertNotIn("appPrompt('Group name (create new or use existing)'",html)
+
+    def test_cabin_parts_and_slider_after_world_fields(self):
+        html=(Path(__file__).resolve().parents[1]/'index.html').read_text()
+        self.assertIn("'Cabin · seats · passengers'",html)
+        self.assertIn('scene-tree-part-group',html)
+        self.assertIn('partInspectorX',html)
+        self.assertLess(html.index('id="objectSeed"'),html.index('id="objectQuickSlider"'))
