@@ -5,7 +5,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Vehicle Lab — Procedural Studio</title>
-  <meta name="vehicle-lab-version" content="0.3.45">
+  <meta name="vehicle-lab-version" content="0.3.46">
   <style>
     :root {
       color-scheme:dark;
@@ -1122,7 +1122,7 @@ input[type=color]:focus-visible{outline:2px solid var(--accent)!important;outlin
 
   <div id="stage">
   <div id="hud">
-    <div class="stage-badge"><strong>Vehicle Lab</strong><small id="appVersionBadge">v0.3.45</small></div>
+    <div class="stage-badge"><strong>Vehicle Lab</strong><small id="appVersionBadge">v0.3.46</small></div>
     <p id="vehicleName">City Car</p><p id="vehicleInfo">Procedural vehicle</p>
     <div id="speedHud"><strong id="speed">0</strong><div>km/h</div></div>
     <div id="cameraModeReadout" style="padding:3px 6px;margin-top:4px;width:max-content;max-width:260px;border-radius:5px;background:#132d3cc0;color:#e9f5fc;font:10px ui-monospace,monospace">Camera · Orbit follow</div>
@@ -1441,7 +1441,7 @@ input[type=color]:focus-visible{outline:2px solid var(--accent)!important;outlin
           <button type="button" id="chassisUpload">Upload image</button>
           <button type="button" id="chassisReferenceDownload">Download</button>
           <button type="button" id="chassisReferenceClear" title="Remove the current reference">Clear</button>
-          <button id="chassisCapture" type="button" hidden>Capture 3/4 shell</button>
+          <button id="chassisCapture" type="button" hidden>Capture left side</button>
         </div>
         <button id="chassisImagePreviewButton" type="button" title="Open the selected reference at full size"><img id="chassisImagePreview" alt="Current studio capture or generated concept" hidden><span id="chassisImageEmpty">Capture a reference to begin</span></button>
         <div id="chassisShotStrip" class="chassis-shot-strip" aria-label="Studio camera angles"></div>
@@ -2217,7 +2217,7 @@ let ghostObject=null,ghostSamples=[],ghostElapsed=0,ghostTick=0;
  function appConfirm(message){return showAppDialog('confirm',message)}
  function appPrompt(message,value='',options={}){return showAppDialog('prompt',message,value,options)}
 
- const VERSION='0.3.45';
+ const VERSION='0.3.46';
  document.getElementById('appVersionBadge').textContent='v'+VERSION;
  let imageReference=null,busyAI=false;
 
@@ -6244,35 +6244,96 @@ function studioRGBADepth(pixels,index){
  // Three.js RGBADepthPacking stores the least significant component in red.
  return pixels[index]/(255*256*256*256)+pixels[index+1]/(255*256*256)+pixels[index+2]/(255*256)+pixels[index+3]/255;
 }
-function studioOutlineImage(colour,normal,depth,width,height,style){
- const result=new Uint8ClampedArray(width*height*4);
- const isTechnical=style==='technical';
- // Small depth/normal discontinuities draw seams; silhouette discontinuities
- // make the full contour. Work only on capture pixels, never inside the frame loop.
+// The studio mask is black for real vehicle pixels and white for the backdrop.
+// Do not infer occupancy from the alpha of a normal/depth render target: on
+// some GPUs its clear alpha is opaque, which formerly produced solid black cars.
+function studioMaskOccupied(mask,index){
+ return mask[index]<150&&mask[index+1]<150&&mask[index+2]<150;
+}
+function studioOutlineImage(colour,normal,depth,width,height,style,mask=null){
+ const result=new Uint8ClampedArray(width*height*4),technical=style==='technical';
+ const belongs=i=>mask?studioMaskOccupied(mask,i):normal[i+3]>=128;
  for(let y=0;y<height;y++)for(let x=0;x<width;x++){
-  const k=y*width+x,i=k*4,occupied=normal[i+3]>=128;
-  const edgeThreshold=.045,depthThreshold=.00048;
-  let outline=false;
+  const i=(y*width+x)*4,occupied=belongs(i);
+  let edge=false;
   if(occupied){
    for(const [dx,dy] of [[-1,0],[1,0],[0,-1],[0,1]]){
     const nx=x+dx,ny=y+dy;
-    if(nx<0||nx>=width||ny<0||ny>=height){outline=true;break}
+    if(nx<0||nx>=width||ny<0||ny>=height){edge=true;break}
     const ni=(ny*width+nx)*4;
-    if(normal[ni+3]<128){outline=true;break}
-    const difference=(Math.abs(normal[i]-normal[ni])+Math.abs(normal[i+1]-normal[ni+1])+Math.abs(normal[i+2]-normal[ni+2]))/765;
-    if(difference>edgeThreshold||Math.abs(studioRGBADepth(depth,i)-studioRGBADepth(depth,ni))>depthThreshold){outline=true;break}
+    if(!belongs(ni)){edge=true;break}
+    // A real seam creates a sharp normal or depth discontinuity. Use a
+    // conservative threshold to avoid painting a smoothly shaded surface black.
+    const nd=Math.max(Math.abs(normal[i]-normal[ni]),Math.abs(normal[i+1]-normal[ni+1]),
+     Math.abs(normal[i+2]-normal[ni+2]))/255;
+    if(nd>.18||Math.abs(studioRGBADepth(depth,i)-studioRGBADepth(depth,ni))>.002){edge=true;break}
    }
   }
-  if(isTechnical){
-   const value=outline?0:255;
-   result[i]=result[i+1]=result[i+2]=value;
-  }else if(outline){result[i]=result[i+1]=result[i+2]=12;}
-  else {result[i]=colour[i];result[i+1]=colour[i+1];result[i+2]=colour[i+2];}
+  if(technical){const value=edge?0:255;result[i]=result[i+1]=result[i+2]=value}
+  else if(edge){result[i]=result[i+1]=result[i+2]=12}
+  else {result[i]=colour[i];result[i+1]=colour[i+1];result[i+2]=colour[i+2]}
   result[i+3]=255;
  }
  return result;
 }
-function captureChassisStudioShot({includeWheels=false,label='Studio body shell · 3/4',direction=[.9,.58,1.05],activate=true,style=$('chassisCaptureStyle')?.value||'colour'}={}){
+// Capture axes are in the CAR's local coordinates: +Z is its front, +Y is up.
+// No 3/4 aliases or almost-top camera vectors: each view is truly orthogonal.
+const CHASSIS_STUDIO_VIEWS=[
+ {label:'Left side',direction:[-1,0,0],up:[0,1,0]},
+ {label:'Right side',direction:[1,0,0],up:[0,1,0]},
+ {label:'Front',direction:[0,0,1],up:[0,1,0]},
+ {label:'Rear',direction:[0,0,-1],up:[0,1,0]},
+ {label:'Top',direction:[0,1,0],up:[0,0,1]},
+ {label:'Bottom',direction:[0,-1,0],up:[0,0,1]}
+];
+function studioCaptureExterior(shell,includeWheels){
+ // Copy the actual active body source, not merely the old procedural root.
+ // The source geometry is shared; its transforms and materials are not mutated.
+ car.updateMatrixWorld(true);
+ const bodySource=vectorRoot?.visible?vectorRoot:importedShell?.visible?importedShell:bodyRoot;
+ if(!bodySource)throw Error('No visible car body to capture.');
+ const bodyClone=bodySource.clone(true);bodyClone.visible=true;shell.add(bodyClone);
+ // Lamps and other independent exterior geometry are direct children of car.
+ // Exclude the cabin/passenger group and procedural wheels from the body shot.
+ for(const node of car.children){
+  if(node===bodyRoot||node===vectorRoot||node===importedShell||node===passengersGroup||
+     wheels.includes(node)||!node.visible)continue;
+  shell.add(node.clone(true));
+ }
+ if(includeWheels){
+  const toLocal=new THREE.Matrix4().copy(car.matrixWorld).invert();
+  for(const original of wheels){
+   if(!original.visible)continue;
+   original.updateWorldMatrix(true,true);
+   const copy=original.clone(true);
+   const matrix=new THREE.Matrix4().multiplyMatrices(toLocal,original.matrixWorld);
+   matrix.decompose(copy.position,copy.quaternion,copy.scale);
+   shell.add(copy);
+  }
+ }
+ shell.updateMatrixWorld(true);
+}
+// All framing is computed in 3-D using the projected bounds of every visible
+// captured part. Never crop/zoom a completed raster image: that discarded wheels,
+// bumpers and sometimes half of the body in previous releases.
+function studioFrameCamera(cam,bounds,direction,up,aspect){
+ const size=bounds.getSize(new THREE.Vector3()),centre=bounds.getCenter(new THREE.Vector3());
+ const diagonal=Math.max(1,size.length());
+ cam.up.set(...up);
+ cam.position.copy(new THREE.Vector3(...direction).normalize()).multiplyScalar(Math.max(30,diagonal*3)).add(centre);
+ cam.lookAt(centre);cam.updateMatrixWorld(true);
+ const corners=[];
+ for(const x of [bounds.min.x,bounds.max.x])for(const y of [bounds.min.y,bounds.max.y])
+  for(const z of [bounds.min.z,bounds.max.z])corners.push(new THREE.Vector3(x,y,z).applyMatrix4(cam.matrixWorldInverse));
+ const minX=Math.min(...corners.map(v=>v.x)),maxX=Math.max(...corners.map(v=>v.x));
+ const minY=Math.min(...corners.map(v=>v.y)),maxY=Math.max(...corners.map(v=>v.y));
+ const cx=(minX+maxX)/2,cy=(minY+maxY)/2,margin=.73;
+ const w=Math.max(.5,(maxX-minX)/margin,(maxY-minY)*aspect/margin),h=w/aspect;
+ cam.left=cx-w/2;cam.right=cx+w/2;cam.top=cy+h/2;cam.bottom=cy-h/2;
+ cam.updateProjectionMatrix();
+}
+function captureChassisStudioShot({includeWheels=false,label='Left side',direction=[-1,0,0],up=[0,1,0],activate=true,
+ style=$('chassisCaptureStyle')?.value||'colour'}={}){
  if(!car||!bodyRoot)throw Error('Build a vehicle before taking its reference.');
  const clean=new THREE.Scene();clean.background=new THREE.Color('#ffffff');
  clean.add(new THREE.HemisphereLight(0xffffff,0x8e9daa,3.8));
@@ -6280,88 +6341,53 @@ function captureChassisStudioShot({includeWheels=false,label='Studio body shell 
   const light=new THREE.PointLight(0xffffff,power,0,1.4);light.position.set(x,y,z);clean.add(light);
  }
  const shell=new THREE.Group();clean.add(shell);
- if(!bodyRoot.visible&&modelSource){
-  for(const child of car.children){if(child.userData.externalModel)shell.add(child.clone(true));}
- }else{
-  const clone=bodyRoot.clone(true);clone.visible=true;shell.add(clone);
- }
- if(includeWheels)for(const original of wheels){
-  const clone=original.clone(true);
-  if(original.parent===scene){
-   const local=car.worldToLocal(original.getWorldPosition(new THREE.Vector3()));
-   clone.position.copy(local);clone.quaternion.copy(car.quaternion).invert().multiply(original.getWorldQuaternion(new THREE.Quaternion()));
-  }
-  shell.add(clone);
- }
- shell.updateMatrixWorld(true);
+ studioCaptureExterior(shell,includeWheels);
  const bbox=new THREE.Box3().setFromObject(shell);
- if(bbox.isEmpty())throw Error('No vehicle geometry for reference capture');
+ if(bbox.isEmpty())throw Error('No visible vehicle geometry for reference capture.');
  shell.position.sub(bbox.getCenter(new THREE.Vector3()));shell.updateMatrixWorld(true);
  const bounds=new THREE.Box3().setFromObject(shell),size=bounds.getSize(new THREE.Vector3());
- const diagonal=Math.max(1,size.length());
- const width=1024,height=704,aspect=width/height,margin=.82;
- const cam=new THREE.OrthographicCamera(-1,1,1,-1,.1,Math.max(250,diagonal*12));
- const shotDirection=new THREE.Vector3(...direction).normalize();
- cam.position.copy(shotDirection).multiplyScalar(Math.max(30,diagonal*3));cam.lookAt(0,0,0);cam.updateMatrixWorld(true);
- const projected=[];
- for(const x of [bounds.min.x,bounds.max.x])for(const y of [bounds.min.y,bounds.max.y])
-  for(const z of [bounds.min.z,bounds.max.z])projected.push(new THREE.Vector3(x,y,z).applyMatrix4(cam.matrixWorldInverse));
- const minX=Math.min(...projected.map(v=>v.x)),maxX=Math.max(...projected.map(v=>v.x));
- const minY=Math.min(...projected.map(v=>v.y)),maxY=Math.max(...projected.map(v=>v.y));
- // Centre the projected bounds, NOT world 0. This also handles imported GLB
- // origins that are far from the visual shell and camera roll in top views.
- const cx=(minX+maxX)/2,cy=(minY+maxY)/2;
- const viewW=Math.max(.5,(maxX-minX)/margin,(maxY-minY)*aspect/margin),viewH=viewW/aspect;
- cam.left=cx-viewW/2;cam.right=cx+viewW/2;cam.top=cy+viewH/2;cam.bottom=cy-viewH/2;
- cam.updateProjectionMatrix();
+ const width=1024,height=704,aspect=width/height;
+ const cam=new THREE.OrthographicCamera(-1,1,1,-1,.1,Math.max(250,size.length()*12));
+ studioFrameCamera(cam,bounds,direction,up,aspect);
  const rt=new THREE.WebGLRenderTarget(width,height,{depthBuffer:true});
  const oldTarget=renderer.getRenderTarget(),oldViewport=renderer.getViewport(new THREE.Vector4());
  const oldScissor=renderer.getScissor(new THREE.Vector4()),oldScissorTest=renderer.getScissorTest();
  const oldClear=renderer.getClearColor(new THREE.Color()).clone(),oldAlpha=renderer.getClearAlpha();
  const oldExposure=renderer.toneMappingExposure,oldAutoClear=renderer.autoClear;
- const pixels=new Uint8Array(width*height*4),normal=new Uint8Array(width*height*4);
- const depth=style!=='colour'?new Uint8Array(width*height*4):null;
- const normalMat=new THREE.MeshNormalMaterial({side:THREE.DoubleSide});
- const depthMat=style!=='colour'?new THREE.MeshDepthMaterial({depthPacking:THREE.RGBADepthPacking,side:THREE.DoubleSide}):null;
- function readPass(target,transparent=false){
-  clean.overrideMaterial=target;
+ const needsEdges=style!=='colour';
+ const normalMat=needsEdges?new THREE.MeshNormalMaterial({side:THREE.DoubleSide}):null;
+ const depthMat=needsEdges?new THREE.MeshDepthMaterial({depthPacking:THREE.RGBADepthPacking,side:THREE.DoubleSide}):null;
+ const maskMat=needsEdges?new THREE.MeshBasicMaterial({color:0,side:THREE.DoubleSide}):null;
+ function readPass(material,transparent=false){
+  clean.overrideMaterial=material;
   clean.background=transparent?null:new THREE.Color('#ffffff');
   renderer.setClearColor('#ffffff',transparent?0:1);
   renderer.clear(true,true,true);renderer.render(clean,cam);
-  const raw=new Uint8Array(width*height*4);
+  const raw=new Uint8Array(width*height*4),flip=new Uint8Array(width*height*4),stride=width*4;
   renderer.readRenderTargetPixels(rt,0,0,width,height,raw);
-  const flip=new Uint8Array(raw.length),stride=width*4;
   for(let y=0;y<height;y++)flip.set(raw.subarray((height-y-1)*stride,(height-y)*stride),y*stride);
   return flip;
  }
  try{
   renderer.autoClear=true;renderer.toneMappingExposure=1.1;
   renderer.setRenderTarget(rt);renderer.setScissorTest(false);renderer.setViewport(0,0,width,height);
-  pixels.set(readPass(null));
-  normal.set(readPass(normalMat,true));
-  if(depth)depth.set(readPass(depthMat,true));
-  const box=studioContentBounds(normal,width,height);
-  if(!box)throw Error('Studio capture contains no visible car geometry.');
-  const source=style==='colour'?new Uint8ClampedArray(pixels):studioOutlineImage(pixels,normal,depth,width,height,style);
-  const rawCanvas=document.createElement('canvas');rawCanvas.width=width;rawCanvas.height=height;
-  rawCanvas.getContext('2d').putImageData(new ImageData(source,width,height),0,0);
-  // Pixel fitting is a second safety net for imported models with stray or
-  // invisible geometry that makes their 3D bounding boxes misleading.
-  const pad=.085;
-  const rawW=Math.max(1,box.maxX-box.minX+1),rawH=Math.max(1,box.maxY-box.minY+1);
-  const cropW=Math.min(width,Math.max(rawW*(1+pad*2),rawH*aspect*(1+pad*2)));
-  const cropH=cropW/aspect;
-  let left=(box.minX+box.maxX-cropW)/2,top=(box.minY+box.maxY-cropH)/2;
-  // Preserve geometry: when the crop would cross the source boundary, keep the
-  // white padding in the destination rather than cut any part off.
+  const colour=readPass(null);
+  let pixels=colour;
+  if(needsEdges){
+   const normal=readPass(normalMat,true),depth=readPass(depthMat,true),mask=readPass(maskMat);
+   let occupied=false;for(let i=0;i<mask.length;i+=4)if(studioMaskOccupied(mask,i)){occupied=true;break}
+   if(!occupied)throw Error('Studio outline capture is empty.');
+   pixels=studioOutlineImage(colour,normal,depth,width,height,style,mask);
+  }
   const output=document.createElement('canvas');output.width=width;output.height=height;
-  const ctx=output.getContext('2d',{alpha:false});ctx.fillStyle='#ffffff';ctx.fillRect(0,0,width,height);
-  ctx.drawImage(rawCanvas,-left*width/cropW,-top*height/cropH,width*width/cropW,height*height/cropH);
-  const data=output.toDataURL('image/jpeg',style==='technical'?.92:.89);
-  if(activate){imageReference=data;updateLuxReferencePreview(label);$('referenceImage').src=data;note((includeWheels?'Full vehicle':'Chassis-only')+' studio image captured.');}
+  const ctx=output.getContext('2d',{alpha:false});
+  ctx.putImageData(new ImageData(new Uint8ClampedArray(pixels),width,height),0,0);
+  const data=output.toDataURL('image/jpeg',style==='technical'?.93:.90);
+  if(activate){imageReference=data;updateLuxReferencePreview(label);$('referenceImage').src=data;
+   note((includeWheels?'Full vehicle':'Body-only')+' · '+label+' studio capture ready.');}
   return data;
  }finally{
-  clean.overrideMaterial=null;normalMat.dispose();depthMat?.dispose();rt.dispose();
+  clean.overrideMaterial=null;normalMat?.dispose();depthMat?.dispose();maskMat?.dispose();rt.dispose();
   renderer.toneMappingExposure=oldExposure;renderer.autoClear=oldAutoClear;
   renderer.setRenderTarget(oldTarget);renderer.setViewport(oldViewport);
   renderer.setScissor(oldScissor);renderer.setScissorTest(oldScissorTest);
@@ -6369,20 +6395,20 @@ function captureChassisStudioShot({includeWheels=false,label='Studio body shell 
  }
 }
 function captureChassisReference(includeWheels=false){
- const label=includeWheels?'Studio complete car · 3/4':'Studio body shell · 3/4 (no tyres, avatars, terrain)';
- const data=captureChassisStudioShot({includeWheels,label,activate:true});
- chassisReferenceShots=[{label:includeWheels?'Full car · 3/4':'Shell · 3/4',data,mode:includeWheels?'full':'shell'}];
+ const view=CHASSIS_STUDIO_VIEWS[0];
+ const data=captureChassisStudioShot({...view,includeWheels,activate:true});
+ chassisReferenceShots=[{label:view.label,data,mode:includeWheels?'full':'shell'}];
  return data;
 }
 let chassisLastCaptureWithWheels=false;
 function captureChassisReferenceSet(includeWheels=false){
  chassisConceptImage=null;chassisLastCaptureWithWheels=includeWheels;
- const presets=CHASSIS_CAPTURE_PRESETS.filter(item=>item.mode==='shell');
- chassisReferenceShots=presets.map(preset=>({
-  label:preset.label,mode:includeWheels?'full':'shell',
-  data:captureChassisStudioShot({includeWheels,label:preset.label,direction:preset.direction,activate:false})
+ chassisReferenceShots=CHASSIS_STUDIO_VIEWS.map(view=>({
+  label:view.label,mode:includeWheels?'full':'shell',
+  data:captureChassisStudioShot({...view,includeWheels,activate:false})
  }));
- if(chassisReferenceShots[0])setActiveChassisReference(chassisReferenceShots[0].data,(includeWheels?'Full-car':'Shell-only')+' studio capture set ready.');
+ if(chassisReferenceShots[0])setActiveChassisReference(chassisReferenceShots[0].data,
+  (includeWheels?'Full-car':'Body-only')+' orthographic views ready. Choose a view below.');
  renderChassisShotStrip();
  return chassisReferenceShots;
 }
@@ -10748,6 +10774,7 @@ $('galleryRefreshBtn').onclick=()=>{gallerySource='public';setWindowVisible('gal
 $('layoutPublic').onchange=()=>{serverVisibility=$('layoutPublic').checked?'public':'private'};
 
 const RELEASE_NOTES=[
+ {v:'0.3.46',date:'2026-11-12',title:'Uncropped true orthographic studio captures',items:['Capture six exact axis-aligned views: left, right, front, rear, top and bottom; +Z is vehicle front and top view keeps the hood pointing up.', '3D projected bounds include the complete active body, wheels (when requested), and exterior lights; removed destructive pixel-crop zoom.', 'Technical black-on-white passes use a dedicated occupancy mask to avoid filling entire vehicle surfaces black.']},
  {v:'0.3.45',date:'2026-11-12',title:'Framed body studio shots and technical outline references',items:['Body Studio auto-fits each shot around the visible car pixels and recentres every angle without cutting off geometry.', 'Three reference styles: original materials, materials with outlines, and black lines on white.', 'Outline styles use offscreen surface-normal and depth passes, without changing live materials, saved maps or the 3D scene.']},
  {v:'0.3.44',date:'2026-11-12',title:'Scene Objects bulk actions and grouped vehicle interiors',items:['Select multiple scene objects with checkboxes, move them to existing groups from a real dropdown, or delete with confirmation.', 'Vehicle components are grouped by cabin, body, wheels and lighting; seats, passengers, steering and dashboard are easier to find.', 'Object Inspector shared transform slider now sits after the transform fields.']},
  {v:'0.3.43',date:'2026-11-12',title:'Universal transform slider and nested scene object groups',items:['The Object Inspector uses one adaptive range slider for all vehicle-part and world-object position, rotation and scale fields. Select a numeric field to bind the same slider; drag to adjust its value live.', 'Each vehicle has its own collapsible parts branch; scene groups may contain nested subfolders using Parent/Subfolder paths.', 'Select a folder to move, rotate or scale its contained scene objects as a group with the inspector or Three.js transform gizmo.']},
@@ -11489,13 +11516,6 @@ const chassisDesigns={
 };
 let chassisConceptImage=null;
 let chassisReferenceShots=[];
-const CHASSIS_CAPTURE_PRESETS=[
- {label:'Front 3/4',mode:'shell',direction:[.9,.58,1.05]},
- {label:'Side',mode:'shell',direction:[1,.24,.05]},
- {label:'Rear 3/4',mode:'shell',direction:[-.95,.56,-1.02]},
- {label:'Top',mode:'shell',direction:[.1,1.4,.08]},
- {label:'Full front 3/4',mode:'full',direction:[.9,.58,1.05]}
-];
 function proceduralBodyPrompt(){
  const front=Number(cfg.frontRake||0.52),rear=Number(cfg.rearRake||0.52),roof=Number(cfg.roofWidth||0.62);
  const nose=front>rear?('higher nose and a more utility-oriented front stance'):front<rear?('lower front stance with a more dynamic nose'):'balanced front and rear ride heights';
@@ -11578,7 +11598,7 @@ $('chassisImageProvider').onchange=()=>{
  const provider=$('chassisImageProvider').value;syncChassisKeyState();
  $('chassisImageStatus').textContent=keys[provider]?provider+' key available in this tab.':'Enter a '+provider+' key for image generation.';
 };
-$('chassisCapture').onclick=()=>{try{chassisConceptImage=null;captureChassisReference(false);$('chassisUseReference').checked=true;syncChassisPreview('Wheel-free 3/4 body reference captured. Click the thumbnail to inspect.');renderChassisShotStrip();}catch(e){$('chassisImageStatus').textContent=e.message}};
+$('chassisCapture').onclick=()=>{try{chassisConceptImage=null;captureChassisReference(false);$('chassisUseReference').checked=true;syncChassisPreview('Left side body reference captured. Click the thumbnail to inspect.');renderChassisShotStrip();}catch(e){$('chassisImageStatus').textContent=e.message}};
 $('chassisCaptureSet').onclick=()=>{try{captureChassisReferenceSet(false);}catch(e){$('chassisImageStatus').textContent=e.message}};
 $('chassisCaptureFullSet').onclick=()=>{try{captureChassisReferenceSet(true);}catch(e){$('chassisImageStatus').textContent=e.message}};
 $('chassisCaptureStyle').onchange=()=>{try{captureChassisReferenceSet(chassisLastCaptureWithWheels);}catch(error){$('chassisImageStatus').textContent=error.message}};

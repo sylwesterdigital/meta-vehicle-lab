@@ -1,3 +1,10 @@
+## v0.3.46 — November 12, 2026
+- Correct Body Studio to six exact car-relative orthographic views: Left side, Right side, Front (+Z), Rear (-Z), Top (+Y; nose at image top) and Bottom. No extra diagonal or rotated top views.
+- Use projected 3D bounds of all selected exterior groups and wheel geometry; remove the final pixel-cropping zoom that could cut bodywork, wheel arches and bumpers. Preserve wide white margins in all views.
+- Select active procedural, vector or imported body, include independent exterior lamps, and include tyres only in the optional With wheels mode. Passes operate on temporary clones without modifying the running scene.
+- Fix black-on-white technical output with a dedicated black-on-white geometry occupancy mask instead of relying on normal-map alpha. Restrict edge detection to actual boundaries and strong geometry discontinuities so body faces remain white.
+- No database migrations, model overwrites or new dependencies.
+
 ## v0.3.45 — November 12, 2026
 - Capture framing centres the vehicle in its actual projected bounds and then fits visible pixels, with white background and aspect-ratio-safe padding. This avoids screenshots with only a quarter of the image occupied.
 - Three studio render modes: materials, materials with depth/normal outlines, and black technical outlines on white. Normal/depth render passes are capture-only and do not modify live scene materials.

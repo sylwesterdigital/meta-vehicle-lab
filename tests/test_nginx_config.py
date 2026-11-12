@@ -377,10 +377,48 @@ assert.deepEqual(Array.from(drawing.subarray((2*width+2)*4,(2*width+2)*4+4)),[0,
 assert.deepEqual(Array.from(drawing.subarray((3*width+3)*4,(3*width+3)*4+4)),[255,255,255,255]);
 const outlined=studioOutlineImage(colour,normal,depth,width,height,'outlined');
 assert.deepEqual(Array.from(outlined.subarray((3*width+3)*4,(3*width+3)*4+4)),[200,40,20,255]);
+// Simulate a browser/GPU that clears normal alpha to opaque everywhere.
+// A separate render mask must prevent the entire frame becoming black.
+const badAlphaNormal=new Uint8Array(width*height*4).fill(255);
+const mask=new Uint8Array(width*height*4).fill(255);
+for(let y=2;y<=4;y++)for(let x=2;x<=4;x++){
+ const i=(y*width+x)*4;mask[i]=mask[i+1]=mask[i+2]=0;
+ badAlphaNormal[i]=128;badAlphaNormal[i+1]=128;badAlphaNormal[i+2]=255;
+}
+const technical=studioOutlineImage(colour,badAlphaNormal,depth,width,height,'technical',mask);
+assert.deepEqual(Array.from(technical.subarray(0,4)),[255,255,255,255]);
+assert.deepEqual(Array.from(technical.subarray((3*width+3)*4,(3*width+3)*4+4)),[255,255,255,255]);
+assert.deepEqual(Array.from(technical.subarray((2*width+2)*4,(2*width+2)*4+4)),[0,0,0,255]);
 console.log('studio capture outlines and bounds OK');
 """
         outcome=subprocess.run(['node','-e',script],capture_output=True,text=True,timeout=15)
         self.assertEqual(outcome.returncode,0,outcome.stdout+outcome.stderr)
+
+class StudioOrthographicViewTests(unittest.TestCase):
+    def test_all_six_capture_axes_are_exact_and_no_pixel_crop(self):
+        html=(ROOT/'index.html').read_text()
+        start=html.index('const CHASSIS_STUDIO_VIEWS=')
+        end=html.index('function studioCaptureExterior(',start)
+        source=html[start:end]
+        script=source+r"""
+const assert=require('node:assert/strict');
+const expected={
+ 'Left side':[-1,0,0], 'Right side':[1,0,0],
+ Front:[0,0,1],Rear:[0,0,-1],Top:[0,1,0],Bottom:[0,-1,0]
+};
+assert.equal(CHASSIS_STUDIO_VIEWS.length,6);
+for(const view of CHASSIS_STUDIO_VIEWS){
+ assert.deepEqual(view.direction,expected[view.label]);
+ assert.equal(view.direction.reduce((s,n)=>s+Math.abs(n),0),1);
+ assert.equal(view.direction.reduce((s,n,i)=>s+n*view.up[i],0),0);
+}
+assert.deepEqual(CHASSIS_STUDIO_VIEWS.find(v=>v.label==='Top').up,[0,0,1]);
+"""
+        result=subprocess.run(['node','-e',script],capture_output=True,text=True,timeout=10)
+        self.assertEqual(result.returncode,0,result.stderr)
+        self.assertNotIn('ctx.drawImage(rawCanvas,',html)
+        self.assertIn('const bodySource=vectorRoot?.visible',html)
+        self.assertIn('studioFrameCamera(cam,bounds,direction,up,aspect);',html)
 
 class ChassisImageTests(unittest.TestCase):
     def setUp(self):
@@ -414,8 +452,11 @@ class ChassisImageTests(unittest.TestCase):
         # Long examples remain computed on demand, never displayed as a wall.
         self.assertIn('id="chassisPromptOptions"',self.html)
         self.assertIn('id="chassisPromptExamples" hidden',self.html)
-        self.assertIn('const viewW=Math.max(.5,(maxX-minX)/margin,(maxY-minY)*aspect/margin)',self.html)
-        self.assertIn('const box=studioContentBounds(normal,width,height)',self.html)
+        self.assertIn('studioFrameCamera(cam,bounds,direction,up,aspect)',self.html)
+        self.assertIn('const w=Math.max(.5,(maxX-minX)/margin,(maxY-minY)*aspect/margin)',self.html)
+        self.assertNotIn('ctx.drawImage(rawCanvas,',self.html)
+        self.assertIn('studioCaptureExterior(shell,includeWheels)',self.html)
+        self.assertIn('studioMaskOccupied(mask,i)',self.html)
         self.assertIn('id="chassisCaptureStyle"',self.html)
     def test_meta_muse_generative_endpoint_and_key_scoping(self):
         self.assertIn("if provider not in ('openai','xai','meta')",self.backend)
