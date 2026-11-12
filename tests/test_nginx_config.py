@@ -87,7 +87,7 @@ class VehicleStudioRegressionTests(unittest.TestCase):
         self.assertIn('makeCannonAdapter()',self.source)
         self.assertIn('makeAmmoAdapter()',self.source)
         self.assertNotIn('makeBaselineAdapter()',self.source)
-        self.assertIn("{x:-1,y:0,z:0},.32,spec.radius",self.source)
+        self.assertIn("{x:-1,y:0,z:0},WHEEL_SUSPENSION_REST_LENGTH,spec.radius",self.source)
         self.assertIn('const finishedVehiclePose=physics?.pose?.()||resumeDrivePose||null;',self.source)
         self.assertIn('buildVehicle();',self.source)
         self.assertIn('preserveCameraOrbit();updatePhysicsHud();',self.source)
@@ -1602,7 +1602,7 @@ class VehicleLab0348VehicleEditingTests(unittest.TestCase):
             'chassisConnectionPointLocal:new CANNON.Vec3(spec.x,spec.y,spec.z)',
             'vehicle.addWheel({x:spec.x,y:spec.y,z:spec.z}',
             'rayVehicle.addWheel(v(spec.x,spec.y,spec.z)',
-            'makeWheel(car,spec.x,spec.y,spec.z,spec.radius,axle,spec.width,side)',
+            'makeWheel(car,spec.x,spec.y-WHEEL_SUSPENSION_REST_LENGTH,spec.z,spec.radius,axle,spec.width,side)',
             'const override={...(cfg.partOverrides[key]||{}),hidden:!root.visible}',
         ):
             self.assertIn(marker,self.html)
@@ -1626,3 +1626,45 @@ class VehicleLab0348VehicleEditingTests(unittest.TestCase):
                        "'frontLampZ'",
                        "'avatarOffsets'"):
             self.assertIn(marker,self.html)
+
+
+class VehicleLab0349SceneControlsTests(unittest.TestCase):
+    """Prevent regression of new lighting, occupant sizing and wheel rest pose."""
+    @classmethod
+    def setUpClass(cls):
+        cls.html=(Path(__file__).resolve().parents[1]/'index.html').read_text()
+
+    def test_lamp_xyz_fields_and_placement(self):
+        for term in ("frontLampX:0,frontLampY:0,frontLampZ:0",
+                     "rearLampX:0,rearLampY:0,rearLampZ:0",
+                     "vehicleParam('Front lamps Y · height','frontLampY'",
+                     "vehicleParam('Rear lamps Y · height','rearLampY'",
+                     'lampRoot.position.set(x,-.13+y,z)',
+                     "cfg.frontLampY||0", "cfg.rearLampY||0"):
+            self.assertIn(term,self.html)
+
+    def test_passenger_uniform_scale_survives_rebuild(self):
+        for term in ("vehicleParam('Passenger size · uniform'",
+                     "const avatarKey='avatar:'+vehicleControlsSeat",
+                     "scale:[value,value,value]",
+                     "applyEditablePartOverrides()"):
+            self.assertIn(term,self.html)
+
+    def test_wheel_build_preview_and_solvers_share_rest(self):
+        for term in ('const WHEEL_SUSPENSION_REST_LENGTH=.32',
+                     'spec.y-WHEEL_SUSPENSION_REST_LENGTH',
+                     "axis==='y'?value-WHEEL_SUSPENSION_REST_LENGTH:value",
+                     'node.position.y+WHEEL_SUSPENSION_REST_LENGTH',
+                     'suspensionRestLength:WHEEL_SUSPENSION_REST_LENGTH',
+                     'WHEEL_SUSPENSION_REST_LENGTH,spec.radius',
+                     'vehicle.wheelSuspensionLength(i)??WHEEL_SUSPENSION_REST_LENGTH'):
+            self.assertIn(term,self.html)
+
+    def test_studio_reports_failures_and_publishes_views_progressively(self):
+        for term in ('async function captureChassisReferenceSet(includeWheels=false)',
+                     "await new Promise(resolve=>requestAnimationFrame(resolve))",
+                     'chassisReferenceShots=captures.slice();renderChassisShotStrip()',
+                     'studioFrameCamera(cam,bounds,direction,up,aspect)',
+                     'capture stopped', 'Capture failed:',
+                     "$('chassisCaptureSet').onclick=()=>{void captureChassisReferenceSet(false)}"):
+            self.assertIn(term.lower() if term == 'capture stopped' else term,self.html.lower() if term == 'capture stopped' else self.html)

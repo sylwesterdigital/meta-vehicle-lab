@@ -1,3 +1,10 @@
+## v0.3.49 — November 12, 2026
+- Vehicle Controls > Lights now has front and rear X/Y/Z positions; the Y field controls vertical placement, retaining symmetric left/right spacing.
+- Vehicle Controls > Cabin adds uniform passenger size for each seat; saved via the existing per-component scale override.
+- BUILD wheel preview shows the same rest-length suspension displacement used by Cannon, Rapier and Ammo. Canonical mount coordinates remain unchanged and visible in the inspector.
+- Body Studio capture renders one view per animation frame, publishes each successful shot immediately, shows failure messages where previews would appear, and falls back to conservative geometric framing on devices with unreliable GPU mask passes.
+- No new dependencies, database migration or deletion of saved assets.
+
 ## v0.3.48 — November 12, 2026
 - Scene Objects entries have inline rename controls persisted to existing vehicle/map records.
 - Object Inspector offers default proportional scaling with the shared slider retained at the bottom.

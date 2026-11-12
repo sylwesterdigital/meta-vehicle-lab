@@ -5,7 +5,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Vehicle Lab — Procedural Studio</title>
-  <meta name="vehicle-lab-version" content="0.3.48">
+  <meta name="vehicle-lab-version" content="0.3.49">
   <style>
     :root {
       color-scheme:dark;
@@ -1145,7 +1145,7 @@ input[type=color]:focus-visible{outline:2px solid var(--accent)!important;outlin
 
   <div id="stage">
   <div id="hud">
-    <div class="stage-badge"><strong>Vehicle Lab</strong><small id="appVersionBadge">v0.3.48</small></div>
+    <div class="stage-badge"><strong>Vehicle Lab</strong><small id="appVersionBadge">v0.3.49</small></div>
     <p id="vehicleName">City Car</p><p id="vehicleInfo">Procedural vehicle</p>
     <div id="speedHud"><strong id="speed">0</strong><div>km/h</div></div>
     <div id="cameraModeReadout" style="padding:3px 6px;margin-top:4px;width:max-content;max-width:260px;border-radius:5px;background:#132d3cc0;color:#e9f5fc;font:10px ui-monospace,monospace">Camera · Orbit follow</div>
@@ -2003,6 +2003,7 @@ input[type=color]:focus-visible{outline:2px solid var(--accent)!important;outlin
    seatWidth:.29,seatHeight:.10,seatBackHeight:.32,seatRecline:0,
    dashDepth:.42,dashHeight:.22,dashOffsetX:0,dashOffsetZ:0,steeringRadius:.17,steeringX:0,steeringY:0,steeringZ:0,
    lampWidth:.25,lampHeight:.12,headlightPower:18,headlightColor:'#fff4ce',tailLightColor:'#fa263e',
+   frontLampX:0,frontLampY:0,frontLampZ:0,rearLampX:0,rearLampY:0,rearLampZ:0,
    audioEnabled:true,soundPreset:'electric',audioVolume:.2,baseRPM:780,
    soundPitchRange:2.2,engineHarmonics:.4,engineNoise:.18,
    tyreNoise:.16,impactVolume:.42,engineFilter:1300,
@@ -2297,7 +2298,7 @@ let ghostObject=null,ghostSamples=[],ghostElapsed=0,ghostTick=0;
  function appConfirm(message){return showAppDialog('confirm',message)}
  function appPrompt(message,value='',options={}){return showAppDialog('prompt',message,value,options)}
 
- const VERSION='0.3.48';
+ const VERSION='0.3.49';
  document.getElementById('appVersionBadge').textContent='v'+VERSION;
  let imageReference=null,busyAI=false;
 
@@ -3826,12 +3827,12 @@ function clearVehicle(){
  passengerMixers.forEach(m=>m.stopAllAction());passengerMixers=[];
  headMaterials=[];brakeMaterials=[];headlights=[];
 }
-function addLamp(parent,x,z,front){
+function addLamp(parent,x,y,z,front){
  const colour=front?cfg.headlightColor:cfg.tailLightColor;
  const m=mat(colour,.1,.22,{
   emissive:new THREE.Color(colour),emissiveIntensity:0
 });
- const lampRoot=new THREE.Group();lampRoot.position.set(x,-.13,z);parent.add(lampRoot);
+ const lampRoot=new THREE.Group();lampRoot.position.set(x,-.13+y,z);parent.add(lampRoot);
  registerEditableVehiclePart(lampRoot,`lamp:${front?'front':'rear'}:${x<0?'left':'right'}`,
   `${front?'Headlight':'Tail light'} ${x<0?'left':'right'}`,front?'headlightColor':'tailLightColor');
  box(lampRoot,cfg.lampWidth,cfg.lampHeight,.05,m,0,0,0);
@@ -4100,13 +4101,13 @@ function updateSeatAnimations(dt){
  for(let axle=0;axle<cfg.axles;axle++){
   for(const side of [-1,1]){
    const spec=wheelSpec(axle,side);
-   wheels.push(makeWheel(car,spec.x,spec.y,spec.z,spec.radius,axle,spec.width,side));
+   wheels.push(makeWheel(car,spec.x,spec.y-WHEEL_SUSPENSION_REST_LENGTH,spec.z,spec.radius,axle,spec.width,side));
  }
 }
 const lamps=new THREE.Group();car.add(lamps);
 for(const side of [-1,1]){
-  addLamp(lamps,side*(W*.34+(cfg.frontLampX||0)),L*.495+(cfg.frontLampZ||0),true);
-  addLamp(lamps,side*(W*.38+(cfg.rearLampX||0)),-L*.495+(cfg.rearLampZ||0),false);
+  addLamp(lamps,side*(W*.34+(cfg.frontLampX||0)),cfg.frontLampY||0,L*.495+(cfg.frontLampZ||0),true);
+  addLamp(lamps,side*(W*.38+(cfg.rearLampX||0)),cfg.rearLampY||0,-L*.495+(cfg.rearLampZ||0),false);
 }
 
 const passengers=new THREE.Group();car.add(passengers);passengersGroup=passengers;
@@ -4714,6 +4715,7 @@ function parkedFleetSpecs(){return fleetRecords.filter(item=>item.id!==activeFle
 
 const motorPower=()=>({electric:4500,petrol:3600,diesel:4900,hybrid:4000,hydrogen:4400}[cfg.engine]||4000);
 const wheelAxle=i=>Math.floor(i/2);
+const WHEEL_SUSPENSION_REST_LENGTH=.32; // Attachment-to-wheel-centre distance at rest; shared by BUILD and all physics solvers.
 const wheelSpinAngles=[];
 const wheelRadiusFor=axle=>axle===0?(cfg.frontWheelRadius||cfg.radius):(cfg.rearWheelRadius||cfg.radius);
 const wheelMountYFor=axle=>axle===0?(cfg.frontWheelMountY??-.3):(cfg.rearWheelMountY??-.3);
@@ -4759,7 +4761,7 @@ function wheelFromNode(key,node,dragStart=null){
   const delta=node.getWorldPosition(new THREE.Vector3()).sub(dragStart.world);
   const orientation=car.getWorldQuaternion(new THREE.Quaternion()).invert();delta.applyQuaternion(orientation);
   position={x:spec.x+delta.x,y:spec.y+delta.y,z:spec.z+delta.z};
- }else if(node.parent===car){position={x:node.position.x,y:node.position.y,z:node.position.z};}
+ }else if(node.parent===car){position={x:node.position.x,y:node.position.y+WHEEL_SUSPENSION_REST_LENGTH,z:node.position.z};}
  else return false;
  const initial=dragStart?.scale||new THREE.Vector3(1,1,1);
  const factor=new THREE.Vector3(node.scale.x/Math.max(.001,initial.x),node.scale.y/Math.max(.001,initial.y),node.scale.z/Math.max(.001,initial.z));
@@ -4806,7 +4808,7 @@ function makeCannonAdapter(){
    radius:spec.radius,directionLocal:new CANNON.Vec3(0,-1,0),
    axleLocal:new CANNON.Vec3(1,0,0),
    chassisConnectionPointLocal:new CANNON.Vec3(spec.x,spec.y,spec.z),
-   suspensionRestLength:.32,suspensionStiffness:42,
+   suspensionRestLength:WHEEL_SUSPENSION_REST_LENGTH,suspensionStiffness:42,
    dampingCompression:4.6,dampingRelaxation:2.8,
    frictionSlip:5.4,maxSuspensionForce:150000,
    maxSuspensionTravel:.3,rollInfluence:.045
@@ -4932,7 +4934,7 @@ async function makeRapierAdapter(){
    const i=vehicle.numWheels();
    const spec=wheelSpec(axle,side);
    vehicle.addWheel({x:spec.x,y:spec.y,z:spec.z},
-       {x:0,y:-1,z:0},{x:-1,y:0,z:0},.32,spec.radius);
+       {x:0,y:-1,z:0},{x:-1,y:0,z:0},WHEEL_SUSPENSION_REST_LENGTH,spec.radius);
    vehicle.setWheelSuspensionStiffness(i,42);
    vehicle.setWheelSuspensionCompression(i,4.6);
    vehicle.setWheelSuspensionRelaxation(i,2.8);
@@ -4990,7 +4992,7 @@ async function makeRapierAdapter(){
     for(let i=0;i<wheels.length;i++){
      const c=vehicle.wheelChassisConnectionPointCs(i);
      if(!c)continue;
-     const suspension=vehicle.wheelSuspensionLength(i)??.32;
+     const suspension=vehicle.wheelSuspensionLength(i)??WHEEL_SUSPENSION_REST_LENGTH;
      const point=new THREE.Vector3(c.x,c.y-suspension,c.z).applyQuaternion(quat);
      wheels[i].position.set(p.x+point.x,p.y+point.y,p.z+point.z);
      const steer=vehicle.wheelSteering(i)||0;
@@ -5086,7 +5088,7 @@ async function makeAmmoAdapter(){
   const down=v(0,-1,0),axleDir=v(-1,0,0);
   for(let axle=0;axle<cfg.axles;axle++)for(const side of [-1,1]){
    const spec=wheelSpec(axle,side);
-   const info=rayVehicle.addWheel(v(spec.x,spec.y,spec.z),down,axleDir,.32,spec.radius,tuning,axle===0);
+   const info=rayVehicle.addWheel(v(spec.x,spec.y,spec.z),down,axleDir,WHEEL_SUSPENSION_REST_LENGTH,spec.radius,tuning,axle===0);
    info.set_m_suspensionStiffness(42);
    info.set_m_wheelsDampingRelaxation(2.8);
    info.set_m_wheelsDampingCompression(4.6);
@@ -6567,8 +6569,18 @@ function captureChassisStudioShot({includeWheels=false,label='Left side',directi
   // children before tightening the framing; no image pixels are ever cropped.
   studioSetFrame(cam,(cam.left+cam.right)/2,(cam.top+cam.bottom)/2,
    (cam.right-cam.left)*2.4,(cam.top-cam.bottom)*2.4);
-  studioFitCameraToPixels(cam,()=>readPass(maskMat,false,fitRT,fitWidth,fitHeight),fitWidth,fitHeight);
+  try{studioFitCameraToPixels(cam,()=>readPass(maskMat,false,fitRT,fitWidth,fitHeight),fitWidth,fitHeight)}
+  catch(fitError){
+   // Some drivers cannot return a reliable offscreen mask. Recover with the
+   // full projected bounds and a generous margin instead of a blank preview.
+   studioFrameCamera(cam,bounds,direction,up,aspect);
+   studioSetFrame(cam,(cam.left+cam.right)/2,(cam.top+cam.bottom)/2,
+    (cam.right-cam.left)*1.5,(cam.top-cam.bottom)*1.5);
+   recordEvent('WARN','Studio GPU pixel fit unavailable; using conservative geometry fit: '+fitError.message);
+  }
   const colour=readPass(null);
+  const visibleMask=readPass(maskMat,false,fitRT,fitWidth,fitHeight);
+  if(!studioMaskBounds(visibleMask,fitWidth,fitHeight))throw Error('Studio rendered no vehicle pixels. Select a visible body source and retry.');
   let pixels=colour;
   if(needsEdges){
    const normal=readPass(normalMat,true),depth=readPass(depthMat,true),mask=readPass(maskMat);
@@ -6597,17 +6609,48 @@ function captureChassisReference(includeWheels=false){
  chassisReferenceShots=[{label:view.label,data,mode:includeWheels?'full':'shell'}];
  return data;
 }
-let chassisLastCaptureWithWheels=false;
-function captureChassisReferenceSet(includeWheels=false){
- chassisConceptImage=null;chassisLastCaptureWithWheels=includeWheels;
- chassisReferenceShots=CHASSIS_STUDIO_VIEWS.map(view=>({
-  label:view.label,mode:includeWheels?'full':'shell',
-  data:captureChassisStudioShot({...view,includeWheels,activate:false})
- }));
- if(chassisReferenceShots[0])setActiveChassisReference(chassisReferenceShots[0].data,
-  (includeWheels?'Full-car':'Body-only')+' orthographic views ready. Choose a view below.');
- renderChassisShotStrip();
- return chassisReferenceShots;
+let chassisLastCaptureWithWheels=false,studioCaptureBusy=false;
+async function captureChassisReferenceSet(includeWheels=false){
+ if(studioCaptureBusy)return;
+ studioCaptureBusy=true;chassisLastCaptureWithWheels=includeWheels;
+ const buttons=[$('chassisCaptureSet'),$('chassisCaptureFullSet'),$('chassisCaptureStyle')];
+ buttons.forEach(control=>{control.disabled=true;control.setAttribute('aria-busy','true')});
+ const previous=chassisReferenceShots.slice(),captures=[],problems=[];
+ const status=$('chassisImageStatus'),empty=$('chassisImageEmpty');
+ const currentCar=car;
+ try{
+  for(let i=0;i<CHASSIS_STUDIO_VIEWS.length;i++){
+   const view=CHASSIS_STUDIO_VIEWS[i];
+   status.textContent='Capturing '+(i+1)+' / '+CHASSIS_STUDIO_VIEWS.length+' · '+view.label+'…';
+   if(!captures.length&&!imageReference){empty.textContent=status.textContent;}
+   // Yield between shots so browser events and the progress indicator render.
+   await new Promise(resolve=>requestAnimationFrame(resolve));
+   if(car!==currentCar)throw Error('Vehicle changed during capture; please retry.');
+   try{
+    const data=captureChassisStudioShot({...view,includeWheels,activate:false});
+    if(!data?.startsWith('data:image/'))throw Error('Renderer did not return an image');
+    captures.push({label:view.label,mode:includeWheels?'full':'shell',data});
+    chassisConceptImage=null;
+    if(captures.length===1)setActiveChassisReference(data,view.label+' captured.');
+    chassisReferenceShots=captures.slice();renderChassisShotStrip();
+   }catch(error){problems.push(view.label+': '+error.message);recordEvent('WARN','Studio capture '+view.label+': '+error.message)}
+  }
+  if(captures.length){
+   status.textContent=captures.length+' / '+CHASSIS_STUDIO_VIEWS.length+' views captured.'+(problems.length?' Failed: '+problems.join('; '):'');
+  }else{
+   chassisReferenceShots=previous;renderChassisShotStrip();
+   status.textContent='Capture failed: '+(problems.join('; ')||'No visible geometry.');
+   if(!imageReference)empty.textContent='Unable to capture the car. '+status.textContent;
+   note(status.textContent,true);
+  }
+ }catch(error){
+  status.textContent='Capture stopped: '+error.message;
+  if(!captures.length){chassisReferenceShots=previous;renderChassisShotStrip();if(!imageReference)empty.textContent=status.textContent;}
+  note(status.textContent,true);
+ }finally{
+  studioCaptureBusy=false;buttons.forEach(control=>{control.disabled=false;control.removeAttribute('aria-busy')});
+ }
+ return captures;
 }
 function updateLuxReferencePreview(message='Reference ready'){
  const img=$('lux3dReferencePreview');img.hidden=!imageReference;if(imageReference)img.src=imageReference;else img.removeAttribute('src');
@@ -10837,9 +10880,11 @@ const VEHICLE_PARAM_SCHEMA={
   vehicleParam('Steering radius','steeringRadius',.05,.7,.01),vehicleParam('Dashboard X','dashOffsetX',-2,2,.01),vehicleParam('Dashboard Z','dashOffsetZ',-3,3,.01),
   vehicleParam('Dashboard height','dashHeight',-.9,2,.01),vehicleParam('Dashboard depth','dashDepth',.1,2,.01)],
  lights:[vehicleParam('Lamp width','lampWidth',.05,.8,.01),vehicleParam('Lamp height','lampHeight',.05,.5,.01),
-  vehicleParam('Headlight power','headlightPower',0,80,1),vehicleParam('Front lamp spacing','frontLampX',-.9,.9,.01),
-  vehicleParam('Front lamp Z','frontLampZ',-2,2,.01),vehicleParam('Rear lamp spacing','rearLampX',-.9,.9,.01),
-  vehicleParam('Rear lamp Z','rearLampZ',-2,2,.01)],
+  vehicleParam('Headlight power','headlightPower',0,80,1),
+  vehicleParam('Front lamps X · symmetric','frontLampX',-2,2,.01),vehicleParam('Front lamps Y · height','frontLampY',-2,2,.01),
+  vehicleParam('Front lamps Z · fore/aft','frontLampZ',-3,3,.01),
+  vehicleParam('Rear lamps X · symmetric','rearLampX',-2,2,.01),vehicleParam('Rear lamps Y · height','rearLampY',-2,2,.01),
+  vehicleParam('Rear lamps Z · fore/aft','rearLampZ',-3,3,.01)],
  equipment:[vehicleParam('Equipment size X','equipmentScaleX',.1,4,.01),vehicleParam('Equipment size Y','equipmentScaleY',.1,4,.01),vehicleParam('Equipment size Z','equipmentScaleZ',.1,4,.01)]
 };
 function vehicleControlsNumberRow(def,read,write){
@@ -10900,6 +10945,12 @@ function renderVehicleControls(){
     cfg[prefix]=cfg[prefix]||{};cfg[prefix][vehicleControlsSeat]={...(cfg[prefix][vehicleControlsSeat]||{}),[axis]:value};
    });
   }
+  const avatarKey='avatar:'+vehicleControlsSeat;
+  add(vehicleParam('Passenger size · uniform','passengerScale',.2,3,.01),
+   ()=>cfg.partOverrides?.[avatarKey]?.scale?.[0]??1,value=>{
+    cfg.partOverrides=cfg.partOverrides||{};
+    cfg.partOverrides[avatarKey]={...(cfg.partOverrides[avatarKey]||{}),scale:[value,value,value]};
+   });
  }
  if(vehicleControlsTab==='lights')for(const [label,key] of [['Headlight colour','headlightColor'],['Rear light colour','tailLightColor']]){
   const row=document.createElement('div');row.className='vehicle-param-row';const title=document.createElement('label');title.textContent=label;
@@ -10953,7 +11004,7 @@ function wheelInspectorChange(key,id,value){
  }else{
   const distance=value-before[axis];patch[axis]=value;
   commitWheelSpec(key,patch);
-  if(root.parent===car)root.position[axis]=value;
+  if(root.parent===car)root.position[axis]=axis==='y'?value-WHEEL_SUSPENSION_REST_LENGTH:value;
   else {const movement=new THREE.Vector3();movement[axis]=distance;movement.applyQuaternion(car.getWorldQuaternion(new THREE.Quaternion()));root.position.add(movement);}
  }
  root.updateMatrixWorld(true);return true;
@@ -11180,6 +11231,7 @@ $('galleryRefreshBtn').onclick=()=>{gallerySource='public';setWindowVisible('gal
 $('layoutPublic').onchange=()=>{serverVisibility=$('layoutPublic').checked?'public':'private'};
 
 const RELEASE_NOTES=[
+ {v:'0.3.49',date:'2026-11-12',title:'Wheel preview, XYZ lamps, passenger sizing and studio capture recovery',items:['Vehicle controls expose XYZ positions for both lamp pairs and proportional passenger scale.', 'BUILD shows wheel centres at their suspension rest positions, matching solver mount offsets without changing vehicle physics.', 'Body Studio yields between orthographic captures, shows failures in the preview, preserves successful shots and falls back to conservative geometric framing if GPU-mask fitting fails.']},
  {v:'0.3.48',date:'2026-11-12',title:'Unified vehicle controls and physical wheel mounts',items:['Scene Objects rows can be renamed inline; Object Inspector provides proportional scaling by default.', 'A new Vehicle Controls panel exposes body, wheel mount, seat, passenger, light and equipment settings with compact sliders.', 'Wheel positions and radii from the transform inspector are saved as actual solver mounting points for Cannon-es, Rapier and Ammo, rather than visual-only overrides.']},
  {v:'0.3.47',date:'2026-11-12',title:'Pixel-verified full-car studio framing',items:['Body Studio now measures the actual vehicle silhouette in a separate low-resolution GPU pass rather than relying only on GLB bounds.', 'The camera zooms out whenever bodywork, mirrors or wheels touch the image border; all six orthographic views are then centred with visible white margins.', 'If a complete vehicle still cannot be framed, the app reports a capture error instead of replacing the previous reference with a cropped image.']},
  {v:'0.3.46',date:'2026-11-12',title:'Uncropped true orthographic studio captures',items:['Capture six exact axis-aligned views: left, right, front, rear, top and bottom; +Z is vehicle front and top view keeps the hood pointing up.', '3D projected bounds include the complete active body, wheels (when requested), and exterior lights; removed destructive pixel-crop zoom.', 'Technical black-on-white passes use a dedicated occupancy mask to avoid filling entire vehicle surfaces black.']},
@@ -11963,7 +12015,7 @@ function setActiveChassisReference(data,label='Reference ready'){
 }
 function renderChassisShotStrip(){
  const root=$('chassisShotStrip');root.replaceChildren();
- if(!chassisReferenceShots.length){root.textContent='No studio captures yet. Use Auto-capture shell views to build a clean reference set from the current procedural car.';return;}
+ if(!chassisReferenceShots.length){root.textContent='No studio captures yet. Choose Body only or With wheels to capture six views.';return;}
  chassisReferenceShots.forEach((shot,index)=>{
   const button=document.createElement('button');button.type='button';button.className='chassis-shot';
   button.setAttribute('aria-pressed',String((chassisConceptImage||imageReference)===shot.data));
@@ -11984,8 +12036,7 @@ $('chassisAI').onclick=()=>{
   $('chassisImageProvider').value=keys[ai.provider]?ai.provider:(keys.meta?'meta':keys.openai?'openai':keys.xai?'xai':'meta');
   refreshChassisPromptExamples();
   syncChassisKeyState();
-  if(!chassisReferenceShots.length)try{captureChassisReferenceSet(false);}catch(error){$('chassisImageStatus').textContent=error.message;renderChassisShotStrip();}
-  else renderChassisShotStrip();
+  renderChassisShotStrip(); // Expensive WebGL captures are only started by explicit user action.
   syncChassisPreview();
  }
 };
@@ -12007,9 +12058,9 @@ $('chassisImageProvider').onchange=()=>{
  $('chassisImageStatus').textContent=keys[provider]?provider+' key available in this tab.':'Enter a '+provider+' key for image generation.';
 };
 $('chassisCapture').onclick=()=>{try{chassisConceptImage=null;captureChassisReference(false);$('chassisUseReference').checked=true;syncChassisPreview('Left side body reference captured. Click the thumbnail to inspect.');renderChassisShotStrip();}catch(e){$('chassisImageStatus').textContent=e.message}};
-$('chassisCaptureSet').onclick=()=>{try{captureChassisReferenceSet(false);}catch(e){$('chassisImageStatus').textContent=e.message}};
-$('chassisCaptureFullSet').onclick=()=>{try{captureChassisReferenceSet(true);}catch(e){$('chassisImageStatus').textContent=e.message}};
-$('chassisCaptureStyle').onchange=()=>{try{captureChassisReferenceSet(chassisLastCaptureWithWheels);}catch(error){$('chassisImageStatus').textContent=error.message}};
+$('chassisCaptureSet').onclick=()=>{void captureChassisReferenceSet(false)};
+$('chassisCaptureFullSet').onclick=()=>{void captureChassisReferenceSet(true)};
+$('chassisCaptureStyle').onchange=()=>{if(chassisReferenceShots.length)void captureChassisReferenceSet(chassisLastCaptureWithWheels)};
 $('chassisUpload').onclick=()=>{chassisConceptImage=null;$('chassisUseReference').checked=true;$('lux3dReferenceFile').click()};
 $('chassisReferenceClear').onclick=()=>{chassisConceptImage=null;imageReference=null;chassisReferenceShots=[];updateLuxReferencePreview();syncChassisPreview();renderChassisShotStrip()};
 $('chassisImagePreviewButton').onclick=()=>{
