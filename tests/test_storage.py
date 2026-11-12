@@ -572,3 +572,28 @@ class CommunitySharing0329Tests(unittest.TestCase):
         self.assertTrue(self.store.community_delete(self.owner['id'],world['id']))
         self.assertIsNotNone(self.store.own_layout(self.owner['id'],self.car_id))
         self.assertIsNotNone(self.store.own_media(self.owner['id'],self.map_id))
+
+class SceneInspectorContracts(unittest.TestCase):
+    """Keep the shared slider and hierarchy usable across later UI refactors."""
+    @classmethod
+    def setUpClass(cls):
+        cls.source = (Path(__file__).resolve().parents[1] / 'index.html').read_text(encoding='utf-8')
+
+    def test_one_shared_range_for_course_and_vehicle_components(self):
+        self.assertEqual(self.source.count('id="objectQuickSlider"'), 1)
+        self.assertIn('const PART_SLIDER_FIELDS=', self.source)
+        self.assertIn("if(selectedPart){", self.source)
+        self.assertIn("selectedSceneItem?.kind==='group'", self.source)
+        self.assertNotIn("[data-selected-type='part'] .object-slider,", self.source)
+
+    def test_vehicle_children_collapse_independently(self):
+        self.assertIn('const sceneTreeCarExpanded=new Set();', self.source)
+        self.assertIn("'car:'+row.id", self.source)
+        self.assertIn('scene-tree-car-toggle', self.source)
+
+    def test_nested_scene_groups_and_shared_transform(self):
+        self.assertIn('function sceneGroupContents(path)', self.source)
+        self.assertIn("folder.startsWith(path+'/')", self.source)
+        self.assertIn('function syncSceneGroupFromPivot()', self.source)
+        self.assertIn("['Select / transform group',()=>selectSceneGroup(path)]", self.source)
+        self.assertIn('function finishSceneGroupTransform()', self.source)

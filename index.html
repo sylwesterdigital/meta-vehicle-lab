@@ -5,7 +5,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Vehicle Lab — Procedural Studio</title>
-  <meta name="vehicle-lab-version" content="0.3.42">
+  <meta name="vehicle-lab-version" content="0.3.43">
   <style>
     :root {
       color-scheme:dark;
@@ -1031,6 +1031,14 @@ input[type=color]:focus-visible{outline:2px solid var(--accent)!important;outlin
 .scene-tree-row .scene-tree-title:focus-visible{outline:2px solid var(--accent)}
 .scene-tree-row .scene-tree-icon{color:#a9d0e1;font-size:15px;flex:none;width:21px;text-align:center}
 .scene-tree-children{display:grid;gap:3px;padding:4px 0 4px 19px;border-left:2px solid #5c8294;margin-left:10px}
+.scene-tree-folder.is-group-selected{outline:2px solid var(--accent);outline-offset:-1px}
+.scene-tree-folder .scene-tree-folder{margin:4px 0 3px 12px;border-left:2px solid #90b9cc}
+.scene-tree-folder-head .scene-tree-group-select{width:31px;min-width:31px;padding:4px;background:#245169;color:#e6f6ff}
+.scene-tree-car-head{display:flex;align-items:center;gap:3px;min-width:0}
+.scene-tree-car-head .scene-tree-row{flex:1;min-width:0}
+.scene-tree-car-toggle{width:25px;min-width:25px;padding:3px!important;background:transparent!important;border:0!important;color:#b9ddee}
+.scene-tree-car .scene-tree-children{margin-left:13px;padding-left:15px}
+
 .scene-tree-footer{display:flex;gap:5px;flex-wrap:wrap;padding-top:5px;border-top:1px solid var(--pane-border)}
 .scene-tree-footer button{flex:1;min-width:75px;padding:7px}
 .scene-tree-menu{min-width:125px;position:fixed;z-index:250;background:#142c3b;color:#effaff;border:1px solid #8baab9;border-radius:9px;box-shadow:0 12px 35px #000a;padding:5px;display:grid;gap:3px}
@@ -1039,10 +1047,18 @@ input[type=color]:focus-visible{outline:2px solid var(--accent)!important;outlin
 .scene-tree-menu button{color:#f1f8fd!important;background:#23465d!important;text-align:left;padding:9px 11px;min-width:155px}
 #partInspector[hidden]{display:none!important}
 #objectWindow[data-selected-type='part'] .object-mode,#objectWindow[data-selected-type='part'] .object-vector,
-#objectWindow[data-selected-type='part'] .object-slider,#objectWindow[data-selected-type='part'] .object-grid,
+#objectWindow[data-selected-type='part'] .object-grid,
 #objectWindow[data-selected-type='part'] #objectDuplicate,#objectWindow[data-selected-type='part'] #objectDelete,
 #objectWindow[data-selected-type='part'] .object-course-help{display:none!important}
 #partInspector{display:grid;gap:8px;margin-top:9px}
+#objectWindow .object-slider{grid-template-columns:minmax(90px,auto) minmax(110px,1fr) auto;gap:10px;padding:10px 3px;align-items:center}
+#objectWindow .object-slider label{display:block}
+#objectWindow .object-slider input[type=range]{accent-color:var(--accent);cursor:ew-resize;min-width:100px}
+#objectWindow .object-slider output{font-size:calc(12px * var(--ui-scale));min-width:52px;text-align:right;color:var(--txt)}
+#objectWindow .part-inspector-coords input{cursor:ew-resize}
+#objectWindow .part-inspector-coords input[data-slider-selected=true]{outline:2px solid var(--accent);outline-offset:1px}
+#objectWindow[data-selected-type='part'] .object-slider{position:sticky;bottom:0;background:var(--pane);border-radius:8px;z-index:3}
+
 #partInspector label{display:grid;gap:3px;font-size:calc(11px * var(--ui-scale));color:#deeff9}
 #partInspector input,#partInspector select{width:100%;min-width:0;color:#f2faff;background:#112c3b;border:1px solid #6f95ab;border-radius:6px;padding:8px}
 .part-inspector-coords{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
@@ -1085,7 +1101,7 @@ input[type=color]:focus-visible{outline:2px solid var(--accent)!important;outlin
 
   <div id="stage">
   <div id="hud">
-    <div class="stage-badge"><strong>Vehicle Lab</strong><small id="appVersionBadge">v0.3.42</small></div>
+    <div class="stage-badge"><strong>Vehicle Lab</strong><small id="appVersionBadge">v0.3.43</small></div>
     <p id="vehicleName">City Car</p><p id="vehicleInfo">Procedural vehicle</p>
     <div id="speedHud"><strong id="speed">0</strong><div>km/h</div></div>
     <div id="cameraModeReadout" style="padding:3px 6px;margin-top:4px;width:max-content;max-width:260px;border-radius:5px;background:#132d3cc0;color:#e9f5fc;font:10px ui-monospace,monospace">Camera · Orbit follow</div>
@@ -1266,6 +1282,9 @@ input[type=color]:focus-visible{outline:2px solid var(--accent)!important;outlin
      <div class="part-inspector-actions"><button id="partInspectorVisibility" type="button">Hide part</button><button id="partInspectorLock" type="button">Lock part</button><button id="partInspectorReset" type="button">Reset transform</button></div>
      <small class="part-inspector-note">Component changes are visual. The wheel and vehicle physics are unchanged until dedicated physics settings are edited.</small>
     </div>
+    <div class="object-slider"><span id="objectSlideLabel">X position</span>
+      <input id="objectQuickSlider" type="range" min="-150" max="150" step="0.1" value="0">
+      <output id="objectSlideValue">0</output></div>
     <div class="object-mode" id="objectGizmoModes"><button data-gizmo="translate" aria-pressed="true">Move</button><button data-gizmo="rotate">Rotate</button><button data-gizmo="scale">Scale</button></div>
     <div class="object-vector"><span>Position</span>
       <label>X <input id="objectX" type="number" step="0.1"></label>
@@ -1277,9 +1296,6 @@ input[type=color]:focus-visible{outline:2px solid var(--accent)!important;outlin
       <label>Y <input id="objectH" type="number" min="0.1" max="30" step="0.1"></label>
       <label>Z <input id="objectD" type="number" min="0.1" max="80" step="0.1"></label>
     </div>
-    <div class="object-slider"><span id="objectSlideLabel">X position</span>
-      <input id="objectQuickSlider" type="range" min="-150" max="150" step="0.1" value="0">
-      <output id="objectSlideValue">0</output></div>
     <div class="object-grid">
      <label>Yaw °<input id="objectAngle" type="number" step="1"></label>
      <label>Tilt X °<input id="objectRotX" type="number" step="1" aria-label="Object X rotation in degrees"></label>
@@ -2166,7 +2182,7 @@ let ghostObject=null,ghostSamples=[],ghostElapsed=0,ghostTick=0;
  function appConfirm(message){return showAppDialog('confirm',message)}
  function appPrompt(message,value='',options={}){return showAppDialog('prompt',message,value,options)}
 
- const VERSION='0.3.42';
+ const VERSION='0.3.43';
  document.getElementById('appVersionBadge').textContent='v'+VERSION;
  let imageReference=null,busyAI=false;
 
@@ -8000,6 +8016,7 @@ function syncCannonObstacle(o){
  drawMinimap();
 }
  function selectCourseObject(id,openEditor=false){
+ if(sceneGroupPivot)clearSceneGroupPivot();
  const candidate=cfg.courseObjects.find(o=>o.id===id);
  if(candidate?.locked&&id!==selectedCourseId){note('Unlock the object in Scene objects before selecting it.',true);return;}
  selectedCourseId=id;const obj=candidate;
@@ -8025,7 +8042,7 @@ function syncCannonObstacle(o){
 $('mapEditObject').onclick=()=>renderCourseInspector();
 $('mapDuplicateObject').onclick=$('objectDuplicate').onclick=()=>duplicateSelectedCourse();
 $('mapRemoveObject').onclick=$('objectDelete').onclick=()=>deleteSelectedCourse();
-$('objectDeselect').onclick=()=>{if(partGizmo?.object)partGizmo.detach();selectedSceneItem=null;selectCourseObject(null);setWindowVisible('objectWindow',false);if(sceneTreeOpen())renderSceneTree()};
+$('objectDeselect').onclick=()=>{if(sceneGroupPivot)clearSceneGroupPivot();if(partGizmo?.object)partGizmo.detach();selectedSceneItem=null;selectCourseObject(null);setWindowVisible('objectWindow',false);if(sceneTreeOpen())renderSceneTree()};
 let duplicatingCourse=false;
 async function duplicateSelectedCourse(){
  const o=cfg.courseObjects.find(o=>o.id===selectedCourseId);if(!o||duplicatingCourse)return;
@@ -8058,21 +8075,48 @@ async function duplicateSelectedCourse(){
 }
 function deleteSelectedCourse(){const ix=cfg.courseObjects.findIndex(o=>o.id===selectedCourseId);
  if(ix<0)return;cfg.courseObjects.splice(ix,1);selectCourseObject(null);rememberMapEdit('Delete map object');void refreshEnvironmentForMap();setWindowVisible('objectWindow',false)}
+const PART_SLIDER_FIELDS={
+ partInspectorX:['Position X','position','x',1,-200,200,.01],partInspectorY:['Position Y','position','y',1,-200,200,.01],partInspectorZ:['Position Z','position','z',1,-200,200,.01],
+ partInspectorRX:['Rotation X','rotation','x',Math.PI/180,-360,360,.5],partInspectorRY:['Rotation Y','rotation','y',Math.PI/180,-360,360,.5],partInspectorRZ:['Rotation Z','rotation','z',Math.PI/180,-360,360,.5],
+ partInspectorSX:['Scale X','scale','x',1,.01,20,.01],partInspectorSY:['Scale Y','scale','y',1,.01,20,.01],partInspectorSZ:['Scale Z','scale','z',1,.01,20,.01]
+};
 const OBJECT_SLIDER_BOUNDS={objectX:[-200,200,.05],objectY:[-40,100,.05],objectZ:[-200,200,.05],
  objectW:[.1,80,.05],objectH:[.1,40,.05],objectD:[.1,80,.05],
  objectAngle:[-360,360,1],objectRotX:[-360,360,1],objectRotZ:[-360,360,1],objectMass:[.1,10000,1],objectFriction:[0,2,.01],objectBounce:[0,1,.01]};
 let selectedObjectSlider='objectX';
 function bindObjectSlider(id){
- const field=$(id),slider=$('objectQuickSlider');if(!field||!OBJECT_SLIDER_BOUNDS[id])return;
+ const field=$(id),slider=$('objectQuickSlider');if(!field)return;
+ const part=PART_SLIDER_FIELDS[id];
+ if(!part&&!OBJECT_SLIDER_BOUNDS[id])return;
  selectedObjectSlider=id;
- const [min,max,step]=OBJECT_SLIDER_BOUNDS[id];slider.min=min;slider.max=max;slider.step=step;
- slider.value=clamp(Number(field.value)||0,min,max);
- $('objectSlideLabel').textContent=field.closest('label')?.textContent.trim()||id;
- $('objectSlideValue').textContent=Number(field.value||0).toFixed(step>=1?0:2);
+ const value=Number(field.value)||0;
+ let min,max,step;
+ if(part){[, , , ,min,max,step]=part;
+  // Keep the current value reachable for large-scene transforms, but avoid
+  // an unusably large slider for small precise component adjustments.
+  if(part[1]==='position'){const span=10;min=Math.min(min,value-span);max=Math.max(max,value+span);
+   const near=Math.max(3,Math.abs(value)*.2);min=Math.max(min,value-near);max=Math.min(max,value+near);}
+  if(part[1]==='scale'){max=Math.max(20,value+5);}
+ }else [min,max,step]=OBJECT_SLIDER_BOUNDS[id];
+ slider.min=min;slider.max=max;slider.step=step;slider.value=clamp(value,min,max);
+ $('objectSlideLabel').textContent=part?part[0]:field.closest('label')?.textContent.trim()||id;
+ $('objectSlideValue').textContent=value.toFixed(step>=1?0:2);
+ for(const name of Object.keys(PART_SLIDER_FIELDS))$(name).dataset.sliderSelected=String(name===id);
 }
 $('objectQuickSlider').oninput=e=>{
  const field=$(selectedObjectSlider);if(!field)return;
- const value=Number(e.target.value);field.value=String(value);$('objectSlideValue').textContent=value.toFixed(2);
+ const value=Number(e.target.value);field.value=String(value);
+ const selectedPart=PART_SLIDER_FIELDS[selectedObjectSlider];
+ $('objectSlideValue').textContent=value.toFixed(selectedPart?.[6]>=1?0:2);
+ if(selectedPart){
+  const key=selectedSceneItem?.kind==='car'?'__vehicle__':selectedSceneItem?.kind==='group'?'__scene_group__':selectedSceneItem?.key;
+  const root=selectedPartObject(key);if(!root)return;
+  const [,target,axis,factor]=selectedPart;
+  root[target][axis]=value*factor;root.updateMatrixWorld(true);
+  if(key==='__scene_group__')syncSceneGroupFromPivot();
+  else {writePartOverride(key,root);updateHighlight();}
+  return;
+ }
  const o=cfg.courseObjects.find(x=>x.id===selectedCourseId),mesh=courseMeshes.get(selectedCourseId);
  if(!o)return;
  const fieldMap={objectX:'x',objectY:'y',objectZ:'z',objectW:'w',objectH:'h',objectD:'d',objectAngle:'angle',objectRotX:'rotX',objectRotZ:'rotZ',
@@ -8086,8 +8130,18 @@ $('objectQuickSlider').oninput=e=>{
     mesh.scale.set(o.w/old.w,o.h/old.h,o.d/old.d);}}
  drawMinimap();
 };
-$('objectQuickSlider').onchange=()=>$(selectedObjectSlider)?.dispatchEvent(new Event('change'));
-for(const id of Object.keys(OBJECT_SLIDER_BOUNDS))$(id)?.addEventListener('focus',()=>bindObjectSlider(id));
+$('objectQuickSlider').onchange=()=>{
+ if(selectedObjectSlider in PART_SLIDER_FIELDS){
+  if(selectedSceneItem?.kind==='group'){finishSceneGroupTransform();return;}
+  scheduleHistory('Component slider transform');return;
+ }
+ $(selectedObjectSlider)?.dispatchEvent(new Event('change'));
+};
+for(const id of [...Object.keys(OBJECT_SLIDER_BOUNDS),...Object.keys(PART_SLIDER_FIELDS)]){
+ $(id)?.addEventListener('focus',()=>bindObjectSlider(id));
+ $(id)?.addEventListener('click',()=>bindObjectSlider(id));
+ $(id)?.addEventListener('input',()=>{if(document.activeElement===$(id))bindObjectSlider(id)});
+}
 // Blender-style world navigation. Direction changes preserve the current orbit
 // radius and pivot. Only Frame Selected (Numpad .) deliberately fits the object.
 const VIEW_ANGLE_STEP=Math.PI/12;
@@ -9950,7 +10004,97 @@ $('fleetDuplicate').onclick=duplicateActiveFleet;
 // v0.3.42 scene hierarchy: no duplicate scene copies, just stable references to
 // cfg.courseObjects, fleetRecords and the live editableVehicleParts registry.
 const sceneTreeCollapsed=new Set();
+const sceneTreeCarExpanded=new Set();
+let sceneGroupPivot=null,sceneGroupEntries=[],sceneGroupPath='';
 function sceneTreeOpen(){return $('sceneTreeWindow').style.display==='flex'}
+function sceneFolderPath(raw,fallback='World objects'){
+ const clean=String(raw||'').split('/').map(part=>part.trim().replace(/[\\<>]/g,'').slice(0,55)).filter(Boolean).slice(0,4).join('/');
+ return clean.slice(0,70)||fallback;
+}
+function sceneGroupMatches(path,folder){return folder===path||folder.startsWith(path+'/')}
+function sceneGroupContents(path){
+ return {course:(cfg.courseObjects||[]).filter(o=>sceneGroupMatches(path,sceneObjectGroupName(o))),
+  fleet:fleetRecords.filter(row=>sceneGroupMatches(path,row.sceneFolder||'Vehicles'))};
+}
+function sceneGroupNodes(path){
+ const {course,fleet}=sceneGroupContents(path),list=[];
+ for(const o of course){const mesh=courseMeshes.get(o.id);if(mesh)list.push({kind:'course',record:o,node:mesh});}
+ for(const row of fleet){const mesh=row.id===activeFleetId?car:row.visual;if(mesh)list.push({kind:'car',record:row,node:mesh});}
+ return list;
+}
+function clearSceneGroupPivot(){
+ if(partGizmo?.object===sceneGroupPivot)partGizmo.detach();
+ if(sceneGroupPivot){scene.remove(sceneGroupPivot);sceneGroupPivot=null;}
+ sceneGroupEntries=[];sceneGroupPath='';
+}
+function captureSceneGroupBaseline(){
+ if(!sceneGroupPivot)return;
+ sceneGroupPivot.updateMatrixWorld(true);
+ const inverse=sceneGroupPivot.matrixWorld.clone().invert();
+ sceneGroupEntries=sceneGroupNodes(sceneGroupPath).map(entry=>({
+  ...entry,local:inverse.clone().multiply(entry.node.matrixWorld.clone())
+ }));
+}
+function selectSceneGroup(path){
+ path=sceneFolderPath(path);
+ const nodes=sceneGroupNodes(path);
+ if(!nodes.length){note('This group is empty. Move objects or vehicles into it first.',true);return;}
+ if(selectedCourseId)selectCourseObject(null);
+ clearSceneGroupPivot();
+ sceneGroupPivot=new THREE.Object3D();sceneGroupPivot.name='Group pivot: '+path;
+ const center=new THREE.Vector3();
+ for(const entry of nodes)center.add(entry.node.getWorldPosition(new THREE.Vector3()));
+ center.divideScalar(nodes.length);sceneGroupPivot.position.copy(center);scene.add(sceneGroupPivot);
+ sceneGroupPath=path;captureSceneGroupBaseline();
+ selectedSceneItem={kind:'group',path};
+ if(mode==='drive')beginDriveSceneEditing(center);
+ renderPartInspector('__scene_group__');renderSceneTree();
+}
+function syncSceneGroupFromPivot(){
+ if(!sceneGroupPivot||!sceneGroupEntries.length)return;
+ sceneGroupPivot.updateMatrixWorld(true);
+ const transform=new THREE.Matrix4(),parentInverse=new THREE.Matrix4(),world=new THREE.Matrix4();
+ for(const entry of sceneGroupEntries){
+  const {node,record,kind}=entry;
+  if(!node?.parent)continue;
+  world.multiplyMatrices(sceneGroupPivot.matrixWorld,entry.local);
+  node.parent.updateWorldMatrix(true,false);
+  parentInverse.copy(node.parent.matrixWorld).invert();
+  transform.multiplyMatrices(parentInverse,world);
+  transform.decompose(node.position,node.quaternion,node.scale);
+  node.updateMatrixWorld(true);
+  if(kind==='course'){
+   record.x=node.position.x;record.y=node.position.y;record.z=node.position.z;
+   const euler=new THREE.Euler().setFromQuaternion(node.quaternion,'XYZ');
+   record.rotX=THREE.MathUtils.radToDeg(euler.x);record.angle=THREE.MathUtils.radToDeg(euler.y);record.rotZ=THREE.MathUtils.radToDeg(euler.z);
+   const base=node.userData?.baseSize;
+   if(base){record.w=Math.max(.1,base.w*node.scale.x);record.h=Math.max(.1,base.h*node.scale.y);record.d=Math.max(.1,base.d*node.scale.z);}
+  }else{
+   record.position=node.position.clone();record.rotation=node.quaternion.clone();
+  }
+ }
+ drawMinimap();
+}
+function finishSceneGroupTransform(){
+ if(!sceneGroupPivot)return;
+ syncSceneGroupFromPivot();captureSceneGroupBaseline();
+ rememberMapEdit('Transform scene group');renderSceneTree();
+ // World colliders are rebuilt after the manipulation, never on each slider tick.
+ void refreshEnvironmentForMap().then(()=>{
+  if(selectedSceneItem?.kind==='group'&&sceneGroupPath)selectSceneGroup(sceneGroupPath);
+ }).catch(error=>recordEvent('WARN','Group physics sync: '+error.message));
+}
+function renameSceneGroup(path,next){
+ next=sceneFolderPath(next,path);
+ if(next===path||next.startsWith(path+'/'))return;
+ const replace=value=>sceneGroupMatches(path,value)?next+value.slice(path.length):value;
+ cfg.sceneFolders=[...new Set((cfg.sceneFolders||[]).map(replace))];
+ for(const o of cfg.courseObjects||[])o.sceneFolder=replace(sceneObjectGroupName(o));
+ for(const row of fleetRecords)row.sceneFolder=replace(row.sceneFolder||'Vehicles');
+ if(sceneGroupPath===path)sceneGroupPath=next;
+ rememberMapEdit('Rename scene group');renderSceneTree();
+}
+
 function treeButton(label,title,action,className=''){
  const el=document.createElement('button');el.type='button';el.textContent=label;el.title=title;
  if(className)el.className=className;el.onclick=e=>{e.stopPropagation();void Promise.resolve().then(()=>action(e)).catch(error=>note(error.message,true))};return el;
@@ -10025,84 +10169,129 @@ function sceneTreeRow(name,icon,selected,muted,choose,actions,hidden,locked,canH
 }
 function renderSceneTree(){
  const root=$('sceneTreeList');if(!root)return;
- const search=$('sceneTreeSearch').value.trim().toLowerCase(),wasFocused=document.activeElement?.id;
+ const search=$('sceneTreeSearch').value.trim().toLowerCase(),course=cfg.courseObjects||[],fleet=fleetRecords||[];
  root.replaceChildren();
- const course=cfg.courseObjects||[];
- const groupNames=[...new Set(['Vehicles','World objects',...(cfg.sceneFolders||[]),...course.map(sceneObjectGroupName),...fleetRecords.map(row=>row.sceneFolder||'Vehicles')])].filter(Boolean);
- const fleet=fleetRecords.length?fleetRecords:[];
- function folder(title,items,actions,identifier){
-  const visible=items.length>0||!search;
-  if(!visible)return;
-  const section=document.createElement('section');section.className='scene-tree-folder';section.setAttribute('role','group');
-  const head=document.createElement('div');head.className='scene-tree-folder-head';
-  head.append(treeButton((sceneTreeCollapsed.has(identifier)?'▸ ':'▾ ')+title+' · '+items.length,'Expand / collapse group',()=>{sceneTreeCollapsed.has(identifier)?sceneTreeCollapsed.delete(identifier):sceneTreeCollapsed.add(identifier);renderSceneTree()},'scene-tree-group-toggle'));
-  if(actions?.length)head.append(treeButton('⋯','Group actions',e=>showSceneTreeMenu(e.currentTarget,actions)));
-  section.append(head);
-  if(!sceneTreeCollapsed.has(identifier)){const inner=document.createElement('div');inner.className='scene-tree-items';items.forEach(item=>inner.append(item));section.append(inner)}
-  root.append(section);
+ const groupNames=new Set(['Vehicles','World objects',...(cfg.sceneFolders||[])]);
+ for(const o of course)groupNames.add(sceneFolderPath(sceneObjectGroupName(o)));
+ for(const row of fleet)groupNames.add(sceneFolderPath(row.sceneFolder||'Vehicles'));
+ // Any 'Parent/Child' path is a real nested folder: add missing ancestors.
+ for(const path of [...groupNames]){
+  const parts=path.split('/');for(let n=1;n<parts.length;n++)groupNames.add(parts.slice(0,n).join('/'));
  }
- const carRowsByGroup=new Map();
+ const folderChildren=new Map(),rowByGroup=new Map();
+ for(const path of groupNames){
+  const parent=path.includes('/')?path.slice(0,path.lastIndexOf('/')):'';
+  if(!folderChildren.has(parent))folderChildren.set(parent,[]);
+  folderChildren.get(parent).push(path);
+ }
+ for(const path of groupNames)rowByGroup.set(path,[]);
+ const pushRow=(folder,row)=>{
+  if(!rowByGroup.has(folder))rowByGroup.set(folder,[]);
+  rowByGroup.get(folder).push(row);
+ };
  for(const row of fleet){
   const name=row.id===activeFleetId?cfg.name:row.config?.name||'Vehicle';
   const parts=row.id===activeFleetId?sceneTreeParts():[];
   const matchingParts=parts.filter(([key,obj])=>(key+' '+obj.userData.vehicleSelect.label).toLowerCase().includes(search));
   if(search&&!name.toLowerCase().includes(search)&&!matchingParts.length)continue;
-  const wrap=document.createElement('div');
-  const choices=sceneTreeCarMenu(row);
-  const selected=selectedSceneItem?.kind==='car'&&row.id===activeFleetId;
-  wrap.append(sceneTreeRow(name+(row.id===activeFleetId?' · active':''),'🚘',selected,row.hidden,
-   async()=>{if(row.locked)return;if(row.id!==activeFleetId)await activateFleetVehicle(row.id);selectSceneTreeVehicle()},choices,!!row.hidden,!!row.locked));
-  if(row.id===activeFleetId&&parts.length){
+  const wrapper=document.createElement('div');wrapper.className='scene-tree-car';
+  const actions=sceneTreeCarMenu(row);
+  const expanded=sceneTreeCarExpanded.has(row.id)||(fleet.length===1&&!sceneTreeCollapsed.has('car:'+row.id));
+  const header=document.createElement('div');header.className='scene-tree-car-head';
+  header.append(treeButton((expanded?'▾':'▸'),expanded?'Collapse vehicle components':'Expand vehicle components',()=>{
+   if(expanded){sceneTreeCarExpanded.delete(row.id);sceneTreeCollapsed.add('car:'+row.id)}
+   else {sceneTreeCarExpanded.add(row.id);sceneTreeCollapsed.delete('car:'+row.id)}
+   renderSceneTree();
+  },'scene-tree-car-toggle'));
+  header.append(sceneTreeRow(name+(row.id===activeFleetId?' · active':''),'🚘',selectedSceneItem?.kind==='car'&&row.id===activeFleetId,row.hidden,
+   async()=>{if(row.locked)return;if(row.id!==activeFleetId)await activateFleetVehicle(row.id);selectSceneTreeVehicle()},actions,!!row.hidden,!!row.locked));
+  wrapper.append(header);
+  if(expanded&&row.id===activeFleetId&&parts.length){
    const children=document.createElement('div');children.className='scene-tree-children';
    for(const [key,part] of parts){
     if(search&&!name.toLowerCase().includes(search)&&!((key+' '+part.userData.vehicleSelect.label).toLowerCase().includes(search)))continue;
-    const override=cfg.partOverrides?.[key]||{};const actions=sceneTreePartMenu(key,part);
+    const override=cfg.partOverrides?.[key]||{},partActions=sceneTreePartMenu(key,part);
     children.append(sceneTreeRow(part.userData.vehicleSelect.label,'◈',selectedSceneItem?.kind==='part'&&selectedSceneItem.key===key,!part.visible,
-     ()=>{if(override.locked){note('Unlock this part before editing.',true);return}selectSceneTreePart(key)},actions,!part.visible,!!override.locked));
+     ()=>{if(override.locked){note('Unlock this part before editing.',true);return}selectSceneTreePart(key)},partActions,!part.visible,!!override.locked));
    }
-   wrap.append(children);
+   wrapper.append(children);
   }
-  const group=row.sceneFolder||'Vehicles';if(!carRowsByGroup.has(group))carRowsByGroup.set(group,[]);carRowsByGroup.get(group).push(wrap);
+  pushRow(sceneFolderPath(row.sceneFolder||'Vehicles','Vehicles'),wrapper);
  }
- for(const name of groupNames){
-  const matching=course.filter(o=>sceneObjectGroupName(o)===name);
-  const groupFleet=fleet.filter(row=>(row.sceneFolder||'Vehicles')===name);
-  const filtered=matching.filter(o=>!search||(o.name||o.kind).toLowerCase().includes(search)||name.toLowerCase().includes(search));
-  if(search&&!filtered.length&&!(carRowsByGroup.get(name)?.length))continue;
-  const rows=[...(carRowsByGroup.get(name)||[]),...filtered.map(o=>sceneTreeRow(o.name||o.kind,'◇',selectedSceneItem?.kind==='course'&&selectedSceneItem.id===o.id,!!o.hidden,
-   ()=>{if(o.locked){note('Unlock this object first.',true);return}selectCourseObject(o.id,true)},sceneTreeCourseMenu(o),!!o.hidden,!!o.locked))];
-  const actions=[
-   ['Rename group…',async()=>{const updated=await appPrompt('Rename group',name,{maxLength:70});if(updated===null)return;const next=updated.trim().slice(0,70)||name;
-    for(const o of matching)o.sceneFolder=next;for(const row of groupFleet)row.sceneFolder=next;cfg.sceneFolders=cfg.sceneFolders.filter(g=>g!==name);if(!cfg.sceneFolders.includes(next))cfg.sceneFolders.push(next);rememberMapEdit('Rename group');renderSceneTree()}],
-   ['Hide group',()=>{matching.forEach(o=>{o.hidden=true;syncSceneTreeCourseVisibility(o)});for(const row of groupFleet){row.hidden=true;const mesh=row.id===activeFleetId?car:row.visual;if(mesh)mesh.visible=false}rememberMapEdit('Hide group');renderSceneTree()}],
-   ['Show group',()=>{matching.forEach(o=>{o.hidden=false;syncSceneTreeCourseVisibility(o)});for(const row of groupFleet){row.hidden=false;const mesh=row.id===activeFleetId?car:row.visual;if(mesh)mesh.visible=true}rememberMapEdit('Show group');renderSceneTree()}],
-   ['Lock group',()=>{matching.forEach(o=>o.locked=true);groupFleet.forEach(row=>row.locked=true);if(matching.some(o=>o.id===selectedCourseId))selectCourseObject(null);rememberMapEdit('Lock group');renderSceneTree()}],
-   ['Unlock group',()=>{matching.forEach(o=>o.locked=false);groupFleet.forEach(row=>row.locked=false);rememberMapEdit('Unlock group');renderSceneTree()}],
-   ['Delete group…',async()=>{
-    if(groupFleet.length>=fleetRecords.length&&groupFleet.length){note('Move one car to another group before deleting all vehicles.',true);return;}
-    if(!await appConfirm('Delete group "'+name+'" with '+matching.length+' world objects and '+groupFleet.length+' vehicles?'))return;
-    for(const row of [...groupFleet])await removeFleetVehicle(row.id);
-    cfg.courseObjects=cfg.courseObjects.filter(o=>sceneObjectGroupName(o)!==name);cfg.sceneFolders=cfg.sceneFolders.filter(g=>g!==name);
-    if(matching.some(o=>o.id===selectedCourseId))selectCourseObject(null);rememberMapEdit('Delete group');await refreshEnvironmentForMap();renderSceneTree()}]
-  ];
-  folder(name,rows,actions,'group:'+name);
+ for(const o of course){
+  const name=o.name||o.kind,folder=sceneFolderPath(sceneObjectGroupName(o));
+  if(search&&!name.toLowerCase().includes(search)&&!folder.toLowerCase().includes(search))continue;
+  pushRow(folder,sceneTreeRow(name,'◇',selectedSceneItem?.kind==='course'&&selectedSceneItem.id===o.id,!!o.hidden,
+   ()=>{if(o.locked){note('Unlock this object first.',true);return}selectCourseObject(o.id,true)},sceneTreeCourseMenu(o),!!o.hidden,!!o.locked));
  }
+ function renderFolder(path){
+  const children=(folderChildren.get(path)||[]).map(renderFolder).filter(Boolean);
+  const rows=rowByGroup.get(path)||[];
+  const matchingLabel=path.toLowerCase().includes(search);
+  if(search&&!rows.length&&!children.length&&!matchingLabel)return null;
+  const members=sceneGroupContents(path),count=members.course.length+members.fleet.length;
+  const section=document.createElement('section');section.className='scene-tree-folder';section.setAttribute('role','group');
+  if(selectedSceneItem?.kind==='group'&&selectedSceneItem.path===path)section.classList.add('is-group-selected');
+  const head=document.createElement('div');head.className='scene-tree-folder-head';
+  const identifier='group:'+path,collapsed=sceneTreeCollapsed.has(identifier)&&!search;
+  const title=path.split('/').at(-1);
+  head.append(treeButton((collapsed?'▸ ':'▾ ')+title+' · '+count,'Expand / collapse folder',()=>{
+   sceneTreeCollapsed.has(identifier)?sceneTreeCollapsed.delete(identifier):sceneTreeCollapsed.add(identifier);renderSceneTree();
+  },'scene-tree-group-toggle'));
+  head.append(treeButton('⌖','Select group and transform its contents',()=>selectSceneGroup(path),'scene-tree-group-select'));
+  const actions=[];
+  actions.push(['Select / transform group',()=>selectSceneGroup(path)]);
+  actions.push(['New subfolder…',async()=>{
+   const label=await appPrompt('Subfolder name', 'New subfolder',{maxLength:55});if(label===null)return;
+   const name=sceneFolderPath(path+'/'+label);if(name===path||!name.startsWith(path+'/'))return;
+   if(!cfg.sceneFolders.includes(name))cfg.sceneFolders.push(name);
+   sceneTreeCollapsed.delete(identifier);rememberMapEdit('Create scene subfolder');renderSceneTree();
+  }]);
+  if(path!=='Vehicles'&&path!=='World objects')actions.push(['Rename / move folder…',async()=>{
+   const updated=await appPrompt('Group path (use / for nested folders)',path,{maxLength:70});if(updated!==null)renameSceneGroup(path,updated);
+  }]);
+  actions.push(['Hide group',()=>{for(const o of members.course){o.hidden=true;syncSceneTreeCourseVisibility(o)}for(const row of members.fleet){row.hidden=true;const mesh=row.id===activeFleetId?car:row.visual;if(mesh)mesh.visible=false}rememberMapEdit('Hide group');renderSceneTree()}]);
+  actions.push(['Show group',()=>{for(const o of members.course){o.hidden=false;syncSceneTreeCourseVisibility(o)}for(const row of members.fleet){row.hidden=false;const mesh=row.id===activeFleetId?car:row.visual;if(mesh)mesh.visible=true}rememberMapEdit('Show group');renderSceneTree()}]);
+  actions.push(['Lock group',()=>{members.course.forEach(o=>o.locked=true);members.fleet.forEach(row=>row.locked=true);rememberMapEdit('Lock group');renderSceneTree()}]);
+  actions.push(['Unlock group',()=>{members.course.forEach(o=>o.locked=false);members.fleet.forEach(row=>row.locked=false);rememberMapEdit('Unlock group');renderSceneTree()}]);
+  if(path!=='Vehicles'&&path!=='World objects')actions.push(['Delete folder and contents…',async()=>{
+   if(members.fleet.length>=fleetRecords.length&&members.fleet.length){note('Move one car out before deleting all vehicles.',true);return}
+   if(!await appConfirm('Delete folder "'+path+'" and its '+count+' objects/vehicles?'))return;
+   for(const row of [...members.fleet])await removeFleetVehicle(row.id);
+   cfg.courseObjects=cfg.courseObjects.filter(o=>!sceneGroupMatches(path,sceneObjectGroupName(o)));
+   cfg.sceneFolders=cfg.sceneFolders.filter(folder=>!sceneGroupMatches(path,folder));
+   if(selectedSceneItem?.kind==='group'&&sceneGroupMatches(path,selectedSceneItem.path)){clearSceneGroupPivot();selectedSceneItem=null}
+   rememberMapEdit('Delete scene folder');await refreshEnvironmentForMap();renderSceneTree();
+  }]);
+  head.append(treeButton('⋯','Folder actions',e=>showSceneTreeMenu(e.currentTarget,actions)));
+  section.append(head);
+  if(!collapsed){
+   const inner=document.createElement('div');inner.className='scene-tree-items';
+   rows.forEach(row=>inner.append(row));
+   for(const child of children)inner.append(child);
+   section.append(inner);
+  }
+  return section;
+ }
+ for(const path of folderChildren.get('')||[]){const section=renderFolder(path);if(section)root.append(section)}
  $('sceneTreeSummary').textContent=fleet.length+' vehicles · '+course.length+' world objects · '+sceneTreeParts().length+' editable parts';
  if(!root.children.length)root.textContent='No matching objects';
 }
 $('sceneTreeSearch').addEventListener('input',renderSceneTree);
 $('sceneTreeRefresh').onclick=renderSceneTree;
 $('sceneTreeNewGroup').onclick=()=>void(async()=>{
- const label=await appPrompt('New scene object group','New group',{maxLength:70});if(!label)return;
- const group=label.trim().slice(0,70);if(!group)return;
+ const label=await appPrompt('New group (use Parent/Subfolder for nesting)','New group',{maxLength:70});if(!label)return;
+ const group=sceneFolderPath(label);if(!group)return;
  if(!cfg.sceneFolders.includes(group))cfg.sceneFolders.push(group);
  rememberMapEdit('Create group');renderSceneTree();
 })().catch(error=>note(error.message,true));
-$('sceneTreeFocus').onclick=()=>{if(selectedSceneItem?.kind==='part'){
+$('sceneTreeFocus').onclick=()=>{if(selectedSceneItem?.kind==='group'&&sceneGroupPivot){beginDriveSceneEditing();const pos=sceneGroupPivot.getWorldPosition(new THREE.Vector3());orbit.target.copy(pos);camera.position.copy(pos).add(new THREE.Vector3(5,3,6));orbit.update();return;}
+ if(selectedSceneItem?.kind==='part'){
  const obj=editableVehicleParts.get(selectedSceneItem.key);if(obj){beginDriveSceneEditing();const pos=obj.getWorldPosition(new THREE.Vector3());orbit.target.copy(pos);camera.position.copy(pos).add(new THREE.Vector3(3,2,4));orbit.update();}}
  else frameViewportSelection();};
 $('sceneTreeInspect').onclick=()=>{
  if(selectedSceneItem?.kind==='part')renderPartInspector(selectedSceneItem.key);
+ else if(selectedSceneItem?.kind==='group')renderPartInspector('__scene_group__');
  else if(selectedSceneItem?.kind==='car')renderPartInspector('__vehicle__');
  else if(selectedCourseId)renderCourseInspector();
  else note('Select a car, component, or world object first.');
@@ -10110,12 +10299,14 @@ $('sceneTreeInspect').onclick=()=>{
 $('sceneTreeSave').onclick=()=>void saveServer(false).catch(error=>note(error.message,true));
 // A single non-destructive part inspector controls real Three.js objects and
 // stores visual-only transforms in the vehicle blueprint.
-function selectedPartObject(key){return key==='__vehicle__'?car:editableVehicleParts.get(key)}
+function selectedPartObject(key){return key==='__scene_group__'?sceneGroupPivot:key==='__vehicle__'?car:editableVehicleParts.get(key)}
 function selectSceneTreeVehicle(){
+ if(sceneGroupPivot)clearSceneGroupPivot();
  ensureFleet();selectedSceneItem={kind:'car',id:activeFleetId};
  renderPartInspector('__vehicle__');renderSceneTree();
 }
 function selectSceneTreePart(key){
+ if(sceneGroupPivot)clearSceneGroupPivot();
  const root=editableVehicleParts.get(key);if(!root)return;
  if(!selectEditableVehiclePart(key))return;
  selectedSceneItem={kind:'part',key};renderPartInspector(key);renderSceneTree();
@@ -10126,27 +10317,28 @@ function partInspectorSync(key){
   partInspectorRX:THREE.MathUtils.radToDeg(node.rotation.x),partInspectorRY:THREE.MathUtils.radToDeg(node.rotation.y),partInspectorRZ:THREE.MathUtils.radToDeg(node.rotation.z),
   partInspectorSX:node.scale.x,partInspectorSY:node.scale.y,partInspectorSZ:node.scale.z};
  for(const [name,value] of Object.entries(fields)){const input=$(name);if(document.activeElement!==input)input.value=Number(value.toFixed(3))}
- $('partInspectorVisibility').textContent=node.visible?'Hide':'Show';
- $('partInspectorLock').textContent=cfg.partOverrides?.[key]?.locked?'Unlock':'Lock';
+ $('partInspectorVisibility').textContent=key==='__scene_group__'?'Hide group':node.visible?'Hide':'Show';
+ $('partInspectorLock').textContent=key==='__scene_group__'?'Lock group':cfg.partOverrides?.[key]?.locked?'Unlock':'Lock';
  for(const btn of $('partInspector').querySelectorAll('[data-part-gizmo]'))btn.setAttribute('aria-pressed',String(partGizmo?.getMode()===btn.dataset.partGizmo));
 }
 function renderPartInspector(key){
  const node=selectedPartObject(key);if(!node)return;
- const title=key==='__vehicle__'?cfg.name:node.userData.vehicleSelect?.label||key;
+ const title=key==='__scene_group__'?sceneGroupPath:key==='__vehicle__'?cfg.name:node.userData.vehicleSelect?.label||key;
  $('objectWindow').dataset.selectedType='part';$('partInspector').hidden=false;
  $('objectKindTitle').textContent=title+' · editable';
- $('objectIdText').textContent=key==='__vehicle__'?'Active vehicle · visual transform':'Component · '+key;
+ $('objectIdText').textContent=key==='__scene_group__'?'Group transform · all descendants':key==='__vehicle__'?'Active vehicle · visual transform':'Component · '+key;
  $('partInspectorName').value=title;
  if(objectGizmo?.object)objectGizmo.detach();
  if(chassisGizmo?.object)chassisGizmo.detach();
  if(vectorGizmo?.object)vectorGizmo.detach();
- if(partGizmo){partGizmo.detach();if(!cfg.partOverrides?.[key]?.locked)partGizmo.attach(node);partGizmo.setMode('translate')}
- setWindowVisible('objectWindow',true);partInspectorSync(key);
+ if(partGizmo){partGizmo.detach();if(key==='__scene_group__'||!cfg.partOverrides?.[key]?.locked)partGizmo.attach(node);partGizmo.setMode('translate')}
+ setWindowVisible('objectWindow',true);partInspectorSync(key);bindObjectSlider('partInspectorX');
 }
 $('partInspectorName').addEventListener('change',()=>{
- const key=selectedSceneItem?.kind==='car'?'__vehicle__':selectedSceneItem?.key;
+ const key=selectedSceneItem?.kind==='car'?'__vehicle__':selectedSceneItem?.kind==='group'?'__scene_group__':selectedSceneItem?.key;
  if(!key)return;const name=$('partInspectorName').value.trim().slice(0,80);if(!name)return;
  if(key==='__vehicle__'){cfg.name=name;$('vehicleName').textContent=name;const row=fleetRecords.find(r=>r.id===activeFleetId);if(row)row.config.name=name;}
+ else if(key==='__scene_group__'){renameSceneGroup(sceneGroupPath,name);return;}
  else {cfg.partOverrides[key]={...(cfg.partOverrides[key]||{}),name};const part=editableVehicleParts.get(key);if(part?.userData.vehicleSelect)part.userData.vehicleSelect.label=name;}
  scheduleHistory('Rename scene component');renderSceneTree();
 });
@@ -10154,32 +10346,37 @@ const partFieldKeys=[['partInspectorX','position','x',1],['partInspectorY','posi
  ['partInspectorRX','rotation','x',Math.PI/180],['partInspectorRY','rotation','y',Math.PI/180],['partInspectorRZ','rotation','z',Math.PI/180],
  ['partInspectorSX','scale','x',1],['partInspectorSY','scale','y',1],['partInspectorSZ','scale','z',1]];
 for(const [inputName,target,axis,factor] of partFieldKeys)$(inputName).addEventListener('change',()=>{
- const key=selectedSceneItem?.kind==='car'?'__vehicle__':selectedSceneItem?.key,root=selectedPartObject(key);
+ const key=selectedSceneItem?.kind==='car'?'__vehicle__':selectedSceneItem?.kind==='group'?'__scene_group__':selectedSceneItem?.key,root=selectedPartObject(key);
  if(!root)return;const value=Number($(inputName).value)*factor;
  if(!Number.isFinite(value)||Math.abs(value)>1000||(target==='scale'&&value<=0))return;
- root[target][axis]=value;root.updateMatrixWorld(true);writePartOverride(key,root);
- updateHighlight();scheduleHistory('Component '+target);partInspectorSync(key);
+ root[target][axis]=value;root.updateMatrixWorld(true);
+ if(key==='__scene_group__')syncSceneGroupFromPivot();else {writePartOverride(key,root);updateHighlight();}
+ if(key==='__scene_group__')finishSceneGroupTransform();else scheduleHistory('Component '+target);partInspectorSync(key);bindObjectSlider(inputName);
 });
 for(const button of $('partInspector').querySelectorAll('[data-part-gizmo]'))button.onclick=()=>{
  if(!partGizmo?.object)return;partGizmo.setMode(button.dataset.partGizmo);
- const key=selectedSceneItem?.kind==='car'?'__vehicle__':selectedSceneItem?.key;
+ const key=selectedSceneItem?.kind==='car'?'__vehicle__':selectedSceneItem?.kind==='group'?'__scene_group__':selectedSceneItem?.key;
  partInspectorSync(key);
 };
 $('partInspectorVisibility').onclick=()=>{
- const key=selectedSceneItem?.kind==='car'?'__vehicle__':selectedSceneItem?.key,node=selectedPartObject(key);
- if(!node)return;node.visible=!node.visible;writePartOverride(key,node);
+ const key=selectedSceneItem?.kind==='car'?'__vehicle__':selectedSceneItem?.kind==='group'?'__scene_group__':selectedSceneItem?.key,node=selectedPartObject(key);
+ if(!node)return;
+ if(key==='__scene_group__'){const entries=sceneGroupNodes(sceneGroupPath),shouldHide=entries.some(entry=>!entry.record.hidden);for(const entry of entries){entry.record.hidden=shouldHide;entry.node.visible=!shouldHide;if(entry.kind==='course')syncSceneTreeCourseVisibility(entry.record);}rememberMapEdit('Group visibility');renderSceneTree();return;}
+ node.visible=!node.visible;writePartOverride(key,node);
  if(key==='__vehicle__'){const row=fleetRecords.find(r=>r.id===activeFleetId);if(row)row.hidden=!node.visible;}
  partInspectorSync(key);renderSceneTree();scheduleHistory('Toggle component visibility');updateHighlight();
 };
 $('partInspectorLock').onclick=()=>{
- const key=selectedSceneItem?.kind==='car'?'__vehicle__':selectedSceneItem?.key;
+ const key=selectedSceneItem?.kind==='car'?'__vehicle__':selectedSceneItem?.kind==='group'?'__scene_group__':selectedSceneItem?.key;
+ if(key==='__scene_group__'){const entries=sceneGroupNodes(sceneGroupPath),shouldLock=entries.some(entry=>!entry.record.locked);for(const entry of entries)entry.record.locked=shouldLock;renderSceneTree();rememberMapEdit('Group lock');return;}
  if(key==='__vehicle__'){const row=fleetRecords.find(r=>r.id===activeFleetId);if(row)row.locked=!row.locked;}
  else cfg.partOverrides[key]={...(cfg.partOverrides[key]||{}),locked:!cfg.partOverrides[key]?.locked};
  partInspectorSync(key);renderSceneTree();scheduleHistory('Component lock');
 };
 $('partInspectorReset').onclick=()=>{
- const key=selectedSceneItem?.kind==='car'?'__vehicle__':selectedSceneItem?.key;
+ const key=selectedSceneItem?.kind==='car'?'__vehicle__':selectedSceneItem?.kind==='group'?'__scene_group__':selectedSceneItem?.key;
  if(!key||key==='__vehicle__')return;
+ if(key==='__scene_group__'){note('To undo a group transformation use Undo; reset does not move members to world origin.',true);return;}
  delete cfg.partOverrides[key];partGizmo?.detach();buildVehicle();scheduleHistory('Reset component override');renderSceneTree();
 };
 partGizmo=new TransformControls(camera,renderer.domElement);
@@ -10189,12 +10386,13 @@ partGizmo.addEventListener('dragging-changed',e=>{
  if(e.value)beginDriveSceneEditing();
  orbit.enabled=!e.value&&(mode!=='drive'||driveSceneEditing||cfg.cameraMode!=='driver')&&!xrActive;
  if(!e.value){
-  const key=selectedSceneItem?.kind==='car'?'__vehicle__':selectedSceneItem?.key,root=selectedPartObject(key);
-  if(root){writePartOverride(key,root);scheduleHistory('Vehicle component gizmo');renderSceneTree();partInspectorSync(key);updateHighlight();}
+  const key=selectedSceneItem?.kind==='car'?'__vehicle__':selectedSceneItem?.kind==='group'?'__scene_group__':selectedSceneItem?.key,root=selectedPartObject(key);
+  if(root){if(key==='__scene_group__')finishSceneGroupTransform();else {writePartOverride(key,root);scheduleHistory('Vehicle component gizmo');}renderSceneTree();partInspectorSync(key);updateHighlight();}
  }
 });
 partGizmo.addEventListener('objectChange',()=>{
- const key=selectedSceneItem?.kind==='car'?'__vehicle__':selectedSceneItem?.key;
+ const key=selectedSceneItem?.kind==='car'?'__vehicle__':selectedSceneItem?.kind==='group'?'__scene_group__':selectedSceneItem?.key;
+ if(key==='__scene_group__')syncSceneGroupFromPivot();
  partInspectorSync(key);
 });
 
@@ -10307,6 +10505,7 @@ $('galleryRefreshBtn').onclick=()=>{gallerySource='public';setWindowVisible('gal
 $('layoutPublic').onchange=()=>{serverVisibility=$('layoutPublic').checked?'public':'private'};
 
 const RELEASE_NOTES=[
+ {v:'0.3.43',date:'2026-11-12',title:'Universal transform slider and nested scene object groups',items:['The Object Inspector uses one adaptive range slider for all vehicle-part and world-object position, rotation and scale fields. Select a numeric field to bind the same slider; drag to adjust its value live.', 'Each vehicle has its own collapsible parts branch; scene groups may contain nested subfolders using Parent/Subfolder paths.', 'Select a folder to move, rotate or scale its contained scene objects as a group with the inspector or Three.js transform gizmo.']},
  {v:'0.3.42',date:'2026-11-11',title:'Scene objects hierarchy and publishing improvements',items:['New searchable Scene objects outliner organizes vehicles, editable vehicle parts and world objects with visibility, lock, rename, group and safe delete controls.', 'Vehicle components can be inspected and transformed with the 3D gizmo, with adjustments stored in the vehicle blueprint.', 'Publishing uses visible per-item checkboxes and a sticky confirm footer rather than hard-to-use multi-select lists.']},
  {v:'0.3.41',date:'2026-11-11',title:'Vector chassis precision and hollow cabin',items:['Wheel arch outlines use the same circular sampling for 2D drafting and 3D geometry.', 'Selected vector parts support Shift+D and Ctrl/Cmd+C/V duplication; collapsing Properties removes the entire sidebar.', 'Top/bottom show car footprint, roof, wheel and axle guides; the body is generated with separate side skins, glass openings and an open interior instead of a solid slab.']},
  {v:'0.3.40',date:'2026-11-11',title:'Vector chassis drafting glass and front/rear symmetry',items:['The vector canvas now has a transparent blurred background and the properties inspector lives in a dedicated collapsible column, never above editable nodes.', 'Front/rear drafting includes a body-and-glass reference silhouette, a visible symmetry axis and live reflected curves and 3D parts from either half.', 'The existing vehicle blueprints remain compatible; mirror preference is included in vector design JSON.']},

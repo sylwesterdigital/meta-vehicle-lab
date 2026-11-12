@@ -1,3 +1,10 @@
+## v0.3.43 — November 12, 2026
+- Restore a single adaptive Object Inspector slider for all selected vehicle-component and world-object transform values. Clicking X/Y/Z position, rotation or scale selects that one slider; drag updates the selected mesh live, and releasing commits edit history. Existing precise numeric input remains available.
+- Give each vehicle a separate independently collapsible branch in Scene Objects. Nested groups use slash-separated paths, and parent groups show their descendants.
+- Add a group transform pivot for selecting, moving, rotating and scaling all visible live group members together, including world/course objects and vehicle instances. Update stored world-object records on commit and refresh collision data after manipulation.
+- Restore group inspection, nested group naming, grouping, visibility and locking without adding new database tables or deleting saved assets.
+- No new Python requirements or destructive migration; full browser/physics acceptance should be verified after deployment.
+
 ## v0.3.42 — November 11, 2026
 - Add searchable Scene objects outliner with grouped world objects and vehicle hierarchy; enable inspecting and transforming editable vehicle components with visual-only saved local transforms, visibility, naming and locks.
 - Enable course-object groups and confirmed group deletion; persist world groups with map JSON and vehicle snapshots without changing storage schemas. Visual hiding does not implicitly remove colliders.
