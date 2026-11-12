@@ -1,3 +1,8 @@
+## v0.3.45 — November 12, 2026
+- Capture framing centres the vehicle in its actual projected bounds and then fits visible pixels, with white background and aspect-ratio-safe padding. This avoids screenshots with only a quarter of the image occupied.
+- Three studio render modes: materials, materials with depth/normal outlines, and black technical outlines on white. Normal/depth render passes are capture-only and do not modify live scene materials.
+- Re-capture all body-only or complete-car camera angles when switching render style. No new packages, schema changes or persistent-storage mutations.
+
 ## v0.3.44 — November 12, 2026
 - Scene Objects supports multi-selection checkboxes, select all visible items, bulk move to an existing folder, and confirmed bulk delete. The target is always selected from real existing folders, including subfolders, rather than entered as a prompt.
 - Procedural vehicle parts deleted in bulk are hidden reversibly (original generator data retained), and at least one vehicle must remain.

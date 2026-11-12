@@ -349,6 +349,39 @@ class Ids(HTMLParser):
             self.forms+=1
     def handle_endtag(self,tag):
         if tag=='form':self.forms-=1
+
+class StudioPixelCaptureTests(unittest.TestCase):
+    """Exercise capture-only outlining and pixel-fit logic without a WebGL server."""
+    def test_outline_and_pixel_bounds_run_in_node(self):
+        html=(ROOT/'index.html').read_text()
+        begin=html.index('function studioContentBounds(')
+        end=html.index('function captureChassisStudioShot(',begin)
+        source=html[begin:end]
+        script=source+r"""
+const assert=require('node:assert/strict');
+const width=7,height=7;
+const normal=new Uint8Array(width*height*4),depth=new Uint8Array(width*height*4),
+  colour=new Uint8Array(width*height*4);
+for(let y=2;y<=4;y++)for(let x=2;x<=4;x++){
+ const i=(y*width+x)*4;
+ normal[i]=128;normal[i+1]=128;normal[i+2]=255;normal[i+3]=255;
+ colour[i]=200;colour[i+1]=40;colour[i+2]=20;colour[i+3]=255;
+ depth[i+3]=255;
+}
+const bounds=studioContentBounds(normal,width,height);
+assert.deepEqual(bounds,{minX:2,minY:2,maxX:4,maxY:4,count:9});
+assert.equal(studioContentBounds(new Uint8Array(width*height*4),width,height),null);
+const drawing=studioOutlineImage(colour,normal,depth,width,height,'technical');
+assert.deepEqual(Array.from(drawing.subarray(0,4)),[255,255,255,255]);
+assert.deepEqual(Array.from(drawing.subarray((2*width+2)*4,(2*width+2)*4+4)),[0,0,0,255]);
+assert.deepEqual(Array.from(drawing.subarray((3*width+3)*4,(3*width+3)*4+4)),[255,255,255,255]);
+const outlined=studioOutlineImage(colour,normal,depth,width,height,'outlined');
+assert.deepEqual(Array.from(outlined.subarray((3*width+3)*4,(3*width+3)*4+4)),[200,40,20,255]);
+console.log('studio capture outlines and bounds OK');
+"""
+        outcome=subprocess.run(['node','-e',script],capture_output=True,text=True,timeout=15)
+        self.assertEqual(outcome.returncode,0,outcome.stdout+outcome.stderr)
+
 class ChassisImageTests(unittest.TestCase):
     def setUp(self):
         self.html=(ROOT/'index.html').read_text()
@@ -381,7 +414,9 @@ class ChassisImageTests(unittest.TestCase):
         # Long examples remain computed on demand, never displayed as a wall.
         self.assertIn('id="chassisPromptOptions"',self.html)
         self.assertIn('id="chassisPromptExamples" hidden',self.html)
-        self.assertIn('const span=Math.max(hx,hy)*1.7',self.html)
+        self.assertIn('const viewW=Math.max(.5,(maxX-minX)/margin,(maxY-minY)*aspect/margin)',self.html)
+        self.assertIn('const box=studioContentBounds(normal,width,height)',self.html)
+        self.assertIn('id="chassisCaptureStyle"',self.html)
     def test_meta_muse_generative_endpoint_and_key_scoping(self):
         self.assertIn("if provider not in ('openai','xai','meta')",self.backend)
         self.assertIn("'model':'muse-image-1.0'",self.backend)
