@@ -705,7 +705,7 @@ class VehicleLab0319TerrainTests(unittest.TestCase):
             'const WINDOW_IDS=',"'radioWindow','sculptWindow'",
         ):
             self.assertIn(fragment,self.html)
-        self.assertEqual(self.html.count('class="mini-btn minimize"'),18)
+        self.assertEqual(self.html.count('class="mini-btn minimize"'),19)
 
 class VehicleLab0320WorldEditingTests(unittest.TestCase):
     def setUp(self):
@@ -727,7 +727,7 @@ class VehicleLab0320WorldEditingTests(unittest.TestCase):
     def test_gallery_vehicle_preserves_scene(self):
         for fragment in (
             'const SHARED_WORLD_KEYS=',
-            "'courseObjects','courseName','terrainProfile','terrainSize'",
+            "'courseObjects','sceneFolders','courseName','terrainProfile','terrainSize'",
             "'sculptData','seaEnabled','waterLevel'",
             'function sceneWorldSnapshot()',
             'function restoreSceneWorld(snapshot)',
@@ -1257,7 +1257,7 @@ class VectorChassis038Tests(unittest.TestCase):
         self.assertIn('id="vectorEditorBtn"', self.html)
         self.assertIn("['vectorChassis','Open vector chassis editor','Shift+KeyC'",self.html)
         self.assertIn('Vector chassis · Shift+C',self.html)
-        self.assertEqual(self.html.count('class="mini-btn minimize"'),18)
+        self.assertEqual(self.html.count('class="mini-btn minimize"'),19)
 
     def test_complete_view_and_tool_palette(self):
         for view in ('left','right','front','rear','top','bottom'):
@@ -1273,7 +1273,7 @@ class VectorChassis038Tests(unittest.TestCase):
         self.assertIn('cfg.vectorChassis=vectorSanitize(cfg.vectorChassis)',self.html)
         self.assertIn('vehicle:structuredClone(cfg)',self.html)
         self.assertIn('function vectorApplyToScene()',self.html)
-        self.assertIn('vectorApplyToScene();\nupdateLights()',self.html)
+        self.assertIn('vectorApplyToScene();\napplyVehicleGeometrySource();\napplyEditablePartOverrides();\nupdateLights()',self.html)
 
     def test_scene_gizmo_protects_imported_assets(self):
         self.assertIn('new TransformControls(camera,renderer.domElement);vectorGizmo',self.html)
@@ -1409,3 +1409,36 @@ class VectorChassis041Tests(unittest.TestCase):
         self.assertIn("if(['top','bottom'].includes(vectorView))",self.html)
         self.assertIn('Vehicle footprint and roof plan reference',self.html)
         self.assertIn('const z=wheelZ(axle)',self.html)
+
+
+class VehicleLab0342SceneOutlinerTests(unittest.TestCase):
+    def setUp(self):
+        self.text=(Path(__file__).resolve().parents[1]/'index.html').read_text()
+
+    def test_scene_tree_is_first_class_workspace_window(self):
+        for snippet in ('id="sceneTreeWindow"','id="sceneTreeSearch"',
+                        'id="sceneTreeList"','id="sceneTreeBtn"',
+                        "'sceneTreeWindow'];",'function renderSceneTree()',
+                        'function showSceneTreeMenu(anchor,entries)',
+                        'function sceneTreeCourseMenu(o)',
+                        'function sceneTreePartMenu(key,root)',
+                        'function sceneTreeCarMenu(row)'):
+            self.assertIn(snippet,self.text)
+
+    def test_vehicle_component_transform_is_visual_and_persisted(self):
+        for snippet in ('partOverrides:{}','function applyEditablePartOverrides()',
+                        'function writePartOverride(key,root)',
+                        'partGizmo=new TransformControls(camera,renderer.domElement)',
+                        'function renderPartInspector(key)',
+                        'applyEditablePartOverrides();',
+                        "writePartOverride(key,root)",
+                        "if(partGizmo?.object)partGizmo.detach();"):
+            self.assertIn(snippet,self.text)
+
+    def test_publish_choices_remain_explicit_and_private(self):
+        for snippet in ('id="publishCarsChoices"','id="publishMapChoices"',
+                        'id="publishModelChoices"','class="publish-footer"',
+                        "option.selected=prior.includes(row.id)",
+                        "if(!$('publishConsent').checked)throw Error",
+                        "await appConfirm('Publish '"):
+            self.assertIn(snippet,self.text)

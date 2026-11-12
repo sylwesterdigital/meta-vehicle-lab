@@ -1,3 +1,11 @@
+## v0.3.42 — November 11, 2026
+- Add searchable Scene objects outliner with grouped world objects and vehicle hierarchy; enable inspecting and transforming editable vehicle components with visual-only saved local transforms, visibility, naming and locks.
+- Enable course-object groups and confirmed group deletion; persist world groups with map JSON and vehicle snapshots without changing storage schemas. Visual hiding does not implicitly remove colliders.
+- Add active vehicle geometry source display selection (procedural, uploaded GLB, or vector), retaining original geometry and the existing model library.
+- Publishing now uses explicit checkbox/radio lists and a sticky confirmation footer; published links live in a separate expandable section.
+- The new outliner uses existing 3D geometry and server-independent object metadata. Individual GLB replacement of every vehicle component, scene-wide fleet persistence, and AI generation per part are not implemented by this release; the contextual controls route to existing Chassis Studio instead.
+- Existing maps, saved cars, avatars, and assets are not deleted or migrated.
+
 ## v0.3.41 — November 11, 2026
 - Vector wheel arches share one sampled true-circle outline for 2D and 3D; removes mismatched arc sweeps and angular 3D wheel wells.
 - Shift+D duplicates and Ctrl/Cmd+C/V copy/paste selected vector parts within the editor; new layer IDs and offset nodes protect source shapes.

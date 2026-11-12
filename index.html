@@ -5,7 +5,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Vehicle Lab — Procedural Studio</title>
-  <meta name="vehicle-lab-version" content="0.3.41">
+  <meta name="vehicle-lab-version" content="0.3.42">
   <style>
     :root {
       color-scheme:dark;
@@ -1010,6 +1010,61 @@ input[type=color]:focus-visible{outline:2px solid var(--accent)!important;outlin
 #vectorMirrorLabel[hidden]{display:none!important}
 #vectorWindow .vector-inspector button:focus-visible,#vectorMirror:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 @media(max-width:800px){#vectorWindow .vector-workspace{grid-template-columns:minmax(0,1fr) minmax(190px,220px)}#vectorWindow .vector-workspace[data-inspector-collapsed="true"]{grid-template-columns:minmax(0,1fr) 43px}#vectorWindow .vector-actions{right:10px;max-width:calc(100% - 20px)}#vectorWindow .vector-inspector{grid-column:2;grid-row:1;top:auto!important;bottom:auto!important;max-height:none!important;flex-direction:column;flex-wrap:nowrap}#vectorWindow .vector-canvas-top{top:76px;left:59px}#vectorWindow .vector-toolbar{top:139px;left:5px}#vectorWindow .vector-canvas-foot{left:52px} }
+
+/* v0.3.42 · Scene hierarchy and clear publishing selection */
+#sceneTreeWindow{left:calc(100vw - 410px);top:120px;width:390px;height:min(670px,75vh);min-width:290px;min-height:240px}
+#sceneTreeWindow .window-body{display:flex;flex-direction:column;min-height:0;overflow:hidden;gap:7px;padding:10px}
+.scene-tree-toolbar{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:5px}
+.scene-tree-toolbar input{min-width:0;width:100%;background:#102939;color:#f2f9ff;border:1px solid #69869b;border-radius:7px;padding:9px}
+.scene-tree-toolbar button{padding:6px 9px}
+#sceneTreeList{overflow:auto;flex:1;min-height:0;display:flex;flex-direction:column;gap:7px;padding:2px}
+.scene-tree-folder{border:1px solid var(--pane-border);border-radius:9px;overflow:hidden;background:#152f40eb}
+.scene-tree-folder-head{display:flex;gap:4px;align-items:center;padding:5px;background:#29465d}
+.scene-tree-folder-head .scene-tree-group-toggle{flex:1;min-width:0;text-align:left;background:transparent!important;border:0!important;color:#f4fbff!important;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.scene-tree-folder-head button:not(.scene-tree-group-toggle){min-width:29px;width:29px;padding:4px}
+.scene-tree-items{display:grid;gap:3px;padding:5px}
+.scene-tree-row{display:flex;align-items:center;gap:4px;min-width:0;padding:3px;border-radius:6px;background:#23394a}
+.scene-tree-row.is-selected{outline:2px solid var(--accent);background:#385567}
+.scene-tree-row.is-muted{opacity:.54}
+.scene-tree-row button{min-height:31px;min-width:31px;padding:3px 5px;border-radius:6px}
+.scene-tree-row .scene-tree-title{flex:1;min-width:0;text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:calc(12px * var(--ui-scale))}
+.scene-tree-row .scene-tree-title:focus-visible{outline:2px solid var(--accent)}
+.scene-tree-row .scene-tree-icon{color:#a9d0e1;font-size:15px;flex:none;width:21px;text-align:center}
+.scene-tree-children{display:grid;gap:3px;padding:4px 0 4px 19px;border-left:2px solid #5c8294;margin-left:10px}
+.scene-tree-footer{display:flex;gap:5px;flex-wrap:wrap;padding-top:5px;border-top:1px solid var(--pane-border)}
+.scene-tree-footer button{flex:1;min-width:75px;padding:7px}
+.scene-tree-menu{min-width:125px;position:fixed;z-index:250;background:#142c3b;color:#effaff;border:1px solid #8baab9;border-radius:9px;box-shadow:0 12px 35px #000a;padding:5px;display:grid;gap:3px}
+.scene-tree-menu{max-height:min(82vh,500px);overflow:auto}
+.scene-tree-menu[hidden]{display:none!important}
+.scene-tree-menu button{color:#f1f8fd!important;background:#23465d!important;text-align:left;padding:9px 11px;min-width:155px}
+#partInspector[hidden]{display:none!important}
+#objectWindow[data-selected-type='part'] .object-mode,#objectWindow[data-selected-type='part'] .object-vector,
+#objectWindow[data-selected-type='part'] .object-slider,#objectWindow[data-selected-type='part'] .object-grid,
+#objectWindow[data-selected-type='part'] #objectDuplicate,#objectWindow[data-selected-type='part'] #objectDelete,
+#objectWindow[data-selected-type='part'] .object-course-help{display:none!important}
+#partInspector{display:grid;gap:8px;margin-top:9px}
+#partInspector label{display:grid;gap:3px;font-size:calc(11px * var(--ui-scale));color:#deeff9}
+#partInspector input,#partInspector select{width:100%;min-width:0;color:#f2faff;background:#112c3b;border:1px solid #6f95ab;border-radius:6px;padding:8px}
+.part-inspector-coords{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+.part-inspector-actions{display:flex;gap:5px;flex-wrap:wrap}
+.part-inspector-actions button{flex:1;min-width:65px}
+.part-inspector-note{color:#b8d6e5;font-size:11px;line-height:1.45}
+.publish-dialog{width:min(720px,96vw);max-height:min(90dvh,880px);display:flex;flex-direction:column;overflow:hidden;gap:8px}
+.publish-dialog .publish-scroll{overflow:auto;flex:1;min-height:0;scrollbar-gutter:stable;padding:1px 3px}
+.publish-dialog .publish-choice-list{display:grid;gap:5px;max-height:190px;overflow:auto;padding:5px;background:#102b3a;border-radius:8px;border:1px solid #42697f}
+.publish-dialog .publish-choice{display:flex;gap:10px;align-items:center;padding:8px 10px;border-radius:7px;background:#1d4055;color:#f5faff;cursor:pointer}
+.publish-dialog .publish-choice:has(input:checked){background:#386279;outline:2px solid var(--accent)}
+.publish-dialog .publish-choice input{width:18px;height:18px;flex:none;accent-color:var(--accent)}
+.publish-dialog .publish-choice .publish-choice-name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.publish-dialog .publish-choice-list:empty:after{content:'No saved items found';padding:10px;color:#c1d6e2}
+.publish-dialog .publish-footer{position:sticky;bottom:0;z-index:3;display:flex;align-items:center;gap:8px;flex-wrap:wrap;background:#142b3a;padding:11px 3px 2px;border-top:1px solid #7791a4}
+.publish-dialog .publish-footer #publishConfirm{font-weight:700;min-height:43px;background:var(--accent)!important;color:var(--accent-ink)!important}
+.publish-dialog #publishStatus{flex:1;min-width:160px;font-size:11px;line-height:1.4}
+.publish-dialog .publish-disclosure{margin-top:11px}
+.publish-dialog .publish-disclosure summary{cursor:pointer;color:#d7ebf4;font-weight:700}
+.publish-dialog .publish-kind{font-weight:600}
+.publish-dialog .publish-select-hidden{position:absolute!important;width:1px!important;height:1px!important;opacity:0;pointer-events:none;overflow:hidden}
+@media(max-width:690px){#sceneTreeWindow{left:5px;top:100px;width:min(390px,95vw)}.publish-dialog{padding:12px}}
 </style>
 
  <script type="importmap">
@@ -1030,7 +1085,7 @@ input[type=color]:focus-visible{outline:2px solid var(--accent)!important;outlin
 
   <div id="stage">
   <div id="hud">
-    <div class="stage-badge"><strong>Vehicle Lab</strong><small id="appVersionBadge">v0.3.41</small></div>
+    <div class="stage-badge"><strong>Vehicle Lab</strong><small id="appVersionBadge">v0.3.42</small></div>
     <p id="vehicleName">City Car</p><p id="vehicleInfo">Procedural vehicle</p>
     <div id="speedHud"><strong id="speed">0</strong><div>km/h</div></div>
     <div id="cameraModeReadout" style="padding:3px 6px;margin-top:4px;width:max-content;max-width:260px;border-radius:5px;background:#132d3cc0;color:#e9f5fc;font:10px ui-monospace,monospace">Camera · Orbit follow</div>
@@ -1051,7 +1106,7 @@ input[type=color]:focus-visible{outline:2px solid var(--accent)!important;outlin
   <section id="toolsWindow" class="float-window" aria-label="Vehicle tools">
     <div class="window-head"><strong>Vehicle tools</strong><button class="mini-btn minimize" title="Minimize"><svg class="collapse-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path class="icon-minify" d="M6 12h12"/><rect class="icon-expand" x="7" y="7" width="10" height="10" rx="2"/></svg></button></div>
     <div class="window-body"><div id="boarding"><button type="button" id="openOccupants" title="Choose driver and passenger 3D models">Driver / passengers</button>
-      <button id="exitBtn">Exit −</button><button id="boardBtn">Board +</button><button id="doorsBtn">Open doors</button><button id="wheelEditorBtn" title="Wheel styles / GLB models">Wheel workshop</button><button id="chassisEditorBtn" title="3D chassis asset library">Body workshop</button><button type="button" id="vectorEditorBtn" title="Draw an editable vector car body (Shift+C)">Vector chassis</button><button id="fleetBtn" title="Scene vehicle instances">Fleet</button><button id="mapEditorBtn" title="Test track / obstacles / hills">Test map</button><button id="mediaBrowserBtn" title="Cars, models, images, maps, music and public gallery">My media</button><button id="radioBtn" title="Music playlists and in-vehicle radio">♫ Radio</button><button id="xrBtn" title="WebXR immersive VR">Enter XR</button><button id="xrSeatBtn" title="Teleport into the cabin (XR only)">Cabin</button>
+      <button id="exitBtn">Exit −</button><button id="boardBtn">Board +</button><button id="doorsBtn">Open doors</button><button id="wheelEditorBtn" title="Wheel styles / GLB models">Wheel workshop</button><button id="chassisEditorBtn" title="3D chassis asset library">Body workshop</button><button type="button" id="vectorEditorBtn" title="Draw an editable vector car body (Shift+C)">Vector chassis</button><button id="fleetBtn" title="Scene vehicle instances">Fleet</button><button id="sceneTreeBtn" title="Search, group and edit all scene objects">Objects</button><button id="mapEditorBtn" title="Test track / obstacles / hills">Test map</button><button id="mediaBrowserBtn" title="Cars, models, images, maps, music and public gallery">My media</button><button id="radioBtn" title="Music playlists and in-vehicle radio">♫ Radio</button><button id="xrBtn" title="WebXR immersive VR">Enter XR</button><button id="xrSeatBtn" title="Teleport into the cabin (XR only)">Cabin</button>
     </div></div>
   </section>
   <section id="catalogWindow" class="float-window" aria-label="Car templates">
@@ -1202,6 +1257,15 @@ input[type=color]:focus-visible{outline:2px solid var(--accent)!important;outlin
   <section id="objectWindow" class="float-window" aria-label="3D object transforms and physics" style="display:none">
    <div class="window-head"><strong>Object inspector</strong><button class="mini-btn minimize" title="Minimize"><svg class="collapse-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path class="icon-minify" d="M6 12h12"/><rect class="icon-expand" x="7" y="7" width="10" height="10" rx="2"/></svg></button></div>
    <div class="window-body"><strong id="objectKindTitle">Select an object</strong><small id="objectIdText" style="display:block;color:var(--muted);margin:5px 0">Click a course object in the 3D world or on the map.</small>
+    <div id="partInspector" hidden>
+     <label>Component name<input id="partInspectorName" type="text" maxlength="80"></label>
+     <div class="part-inspector-actions"><button type="button" data-part-gizmo="translate">Move</button><button type="button" data-part-gizmo="rotate">Rotate</button><button type="button" data-part-gizmo="scale">Scale</button></div>
+     <strong>Position · local metres</strong><div class="part-inspector-coords"><label>X<input id="partInspectorX" type="number" step="0.05"></label><label>Y<input id="partInspectorY" type="number" step="0.05"></label><label>Z<input id="partInspectorZ" type="number" step="0.05"></label></div>
+     <strong>Rotation · degrees</strong><div class="part-inspector-coords"><label>X<input id="partInspectorRX" type="number" step="1"></label><label>Y<input id="partInspectorRY" type="number" step="1"></label><label>Z<input id="partInspectorRZ" type="number" step="1"></label></div>
+     <strong>Scale</strong><div class="part-inspector-coords"><label>X<input id="partInspectorSX" type="number" min="0.01" step="0.05"></label><label>Y<input id="partInspectorSY" type="number" min="0.01" step="0.05"></label><label>Z<input id="partInspectorSZ" type="number" min="0.01" step="0.05"></label></div>
+     <div class="part-inspector-actions"><button id="partInspectorVisibility" type="button">Hide part</button><button id="partInspectorLock" type="button">Lock part</button><button id="partInspectorReset" type="button">Reset transform</button></div>
+     <small class="part-inspector-note">Component changes are visual. The wheel and vehicle physics are unchanged until dedicated physics settings are edited.</small>
+    </div>
     <div class="object-mode" id="objectGizmoModes"><button data-gizmo="translate" aria-pressed="true">Move</button><button data-gizmo="rotate">Rotate</button><button data-gizmo="scale">Scale</button></div>
     <div class="object-vector"><span>Position</span>
       <label>X <input id="objectX" type="number" step="0.1"></label>
@@ -1226,10 +1290,20 @@ input[type=color]:focus-visible{outline:2px solid var(--accent)!important;outlin
      <label>Bounce<input id="objectBounce" type="number" min="0" max="1" step="0.05"></label>
      <label>Texture<select id="objectTexture"><option value="none">Solid</option><option value="speckle">Fine noise</option><option value="checker">Checker / panels</option><option value="grain">Natural grain</option><option value="stripes">Striped / industrial</option></select></label>
      <label>Seed<input id="objectSeed" type="number" min="0" max="99999" step="1"></label>
-    </div><small style="display:block;margin:9px 0;color:var(--muted)">Primitive rigid bodies use collision-box approximations when a precise mesh collider is unavailable. Terrain and surface patches are edited on the map.</small>
+    </div><small class="object-course-help" style="display:block;margin:9px 0;color:var(--muted)">Primitive rigid bodies use collision-box approximations when a precise mesh collider is unavailable. Terrain and surface patches are edited on the map.</small>
     <div class="drawer-actions"><button id="objectDuplicate">Duplicate</button><button id="objectDelete">Delete</button><button id="objectDeselect">Deselect</button></div>
    </div>
   </section>
+  <section id="sceneTreeWindow" class="float-window" aria-label="Searchable scene objects and groups" style="display:none">
+   <div class="window-head"><strong>Scene objects</strong><button class="mini-btn minimize" title="Minimize"><svg class="collapse-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path class="icon-minify" d="M6 12h12"/><rect class="icon-expand" x="7" y="7" width="10" height="10" rx="2"/></svg></button></div>
+   <div class="window-body">
+    <div class="scene-tree-toolbar"><input id="sceneTreeSearch" type="search" placeholder="Find cars, parts, objects…" aria-label="Find scene objects"><button type="button" id="sceneTreeNewGroup" title="Create a group">+ Group</button><button type="button" id="sceneTreeRefresh" title="Refresh objects">↻</button></div>
+    <small id="sceneTreeSummary" aria-live="polite">Scene hierarchy</small>
+    <div id="sceneTreeList" role="tree" aria-label="Scene hierarchy"></div>
+    <div class="scene-tree-footer"><button type="button" id="sceneTreeFocus">Focus selected</button><button type="button" id="sceneTreeInspect">Inspector</button><button type="button" id="sceneTreeSave">Save vehicle</button></div>
+   </div>
+  </section>
+  <div id="sceneTreeMenu" class="scene-tree-menu" hidden role="menu" aria-label="Object actions"></div>
   <section id="notesWindow" class="float-window" aria-label="Private notes and ideas" style="display:none">
     <div class="window-head"><strong>Notes · ideas</strong><button class="mini-btn minimize" title="Minimize"><svg class="collapse-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path class="icon-minify" d="M6 12h12"/><rect class="icon-expand" x="7" y="7" width="10" height="10" rx="2"/></svg></button></div>
     <div class="window-body">
@@ -1613,17 +1687,18 @@ input[type=color]:focus-visible{outline:2px solid var(--accent)!important;outlin
  <div class="modal-card publish-dialog">
   <div class="dialog-title"><h2>Publish to community</h2><button id="publishClose" type="button" aria-label="Close publishing">×</button></div>
   <p>Choose what to share. All selected items must already be saved to your private server library. No other items are published.</p>
-  <label class="publish-kind"><input type="checkbox" id="publishCars"> Cars <small>Select one or several saved vehicles</small></label>
-  <select id="publishCarsList" multiple size="3" aria-label="Choose cars to publish"></select>
-  <label class="publish-kind"><input type="checkbox" id="publishMaps"> Map <small>Choose a previously saved map</small></label>
-  <select id="publishMapList" aria-label="Choose map to publish"></select>
-  <label class="publish-kind"><input type="checkbox" id="publishModels"> 3D models / avatars <small>Only share files you have permission to distribute</small></label>
-  <select id="publishModelList" multiple size="3" aria-label="Choose 3D models to publish"></select>
-  <label class="publish-kind"><input type="checkbox" id="publishWorld"> World bundle <small>Link the first selected public car with the selected map; visitors can open both together</small></label>
-  <label class="publish-consent"><input id="publishConsent" type="checkbox"> I own the rights to share these selected items publicly.</label>
-  <div class="drawer-actions"><button type="button" id="publishConfirm">Publish selected</button><button type="button" id="publishRefresh">Refresh library</button></div>
-  <small id="publishStatus" role="status">Your uploaded assets remain private until you confirm publication.</small>
-  <h3>My public map / model / world links</h3><div id="publishMine" class="publish-links"></div>
+  <div class="publish-scroll">
+   <label class="publish-kind"><input type="checkbox" id="publishCars"> Cars <small>Choose individual saved cars</small></label>
+   <div class="publish-choice-list" id="publishCarsChoices" role="group" aria-label="Cars to publish"></div><select class="publish-select-hidden" id="publishCarsList" multiple size="3" aria-label="Chosen cars"></select>
+   <label class="publish-kind"><input type="checkbox" id="publishMaps"> Maps <small>Choose one saved map</small></label>
+   <div class="publish-choice-list" id="publishMapChoices" role="group" aria-label="Saved maps"></div><select class="publish-select-hidden" id="publishMapList" aria-label="Chosen map"></select>
+   <label class="publish-kind"><input type="checkbox" id="publishModels"> 3D models / avatars <small>Share only assets you may distribute</small></label>
+   <div class="publish-choice-list" id="publishModelChoices" role="group" aria-label="Models to publish"></div><select class="publish-select-hidden" id="publishModelList" multiple size="3" aria-label="Chosen models"></select>
+   <label class="publish-kind"><input type="checkbox" id="publishWorld"> World bundle <small>Link a selected car and map</small></label>
+   <label class="publish-consent"><input id="publishConsent" type="checkbox"> I own the rights to publish these selected items.</label>
+   <details class="publish-disclosure"><summary>My published links</summary><div id="publishMine" class="publish-links"></div></details>
+  </div>
+  <div class="publish-footer"><button type="button" id="publishConfirm">Publish selected</button><button type="button" id="publishRefresh">Refresh library</button><small id="publishStatus" role="status">Select items, then confirm.</small></div>
  </div>
 </div>
 <div id="appDialog" class="utility-overlay" hidden role="dialog" aria-modal="true" aria-labelledby="appDialogTitle" aria-describedby="appDialogMessage">
@@ -1853,7 +1928,7 @@ input[type=color]:focus-visible{outline:2px solid var(--accent)!important;outlin
    courseName:'Open practice ground',courseObjects:[],ghostMode:'off',cameraMode:'orbit',cameraClearance:true,
    cameraFollowLag:.07,cameraVerticalLag:.20,cameraClearanceLag:.22,
    autopilot:false,autopilotRoute:'terrain-aware',groundRoughness:.9,
-   seatOffsets:{},vectorChassis:null
+   seatOffsets:{},vectorChassis:null,partOverrides:{},geometrySource:"auto",sceneFolders:[]
  };
 
  let cfg=structuredClone(defaults);
@@ -1875,6 +1950,11 @@ function normalizeVehicleConfig(){
   'dashOffsetX','dashOffsetZ','steeringX','steeringY','steeringZ','headlightColor','tailLightColor'])
   if(cfg[key]===undefined)cfg[key]=structuredClone(defaults[key]);
  if(typeof cfg.sculptData!=='string'||cfg.sculptData.length>115000)cfg.sculptData='';
+ if(!cfg.partOverrides||typeof cfg.partOverrides!=='object'||Array.isArray(cfg.partOverrides))cfg.partOverrides={};
+ if(Object.keys(cfg.partOverrides).length>190)cfg.partOverrides={};
+ if(!['auto','procedural','glb','vector'].includes(cfg.geometrySource))cfg.geometrySource='auto';
+ if(!Array.isArray(cfg.sceneFolders))cfg.sceneFolders=[];
+ cfg.sceneFolders=cfg.sceneFolders.filter(g=>typeof g==='string'&&g.length<=70).slice(0,50);
  if(!Number.isFinite(Number(cfg.terrainBaseElevation)))cfg.terrainBaseElevation=0;
  cfg.terrainBaseElevation=clamp(Number(cfg.terrainBaseElevation),-40,80);
  cfg.waterLevel=clamp(Number(cfg.waterLevel)||0,-40,80);
@@ -1909,16 +1989,56 @@ function normalizeVehicleConfig(){
  let selectedPart='cabin'; // Legacy module selection is retained in vehicle history.
  let selectedVehicleTargetKey='module:cabin';
  const editableVehicleParts=new Map();
+ let partGizmo=null,selectedSceneItem=null;
  function registerEditableVehiclePart(root,key,label,materialTarget){
   root.userData.vehicleSelect={key,label,materialTarget};
   editableVehicleParts.set(key,root);
+  const override=cfg.partOverrides?.[key];
+  if(override?.name)root.userData.vehicleSelect.label=override.name;
   return root;
+ }
+ function applyEditablePartOverrides(){
+  for(const [key,root] of editableVehicleParts){
+   const saved=cfg.partOverrides?.[key];if(!saved)continue;
+   if(saved.name)root.userData.vehicleSelect.label=saved.name;
+   if(Array.isArray(saved.position)&&saved.position.length===3&&saved.position.every(v=>Number.isFinite(v)&&Math.abs(v)<200))root.position.set(...saved.position);
+   if(Array.isArray(saved.rotation)&&saved.rotation.length===3&&saved.rotation.every(v=>Number.isFinite(v)&&Math.abs(v)<100))root.rotation.set(...saved.rotation);
+   if(Array.isArray(saved.scale)&&saved.scale.length===3&&saved.scale.every(v=>Number.isFinite(v)&&v>.001&&v<50))root.scale.set(...saved.scale);
+   if(saved.hidden===true)root.visible=false;
+  }
+ }
+ function writePartOverride(key,root){
+  if(!root||!key||key==='__vehicle__')return;
+  if(!cfg.partOverrides||typeof cfg.partOverrides!=='object')cfg.partOverrides={};
+  const former=cfg.partOverrides[key]||{};
+  cfg.partOverrides[key]={...former,
+   position:root.position.toArray().map(v=>Number(v.toFixed(5))),
+   rotation:[root.rotation.x,root.rotation.y,root.rotation.z].map(v=>Number(v.toFixed(6))),
+   scale:root.scale.toArray().map(v=>Number(v.toFixed(5))),
+   hidden:!root.visible};
+ }
+ function applyVehicleGeometrySource(){
+  const choice=cfg.geometrySource||'auto';
+  const preferred=choice==='auto'?(cfg.vectorChassis?.enabled&&vectorRoot?'vector':modelSource?'glb':'procedural'):choice;
+  const source=preferred==='vector'&&!vectorRoot?(modelSource?'glb':'procedural'):preferred==='glb'&&!importedShell?'procedural':preferred;
+  if(bodyRoot)bodyRoot.visible=source==='procedural';
+  if(importedShell)importedShell.visible=source==='glb';
+  if(vectorRoot)vectorRoot.visible=source==='vector';
+ }
+ function chooseVehicleGeometrySource(source){
+  if(source==='glb'&&!modelSource){note('Select or import a chassis GLB first.',true);setWindowVisible('chassisWindow',true);return;}
+  if(source==='vector'&&!cfg.vectorChassis?.layers?.length){note('Draw a vector body before selecting it.',true);setWindowVisible('vectorWindow',true);return;}
+  if(source==='vector'&&!cfg.vectorChassis.enabled){cfg.vectorChassis.enabled=true;vectorApplyToScene();}
+  cfg.geometrySource=source;applyVehicleGeometrySource();updateHighlight();
+  scheduleHistory('Body source: '+source);renderSceneTree();
  }
  function selectEditableVehiclePart(key,materialTarget=null){
   const part=editableVehicleParts.get(key),record=part?.userData.vehicleSelect;
   if(!record)return false;
   selectedVehicleTargetKey=key;
+  if(cfg.partOverrides?.[key]?.locked)return false;
   if(key.startsWith('module:'))selectedPart=key.slice(7);
+  selectedSceneItem={kind:'part',key};
   if(key.startsWith('wheel:'))selectedWheelAxle=key.split(':')[1];
   if(key.startsWith('vector:')){setWindowVisible('vectorWindow',true);vectorPickLayer(key.slice(7));}
   updateHighlight();
@@ -1926,6 +2046,7 @@ function normalizeVehicleConfig(){
   if(target&&$('materialTarget')?.querySelector(`option[value="${target}"]`)){
    $('materialTarget').value=target;renderMaterialPalette();
   }
+  if($('sceneTreeWindow')?.style.display==='flex')renderSceneTree();
   return true;
  }
 
@@ -2045,7 +2166,7 @@ let ghostObject=null,ghostSamples=[],ghostElapsed=0,ghostTick=0;
  function appConfirm(message){return showAppDialog('confirm',message)}
  function appPrompt(message,value='',options={}){return showAppDialog('prompt',message,value,options)}
 
- const VERSION='0.3.41';
+ const VERSION='0.3.42';
  document.getElementById('appVersionBadge').textContent='v'+VERSION;
  let imageReference=null,busyAI=false;
 
@@ -2796,7 +2917,7 @@ function buildCourse(){
   const shade={puddle:0x167aaf,grass:0x3e945c,sand:0xdbb97b,trees:0x48734a,hedge:0x477446,dune:0xd1b175}[o.kind];
   const layer=new THREE.Mesh(g,new THREE.MeshStandardMaterial({color:shade,roughness:o.kind==='puddle'?.22:.9,
    metalness:o.kind==='puddle'?.17:0,transparent:true,opacity:o.kind==='puddle'?.78:.46,side:THREE.DoubleSide,depthWrite:false}));
-  layer.userData.courseId=o.id;courseRoot.add(layer);
+  layer.userData.courseId=o.id;layer.visible=o.hidden!==true;courseRoot.add(layer);
   if(['trees','hedge'].includes(o.kind)){
    const n=Math.min(45,Math.max(4,Math.ceil((o.w*o.d)/(o.kind==='trees'?13:4))));
    const trunk=new THREE.InstancedMesh(new THREE.CylinderGeometry(.10,.14,1,5),new THREE.MeshStandardMaterial({color:0x71583d}),n);
@@ -2809,8 +2930,12 @@ function buildCourse(){
     dummy.position.set(px,hgt+.5*size,pz);dummy.scale.set(size,size,size);dummy.updateMatrix();trunk.setMatrixAt(used,dummy.matrix);
     dummy.position.y=hgt+1.7*size;dummy.scale.set(size,size,size);dummy.updateMatrix();crowns.setMatrixAt(used,dummy.matrix);used++;
    }
-   trunk.count=used;crowns.count=used;courseRoot.add(trunk,crowns);
+   trunk.count=used;crowns.count=used;trunk.visible=o.hidden!==true;crowns.visible=o.hidden!==true;
+   trunk.userData.courseId=o.id;crowns.userData.courseId=o.id;courseRoot.add(trunk,crowns);
   }
+ }
+ for(const [id,mesh] of courseMeshes){
+  const rec=cfg.courseObjects.find(item=>item.id===id);if(rec)mesh.visible=rec.hidden!==true;
  }
  if(selectedCourseId&&courseMeshes.has(selectedCourseId)&&objectGizmo)objectGizmo.attach(courseMeshes.get(selectedCourseId));
  updateMinimapBackground();
@@ -3560,6 +3685,7 @@ function clearVehicle(){
  if(vectorGizmo?.object)vectorGizmo.detach();
  vectorReleaseMeshes();
  if(chassisGizmo?.object)chassisGizmo.detach();
+ if(partGizmo?.object)partGizmo.detach();
  if(highlight){highlight.dispose();scene.remove(highlight);highlight=null}
  for(const w of wheels)if(w.parent===scene)disposeTree(w);
    wheels=[];
@@ -3908,6 +4034,8 @@ for(let i=0;i<cfg.seats;i++){
 for(const {hinge,side,wing} of doorHinges){hinge.rotation.y=wing?0:-side*1.13*doorMotion;hinge.rotation.z=wing?side*1.15*doorMotion:0;}
 addImportedModel();
 vectorApplyToScene();
+applyVehicleGeometrySource();
+applyEditablePartOverrides();
 updateLights();
 
 $('vehicleName').textContent=cfg.name;
@@ -6864,11 +6992,28 @@ async function populatePublishOverlay(){
  const [cars,media,models,shares]=await Promise.all([
   identityRequest('/api/me/layouts'),identityRequest('/api/me/media'),
   identityRequest('/api/me/models'),identityRequest('/api/me/community')]);
- function fill(id,rows,label){const select=$(id),prior=publishSelected(select);select.replaceChildren();
-  for(const row of rows){const option=new Option(label(row),row.id);option.selected=prior.includes(row.id);select.add(option)}}
- fill('publishCarsList',cars.layouts||[],row=>row.name+(row.visibility==='public'?' · already public':''));
- fill('publishMapList',(media.media||[]).filter(row=>row.kind==='map'),row=>row.name);
- fill('publishModelList',models.models||[],row=>row.name+' · '+row.kind);
+ function fill(id,choiceId,rows,label,multiple=true){
+  const select=$(id),root=$(choiceId),prior=publishSelected(select);
+  select.replaceChildren();root.replaceChildren();
+  for(const row of rows){
+   const option=new Option(label(row),row.id);option.selected=prior.includes(row.id);select.add(option);
+   const choice=document.createElement('label');choice.className='publish-choice';
+   const input=document.createElement('input');input.type=multiple?'checkbox':'radio';input.name=multiple?id:choiceId;
+   input.value=row.id;input.checked=prior.includes(row.id);
+   const text=document.createElement('span');text.className='publish-choice-name';text.textContent=label(row);
+   input.onchange=()=>{if(!multiple){for(const other of [...root.querySelectorAll('input')])if(other!==input)other.checked=false;}
+    for(const opt of select.options)opt.selected=opt.value===row.id?input.checked:(multiple?opt.selected:false);
+    if(id==='publishCarsList'&&input.checked)$('publishCars').checked=true;
+    if(id==='publishMapList'&&input.checked)$('publishMaps').checked=true;
+    if(id==='publishModelList'&&input.checked)$('publishModels').checked=true;
+   };
+   choice.append(input,text);root.append(choice);
+  }
+  if(!multiple&&!prior.length)select.selectedIndex=-1;
+ }
+ fill('publishCarsList','publishCarsChoices',cars.layouts||[],row=>row.name+(row.visibility==='public'?' · already public':''));
+ fill('publishMapList','publishMapChoices',(media.media||[]).filter(row=>row.kind==='map'),row=>row.name,false);
+ fill('publishModelList','publishModelChoices',models.models||[],row=>row.name+' · '+row.kind);
  const root=$('publishMine');root.replaceChildren();
  for(const row of shares.shares||[]){const line=document.createElement('div');line.className='publish-row';
   const label=document.createElement('span');label.textContent=(row.kind==='world'?'World':row.kind==='model'?'Model':'Map')+' · '+row.name;
@@ -7854,8 +7999,13 @@ function syncCannonObstacle(o){
   body.aabbNeedsUpdate=true;body.wakeUp();}
  drawMinimap();
 }
-function selectCourseObject(id,openEditor=false){
- selectedCourseId=id;const obj=cfg.courseObjects.find(o=>o.id===id);
+ function selectCourseObject(id,openEditor=false){
+ const candidate=cfg.courseObjects.find(o=>o.id===id);
+ if(candidate?.locked&&id!==selectedCourseId){note('Unlock the object in Scene objects before selecting it.',true);return;}
+ selectedCourseId=id;const obj=candidate;
+ if(obj){selectedSceneItem={kind:'course',id};$('objectWindow').dataset.selectedType='course';$('partInspector').hidden=true;
+  if(partGizmo?.object)partGizmo.detach();}
+ if($('sceneTreeWindow')?.style.display==='flex')renderSceneTree();
  if(obj&&openEditor&&mode==='drive'&&!driveSceneEditing){
   const current=courseMeshes.get(id);
   if(current)beginDriveSceneEditing(current.getWorldPosition(new THREE.Vector3()));
@@ -7875,7 +8025,7 @@ function selectCourseObject(id,openEditor=false){
 $('mapEditObject').onclick=()=>renderCourseInspector();
 $('mapDuplicateObject').onclick=$('objectDuplicate').onclick=()=>duplicateSelectedCourse();
 $('mapRemoveObject').onclick=$('objectDelete').onclick=()=>deleteSelectedCourse();
-$('objectDeselect').onclick=()=>{selectCourseObject(null);setWindowVisible('objectWindow',false)};
+$('objectDeselect').onclick=()=>{if(partGizmo?.object)partGizmo.detach();selectedSceneItem=null;selectCourseObject(null);setWindowVisible('objectWindow',false);if(sceneTreeOpen())renderSceneTree()};
 let duplicatingCourse=false;
 async function duplicateSelectedCourse(){
  const o=cfg.courseObjects.find(o=>o.id===selectedCourseId);if(!o||duplicatingCourse)return;
@@ -8118,6 +8268,7 @@ window.addEventListener('keydown',e=>{
 });
 function renderCourseInspector(){const o=cfg.courseObjects.find(item=>item.id===selectedCourseId);
  if(!o)return;setWindowVisible('objectWindow',true);
+ $('objectWindow').dataset.selectedType='course';$('partInspector').hidden=true;
  $('objectKindTitle').textContent=(o.name||o.kind)+' · object properties';$('objectIdText').textContent='Object ID '+o.id;
  for(const [key,prop] of [['objectX','x'],['objectZ','z'],['objectW','w'],['objectH','h'],['objectD','d'],['objectAngle','angle'],
   ['objectRotX','rotX'],['objectRotZ','rotZ'],['objectMass','mass'],['objectFriction','friction'],['objectBounce','bounce'],['objectSeed','seed'],
@@ -8191,7 +8342,7 @@ renderer.domElement.addEventListener('pointerup',e=>{
  const rc=new THREE.Raycaster();rc.setFromCamera(p,camera);
  const hits=rc.intersectObject(courseRoot,true);
  for(const h of hits){let n=h.object;while(n&&!n.userData?.courseId)n=n.parent;
-  if(n?.userData.courseId){selectCourseObject(n.userData.courseId,true);return}}
+  if(n?.userData.courseId){if(!cfg.courseObjects.find(o=>o.id===n.userData.courseId)?.locked)selectCourseObject(n.userData.courseId,true);return}}
 });
 // Searchable Blender-style Shift+A: place assets on the viewed terrain, never under it.
 const OBJECT_CHOICES=[
@@ -8422,7 +8573,7 @@ $('mapSave').onclick=async()=>{const name=await requestMapName();
   const id=crypto.randomUUID();
   const documentMap={schema:'vehiclelab-testmap/v3',name,
    terrainProfile:cfg.terrainProfile,groundSurface:cfg.groundSurface,
-   objects:structuredClone(cfg.courseObjects),edge:cfg.worldEdgeMode,worldCells:structuredClone(cfg.worldCells),
+   objects:structuredClone(cfg.courseObjects),sceneFolders:structuredClone(cfg.sceneFolders||[]),edge:cfg.worldEdgeMode,worldCells:structuredClone(cfg.worldCells),
    terrainSize:cfg.terrainSize,terrainBaseElevation:cfg.terrainBaseElevation,sculptData:cfg.sculptData,
    seaEnabled:cfg.seaEnabled,waterLevel:cfg.waterLevel,biome:mapBiomeSnapshot(),weather:mapWeatherSnapshot(),
    appearance:mapAppearanceSnapshot()};
@@ -8520,7 +8671,7 @@ function applyMapSculptSettings(data){
  applyMapBiomeSettings(data);applyMapWeather(data);applyMapAppearance(data);syncSculptControls?.();
 }
 async function applySavedTestMap(data,{startup=false}={}){
- if(!data)return;validateMapSculptPayload(data);cfg.courseName=data.name;cfg.courseObjects=structuredClone(data.objects||[]);normalizeCourseObjects();selectCourseObject(null);
+ if(!data)return;validateMapSculptPayload(data);cfg.courseName=data.name;cfg.courseObjects=structuredClone(data.objects||[]);cfg.sceneFolders=Array.isArray(data.sceneFolders)?data.sceneFolders.filter(g=>typeof g==='string').slice(0,50):[];normalizeCourseObjects();selectCourseObject(null);
  const terrain=data.terrainProfile||data.terrain,ground=data.groundSurface||data.ground;
  if(terrain)cfg.terrainProfile=terrain;if(ground)cfg.groundSurface=ground;
  if(['cliff','barrier','ramp','wrap','cells'].includes(data.edge))cfg.worldEdgeMode=data.edge;
@@ -8559,7 +8710,7 @@ $('mapLoad').onclick=async()=>{
  }finally{button.disabled=false}
 };
 $('mapExport').onclick=()=>{trackUsage('map_exported');download(JSON.stringify({schema:'vehiclelab-testmap/v3',name:$('mapName').value,
- terrainProfile:cfg.terrainProfile,groundSurface:cfg.groundSurface,edge:cfg.worldEdgeMode,worldCells:cfg.worldCells,terrainSize:cfg.terrainSize,terrainBaseElevation:cfg.terrainBaseElevation,sculptData:cfg.sculptData,seaEnabled:cfg.seaEnabled,waterLevel:cfg.waterLevel,biome:mapBiomeSnapshot(),weather:mapWeatherSnapshot(),appearance:mapAppearanceSnapshot(),objects:cfg.courseObjects},null,2),
+ terrainProfile:cfg.terrainProfile,groundSurface:cfg.groundSurface,edge:cfg.worldEdgeMode,worldCells:cfg.worldCells,terrainSize:cfg.terrainSize,terrainBaseElevation:cfg.terrainBaseElevation,sculptData:cfg.sculptData,seaEnabled:cfg.seaEnabled,waterLevel:cfg.waterLevel,biome:mapBiomeSnapshot(),weather:mapWeatherSnapshot(),appearance:mapAppearanceSnapshot(),objects:cfg.courseObjects,sceneFolders:cfg.sceneFolders||[]},null,2),
  'vehiclelab-testmap-'+new Date().toISOString().slice(0,10)+'.json','application/json')};
 $('mapImport').onclick=()=>$('mapImportFile').click();
 $('mapImportFile').onchange=async e=>{try{const file=e.target.files?.[0];if(!file)return;
@@ -8569,7 +8720,7 @@ $('mapImportFile').onchange=async e=>{try{const file=e.target.files?.[0];if(!fil
  for(const o of data.objects){if(!allowed.has(o.kind)||!['x','z','w','d','h'].every(k=>Number.isFinite(o[k])&&Math.abs(o[k])<400)||
   o.points&&(!Array.isArray(o.points)||o.points.length>200||o.points.some(p=>!Number.isFinite(p.x)||!Number.isFinite(p.z))))throw Error('Invalid map object')}
  validateMapSculptPayload(data);
- cfg.courseObjects=data.objects.map(o=>({...o}));normalizeCourseObjects();cfg.courseName=String(data.name||'Imported').slice(0,90);
+ cfg.courseObjects=data.objects.map(o=>({...o}));cfg.sceneFolders=Array.isArray(data.sceneFolders)?data.sceneFolders.filter(g=>typeof g==='string').slice(0,50):[];normalizeCourseObjects();cfg.courseName=String(data.name||'Imported').slice(0,90);
  if(data.terrainProfile||data.terrain)cfg.terrainProfile=data.terrainProfile||data.terrain;
  if(data.groundSurface||data.ground)cfg.groundSurface=data.groundSurface||data.ground;
  if(['cliff','barrier','ramp','wrap','cells'].includes(data.edge))cfg.worldEdgeMode=data.edge;
@@ -8589,8 +8740,8 @@ $('mapTool').closest('label').after(patchSelector);
 updateMapZoomUI();let mapFrame=0;
 
 // Workspace windows: pointer dragging + native CSS resize + minimize.
-const WINDOW_IDS=['toolbarWindow','toolsWindow','catalogWindow','galleryWindow','paramsWindow','logWindow','paletteWindow','wheelWindow','mapWindow','objectWindow','fleetWindow','chassisWindow','mediaWindow','radioWindow','sculptWindow','notesWindow','geologyWindow','vectorWindow'];
-const WINDOW_NAMES=['Actions','Tools','Car templates','Gallery','Parameters','Logs','Materials','Wheel workshop','Test map','Object','Scene vehicles','Chassis workshop','My media','Radio','Terrain sculpt','Notes','Geological layers','Vector chassis'];
+const WINDOW_IDS=['toolbarWindow','toolsWindow','catalogWindow','galleryWindow','paramsWindow','logWindow','paletteWindow','wheelWindow','mapWindow','objectWindow','fleetWindow','chassisWindow','mediaWindow','radioWindow','sculptWindow','notesWindow','geologyWindow','vectorWindow','sceneTreeWindow'];
+const WINDOW_NAMES=['Actions','Tools','Car templates','Gallery','Parameters','Logs','Materials','Wheel workshop','Test map','Object','Scene vehicles','Chassis workshop','My media','Radio','Terrain sculpt','Notes','Geological layers','Vector chassis','Scene objects'];
 let highestZ=18;
 const safeStore=(name,value)=>{try{localStorage.setItem(name,value)}catch(e){}};
 const safeRead=name=>{try{return localStorage.getItem(name)}catch(e){return null}};
@@ -8613,6 +8764,7 @@ function setWindowVisible(id,show,restore=false){
  if(show&&id==='mapWindow')void refreshMapList().catch(error=>recordEvent('WARN','Map list: '+error.message));
  if(id==='chassisWindow')updateChassisGizmo();
  if(id==='vectorWindow'){vectorDrawCanvas();vectorRefreshGizmo();}
+ if(id==='sceneTreeWindow'&&show)renderSceneTree();
  // Showing a hidden panel must never expand its minimized state.
  if(show){
   win.style.zIndex=String(++highestZ);
@@ -9704,7 +9856,7 @@ function cloneFleetVisual(source,id){
 }
 // A scene's terrain and placed objects belong to the world, not the vehicle
 // blueprint selected from the gallery. Keep the world across vehicle switches.
-const SHARED_WORLD_KEYS=['courseObjects','courseName','terrainProfile','terrainSize',
+const SHARED_WORLD_KEYS=['courseObjects','sceneFolders','courseName','terrainProfile','terrainSize',
  'groundSurface','groundRoughness','worldEdgeMode','worldBounce','worldCells',
  'terrainBaseElevation','sculptData','seaEnabled','waterLevel',...MAP_BIOME_KEYS,'puddles','skyStyle','seed',
  'noiseScale','noiseOctaves','noiseLacunarity','noiseGain','noiseWarp','noiseContrast',
@@ -9714,7 +9866,7 @@ const SHARED_WORLD_KEYS=['courseObjects','courseName','terrainProfile','terrainS
  'sculptBrushThickness','sculptBrushOpacity','sculptBrushColor'];
 function sceneWorldSnapshot(){return Object.fromEntries(SHARED_WORLD_KEYS.map(k=>[k,structuredClone(cfg[k])]));}
 function restoreSceneWorld(snapshot){
- for(const key of SHARED_WORLD_KEYS)cfg[key]=structuredClone(snapshot[key]);
+ for(const key of SHARED_WORLD_KEYS)if(snapshot[key]!==undefined)cfg[key]=structuredClone(snapshot[key]);
  readSculptData();normalizeCourseObjects();
 }
 function rebuildSharedWorld(){
@@ -9722,11 +9874,12 @@ function rebuildSharedWorld(){
  previousHeightfieldSignature=heightfieldSignature();previousMapWaterSignature=mapWaterSignature();
  updateMinimapBackground();drawMinimap();
  if(selectedCourseId&&!cfg.courseObjects.some(o=>o.id===selectedCourseId))selectCourseObject(null);
+ if($('sceneTreeWindow')?.style.display==='flex')renderSceneTree();
 }
 function storeActiveFleet(){
  const row=fleetRecords.find(x=>x.id===activeFleetId);if(!row||!car)return;
  if(row.visual){scene.remove(row.visual);disposeTree(row.visual);}
- Object.assign(row,snapshotActiveCar());row.visual=cloneFleetVisual(car,row.id);scene.add(row.visual);
+ Object.assign(row,snapshotActiveCar());row.visual=cloneFleetVisual(car,row.id);row.visual.visible=row.hidden!==true;scene.add(row.visual);
 }
 function removeParkedVisual(row){if(row.visual){scene.remove(row.visual);disposeTree(row.visual);row.visual=null;}}
 function renderFleetList(){const root=$('fleetList');root.replaceChildren();
@@ -9756,7 +9909,7 @@ async function activateFleetVehicle(id){
  modelSource=chosen.modelSource;modelBlob=chosen.modelBlob;modelName=chosen.modelName;
  vehicleDescription=chosen.description;vehicleCategory=chosen.category;
  activeFleetId=id;resumeDrivePose=null;
- buildVehicle();car.position.copy(chosen.position);car.quaternion.copy(chosen.rotation);
+ buildVehicle();car.position.copy(chosen.position);car.quaternion.copy(chosen.rotation);car.visible=chosen.hidden!==true;
  setupGUI();renderPresets();renderFleetList();preserveCameraOrbit();
  note('Controlling '+cfg.name+' · '+fleetRecords.length+' vehicles in scene.');
 }
@@ -9794,6 +9947,256 @@ async function removeFleetVehicle(id){
  removeParkedVisual(entry);fleetRecords.splice(fleetRecords.indexOf(entry),1);renderFleetList();
 }
 $('fleetDuplicate').onclick=duplicateActiveFleet;
+// v0.3.42 scene hierarchy: no duplicate scene copies, just stable references to
+// cfg.courseObjects, fleetRecords and the live editableVehicleParts registry.
+const sceneTreeCollapsed=new Set();
+function sceneTreeOpen(){return $('sceneTreeWindow').style.display==='flex'}
+function treeButton(label,title,action,className=''){
+ const el=document.createElement('button');el.type='button';el.textContent=label;el.title=title;
+ if(className)el.className=className;el.onclick=e=>{e.stopPropagation();void Promise.resolve().then(()=>action(e)).catch(error=>note(error.message,true))};return el;
+}
+function closeSceneTreeMenu(){$('sceneTreeMenu').hidden=true;$('sceneTreeMenu').replaceChildren()}
+function showSceneTreeMenu(anchor,entries){
+ const menu=$('sceneTreeMenu');menu.replaceChildren();
+ for(const [text,fn] of entries){menu.append(treeButton(text,text,()=>{closeSceneTreeMenu();void Promise.resolve().then(fn).catch(error=>note(error.message,true))}))}
+ menu.hidden=false;
+ const r=anchor.getBoundingClientRect();menu.style.left=Math.max(4,Math.min(innerWidth-200,r.right-185))+'px';
+ menu.style.top=Math.max(4,Math.min(innerHeight-(entries.length*42+10),r.bottom+4))+'px';
+ menu.querySelector('button')?.focus();
+}
+window.addEventListener('pointerdown',e=>{if(!$('sceneTreeMenu').hidden&&!$('sceneTreeMenu').contains(e.target))closeSceneTreeMenu()},{capture:true});
+window.addEventListener('keydown',e=>{if(e.key==='Escape')closeSceneTreeMenu()},{capture:true});
+function sceneTreeParts(){return [...editableVehicleParts.entries()].filter(([,root])=>root?.userData?.vehicleSelect)}
+function sceneObjectGroupName(o){return typeof o.sceneFolder==='string'&&o.sceneFolder.trim()?o.sceneFolder.slice(0,70):'World objects'}
+function sceneTreeCourseMenu(o){return [
+ ['Inspect + transform',()=>selectCourseObject(o.id,true)],
+ ['Rename',async()=>{const name=await appPrompt('Rename scene object',o.name||o.kind,{maxLength:80});if(name===null)return;o.name=name.trim().slice(0,80)||o.kind;rememberMapEdit('Rename scene object');renderSceneTree()}],
+ [o.hidden?'Show object':'Hide object',()=>{o.hidden=!o.hidden;syncSceneTreeCourseVisibility(o);rememberMapEdit('Object visibility');renderSceneTree()}],
+ [o.locked?'Unlock':'Lock',()=>{o.locked=!o.locked;if(o.locked&&selectedCourseId===o.id)selectCourseObject(null);rememberMapEdit('Object lock');renderSceneTree()}],
+ ['Move to group',async()=>{const target=await appPrompt('Group name (create new or use existing)',sceneObjectGroupName(o),{maxLength:70});if(target===null)return;const name=target.trim().slice(0,70)||'World objects';o.sceneFolder=name;if(!cfg.sceneFolders.includes(name))cfg.sceneFolders.push(name);rememberMapEdit('Move scene object');renderSceneTree()}],
+ ['Duplicate',()=>{selectCourseObject(o.id);return duplicateSelectedCourse()}],
+ ['Delete…',async()=>{if(!await appConfirm('Delete "'+(o.name||o.kind)+'" from this map?'))return;cfg.courseObjects=cfg.courseObjects.filter(x=>x.id!==o.id);if(selectedCourseId===o.id)selectCourseObject(null);rememberMapEdit('Delete scene object');await refreshEnvironmentForMap();renderSceneTree()}]
+]}
+function syncSceneTreeCourseVisibility(o){
+ const mesh=courseMeshes.get(o.id);if(mesh)mesh.visible=!o.hidden;
+ courseRoot?.traverse(child=>{if(child.userData?.courseId===o.id)child.visible=!o.hidden});
+}
+function sceneTreePartMenu(key,root){const rec=root.userData.vehicleSelect,ov=cfg.partOverrides?.[key]||{};
+ return [
+ ['Inspect + gizmo',()=>selectSceneTreePart(key)],
+ ['Rename',async()=>{const name=await appPrompt('Name this vehicle component',rec.label,{maxLength:80});if(name===null)return;
+  cfg.partOverrides[key]={...ov,name:name.trim()||rec.label};rec.label=cfg.partOverrides[key].name;scheduleHistory('Name vehicle component');renderSceneTree()}],
+ [root.visible?'Hide part':'Show part',()=>{root.visible=!root.visible;writePartOverride(key,root);scheduleHistory('Part visibility');renderSceneTree();updateHighlight()}],
+ [ov.locked?'Unlock part':'Lock part',()=>{cfg.partOverrides[key]={...ov,locked:!ov.locked};scheduleHistory('Part lock');renderSceneTree()}],
+ ['Reset part transform',()=>{delete cfg.partOverrides[key];buildVehicle();scheduleHistory('Reset component transform');renderSceneTree()}],
+ ['Open material controls',()=>{selectEditableVehiclePart(key);setWindowVisible('paletteWindow',true)}],
+ ['Open 3D model library',()=>{setWindowVisible('chassisWindow',true);renderChassisAssets()}],
+ ['AI body studio…',()=>{setWindowVisible('chassisWindow',true);if($('chassisCreative').hidden)$('chassisAI').click()}]
+ ];
+}
+function sceneTreeCarMenu(row){return [
+ ['Control / inspect vehicle',async()=>{if(row.id!==activeFleetId)await activateFleetVehicle(row.id);selectSceneTreeVehicle()}],
+ ['Rename',async()=>{const name=await appPrompt('Name this vehicle',row.id===activeFleetId?cfg.name:row.config?.name,{maxLength:90});if(name===null)return;
+  if(row.id===activeFleetId){cfg.name=name.trim()||cfg.name;$('vehicleName').textContent=cfg.name;row.config.name=cfg.name;}
+  else if(row.config)row.config.name=name.trim()||row.config.name;renderFleetList();renderSceneTree();scheduleHistory('Rename vehicle')}],
+ ['Move vehicle to group',async()=>{const target=await appPrompt('Move vehicle to group',row.sceneFolder||'Vehicles',{maxLength:70});if(target===null)return;row.sceneFolder=target.trim().slice(0,70)||'Vehicles';if(!cfg.sceneFolders.includes(row.sceneFolder))cfg.sceneFolders.push(row.sceneFolder);renderSceneTree()}],
+ [row.hidden?'Show vehicle':'Hide vehicle',()=>{row.hidden=!row.hidden;const visual=row.id===activeFleetId?car:row.visual;if(visual)visual.visible=!row.hidden;renderSceneTree()}],
+ [row.locked?'Unlock vehicle':'Lock vehicle',()=>{row.locked=!row.locked;renderSceneTree()}],
+ ['Show procedural body',async()=>{if(row.id!==activeFleetId)await activateFleetVehicle(row.id);chooseVehicleGeometrySource('procedural')}],
+ ['Show imported 3D body',async()=>{if(row.id!==activeFleetId)await activateFleetVehicle(row.id);chooseVehicleGeometrySource('glb')}],
+ ['Show vector body',async()=>{if(row.id!==activeFleetId)await activateFleetVehicle(row.id);chooseVehicleGeometrySource('vector')}],
+ ['Import / select GLB body',()=>{setWindowVisible('chassisWindow',true);renderChassisAssets()}],
+ ['AI body studio…',()=>{setWindowVisible('chassisWindow',true);if($('chassisCreative').hidden)$('chassisAI').click()}],
+ ['Duplicate vehicle',async()=>{if(row.id!==activeFleetId)await activateFleetVehicle(row.id);duplicateActiveFleet();renderSceneTree()}],
+ ['Remove vehicle…',async()=>{if(fleetRecords.length<=1){note('The final vehicle cannot be removed.',true);return}if(!await appConfirm('Remove "'+(row.config?.name||'vehicle')+'" from the scene?'))return;await removeFleetVehicle(row.id);renderSceneTree()}]
+]}
+function sceneTreeRow(name,icon,selected,muted,choose,actions,hidden,locked,canHide=true){
+ const row=document.createElement('div');row.className='scene-tree-row'+(selected?' is-selected':'')+(muted?' is-muted':'');
+ row.setAttribute('role','treeitem');row.setAttribute('aria-selected',String(selected));
+ const glyph=document.createElement('span');glyph.className='scene-tree-icon';glyph.textContent=icon;row.append(glyph);
+ row.append(treeButton(name,name,choose,'scene-tree-title'));
+ if(canHide)row.append(treeButton(hidden?'◌':'◉',hidden?'Show':'Hide',()=>actions.find(x=>x[0]===(hidden?'Show object':'Hide object'))?.[1]?.()||actions.find(x=>x[0]===(hidden?'Show part':'Hide part'))?.[1]?.()||actions.find(x=>x[0]===(hidden?'Show vehicle':'Hide vehicle'))?.[1]?.() ));
+ row.append(treeButton(locked?'▣':'▢',locked?'Unlock':'Lock',()=>{
+  const method=actions.find(x=>x[0]===(locked?'Unlock':'Lock'))||actions.find(x=>x[0]===(locked?'Unlock part':'Lock part'))||actions.find(x=>x[0]===(locked?'Unlock vehicle':'Lock vehicle'));
+  return method?.[1]?.();
+ }));
+ row.append(treeButton('⋯','More actions',e=>showSceneTreeMenu(e.currentTarget,actions)));
+ return row;
+}
+function renderSceneTree(){
+ const root=$('sceneTreeList');if(!root)return;
+ const search=$('sceneTreeSearch').value.trim().toLowerCase(),wasFocused=document.activeElement?.id;
+ root.replaceChildren();
+ const course=cfg.courseObjects||[];
+ const groupNames=[...new Set(['Vehicles','World objects',...(cfg.sceneFolders||[]),...course.map(sceneObjectGroupName),...fleetRecords.map(row=>row.sceneFolder||'Vehicles')])].filter(Boolean);
+ const fleet=fleetRecords.length?fleetRecords:[];
+ function folder(title,items,actions,identifier){
+  const visible=items.length>0||!search;
+  if(!visible)return;
+  const section=document.createElement('section');section.className='scene-tree-folder';section.setAttribute('role','group');
+  const head=document.createElement('div');head.className='scene-tree-folder-head';
+  head.append(treeButton((sceneTreeCollapsed.has(identifier)?'▸ ':'▾ ')+title+' · '+items.length,'Expand / collapse group',()=>{sceneTreeCollapsed.has(identifier)?sceneTreeCollapsed.delete(identifier):sceneTreeCollapsed.add(identifier);renderSceneTree()},'scene-tree-group-toggle'));
+  if(actions?.length)head.append(treeButton('⋯','Group actions',e=>showSceneTreeMenu(e.currentTarget,actions)));
+  section.append(head);
+  if(!sceneTreeCollapsed.has(identifier)){const inner=document.createElement('div');inner.className='scene-tree-items';items.forEach(item=>inner.append(item));section.append(inner)}
+  root.append(section);
+ }
+ const carRowsByGroup=new Map();
+ for(const row of fleet){
+  const name=row.id===activeFleetId?cfg.name:row.config?.name||'Vehicle';
+  const parts=row.id===activeFleetId?sceneTreeParts():[];
+  const matchingParts=parts.filter(([key,obj])=>(key+' '+obj.userData.vehicleSelect.label).toLowerCase().includes(search));
+  if(search&&!name.toLowerCase().includes(search)&&!matchingParts.length)continue;
+  const wrap=document.createElement('div');
+  const choices=sceneTreeCarMenu(row);
+  const selected=selectedSceneItem?.kind==='car'&&row.id===activeFleetId;
+  wrap.append(sceneTreeRow(name+(row.id===activeFleetId?' · active':''),'🚘',selected,row.hidden,
+   async()=>{if(row.locked)return;if(row.id!==activeFleetId)await activateFleetVehicle(row.id);selectSceneTreeVehicle()},choices,!!row.hidden,!!row.locked));
+  if(row.id===activeFleetId&&parts.length){
+   const children=document.createElement('div');children.className='scene-tree-children';
+   for(const [key,part] of parts){
+    if(search&&!name.toLowerCase().includes(search)&&!((key+' '+part.userData.vehicleSelect.label).toLowerCase().includes(search)))continue;
+    const override=cfg.partOverrides?.[key]||{};const actions=sceneTreePartMenu(key,part);
+    children.append(sceneTreeRow(part.userData.vehicleSelect.label,'◈',selectedSceneItem?.kind==='part'&&selectedSceneItem.key===key,!part.visible,
+     ()=>{if(override.locked){note('Unlock this part before editing.',true);return}selectSceneTreePart(key)},actions,!part.visible,!!override.locked));
+   }
+   wrap.append(children);
+  }
+  const group=row.sceneFolder||'Vehicles';if(!carRowsByGroup.has(group))carRowsByGroup.set(group,[]);carRowsByGroup.get(group).push(wrap);
+ }
+ for(const name of groupNames){
+  const matching=course.filter(o=>sceneObjectGroupName(o)===name);
+  const groupFleet=fleet.filter(row=>(row.sceneFolder||'Vehicles')===name);
+  const filtered=matching.filter(o=>!search||(o.name||o.kind).toLowerCase().includes(search)||name.toLowerCase().includes(search));
+  if(search&&!filtered.length&&!(carRowsByGroup.get(name)?.length))continue;
+  const rows=[...(carRowsByGroup.get(name)||[]),...filtered.map(o=>sceneTreeRow(o.name||o.kind,'◇',selectedSceneItem?.kind==='course'&&selectedSceneItem.id===o.id,!!o.hidden,
+   ()=>{if(o.locked){note('Unlock this object first.',true);return}selectCourseObject(o.id,true)},sceneTreeCourseMenu(o),!!o.hidden,!!o.locked))];
+  const actions=[
+   ['Rename group…',async()=>{const updated=await appPrompt('Rename group',name,{maxLength:70});if(updated===null)return;const next=updated.trim().slice(0,70)||name;
+    for(const o of matching)o.sceneFolder=next;for(const row of groupFleet)row.sceneFolder=next;cfg.sceneFolders=cfg.sceneFolders.filter(g=>g!==name);if(!cfg.sceneFolders.includes(next))cfg.sceneFolders.push(next);rememberMapEdit('Rename group');renderSceneTree()}],
+   ['Hide group',()=>{matching.forEach(o=>{o.hidden=true;syncSceneTreeCourseVisibility(o)});for(const row of groupFleet){row.hidden=true;const mesh=row.id===activeFleetId?car:row.visual;if(mesh)mesh.visible=false}rememberMapEdit('Hide group');renderSceneTree()}],
+   ['Show group',()=>{matching.forEach(o=>{o.hidden=false;syncSceneTreeCourseVisibility(o)});for(const row of groupFleet){row.hidden=false;const mesh=row.id===activeFleetId?car:row.visual;if(mesh)mesh.visible=true}rememberMapEdit('Show group');renderSceneTree()}],
+   ['Lock group',()=>{matching.forEach(o=>o.locked=true);groupFleet.forEach(row=>row.locked=true);if(matching.some(o=>o.id===selectedCourseId))selectCourseObject(null);rememberMapEdit('Lock group');renderSceneTree()}],
+   ['Unlock group',()=>{matching.forEach(o=>o.locked=false);groupFleet.forEach(row=>row.locked=false);rememberMapEdit('Unlock group');renderSceneTree()}],
+   ['Delete group…',async()=>{
+    if(groupFleet.length>=fleetRecords.length&&groupFleet.length){note('Move one car to another group before deleting all vehicles.',true);return;}
+    if(!await appConfirm('Delete group "'+name+'" with '+matching.length+' world objects and '+groupFleet.length+' vehicles?'))return;
+    for(const row of [...groupFleet])await removeFleetVehicle(row.id);
+    cfg.courseObjects=cfg.courseObjects.filter(o=>sceneObjectGroupName(o)!==name);cfg.sceneFolders=cfg.sceneFolders.filter(g=>g!==name);
+    if(matching.some(o=>o.id===selectedCourseId))selectCourseObject(null);rememberMapEdit('Delete group');await refreshEnvironmentForMap();renderSceneTree()}]
+  ];
+  folder(name,rows,actions,'group:'+name);
+ }
+ $('sceneTreeSummary').textContent=fleet.length+' vehicles · '+course.length+' world objects · '+sceneTreeParts().length+' editable parts';
+ if(!root.children.length)root.textContent='No matching objects';
+}
+$('sceneTreeSearch').addEventListener('input',renderSceneTree);
+$('sceneTreeRefresh').onclick=renderSceneTree;
+$('sceneTreeNewGroup').onclick=()=>void(async()=>{
+ const label=await appPrompt('New scene object group','New group',{maxLength:70});if(!label)return;
+ const group=label.trim().slice(0,70);if(!group)return;
+ if(!cfg.sceneFolders.includes(group))cfg.sceneFolders.push(group);
+ rememberMapEdit('Create group');renderSceneTree();
+})().catch(error=>note(error.message,true));
+$('sceneTreeFocus').onclick=()=>{if(selectedSceneItem?.kind==='part'){
+ const obj=editableVehicleParts.get(selectedSceneItem.key);if(obj){beginDriveSceneEditing();const pos=obj.getWorldPosition(new THREE.Vector3());orbit.target.copy(pos);camera.position.copy(pos).add(new THREE.Vector3(3,2,4));orbit.update();}}
+ else frameViewportSelection();};
+$('sceneTreeInspect').onclick=()=>{
+ if(selectedSceneItem?.kind==='part')renderPartInspector(selectedSceneItem.key);
+ else if(selectedSceneItem?.kind==='car')renderPartInspector('__vehicle__');
+ else if(selectedCourseId)renderCourseInspector();
+ else note('Select a car, component, or world object first.');
+};
+$('sceneTreeSave').onclick=()=>void saveServer(false).catch(error=>note(error.message,true));
+// A single non-destructive part inspector controls real Three.js objects and
+// stores visual-only transforms in the vehicle blueprint.
+function selectedPartObject(key){return key==='__vehicle__'?car:editableVehicleParts.get(key)}
+function selectSceneTreeVehicle(){
+ ensureFleet();selectedSceneItem={kind:'car',id:activeFleetId};
+ renderPartInspector('__vehicle__');renderSceneTree();
+}
+function selectSceneTreePart(key){
+ const root=editableVehicleParts.get(key);if(!root)return;
+ if(!selectEditableVehiclePart(key))return;
+ selectedSceneItem={kind:'part',key};renderPartInspector(key);renderSceneTree();
+}
+function partInspectorSync(key){
+ const node=selectedPartObject(key);if(!node)return;
+ const fields={partInspectorX:node.position.x,partInspectorY:node.position.y,partInspectorZ:node.position.z,
+  partInspectorRX:THREE.MathUtils.radToDeg(node.rotation.x),partInspectorRY:THREE.MathUtils.radToDeg(node.rotation.y),partInspectorRZ:THREE.MathUtils.radToDeg(node.rotation.z),
+  partInspectorSX:node.scale.x,partInspectorSY:node.scale.y,partInspectorSZ:node.scale.z};
+ for(const [name,value] of Object.entries(fields)){const input=$(name);if(document.activeElement!==input)input.value=Number(value.toFixed(3))}
+ $('partInspectorVisibility').textContent=node.visible?'Hide':'Show';
+ $('partInspectorLock').textContent=cfg.partOverrides?.[key]?.locked?'Unlock':'Lock';
+ for(const btn of $('partInspector').querySelectorAll('[data-part-gizmo]'))btn.setAttribute('aria-pressed',String(partGizmo?.getMode()===btn.dataset.partGizmo));
+}
+function renderPartInspector(key){
+ const node=selectedPartObject(key);if(!node)return;
+ const title=key==='__vehicle__'?cfg.name:node.userData.vehicleSelect?.label||key;
+ $('objectWindow').dataset.selectedType='part';$('partInspector').hidden=false;
+ $('objectKindTitle').textContent=title+' · editable';
+ $('objectIdText').textContent=key==='__vehicle__'?'Active vehicle · visual transform':'Component · '+key;
+ $('partInspectorName').value=title;
+ if(objectGizmo?.object)objectGizmo.detach();
+ if(chassisGizmo?.object)chassisGizmo.detach();
+ if(vectorGizmo?.object)vectorGizmo.detach();
+ if(partGizmo){partGizmo.detach();if(!cfg.partOverrides?.[key]?.locked)partGizmo.attach(node);partGizmo.setMode('translate')}
+ setWindowVisible('objectWindow',true);partInspectorSync(key);
+}
+$('partInspectorName').addEventListener('change',()=>{
+ const key=selectedSceneItem?.kind==='car'?'__vehicle__':selectedSceneItem?.key;
+ if(!key)return;const name=$('partInspectorName').value.trim().slice(0,80);if(!name)return;
+ if(key==='__vehicle__'){cfg.name=name;$('vehicleName').textContent=name;const row=fleetRecords.find(r=>r.id===activeFleetId);if(row)row.config.name=name;}
+ else {cfg.partOverrides[key]={...(cfg.partOverrides[key]||{}),name};const part=editableVehicleParts.get(key);if(part?.userData.vehicleSelect)part.userData.vehicleSelect.label=name;}
+ scheduleHistory('Rename scene component');renderSceneTree();
+});
+const partFieldKeys=[['partInspectorX','position','x',1],['partInspectorY','position','y',1],['partInspectorZ','position','z',1],
+ ['partInspectorRX','rotation','x',Math.PI/180],['partInspectorRY','rotation','y',Math.PI/180],['partInspectorRZ','rotation','z',Math.PI/180],
+ ['partInspectorSX','scale','x',1],['partInspectorSY','scale','y',1],['partInspectorSZ','scale','z',1]];
+for(const [inputName,target,axis,factor] of partFieldKeys)$(inputName).addEventListener('change',()=>{
+ const key=selectedSceneItem?.kind==='car'?'__vehicle__':selectedSceneItem?.key,root=selectedPartObject(key);
+ if(!root)return;const value=Number($(inputName).value)*factor;
+ if(!Number.isFinite(value)||Math.abs(value)>1000||(target==='scale'&&value<=0))return;
+ root[target][axis]=value;root.updateMatrixWorld(true);writePartOverride(key,root);
+ updateHighlight();scheduleHistory('Component '+target);partInspectorSync(key);
+});
+for(const button of $('partInspector').querySelectorAll('[data-part-gizmo]'))button.onclick=()=>{
+ if(!partGizmo?.object)return;partGizmo.setMode(button.dataset.partGizmo);
+ const key=selectedSceneItem?.kind==='car'?'__vehicle__':selectedSceneItem?.key;
+ partInspectorSync(key);
+};
+$('partInspectorVisibility').onclick=()=>{
+ const key=selectedSceneItem?.kind==='car'?'__vehicle__':selectedSceneItem?.key,node=selectedPartObject(key);
+ if(!node)return;node.visible=!node.visible;writePartOverride(key,node);
+ if(key==='__vehicle__'){const row=fleetRecords.find(r=>r.id===activeFleetId);if(row)row.hidden=!node.visible;}
+ partInspectorSync(key);renderSceneTree();scheduleHistory('Toggle component visibility');updateHighlight();
+};
+$('partInspectorLock').onclick=()=>{
+ const key=selectedSceneItem?.kind==='car'?'__vehicle__':selectedSceneItem?.key;
+ if(key==='__vehicle__'){const row=fleetRecords.find(r=>r.id===activeFleetId);if(row)row.locked=!row.locked;}
+ else cfg.partOverrides[key]={...(cfg.partOverrides[key]||{}),locked:!cfg.partOverrides[key]?.locked};
+ partInspectorSync(key);renderSceneTree();scheduleHistory('Component lock');
+};
+$('partInspectorReset').onclick=()=>{
+ const key=selectedSceneItem?.kind==='car'?'__vehicle__':selectedSceneItem?.key;
+ if(!key||key==='__vehicle__')return;
+ delete cfg.partOverrides[key];partGizmo?.detach();buildVehicle();scheduleHistory('Reset component override');renderSceneTree();
+};
+partGizmo=new TransformControls(camera,renderer.domElement);
+partGizmo.setSize(.75);scene.add(partGizmo.getHelper());
+partGizmo.addEventListener('dragging-changed',e=>{
+ transformDragging=!!e.value;
+ if(e.value)beginDriveSceneEditing();
+ orbit.enabled=!e.value&&(mode!=='drive'||driveSceneEditing||cfg.cameraMode!=='driver')&&!xrActive;
+ if(!e.value){
+  const key=selectedSceneItem?.kind==='car'?'__vehicle__':selectedSceneItem?.key,root=selectedPartObject(key);
+  if(root){writePartOverride(key,root);scheduleHistory('Vehicle component gizmo');renderSceneTree();partInspectorSync(key);updateHighlight();}
+ }
+});
+partGizmo.addEventListener('objectChange',()=>{
+ const key=selectedSceneItem?.kind==='car'?'__vehicle__':selectedSceneItem?.key;
+ partInspectorSync(key);
+});
 
 renderer.domElement.addEventListener('pointerup',event=>{
  if(event.button!==0||sculpt3DStroke||transformDragging||mode==='drive'&&Math.abs(inputForStep().throttle)>.1)return;
@@ -9904,6 +10307,7 @@ $('galleryRefreshBtn').onclick=()=>{gallerySource='public';setWindowVisible('gal
 $('layoutPublic').onchange=()=>{serverVisibility=$('layoutPublic').checked?'public':'private'};
 
 const RELEASE_NOTES=[
+ {v:'0.3.42',date:'2026-11-11',title:'Scene objects hierarchy and publishing improvements',items:['New searchable Scene objects outliner organizes vehicles, editable vehicle parts and world objects with visibility, lock, rename, group and safe delete controls.', 'Vehicle components can be inspected and transformed with the 3D gizmo, with adjustments stored in the vehicle blueprint.', 'Publishing uses visible per-item checkboxes and a sticky confirm footer rather than hard-to-use multi-select lists.']},
  {v:'0.3.41',date:'2026-11-11',title:'Vector chassis precision and hollow cabin',items:['Wheel arch outlines use the same circular sampling for 2D drafting and 3D geometry.', 'Selected vector parts support Shift+D and Ctrl/Cmd+C/V duplication; collapsing Properties removes the entire sidebar.', 'Top/bottom show car footprint, roof, wheel and axle guides; the body is generated with separate side skins, glass openings and an open interior instead of a solid slab.']},
  {v:'0.3.40',date:'2026-11-11',title:'Vector chassis drafting glass and front/rear symmetry',items:['The vector canvas now has a transparent blurred background and the properties inspector lives in a dedicated collapsible column, never above editable nodes.', 'Front/rear drafting includes a body-and-glass reference silhouette, a visible symmetry axis and live reflected curves and 3D parts from either half.', 'The existing vehicle blueprints remain compatible; mirror preference is included in vector design JSON.']},
  {v:'0.3.39',date:'2026-11-11',title:'Vector chassis editing and true wheel arches',items:['Left and right views share one extruded side profile; wheel guides are draggable and update the physical front/rear axle positions.', 'Default wheel arches use exact circle segments with only three control nodes per arch.', 'The canvas fills the window with overlaid tools; G/S/R/X/F shortcuts edit 2D geometry without triggering scene operations.', 'Closed paths can be assigned as body shells and extruded; fill opacity and colour are editable per vector layer.']},
@@ -10889,6 +11293,7 @@ $('mapLibraryBtn').onclick=()=>openMediaBrowser('maps');
 $('mapEditorBtn').onclick=()=>setWindowVisible('mapWindow',true);
 $('mediaBrowserBtn').onclick=()=>openMediaBrowser();$('profileMediaBtn').onclick=()=>{showDrawer(null);openMediaBrowser()};
 $('fleetBtn').onclick=()=>{renderFleetList();setWindowVisible('fleetWindow',true)};
+$('sceneTreeBtn').onclick=()=>{ensureFleet();renderSceneTree();setWindowVisible('sceneTreeWindow',true)};
 $('cameraBtn').onclick=cycleCamera;$('uprightBtn').onclick=resetUpright;
 $('resetOriginBtn').onclick=()=>void resetDriveOrigin();
 $('autopilotBtn').onclick=()=>{cfg.autopilot=!cfg.autopilot;autopilotState.anchor=null;autopilotState.time=0;updateAutopilotButton();note('Autopilot '+(cfg.autopilot?'enabled':'disabled'));};
@@ -11471,10 +11876,11 @@ function vectorApplyToScene(){
  vectorReleaseMeshes();
  if(!car)return;
  const design=vectorSanitize(cfg.vectorChassis);
- if(!design?.enabled||!design.layers.length){if(bodyRoot)bodyRoot.visible=!modelSource;if(importedShell)importedShell.visible=!!modelSource;return;}
+ if(!design?.enabled||!design.layers.length){applyVehicleGeometrySource();return;}
  vectorRoot=new THREE.Group();vectorRoot.name='Editable vector chassis';car.add(vectorRoot);
  if(bodyRoot)bodyRoot.visible=false;if(importedShell)importedShell.visible=false;
  for(const layer of design.layers){const part=vectorCreateLayerMesh(layer);if(part)vectorRoot.add(part)}
+ applyVehicleGeometrySource();applyEditablePartOverrides();
  if(selectedVehicleTargetKey.startsWith('vector:'))updateHighlight();
  vectorRefreshGizmo();
 }
@@ -11793,6 +12199,7 @@ function vectorInit(){
  };
  $('vectorEnable').onclick=()=>{const design=vectorDesign();if(!design.layers.length){cfg.vectorChassis=vectorDefaultDesign();vectorSelectedId=cfg.vectorChassis.layers[0].id;}
   else design.enabled=!design.enabled;
+  cfg.geometrySource=vectorDesign().enabled?'vector':'auto';
   $('vectorEnable').setAttribute('aria-pressed',String(vectorDesign().enabled));
   $('vectorEnable').textContent=vectorDesign().enabled?'Vector body ON':'Vector body OFF';
   vectorSaveEdit('Toggle vector body');vectorUpdateInspector();};
