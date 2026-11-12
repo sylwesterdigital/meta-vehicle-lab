@@ -394,6 +394,51 @@ console.log('studio capture outlines and bounds OK');
         outcome=subprocess.run(['node','-e',script],capture_output=True,text=True,timeout=15)
         self.assertEqual(outcome.returncode,0,outcome.stdout+outcome.stderr)
 
+class StudioPixelFitFeedbackTests(unittest.TestCase):
+    """GPU-mask framing must zoom out and recenter even with bad GLB bounds."""
+    def test_visible_car_is_inside_safe_margins_even_if_initial_bounds_are_wrong(self):
+        html=(ROOT/'index.html').read_text()
+        begin=html.index('function studioMaskOccupied(')
+        end=html.index('function studioOutlineImage(',begin)
+        source=html[begin:end]
+        script=source+r"""
+const assert=require('node:assert/strict');
+function fit(box){
+ const w=320,h=220;
+ const cam={left:-2,right:2,top:1.2,bottom:-1.2,updateProjectionMatrix(){}};
+ let passes=0;
+ const mask=()=>{
+  passes++;
+  const raw=new Uint8Array(w*h*4).fill(255);
+  for(let y=0;y<h;y++)for(let x=0;x<w;x++){
+   const worldX=cam.left+(x+.5)/w*(cam.right-cam.left);
+   const worldY=cam.top-(y+.5)/h*(cam.top-cam.bottom);
+   if(worldX>=box.left&&worldX<=box.right&&worldY>=box.bottom&&worldY<=box.top){
+    const i=(y*w+x)*4;raw[i]=raw[i+1]=raw[i+2]=0;
+   }
+  }
+  return raw;
+ };
+ studioFitCameraToPixels(cam,mask,w,h);
+ const b=studioMaskBounds(mask(),w,h);
+ assert.ok(b,'rendered car still visible');
+ assert.ok(b.minX>32&&b.maxX<288,'complete car fits horizontally');
+ assert.ok(b.minY>22&&b.maxY<198,'complete car fits vertically');
+ assert.ok(b.maxX-b.minX>180,'car fills useful portion of image');
+ assert.ok(passes<=14,'bounded GPU passes');
+}
+fit({left:-8,right:9,top:5,bottom:-2});
+fit({left:14,right:27,top:4,bottom:-3});
+fit({left:-14,right:0,top:8,bottom:1});
+assert.equal(studioMaskBounds(new Uint8Array(320*220*4).fill(255),320,220),null);
+console.log('studio full silhouette fit OK');
+"""
+        result=subprocess.run(['node','-e',script],capture_output=True,text=True,timeout=15)
+        self.assertEqual(result.returncode,0,result.stdout+result.stderr)
+        self.assertIn('studioFitCameraToPixels(cam,()=>readPass(maskMat,false,fitRT,fitWidth,fitHeight)',html)
+        self.assertIn('const fitWidth=320,fitHeight=220;',html)
+        self.assertIn('rt.dispose();fitRT.dispose();',html)
+
 class StudioOrthographicViewTests(unittest.TestCase):
     def test_all_six_capture_axes_are_exact_and_no_pixel_crop(self):
         html=(ROOT/'index.html').read_text()

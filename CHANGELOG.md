@@ -1,3 +1,10 @@
+## v0.3.47 — November 12, 2026
+- Body Studio camera fitting now uses repeated low-resolution occupancy-mask renders and verifies that all rendered vehicle pixels are inside a 10% safety margin. This is designed to fix GLBs whose bound boxes underestimate their actual rendered geometry.
+- Six exact orthographic views remain; adaptively zoom out from cropped sides/roof/wheels, then recenter and fit the complete silhouette. No destructive raster cropping or artificial asset scaling.
+- If GPU content cannot be fully framed, abort the capture and retain the previous reference instead of silently saving a cropped image.
+- Render-mask GPU work is limited to 320×220 and only occurs on explicit capture; temporary geometry/material targets are disposed and the viewport/renderer state is restored.
+- No backend schema or persistent asset changes.
+
 ## v0.3.46 — November 12, 2026
 - Correct Body Studio to six exact car-relative orthographic views: Left side, Right side, Front (+Z), Rear (-Z), Top (+Y; nose at image top) and Bottom. No extra diagonal or rotated top views.
 - Use projected 3D bounds of all selected exterior groups and wheel geometry; remove the final pixel-cropping zoom that could cut bodywork, wheel arches and bumpers. Preserve wide white margins in all views.

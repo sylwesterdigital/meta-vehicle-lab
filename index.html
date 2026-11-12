@@ -5,7 +5,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Vehicle Lab — Procedural Studio</title>
-  <meta name="vehicle-lab-version" content="0.3.46">
+  <meta name="vehicle-lab-version" content="0.3.47">
   <style>
     :root {
       color-scheme:dark;
@@ -1122,7 +1122,7 @@ input[type=color]:focus-visible{outline:2px solid var(--accent)!important;outlin
 
   <div id="stage">
   <div id="hud">
-    <div class="stage-badge"><strong>Vehicle Lab</strong><small id="appVersionBadge">v0.3.46</small></div>
+    <div class="stage-badge"><strong>Vehicle Lab</strong><small id="appVersionBadge">v0.3.47</small></div>
     <p id="vehicleName">City Car</p><p id="vehicleInfo">Procedural vehicle</p>
     <div id="speedHud"><strong id="speed">0</strong><div>km/h</div></div>
     <div id="cameraModeReadout" style="padding:3px 6px;margin-top:4px;width:max-content;max-width:260px;border-radius:5px;background:#132d3cc0;color:#e9f5fc;font:10px ui-monospace,monospace">Camera · Orbit follow</div>
@@ -2217,7 +2217,7 @@ let ghostObject=null,ghostSamples=[],ghostElapsed=0,ghostTick=0;
  function appConfirm(message){return showAppDialog('confirm',message)}
  function appPrompt(message,value='',options={}){return showAppDialog('prompt',message,value,options)}
 
- const VERSION='0.3.46';
+ const VERSION='0.3.47';
  document.getElementById('appVersionBadge').textContent='v'+VERSION;
  let imageReference=null,busyAI=false;
 
@@ -6250,6 +6250,63 @@ function studioRGBADepth(pixels,index){
 function studioMaskOccupied(mask,index){
  return mask[index]<150&&mask[index+1]<150&&mask[index+2]<150;
 }
+// True GPU-visible content is the authoritative framing source. Asset bounding
+// boxes can be incorrect for GLB skins, displaced vertices or nested transforms.
+// Low-resolution opaque-mask renders are used ONLY while taking a screenshot;
+// no scene materials, camera settings or uploaded assets are modified.
+function studioMaskBounds(mask,width,height){
+ let minX=width,minY=height,maxX=-1,maxY=-1,count=0;
+ for(let y=0;y<height;y++)for(let x=0;x<width;x++){
+  if(!studioMaskOccupied(mask,(y*width+x)*4))continue;
+  minX=Math.min(minX,x);maxX=Math.max(maxX,x);
+  minY=Math.min(minY,y);maxY=Math.max(maxY,y);count++;
+ }
+ return count?{minX,minY,maxX,maxY,count}:null;
+}
+function studioSetFrame(cam,centreX,centreY,width,height){
+ cam.left=centreX-width/2;cam.right=centreX+width/2;
+ cam.top=centreY+height/2;cam.bottom=centreY-height/2;
+ cam.updateProjectionMatrix();
+}
+// The fit starts with projected 3D bounds, then inspects what the renderer
+// actually draws. When pixels touch the boundary, zoom OUT, never crop them.
+// Only after the whole vehicle is visible do we centre it and improve fill.
+function studioFitCameraToPixels(cam,readMask,width,height){
+ const safe=.10,target=.74;
+ let last=null;
+ for(let step=0;step<12;step++){
+  const pixels=readMask(),bounds=studioMaskBounds(pixels,width,height);
+  const spanX=cam.right-cam.left,spanY=cam.top-cam.bottom;
+  const midX=(cam.left+cam.right)/2,midY=(cam.top+cam.bottom)/2;
+  if(!bounds){
+   studioSetFrame(cam,midX,midY,spanX*2,spanY*2);
+   continue;
+  }
+  const touches=bounds.minX<=width*safe||bounds.maxX>=width*(1-safe)||
+   bounds.minY<=height*safe||bounds.maxY>=height*(1-safe);
+  const contentW=(bounds.maxX-bounds.minX+1)/width;
+  const contentH=(bounds.maxY-bounds.minY+1)/height;
+  const pixelCentreX=(bounds.minX+bounds.maxX+1)/2/width-.5;
+  const pixelCentreY=.5-(bounds.minY+bounds.maxY+1)/2/height;
+  const recenteredX=midX+pixelCentreX*spanX;
+  const recenteredY=midY+pixelCentreY*spanY;
+  const factor=touches?1.8:Math.max(.6,Math.min(1.5,Math.max(contentW/target,contentH/target)));
+  last={bounds,touches,contentW,contentH};
+  if(!touches&&Math.abs(factor-1)<.045&&Math.abs(pixelCentreX)<.018&&Math.abs(pixelCentreY)<.018)return last;
+  // A clipped mask's apparent centre is biased toward the visible portion.
+  // Shift only partway until the complete bounding silhouette is revealed.
+  const shift=touches?.35:1;
+  studioSetFrame(cam,midX+(recenteredX-midX)*shift,midY+(recenteredY-midY)*shift,
+   spanX*factor,spanY*factor);
+ }
+ // Never claim an incomplete photo is a completed full-car capture.
+ const final=studioMaskBounds(readMask(),width,height);
+ if(!final||final.minX<=width*safe||final.maxX>=width*(1-safe)||
+    final.minY<=height*safe||final.maxY>=height*(1-safe)){
+  throw Error('Studio capture could not fit the entire vehicle. Reference was not replaced.');
+ }
+ return {...last,bounds:final,touches:false};
+}
 function studioOutlineImage(colour,normal,depth,width,height,style,mask=null){
  const result=new Uint8ClampedArray(width*height*4),technical=style==='technical';
  const belongs=i=>mask?studioMaskOccupied(mask,i):normal[i+3]>=128;
@@ -6357,20 +6414,32 @@ function captureChassisStudioShot({includeWheels=false,label='Left side',directi
  const needsEdges=style!=='colour';
  const normalMat=needsEdges?new THREE.MeshNormalMaterial({side:THREE.DoubleSide}):null;
  const depthMat=needsEdges?new THREE.MeshDepthMaterial({depthPacking:THREE.RGBADepthPacking,side:THREE.DoubleSide}):null;
- const maskMat=needsEdges?new THREE.MeshBasicMaterial({color:0,side:THREE.DoubleSide}):null;
- function readPass(material,transparent=false){
+ // A separate low-resolution pass is essential: fitting six views should not
+ // render six 1-megapixel masks repeatedly, and white GLBs must remain visible.
+ const fitWidth=320,fitHeight=220;
+ const fitRT=new THREE.WebGLRenderTarget(fitWidth,fitHeight,{depthBuffer:true});
+ const maskMat=new THREE.MeshBasicMaterial({color:0,side:THREE.DoubleSide});
+ function readPass(material,transparent=false,target=rt,passWidth=width,passHeight=height){
+  renderer.setRenderTarget(target);renderer.setViewport(0,0,passWidth,passHeight);
+  renderer.setScissorTest(false);
   clean.overrideMaterial=material;
   clean.background=transparent?null:new THREE.Color('#ffffff');
   renderer.setClearColor('#ffffff',transparent?0:1);
   renderer.clear(true,true,true);renderer.render(clean,cam);
-  const raw=new Uint8Array(width*height*4),flip=new Uint8Array(width*height*4),stride=width*4;
-  renderer.readRenderTargetPixels(rt,0,0,width,height,raw);
-  for(let y=0;y<height;y++)flip.set(raw.subarray((height-y-1)*stride,(height-y)*stride),y*stride);
+  const raw=new Uint8Array(passWidth*passHeight*4),flip=new Uint8Array(raw.length),stride=passWidth*4;
+  renderer.readRenderTargetPixels(target,0,0,passWidth,passHeight,raw);
+  for(let y=0;y<passHeight;y++)flip.set(raw.subarray((passHeight-y-1)*stride,(passHeight-y)*stride),y*stride);
   return flip;
  }
  try{
   renderer.autoClear=true;renderer.toneMappingExposure=1.1;
-  renderer.setRenderTarget(rt);renderer.setScissorTest(false);renderer.setViewport(0,0,width,height);
+  // Repeated coarse occupancy renders correct false GLB bounds and prevent
+  // cropped sides/roof/wheels even on deformed or hierarchical meshes.
+  // Start wide enough to discover detached mirrors, wheels and complex GLB
+  // children before tightening the framing; no image pixels are ever cropped.
+  studioSetFrame(cam,(cam.left+cam.right)/2,(cam.top+cam.bottom)/2,
+   (cam.right-cam.left)*2.4,(cam.top-cam.bottom)*2.4);
+  studioFitCameraToPixels(cam,()=>readPass(maskMat,false,fitRT,fitWidth,fitHeight),fitWidth,fitHeight);
   const colour=readPass(null);
   let pixels=colour;
   if(needsEdges){
@@ -6387,7 +6456,7 @@ function captureChassisStudioShot({includeWheels=false,label='Left side',directi
    note((includeWheels?'Full vehicle':'Body-only')+' · '+label+' studio capture ready.');}
   return data;
  }finally{
-  clean.overrideMaterial=null;normalMat?.dispose();depthMat?.dispose();maskMat?.dispose();rt.dispose();
+  clean.overrideMaterial=null;normalMat?.dispose();depthMat?.dispose();maskMat.dispose();rt.dispose();fitRT.dispose();
   renderer.toneMappingExposure=oldExposure;renderer.autoClear=oldAutoClear;
   renderer.setRenderTarget(oldTarget);renderer.setViewport(oldViewport);
   renderer.setScissor(oldScissor);renderer.setScissorTest(oldScissorTest);
@@ -10774,6 +10843,7 @@ $('galleryRefreshBtn').onclick=()=>{gallerySource='public';setWindowVisible('gal
 $('layoutPublic').onchange=()=>{serverVisibility=$('layoutPublic').checked?'public':'private'};
 
 const RELEASE_NOTES=[
+ {v:'0.3.47',date:'2026-11-12',title:'Pixel-verified full-car studio framing',items:['Body Studio now measures the actual vehicle silhouette in a separate low-resolution GPU pass rather than relying only on GLB bounds.', 'The camera zooms out whenever bodywork, mirrors or wheels touch the image border; all six orthographic views are then centred with visible white margins.', 'If a complete vehicle still cannot be framed, the app reports a capture error instead of replacing the previous reference with a cropped image.']},
  {v:'0.3.46',date:'2026-11-12',title:'Uncropped true orthographic studio captures',items:['Capture six exact axis-aligned views: left, right, front, rear, top and bottom; +Z is vehicle front and top view keeps the hood pointing up.', '3D projected bounds include the complete active body, wheels (when requested), and exterior lights; removed destructive pixel-crop zoom.', 'Technical black-on-white passes use a dedicated occupancy mask to avoid filling entire vehicle surfaces black.']},
  {v:'0.3.45',date:'2026-11-12',title:'Framed body studio shots and technical outline references',items:['Body Studio auto-fits each shot around the visible car pixels and recentres every angle without cutting off geometry.', 'Three reference styles: original materials, materials with outlines, and black lines on white.', 'Outline styles use offscreen surface-normal and depth passes, without changing live materials, saved maps or the 3D scene.']},
  {v:'0.3.44',date:'2026-11-12',title:'Scene Objects bulk actions and grouped vehicle interiors',items:['Select multiple scene objects with checkboxes, move them to existing groups from a real dropdown, or delete with confirmation.', 'Vehicle components are grouped by cabin, body, wheels and lighting; seats, passengers, steering and dashboard are easier to find.', 'Object Inspector shared transform slider now sits after the transform fields.']},
