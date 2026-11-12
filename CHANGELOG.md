@@ -1,3 +1,9 @@
+## v0.3.48 — November 12, 2026
+- Scene Objects entries have inline rename controls persisted to existing vehicle/map records.
+- Object Inspector offers default proportional scaling with the shared slider retained at the bottom.
+- Wheel gizmo/Inspector positions are now canonical wheel mounting points, shared with the visual model and Cannon-es, Rapier, and Ammo controllers. Existing visual-only wheel overrides migrate to the same placement schema.
+- Added Vehicle Controls panel with compact tabbed sliders for body, individual wheel placement, cabin/seats/avatars, lights, and equipment. Works with BUILD and DRIVE without destructive migrations.
+
 ## v0.3.47 — November 12, 2026
 - Body Studio camera fitting now uses repeated low-resolution occupancy-mask renders and verifies that all rendered vehicle pixels are inside a 10% safety margin. This is designed to fix GLBs whose bound boxes underestimate their actual rendered geometry.
 - Six exact orthographic views remain; adaptively zoom out from cropped sides/roof/wheels, then recenter and fit the complete silhouette. No destructive raster cropping or artificial asset scaling.

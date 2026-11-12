@@ -87,7 +87,7 @@ class VehicleStudioRegressionTests(unittest.TestCase):
         self.assertIn('makeCannonAdapter()',self.source)
         self.assertIn('makeAmmoAdapter()',self.source)
         self.assertNotIn('makeBaselineAdapter()',self.source)
-        self.assertIn("{x:-1,y:0,z:0},.32,wheelRadiusFor(axle)",self.source)
+        self.assertIn("{x:-1,y:0,z:0},.32,spec.radius",self.source)
         self.assertIn('const finishedVehiclePose=physics?.pose?.()||resumeDrivePose||null;',self.source)
         self.assertIn('buildVehicle();',self.source)
         self.assertIn('preserveCameraOrbit();updatePhysicsHud();',self.source)
@@ -298,7 +298,7 @@ class VehicleLab036RegressionTests(unittest.TestCase):
         for snippet in ("physics:'dynamic'", 'function syncPhysicsObjectPose(',
                         'for(const b of parkedBodies)', 'wheelSpinAngles[i]',
                         'for(const o of movingCourse)', 'for(const o of dynamicCourse)',
-                        'if(x>0)visual.rotation.y+=Math.PI'):
+                        'if(sideSign>0)visual.rotation.y+=Math.PI'):
             self.assertIn(snippet,self.source)
 
     def test_inspector_persistence_and_chassis_library(self):
@@ -826,7 +826,7 @@ class VehicleLab0319TerrainTests(unittest.TestCase):
             'const WINDOW_IDS=',"'radioWindow','sculptWindow'",
         ):
             self.assertIn(fragment,self.html)
-        self.assertEqual(self.html.count('class="mini-btn minimize"'),19)
+        self.assertEqual(self.html.count('class="mini-btn minimize"'),20)
 
 class VehicleLab0320WorldEditingTests(unittest.TestCase):
     def setUp(self):
@@ -1378,7 +1378,7 @@ class VectorChassis038Tests(unittest.TestCase):
         self.assertIn('id="vectorEditorBtn"', self.html)
         self.assertIn("['vectorChassis','Open vector chassis editor','Shift+KeyC'",self.html)
         self.assertIn('Vector chassis · Shift+C',self.html)
-        self.assertEqual(self.html.count('class="mini-btn minimize"'),19)
+        self.assertEqual(self.html.count('class="mini-btn minimize"'),20)
 
     def test_complete_view_and_tool_palette(self):
         for view in ('left','right','front','rear','top','bottom'):
@@ -1394,7 +1394,7 @@ class VectorChassis038Tests(unittest.TestCase):
         self.assertIn('cfg.vectorChassis=vectorSanitize(cfg.vectorChassis)',self.html)
         self.assertIn('vehicle:structuredClone(cfg)',self.html)
         self.assertIn('function vectorApplyToScene()',self.html)
-        self.assertIn('vectorApplyToScene();\napplyVehicleGeometrySource();\napplyEditablePartOverrides();\nupdateLights()',self.html)
+        self.assertIn('vectorApplyToScene();\napplyVehicleGeometrySource();\napplyEditablePartOverrides();\nupdateLights();',self.html)
 
     def test_scene_gizmo_protects_imported_assets(self):
         self.assertIn('new TransformControls(camera,renderer.domElement);vectorGizmo',self.html)
@@ -1539,7 +1539,7 @@ class VehicleLab0342SceneOutlinerTests(unittest.TestCase):
     def test_scene_tree_is_first_class_workspace_window(self):
         for snippet in ('id="sceneTreeWindow"','id="sceneTreeSearch"',
                         'id="sceneTreeList"','id="sceneTreeBtn"',
-                        "'sceneTreeWindow'];",'function renderSceneTree()',
+                        "'sceneTreeWindow','vehicleControlsWindow'];",'function renderSceneTree()',
                         'function showSceneTreeMenu(anchor,entries)',
                         'function sceneTreeCourseMenu(o)',
                         'function sceneTreePartMenu(key,root)',
@@ -1586,3 +1586,43 @@ class SceneTreeBulkRegression(unittest.TestCase):
         self.assertIn('scene-tree-part-group',html)
         self.assertIn('partInspectorX',html)
         self.assertLess(html.index('id="objectSeed"'),html.index('id="objectQuickSlider"'))
+
+class VehicleLab0348VehicleEditingTests(unittest.TestCase):
+    """Regression guards for unified visual + physics wheel placement."""
+    @classmethod
+    def setUpClass(cls):
+        cls.html=(Path(__file__).resolve().parents[1]/'index.html').read_text()
+
+    def test_shared_mount_for_mesh_and_all_physics_engines(self):
+        for marker in (
+            'function wheelSpec(axle,side)',
+            'function commitWheelSpec(key,patch)',
+            'function wheelFromNode(key,node,dragStart=null)',
+            'const spec=wheelSpec(axle,side);',
+            'chassisConnectionPointLocal:new CANNON.Vec3(spec.x,spec.y,spec.z)',
+            'vehicle.addWheel({x:spec.x,y:spec.y,z:spec.z}',
+            'rayVehicle.addWheel(v(spec.x,spec.y,spec.z)',
+            'makeWheel(car,spec.x,spec.y,spec.z,spec.radius,axle,spec.width,side)',
+            'const override={...(cfg.partOverrides[key]||{}),hidden:!root.visible}',
+        ):
+            self.assertIn(marker,self.html)
+
+    def test_uniform_scale_and_inline_renaming(self):
+        self.assertIn('id="objectUniformScale" checked',self.html)
+        self.assertIn("$('objectUniformScale').checked",self.html)
+        self.assertIn('function renameSceneTreeInline(kind,id,button)',self.html)
+        self.assertIn('scene-tree-inline-name',self.html)
+        self.assertIn("writePartOverride(key,root)",self.html)
+
+    def test_compact_vehicle_controls_share_config(self):
+        for marker in ('id="vehicleControlsWindow"',
+                       'id="vehicleControlsTabs"',
+                       'id="vehicleControlsFields"',
+                       'function renderVehicleControls()',
+                       "commitWheelSpec('wheel:'+spec.key,{[field]:value})",
+                       "vehicleParam('Seat width'",
+                       "vehicleParam('Steering X'",
+                       "vehicleParam('Lamp width'",
+                       "'frontLampZ'",
+                       "'avatarOffsets'"):
+            self.assertIn(marker,self.html)

@@ -5,7 +5,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Vehicle Lab — Procedural Studio</title>
-  <meta name="vehicle-lab-version" content="0.3.47">
+  <meta name="vehicle-lab-version" content="0.3.48">
   <style>
     :root {
       color-scheme:dark;
@@ -1102,6 +1102,29 @@ input[type=color]:focus-visible{outline:2px solid var(--accent)!important;outlin
 .publish-dialog .publish-kind{font-weight:600}
 .publish-dialog .publish-select-hidden{position:absolute!important;width:1px!important;height:1px!important;opacity:0;pointer-events:none;overflow:hidden}
 @media(max-width:690px){#sceneTreeWindow{left:5px;top:100px;width:min(390px,95vw)}.publish-dialog{padding:12px}}
+/* v0.3.48 · unified vehicle controls and consistent transform editing */
+#vehicleControlsWindow{left:calc(100vw - 820px);top:130px;width:380px;min-width:320px;max-width:calc(100vw - 10px);height:min(720px,80vh)}
+#vehicleControlsWindow .window-body{display:flex;flex-direction:column;gap:8px;min-height:0;overflow:auto}
+#vehicleControlsTabs{display:flex;gap:5px;flex-wrap:wrap}
+#vehicleControlsTabs button{flex:1 1 auto;font-size:calc(12px * var(--ui-scale));padding:8px 10px;min-height:36px}
+#vehicleControlsTabs button[aria-selected=true]{background:var(--accent)!important;color:#182634!important}
+#vehicleControlsBreadcrumb{font-weight:650;color:var(--muted);font-size:calc(12px * var(--ui-scale));padding:4px 1px}
+#vehicleControlsFields{display:flex;flex-direction:column;gap:7px}
+.vehicle-param-row{display:grid;grid-template-columns:minmax(85px,1fr) minmax(105px,1.8fr) 75px;gap:7px;align-items:center;border-bottom:1px solid #aac2d525;padding:6px 0}
+.vehicle-param-row label{font-size:calc(12px * var(--ui-scale));color:var(--txt)}
+.vehicle-param-row input[type=range]{width:100%;min-width:0;accent-color:var(--accent)}
+.vehicle-param-row input[type=number],.vehicle-param-row select{min-width:0;width:100%;background:#102939;color:#edf9ff;border:1px solid #51758b;border-radius:6px;padding:8px}
+.vehicle-controls-footer{display:flex;gap:6px;position:sticky;bottom:0;background:var(--pane);padding:7px 0}
+.vehicle-controls-footer button{flex:1}
+.proportional-scale-option{display:inline-flex;align-items:center;gap:6px;font-size:calc(12px * var(--ui-scale));color:var(--txt);padding:7px}
+.proportional-scale-option input{accent-color:var(--accent);width:18px;height:18px}
+.scene-tree-rename{background:transparent!important;min-width:24px!important;opacity:.65;padding:3px!important}
+.scene-tree-row:hover .scene-tree-rename,.scene-tree-rename:focus-visible{opacity:1}
+.scene-tree-inline-name{flex:1;min-width:0;padding:5px;color:#fff;background:#112a3b;border:2px solid var(--accent);border-radius:5px}
+#objectWindow .object-slider{order:99}
+#objectWindow .part-inspector-note{order:97}
+#objectWindow[data-selected-type='part'] .object-slider{margin-top:auto}
+@media(max-width:800px){#vehicleControlsWindow{left:10px;top:80px;width:min(380px,calc(100vw - 20px))}}
 </style>
 
  <script type="importmap">
@@ -1122,7 +1145,7 @@ input[type=color]:focus-visible{outline:2px solid var(--accent)!important;outlin
 
   <div id="stage">
   <div id="hud">
-    <div class="stage-badge"><strong>Vehicle Lab</strong><small id="appVersionBadge">v0.3.47</small></div>
+    <div class="stage-badge"><strong>Vehicle Lab</strong><small id="appVersionBadge">v0.3.48</small></div>
     <p id="vehicleName">City Car</p><p id="vehicleInfo">Procedural vehicle</p>
     <div id="speedHud"><strong id="speed">0</strong><div>km/h</div></div>
     <div id="cameraModeReadout" style="padding:3px 6px;margin-top:4px;width:max-content;max-width:260px;border-radius:5px;background:#132d3cc0;color:#e9f5fc;font:10px ui-monospace,monospace">Camera · Orbit follow</div>
@@ -1143,7 +1166,7 @@ input[type=color]:focus-visible{outline:2px solid var(--accent)!important;outlin
   <section id="toolsWindow" class="float-window" aria-label="Vehicle tools">
     <div class="window-head"><strong>Vehicle tools</strong><button class="mini-btn minimize" title="Minimize"><svg class="collapse-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path class="icon-minify" d="M6 12h12"/><rect class="icon-expand" x="7" y="7" width="10" height="10" rx="2"/></svg></button></div>
     <div class="window-body"><div id="boarding"><button type="button" id="openOccupants" title="Choose driver and passenger 3D models">Driver / passengers</button>
-      <button id="exitBtn">Exit −</button><button id="boardBtn">Board +</button><button id="doorsBtn">Open doors</button><button id="wheelEditorBtn" title="Wheel styles / GLB models">Wheel workshop</button><button id="chassisEditorBtn" title="3D chassis asset library">Body workshop</button><button type="button" id="vectorEditorBtn" title="Draw an editable vector car body (Shift+C)">Vector chassis</button><button id="fleetBtn" title="Scene vehicle instances">Fleet</button><button id="sceneTreeBtn" title="Search, group and edit all scene objects">Objects</button><button id="mapEditorBtn" title="Test track / obstacles / hills">Test map</button><button id="mediaBrowserBtn" title="Cars, models, images, maps, music and public gallery">My media</button><button id="radioBtn" title="Music playlists and in-vehicle radio">♫ Radio</button><button id="xrBtn" title="WebXR immersive VR">Enter XR</button><button id="xrSeatBtn" title="Teleport into the cabin (XR only)">Cabin</button>
+      <button id="exitBtn">Exit −</button><button id="boardBtn">Board +</button><button id="doorsBtn">Open doors</button><button id="wheelEditorBtn" title="Wheel styles / GLB models">Wheel workshop</button><button id="chassisEditorBtn" title="3D chassis asset library">Body workshop</button><button type="button" id="vectorEditorBtn" title="Draw an editable vector car body (Shift+C)">Vector chassis</button><button id="fleetBtn" title="Scene vehicle instances">Fleet</button><button id="sceneTreeBtn" title="Search, group and edit all scene objects">Objects</button><button id="vehicleControlsBtn" title="Compact vehicle dimensions, axle positions, seats and lights">Vehicle controls</button><button id="mapEditorBtn" title="Test track / obstacles / hills">Test map</button><button id="mediaBrowserBtn" title="Cars, models, images, maps, music and public gallery">My media</button><button id="radioBtn" title="Music playlists and in-vehicle radio">♫ Radio</button><button id="xrBtn" title="WebXR immersive VR">Enter XR</button><button id="xrSeatBtn" title="Teleport into the cabin (XR only)">Cabin</button>
     </div></div>
   </section>
   <section id="catalogWindow" class="float-window" aria-label="Car templates">
@@ -1327,7 +1350,7 @@ input[type=color]:focus-visible{outline:2px solid var(--accent)!important;outlin
     </div><div class="object-slider"><span id="objectSlideLabel">X position</span>
       <input id="objectQuickSlider" type="range" min="-150" max="150" step="0.1" value="0" aria-label="Selected transform property value">
       <output id="objectSlideValue">0</output></div><small class="object-course-help" style="display:block;margin:9px 0;color:var(--muted)">Primitive rigid bodies use collision-box approximations when a precise mesh collider is unavailable. Terrain and surface patches are edited on the map.</small>
-    <div class="drawer-actions"><button id="objectDuplicate">Duplicate</button><button id="objectDelete">Delete</button><button id="objectDeselect">Deselect</button></div>
+    <div class="drawer-actions"><button id="objectDuplicate">Duplicate</button><button id="objectDelete">Delete</button><label class="proportional-scale-option" for="objectUniformScale"><input type="checkbox" id="objectUniformScale" checked> Proportional scale</label><button id="objectDeselect">Deselect</button></div>
    </div>
   </section>
   <section id="sceneTreeWindow" class="float-window" aria-label="Searchable scene objects and groups" style="display:none">
@@ -1344,7 +1367,16 @@ input[type=color]:focus-visible{outline:2px solid var(--accent)!important;outlin
       <button type="button" id="sceneTreeClearSelected" title="Clear selection">Clear</button>
     </div>
     <div id="sceneTreeList" role="tree" aria-label="Scene hierarchy"></div>
-    <div class="scene-tree-footer"><button type="button" id="sceneTreeFocus">Focus selected</button><button type="button" id="sceneTreeInspect">Inspector</button><button type="button" id="sceneTreeSave">Save vehicle</button></div>
+    <div class="scene-tree-footer"><button type="button" id="sceneTreeFocus">Focus selected</button><button type="button" id="sceneTreeInspect">Inspector</button><button type="button" id="sceneTreeSave">Save vehicle</button><button type="button" id="sceneTreeVehicleControls">Vehicle controls</button></div>
+   </div>
+  </section>
+  <section id="vehicleControlsWindow" class="float-window" aria-label="Unified vehicle geometry controls" style="display:none">
+   <div class="window-head"><strong>Vehicle controls</strong><button class="mini-btn minimize" title="Minimize"><svg class="collapse-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path class="icon-minify" d="M6 12h12"/><rect class="icon-expand" x="7" y="7" width="10" height="10" rx="2"/></svg></button></div>
+   <div class="window-body">
+    <nav id="vehicleControlsTabs" aria-label="Vehicle controls sections"></nav>
+    <div class="vehicle-controls-breadcrumb" id="vehicleControlsBreadcrumb">Vehicle / Body</div>
+    <div id="vehicleControlsFields"></div>
+    <div class="vehicle-controls-footer"><button type="button" id="vehicleControlsSave">Save vehicle</button><button type="button" id="vehicleControlsSelect">Selected part</button></div>
    </div>
   </section>
   <div id="sceneTreeMenu" class="scene-tree-menu" hidden role="menu" aria-label="Object actions"></div>
@@ -1979,7 +2011,7 @@ input[type=color]:focus-visible{outline:2px solid var(--accent)!important;outlin
    courseName:'Open practice ground',courseObjects:[],ghostMode:'off',cameraMode:'orbit',cameraClearance:true,
    cameraFollowLag:.07,cameraVerticalLag:.20,cameraClearanceLag:.22,
    autopilot:false,autopilotRoute:'terrain-aware',groundRoughness:.9,
-   seatOffsets:{},vectorChassis:null,partOverrides:{},geometrySource:"auto",sceneFolders:[]
+   seatOffsets:{},avatarOffsets:{},wheelPlacements:{},wheelSizing:{},vectorChassis:null,partOverrides:{},geometrySource:"auto",sceneFolders:[]
  };
 
  let cfg=structuredClone(defaults);
@@ -2030,6 +2062,23 @@ function normalizeVehicleConfig(){
  for(const key of wheelKeys)cfg[key]=Number(cfg[key]);
  if(!['cannon','rapier','ammo'].includes(simulator?.engine))simulator.engine='cannon';
  if(Array.isArray(cfg.seatOffsets)||!cfg.seatOffsets||typeof cfg.seatOffsets!=='object')cfg.seatOffsets={};
+ if(!cfg.avatarOffsets||typeof cfg.avatarOffsets!=='object'||Array.isArray(cfg.avatarOffsets))cfg.avatarOffsets={};
+ if(!cfg.wheelPlacements||typeof cfg.wheelPlacements!=='object'||Array.isArray(cfg.wheelPlacements))cfg.wheelPlacements={};
+ if(!cfg.wheelSizing||typeof cfg.wheelSizing!=='object'||Array.isArray(cfg.wheelSizing))cfg.wheelSizing={};
+ // Existing blueprints may carry visual-only wheel transforms. Migrate their
+ // local mounting locations to the canonical settings used by all physics
+ // engines, and strip only the obsolete duplicate wheel transform fields.
+ for(const [key,ov] of Object.entries(cfg.partOverrides||{})){
+  if(!/^wheel:(front|rear):(left|right)$/.test(key)||!ov||typeof ov!=='object')continue;
+  const specKey=key.slice(6);
+  if(!cfg.wheelPlacements[specKey]&&Array.isArray(ov.position)&&ov.position.length===3&&ov.position.every(v=>Number.isFinite(v)&&Math.abs(v)<100)){
+   cfg.wheelPlacements[specKey]={x:ov.position[0],y:ov.position[1],z:ov.position[2]};
+  }
+  // Old scales are visual-only; do not change physics radius without an
+  // explicit new edit. Clearing a stored scale prevents double scaling.
+  if(ov.position||ov.scale){delete ov.position;delete ov.scale;}
+ }
+
  if(!CAMERA_MODES.includes(cfg.cameraMode))cfg.cameraMode='orbit';
  for(const [k,min,max,fallback] of [['cameraFollowLag',.015,.32,.07],['cameraVerticalLag',.035,.9,.20],['cameraClearanceLag',.035,1.2,.22]]){
   if(!Number.isFinite(Number(cfg[k])))cfg[k]=fallback;else cfg[k]=clamp(Number(cfg[k]),min,max);
@@ -2041,6 +2090,7 @@ function normalizeVehicleConfig(){
  let selectedVehicleTargetKey='module:cabin';
  const editableVehicleParts=new Map();
  let partGizmo=null,selectedSceneItem=null;
+ let wheelGizmoStart=null;
  function registerEditableVehiclePart(root,key,label,materialTarget){
   root.userData.vehicleSelect={key,label,materialTarget};
   editableVehicleParts.set(key,root);
@@ -2060,13 +2110,43 @@ function normalizeVehicleConfig(){
  }
  function writePartOverride(key,root){
   if(!root||!key||key==='__vehicle__')return;
+  if(wheelKeyInfo(key)){
+   wheelFromNode(key,root,wheelGizmoStart?.key===key?wheelGizmoStart:null);
+   cfg.partOverrides=cfg.partOverrides||{};
+   // A live physics wheel spins every frame. Never record solver animation as
+   // an authoring rotation when persisting a new physical mounting position.
+   const override={...(cfg.partOverrides[key]||{}),hidden:!root.visible};
+   if(partGizmo?.getMode()==='rotate'&&mode!=='drive')
+    override.rotation=[root.rotation.x,root.rotation.y,root.rotation.z];
+   delete override.position;delete override.scale;
+   cfg.partOverrides[key]=override;
+   return;
+  }
+  const seatMatch=/^(seat|avatar):(\d+)$/.exec(key);
+  if(seatMatch&&root.parent===passengersGroup){
+   // Seat and occupant offsets are vehicle configuration, not an ephemeral mesh
+   // offset. The seat and occupant are rebuilt from the same seat anchor.
+   const index=Number(seatMatch[2]);
+   if(seatMatch[1]==='seat'){
+    const before=cfg.seatOffsets[index]||{};
+    // Base offset can be recovered from the existing seat anchor at build time.
+    const base=root.userData.baseSeatPosition;
+    if(base){cfg.seatOffsets[index]={...before,
+     x:root.position.x-base.x,y:root.position.y-base.y,z:root.position.z-base.z};}
+   }else{
+    const before=cfg.avatarOffsets[index]||{},base=root.userData.baseAvatarPosition;
+    if(base)cfg.avatarOffsets[index]={...before,
+     x:root.position.x-base.x,y:root.position.y-base.y,z:root.position.z-base.z};
+   }
+  }
   if(!cfg.partOverrides||typeof cfg.partOverrides!=='object')cfg.partOverrides={};
   const former=cfg.partOverrides[key]||{};
   cfg.partOverrides[key]={...former,
-   position:root.position.toArray().map(v=>Number(v.toFixed(5))),
    rotation:[root.rotation.x,root.rotation.y,root.rotation.z].map(v=>Number(v.toFixed(6))),
    scale:root.scale.toArray().map(v=>Number(v.toFixed(5))),
    hidden:!root.visible};
+  if(!seatMatch)cfg.partOverrides[key].position=root.position.toArray().map(v=>Number(v.toFixed(5)));
+  else delete cfg.partOverrides[key].position;
  }
  function applyVehicleGeometrySource(){
   const choice=cfg.geometrySource||'auto';
@@ -2217,7 +2297,7 @@ let ghostObject=null,ghostSamples=[],ghostElapsed=0,ghostTick=0;
  function appConfirm(message){return showAppDialog('confirm',message)}
  function appPrompt(message,value='',options={}){return showAppDialog('prompt',message,value,options)}
 
- const VERSION='0.3.47';
+ const VERSION='0.3.48';
  document.getElementById('appVersionBadge').textContent='v'+VERSION;
  let imageReference=null,busyAI=false;
 
@@ -3590,23 +3670,23 @@ async function previewWheelAsset(asset){
 }
 // Wheel mesh is a reusable independent component. Cylindrical tire, sidewall,
 // spoke / disk / turbine rim and instanced 3-D tread all follow axle settings.
-function makeWheel(parent,x,y,z,r,axle=0){
+function makeWheel(parent,x,y,z,r,axle=0,widthOverride=null,sideSign=Math.sign(x)||1){
  const root=new THREE.Group();root.name=`${axle===0?'Front':'Rear'} wheel`;
  root.position.set(x,y,z);root.userData.wheelAxle=axle===0?'front':'rear';parent.add(root);
- registerEditableVehiclePart(root,`wheel:${axle===0?'front':'rear'}:${x<0?'left':'right'}`,
-  `${axle===0?'Front':'Rear'} wheel ${x<0?'left':'right'}`,'tireColor');
+ registerEditableVehiclePart(root,`wheel:${axle===0?'front':axle===cfg.axles-1?'rear':'axle'+axle}:${sideSign<0?'left':'right'}`,
+  `${axle===0?'Front':axle===cfg.axles-1?'Rear':'Axle '+(axle+1)} wheel ${sideSign<0?'left':'right'}`,'tireColor');
  const which=axle===0?'front':'rear';
  const asset=wheelAssets.get(cfg[which+'WheelModel']);
  if(asset?.source){
-  const visual=wheelVisualFromAsset(asset,r,widthSafe(cfg[which+'WheelWidth']));
+  const visual=wheelVisualFromAsset(asset,r,widthSafe(widthOverride??cfg[which+'WheelWidth']));
   // GLB face outward on both sides of the axle; flip right hand wheel shell.
-  if(x>0)visual.rotation.y+=Math.PI;
+  if(sideSign>0)visual.rotation.y+=Math.PI;
   root.add(visual);
-  addWheelCapVisual(root,which,r,cfg[which+'WheelWidth']);
+  addWheelCapVisual(root,which,r,widthOverride??cfg[which+'WheelWidth']);
   return root;
  }
  const prefix=axle===0?'front':'rear';
- const width=clamp(cfg[prefix+'WheelWidth'],.08,1.25);
+ const width=clamp(widthOverride??cfg[prefix+'WheelWidth'],.08,1.5);
  const rimStyle=cfg[prefix+'WheelStyle'];
  const spokeCount=clamp(Math.round(cfg[prefix+'Spokes']||8),3,32);
  const treadDepth=clamp(cfg[prefix+'TreadDepth']??.03,.005,.09);
@@ -3751,17 +3831,17 @@ function addLamp(parent,x,z,front){
  const m=mat(colour,.1,.22,{
   emissive:new THREE.Color(colour),emissiveIntensity:0
 });
- const lampRoot=new THREE.Group();parent.add(lampRoot);
+ const lampRoot=new THREE.Group();lampRoot.position.set(x,-.13,z);parent.add(lampRoot);
  registerEditableVehiclePart(lampRoot,`lamp:${front?'front':'rear'}:${x<0?'left':'right'}`,
   `${front?'Headlight':'Tail light'} ${x<0?'left':'right'}`,front?'headlightColor':'tailLightColor');
- box(lampRoot,cfg.lampWidth,cfg.lampHeight,.05,m,x,-.13,z);
+ box(lampRoot,cfg.lampWidth,cfg.lampHeight,.05,m,0,0,0);
  if(front){
   headMaterials.push(m);
   const spot=new THREE.SpotLight(0xfff2da,0,22,Math.PI/7,.65,1.5);
-  spot.position.set(x,-.12,z);
+  spot.position.set(0,.01,0);
   const target=new THREE.Object3D();
-  target.position.set(x,-.7,z+17);
-  parent.add(spot,target);spot.target=target;
+  target.position.set(0,-.55,17);
+  lampRoot.add(spot,target);spot.target=target;
   headlights.push(spot);
 }else brakeMaterials.push(m);
 }
@@ -4018,15 +4098,15 @@ function updateSeatAnimations(dt){
  equipment(eq,L,W,H,paint);
 
  for(let axle=0;axle<cfg.axles;axle++){
-  const z=wheelZ(axle);
   for(const side of [-1,1]){
-   wheels.push(makeWheel(car,side*(W*.54+wheelOutsetFor(axle)),wheelMountYFor(axle),z,wheelRadiusFor(axle),axle));
+   const spec=wheelSpec(axle,side);
+   wheels.push(makeWheel(car,spec.x,spec.y,spec.z,spec.radius,axle,spec.width,side));
  }
 }
 const lamps=new THREE.Group();car.add(lamps);
 for(const side of [-1,1]){
-  addLamp(lamps,side*W*.34,L*.495,true);
-  addLamp(lamps,side*W*.38,-L*.495,false);
+  addLamp(lamps,side*(W*.34+(cfg.frontLampX||0)),L*.495+(cfg.frontLampZ||0),true);
+  addLamp(lamps,side*(W*.38+(cfg.rearLampX||0)),-L*.495+(cfg.rearLampZ||0),false);
 }
 
 const passengers=new THREE.Group();car.add(passengers);passengersGroup=passengers;
@@ -4050,11 +4130,13 @@ for(let i=0;i<cfg.seats;i++){
   const off=(cfg.seatOffsets||{})[i]||{x:0,y:0,z:0};
   const x=(col-(columns-1)/2)*W*.66/columns;
   const z=b*.36-(row+.5)*b*.72/rows+(L/2-a-b/2);
-  const figurePos=new THREE.Vector3(x+(Number(off.x)||0),-.14+(Number(off.y)||0),z+(Number(off.z)||0));
-  const seatGroup=new THREE.Group();passengers.add(seatGroup);
+  const avatarOff=(cfg.avatarOffsets||{})[i]||{};
+  const figurePos=new THREE.Vector3(x+(Number(off.x)||0)+(Number(avatarOff.x)||0),-.14+(Number(off.y)||0)+(Number(avatarOff.y)||0),z+(Number(off.z)||0)+(Number(avatarOff.z)||0));
+  const seatGroup=new THREE.Group();seatGroup.position.set(x+(Number(off.x)||0),-.14+(Number(off.y)||0),z+(Number(off.z)||0));
+  seatGroup.userData.baseSeatPosition={x,y:-.14,z};passengers.add(seatGroup);
   registerEditableVehiclePart(seatGroup,`seat:${i}`,`Seat ${i+1}`,'seatColor');
-  box(seatGroup,cfg.seatWidth,cfg.seatHeight,.3,seatMat,x+(Number(off.x)||0),-.22+(Number(off.y)||0),z+(Number(off.z)||0));
-  const back=box(seatGroup,cfg.seatWidth,cfg.seatBackHeight,.075,seatMat,x+(Number(off.x)||0),-.01+(Number(off.y)||0),z-.12+(Number(off.z)||0));
+  box(seatGroup,cfg.seatWidth,cfg.seatHeight,.3,seatMat,0,-.08,0);
+  const back=box(seatGroup,cfg.seatWidth,cfg.seatBackHeight,.075,seatMat,0,.13,-.12);
   back.rotation.x=cfg.seatRecline*Math.PI/180;
   let figure,model=null;
   const modelId=seatBindings[i];
@@ -4062,7 +4144,7 @@ for(let i=0;i<cfg.seats;i++){
   const avatarRoot=model?.source||passengerSource;
   const availableClips=model?.animations||passengerAnimations;
   if(avatarRoot){
-    figure=new THREE.Group();figure.position.copy(figurePos);passengers.add(figure);
+    figure=new THREE.Group();figure.position.copy(figurePos);figure.userData.baseAvatarPosition={x:x+(Number(off.x)||0),y:-.14+(Number(off.y)||0),z:z+(Number(off.z)||0)};passengers.add(figure);
     registerEditableVehiclePart(figure,`avatar:${i}`,`Passenger ${i+1}`,null);
     const clone=cloneSkeleton(avatarRoot);
     const bounds=new THREE.Box3().setFromObject(clone),size=bounds.getSize(new THREE.Vector3()),center=bounds.getCenter(new THREE.Vector3());
@@ -4076,7 +4158,7 @@ for(let i=0;i<cfg.seats;i++){
     if(availableClips.length){rig.mixer=new THREE.AnimationMixer(clone);passengerMixers.push(rig.mixer)}
     rigs[i]=rig;chooseRigAction(rig,rig.state);
   }else{
-    figure=human(passengers,figurePos.x,figurePos.y,figurePos.z);
+    figure=human(passengers,figurePos.x,figurePos.y,figurePos.z);figure.userData.baseAvatarPosition={x:x+(Number(off.x)||0),y:-.14+(Number(off.y)||0),z:z+(Number(off.z)||0)};
     registerEditableVehiclePart(figure,`avatar:${i}`,`Passenger ${i+1}`,null);
     rigs[i]={seat:i,figure,seatPosition:figure.position.clone(),state:seatPresence[i]?(i===0?'driving':'sitting'):'empty',time:0,mixer:null,entrySide:x<=0?-1:1,lastOffset:{...off}};
   }
@@ -4088,6 +4170,8 @@ vectorApplyToScene();
 applyVehicleGeometrySource();
 applyEditablePartOverrides();
 updateLights();
+ if(selectedSceneItem?.kind==='part'&&editableVehicleParts.has(selectedSceneItem.key)&&$('objectWindow')?.style.display==='flex')
+  requestAnimationFrame(()=>{if(selectedSceneItem?.kind==='part')renderPartInspector(selectedSceneItem.key)});
 
 $('vehicleName').textContent=cfg.name;
 $('vehicleInfo').textContent=
@@ -4642,6 +4726,47 @@ const wheelZ=axle=>{
  const t=axle/Math.max(1,cfg.axles-1);
  return (cfg.L*.38+(cfg.axleFrontOffset||0))*(1-t)+(-cfg.L*.38+(cfg.axleRearOffset||0))*t;
 };
+function wheelSpecKey(axle,side){return (axle===0?'front':axle===cfg.axles-1?'rear':'axle'+axle)+':'+(side<0?'left':'right');}
+function wheelSpec(axle,side){
+ const key=wheelSpecKey(axle,side),saved=cfg.wheelPlacements?.[key]||{},sizing=cfg.wheelSizing?.[key]||{};
+ const fallback={x:side*(cfg.W*.54+wheelOutsetFor(axle)),y:wheelMountYFor(axle),z:wheelZ(axle)};
+ return {key,x:Number.isFinite(saved.x)?saved.x:fallback.x,y:Number.isFinite(saved.y)?saved.y:fallback.y,
+  z:Number.isFinite(saved.z)?saved.z:fallback.z,
+  radius:Number.isFinite(sizing.radius)?clamp(sizing.radius,.12,2.5):wheelRadiusFor(axle),
+  width:Number.isFinite(sizing.width)?clamp(sizing.width,.08,1.5):wheelWidthFor(axle)};
+}
+function wheelKeyInfo(key){
+ const match=/^wheel:(front|rear|axle\d+):(left|right)$/.exec(key||'');
+ if(!match)return null;
+ const axle=match[1]==='front'?0:match[1]==='rear'?Math.max(0,cfg.axles-1):Number(match[1].slice(4));
+ return {axle,side:match[2]==='left'?-1:1};
+}
+function commitWheelSpec(key,patch){
+ const info=wheelKeyInfo(key);if(!info)return false;
+ const spec=wheelSpec(info.axle,info.side);
+ const coords={},sizes={};
+ for(const axis of ['x','y','z'])if(Number.isFinite(patch[axis]))coords[axis]=clamp(patch[axis],-100,100);
+ for(const axis of ['radius','width'])if(Number.isFinite(patch[axis]))sizes[axis]=clamp(patch[axis],axis==='radius'?.12:.08,axis==='radius'?2.5:1.5);
+ cfg.wheelPlacements[spec.key]={x:spec.x,y:spec.y,z:spec.z,...coords};
+ if(Object.keys(sizes).length)cfg.wheelSizing[spec.key]={radius:spec.radius,width:spec.width,...sizes};
+ return true;
+}
+function wheelFromNode(key,node,dragStart=null){
+ const info=wheelKeyInfo(key);if(!info||!node)return false;
+ const spec=dragStart?.spec||wheelSpec(info.axle,info.side);
+ let position;
+ if(dragStart){
+  const delta=node.getWorldPosition(new THREE.Vector3()).sub(dragStart.world);
+  const orientation=car.getWorldQuaternion(new THREE.Quaternion()).invert();delta.applyQuaternion(orientation);
+  position={x:spec.x+delta.x,y:spec.y+delta.y,z:spec.z+delta.z};
+ }else if(node.parent===car){position={x:node.position.x,y:node.position.y,z:node.position.z};}
+ else return false;
+ const initial=dragStart?.scale||new THREE.Vector3(1,1,1);
+ const factor=new THREE.Vector3(node.scale.x/Math.max(.001,initial.x),node.scale.y/Math.max(.001,initial.y),node.scale.z/Math.max(.001,initial.z));
+ const radius=spec.radius*Math.sqrt(Math.max(.0001,factor.y*factor.z));
+ const width=spec.width*Math.max(.01,factor.x);
+ return commitWheelSpec(key,{...position,radius,width});
+}
 const pose=(p,q,v)=>({position:p,rotation:q,velocity:v});
 
 function syncPhysicsObjectPose(id,position,rotation){
@@ -4676,10 +4801,11 @@ function makeCannonAdapter(){
  const vehicle=new CANNON.RaycastVehicle({chassisBody:chassis,
    indexRightAxis:0,indexUpAxis:1,indexForwardAxis:2});
  for(let axle=0;axle<cfg.axles;axle++)for(const side of [-1,1]){
+  const spec=wheelSpec(axle,side);
   vehicle.addWheel({
-   radius:wheelRadiusFor(axle),directionLocal:new CANNON.Vec3(0,-1,0),
+   radius:spec.radius,directionLocal:new CANNON.Vec3(0,-1,0),
    axleLocal:new CANNON.Vec3(1,0,0),
-   chassisConnectionPointLocal:new CANNON.Vec3(side*(cfg.W*.54+wheelOutsetFor(axle)),wheelMountYFor(axle),wheelZ(axle)),
+   chassisConnectionPointLocal:new CANNON.Vec3(spec.x,spec.y,spec.z),
    suspensionRestLength:.32,suspensionStiffness:42,
    dampingCompression:4.6,dampingRelaxation:2.8,
    frictionSlip:5.4,maxSuspensionForce:150000,
@@ -4804,8 +4930,9 @@ async function makeRapierAdapter(){
   vehicle.setIndexForwardAxis=2;
   for(let axle=0;axle<cfg.axles;axle++)for(const side of [-1,1]){
    const i=vehicle.numWheels();
-   vehicle.addWheel({x:side*(cfg.W*.54+wheelOutsetFor(axle)),y:wheelMountYFor(axle),z:wheelZ(axle)},
-       {x:0,y:-1,z:0},{x:-1,y:0,z:0},.32,wheelRadiusFor(axle));
+   const spec=wheelSpec(axle,side);
+   vehicle.addWheel({x:spec.x,y:spec.y,z:spec.z},
+       {x:0,y:-1,z:0},{x:-1,y:0,z:0},.32,spec.radius);
    vehicle.setWheelSuspensionStiffness(i,42);
    vehicle.setWheelSuspensionCompression(i,4.6);
    vehicle.setWheelSuspensionRelaxation(i,2.8);
@@ -4958,7 +5085,8 @@ async function makeAmmoAdapter(){
   dynamics.addAction(rayVehicle);
   const down=v(0,-1,0),axleDir=v(-1,0,0);
   for(let axle=0;axle<cfg.axles;axle++)for(const side of [-1,1]){
-   const info=rayVehicle.addWheel(v(side*(cfg.W*.54+wheelOutsetFor(axle)),wheelMountYFor(axle),wheelZ(axle)),down,axleDir,.32,wheelRadiusFor(axle),tuning,axle===0);
+   const spec=wheelSpec(axle,side);
+   const info=rayVehicle.addWheel(v(spec.x,spec.y,spec.z),down,axleDir,.32,spec.radius,tuning,axle===0);
    info.set_m_suspensionStiffness(42);
    info.set_m_wheelsDampingRelaxation(2.8);
    info.set_m_wheelsDampingCompression(4.6);
@@ -7563,7 +7691,8 @@ function rebuildWheelVisuals(){
   const wasInScene=old.parent===scene;
   const x=old.position.x,y=old.position.y,z=old.position.z;
   const q=old.quaternion.clone(),parent=old.parent||car;
-  const child=makeWheel(parent,x,y,z,wheelRadiusFor(axle),axle);
+  const spec=wheelSpec(axle,i%2===0?-1:1);
+  const child=makeWheel(parent,x,y,z,spec.radius,axle,spec.width,i%2===0?-1:1);
   child.quaternion.copy(q);
   wheels[i]=child;
   disposeTree(old);
@@ -8324,16 +8453,28 @@ $('objectQuickSlider').oninput=e=>{
   const key=selectedSceneItem?.kind==='car'?'__vehicle__':selectedSceneItem?.kind==='group'?'__scene_group__':selectedSceneItem?.key;
   const root=selectedPartObject(key);if(!root)return;
   const [,target,axis,factor]=selectedPart;
-  root[target][axis]=value*factor;root.updateMatrixWorld(true);
-  if(key==='__scene_group__')syncSceneGroupFromPivot();
-  else {writePartOverride(key,root);updateHighlight();}
+  if(wheelKeyInfo(key)){wheelInspectorChange(key,selectedObjectSlider,value);}
+  else{
+   if(target==='scale'&&$('objectUniformScale').checked){
+    const ratio=value*factor/Math.max(.001,root.scale[axis]);root.scale.multiplyScalar(ratio);
+   }else root[target][axis]=value*factor;
+   root.updateMatrixWorld(true);
+   if(key==='__scene_group__')syncSceneGroupFromPivot();
+   else {writePartOverride(key,root);updateHighlight();}
+  }
   return;
  }
  const o=cfg.courseObjects.find(x=>x.id===selectedCourseId),mesh=courseMeshes.get(selectedCourseId);
  if(!o)return;
  const fieldMap={objectX:'x',objectY:'y',objectZ:'z',objectW:'w',objectH:'h',objectD:'d',objectAngle:'angle',objectRotX:'rotX',objectRotZ:'rotZ',
   objectMass:'mass',objectFriction:'friction',objectBounce:'bounce'};
- const prop=fieldMap[selectedObjectSlider];if(!prop)return;o[prop]=value;
+ const prop=fieldMap[selectedObjectSlider];if(!prop)return;
+ const previousSize={w:o.w,h:o.h,d:o.d};o[prop]=value;
+ if(['w','h','d'].includes(prop)&&$('objectUniformScale').checked){
+  const ratio=value/Math.max(.01,previousSize[prop]);
+  for(const other of ['w','h','d'])if(other!==prop)o[other]=clamp(previousSize[other]*ratio,.1,80);
+  for(const [id,key] of [['objectW','w'],['objectH','h'],['objectD','d']])$(id).value=String(Number(o[key].toFixed(3)));
+ }
  if(mesh){if(prop==='x'||prop==='y'||prop==='z')mesh.position[prop]=value;
   else if(prop==='angle')mesh.rotation.y=value*Math.PI/180;
   else if(prop==='rotX')mesh.rotation.x=value*Math.PI/180;
@@ -8345,6 +8486,7 @@ $('objectQuickSlider').oninput=e=>{
 $('objectQuickSlider').onchange=()=>{
  if(selectedObjectSlider in PART_SLIDER_FIELDS){
   if(selectedSceneItem?.kind==='group'){finishSceneGroupTransform();return;}
+  if(wheelKeyInfo(selectedSceneItem?.key)||/^(seat|avatar):/.test(selectedSceneItem?.key||''))scheduleBuild();
   scheduleHistory('Component slider transform');return;
  }
  $(selectedObjectSlider)?.dispatchEvent(new Event('change'));
@@ -8540,9 +8682,16 @@ function renderCourseInspector(){const o=cfg.courseObjects.find(item=>item.id===
   ['objectRotX','rotX'],['objectRotZ','rotZ'],['objectMass','mass'],['objectFriction','friction'],['objectBounce','bounce'],['objectSeed','seed'],
   ['objectTexture','texture'],['objectColor','color']]){
   const el=$(key);el.value=o[prop]??(prop==='color'?'#7b9db4':prop==='mass'?35:prop==='friction'?.85:0);
-  el.onchange=()=>{o[prop]=['color','texture'].includes(prop)?el.value:parseFloat(el.value);
+  el.onchange=()=>{const previousSize={w:o.w,h:o.h,d:o.d};o[prop]=['color','texture'].includes(prop)?el.value:parseFloat(el.value);
    if(!Number.isFinite(o[prop])&&!['color','texture'].includes(prop))return;
-   if(['w','h','d'].includes(prop))o[prop]=clamp(o[prop],.1,80);
+   if(['w','h','d'].includes(prop)){
+    o[prop]=clamp(o[prop],.1,80);
+    if($('objectUniformScale').checked){
+     const ratio=o[prop]/Math.max(.01,previousSize[prop]);
+     for(const other of ['w','h','d'])if(other!==prop)o[other]=clamp(previousSize[other]*ratio,.1,80);
+     for(const [input,field] of [['objectW','w'],['objectH','h'],['objectD','d']])if(field!==prop)$(input).value=Number(o[field].toFixed(3));
+    }
+   }
    if(['color','texture','angle','w','h','d'].includes(prop)){
     // Signed-distance polygon terrain nodes are never stretched implicitly.
     if(prop!=='color'&&o.points)o.points=null;
@@ -9006,8 +9155,8 @@ $('mapTool').closest('label').after(patchSelector);
 updateMapZoomUI();let mapFrame=0;
 
 // Workspace windows: pointer dragging + native CSS resize + minimize.
-const WINDOW_IDS=['toolbarWindow','toolsWindow','catalogWindow','galleryWindow','paramsWindow','logWindow','paletteWindow','wheelWindow','mapWindow','objectWindow','fleetWindow','chassisWindow','mediaWindow','radioWindow','sculptWindow','notesWindow','geologyWindow','vectorWindow','sceneTreeWindow'];
-const WINDOW_NAMES=['Actions','Tools','Car templates','Gallery','Parameters','Logs','Materials','Wheel workshop','Test map','Object','Scene vehicles','Chassis workshop','My media','Radio','Terrain sculpt','Notes','Geological layers','Vector chassis','Scene objects'];
+const WINDOW_IDS=['toolbarWindow','toolsWindow','catalogWindow','galleryWindow','paramsWindow','logWindow','paletteWindow','wheelWindow','mapWindow','objectWindow','fleetWindow','chassisWindow','mediaWindow','radioWindow','sculptWindow','notesWindow','geologyWindow','vectorWindow','sceneTreeWindow','vehicleControlsWindow'];
+const WINDOW_NAMES=['Actions','Tools','Car templates','Gallery','Parameters','Logs','Materials','Wheel workshop','Test map','Object','Scene vehicles','Chassis workshop','My media','Radio','Terrain sculpt','Notes','Geological layers','Vector chassis','Scene objects','Vehicle controls'];
 let highestZ=18;
 const safeStore=(name,value)=>{try{localStorage.setItem(name,value)}catch(e){}};
 const safeRead=name=>{try{return localStorage.getItem(name)}catch(e){return null}};
@@ -9031,6 +9180,7 @@ function setWindowVisible(id,show,restore=false){
  if(id==='chassisWindow')updateChassisGizmo();
  if(id==='vectorWindow'){vectorDrawCanvas();vectorRefreshGizmo();}
  if(id==='sceneTreeWindow'&&show)renderSceneTree();
+ if(id==='vehicleControlsWindow'&&show)renderVehicleControls();
  // Showing a hidden panel must never expand its minimized state.
  if(show){
   win.style.zIndex=String(++highestZ);
@@ -10415,6 +10565,35 @@ function sceneTreeCarMenu(row){return [
  ['Duplicate vehicle',async()=>{if(row.id!==activeFleetId)await activateFleetVehicle(row.id);duplicateActiveFleet();renderSceneTree()}],
  ['Remove vehicle…',async()=>{if(fleetRecords.length<=1){note('The final vehicle cannot be removed.',true);return}if(!await appConfirm('Remove "'+(row.config?.name||'vehicle')+'" from the scene?'))return;await removeFleetVehicle(row.id);renderSceneTree()}]
 ]}
+function renameSceneTreeInline(kind,id,button){
+ const oldLabel=button.textContent,field=document.createElement('input');field.type='text';field.maxLength=80;
+ field.className='scene-tree-inline-name';field.value=oldLabel;
+ button.replaceWith(field);field.focus();field.select();let finished=false;
+ const finish=(save)=>{
+  if(finished)return;finished=true;
+  const name=field.value.trim().slice(0,80);if(!save||!name||name===oldLabel){field.replaceWith(button);return}
+  if(kind==='course'){
+   const item=cfg.courseObjects.find(o=>o.id===id);if(item){item.name=name;rememberMapEdit('Rename scene object')}
+  }else if(kind==='car'){
+   const item=fleetRecords.find(row=>row.id===id);if(item){item.config.name=name;
+    if(id===activeFleetId){cfg.name=name;$('vehicleName').textContent=name;}
+    scheduleHistory('Rename vehicle')}
+  }else if(kind==='part'){
+   const item=editableVehicleParts.get(id);if(item){
+    cfg.partOverrides=cfg.partOverrides||{};
+    cfg.partOverrides[id]={...(cfg.partOverrides[id]||{}),name};
+    item.userData.vehicleSelect.label=name;scheduleHistory('Rename vehicle component');
+   }
+  }
+  renderSceneTree();
+ };
+ field.addEventListener('keydown',e=>{
+  if(e.key==='Enter'){e.preventDefault();finish(true)}
+  else if(e.key==='Escape'){e.preventDefault();finish(false)}
+  e.stopPropagation();
+ });
+ field.addEventListener('blur',()=>finish(true),{once:true});
+}
 function sceneTreeRow(name,icon,selected,muted,choose,actions,hidden,locked,canHide=true,bulkKind='',bulkId=''){
  const row=document.createElement('div');row.className='scene-tree-row'+(selected?' is-selected':'')+(muted?' is-muted':'');
  row.setAttribute('role','treeitem');row.setAttribute('aria-selected',String(selected));
@@ -10426,7 +10605,9 @@ function sceneTreeRow(name,icon,selected,muted,choose,actions,hidden,locked,canH
   row.append(check);
  }
  const glyph=document.createElement('span');glyph.className='scene-tree-icon';glyph.textContent=icon;row.append(glyph);
- row.append(treeButton(name,name,choose,'scene-tree-title'));
+ const title=treeButton(name,name,choose,'scene-tree-title');row.append(title);
+ if(bulkKind){const rename=treeButton('✎','Rename '+name+' inline',()=>renameSceneTreeInline(bulkKind,bulkId,title),'scene-tree-rename');row.append(rename);}
+
  if(canHide)row.append(treeButton(hidden?'◌':'◉',hidden?'Show':'Hide',()=>actions.find(x=>x[0]===(hidden?'Show object':'Hide object'))?.[1]?.()||actions.find(x=>x[0]===(hidden?'Show part':'Hide part'))?.[1]?.()||actions.find(x=>x[0]===(hidden?'Show vehicle':'Hide vehicle'))?.[1]?.() ));
  row.append(treeButton(locked?'▣':'▢',locked?'Unlock':'Lock',()=>{
   const method=actions.find(x=>x[0]===(locked?'Unlock':'Lock'))||actions.find(x=>x[0]===(locked?'Unlock part':'Lock part'))||actions.find(x=>x[0]===(locked?'Unlock vehicle':'Lock vehicle'));
@@ -10635,6 +10816,103 @@ $('sceneTreeInspect').onclick=()=>{
  else note('Select a car, component, or world object first.');
 };
 $('sceneTreeSave').onclick=()=>void saveServer(false).catch(error=>note(error.message,true));
+$('sceneTreeVehicleControls').onclick=()=>setWindowVisible('vehicleControlsWindow',true);
+// One compact vehicle-editor surface for the same authoritative settings
+// consumed by lil-gui, the wheel builders and all three driving solvers.
+let vehicleControlsTab='body',vehicleControlsWheel='front:left',vehicleControlsSeat=0;
+const VEHICLE_CONTROL_TABS=[['body','Body'],['wheels','Wheels'],['cabin','Cabin'],['lights','Lights'],['equipment','Equipment']];
+const vehicleParam=(label,key,min,max,step=.01)=>({label,key,min,max,step});
+const VEHICLE_PARAM_SCHEMA={
+ body:[vehicleParam('Length (m)','L',1,24,.05),vehicleParam('Width (m)','W',.65,7,.05),vehicleParam('Height (m)','H',.5,8,.05),
+  vehicleParam('Front rake','frontRake',.03,1.9,.01),vehicleParam('Rear rake','rearRake',.03,1.9,.01),vehicleParam('Roof width','roofWidth',.3,1,.01),
+  vehicleParam('Door count','doors',1,8,1),vehicleParam('Windows','windows',1,10,1)],
+ wheels:[vehicleParam('Front axle Z','axleFrontOffset',-4,4,.01),vehicleParam('Rear axle Z','axleRearOffset',-4,4,.01),
+  vehicleParam('Front radius','frontWheelRadius',.12,2.5,.01),vehicleParam('Rear radius','rearWheelRadius',.12,2.5,.01),
+  vehicleParam('Front width','frontWheelWidth',.08,1.5,.01),vehicleParam('Rear width','rearWheelWidth',.08,1.5,.01),
+  vehicleParam('Front height','frontWheelMountY',-2,2,.01),vehicleParam('Rear height','rearWheelMountY',-2,2,.01),
+  vehicleParam('Front outset','frontWheelOutset',-2,2,.01),vehicleParam('Rear outset','rearWheelOutset',-2,2,.01)],
+ cabin:[vehicleParam('Seats','seats',1,16,1),vehicleParam('Seat width','seatWidth',.15,1.4,.01),vehicleParam('Seat height','seatHeight',.03,.6,.01),
+  vehicleParam('Seat back','seatBackHeight',.12,1.4,.01),vehicleParam('Seat recline °','seatRecline',-45,45,1),
+  vehicleParam('Steering X','steeringX',-2,2,.01),vehicleParam('Steering Y','steeringY',-2,2,.01),vehicleParam('Steering Z','steeringZ',-2,2,.01),
+  vehicleParam('Steering radius','steeringRadius',.05,.7,.01),vehicleParam('Dashboard X','dashOffsetX',-2,2,.01),vehicleParam('Dashboard Z','dashOffsetZ',-3,3,.01),
+  vehicleParam('Dashboard height','dashHeight',-.9,2,.01),vehicleParam('Dashboard depth','dashDepth',.1,2,.01)],
+ lights:[vehicleParam('Lamp width','lampWidth',.05,.8,.01),vehicleParam('Lamp height','lampHeight',.05,.5,.01),
+  vehicleParam('Headlight power','headlightPower',0,80,1),vehicleParam('Front lamp spacing','frontLampX',-.9,.9,.01),
+  vehicleParam('Front lamp Z','frontLampZ',-2,2,.01),vehicleParam('Rear lamp spacing','rearLampX',-.9,.9,.01),
+  vehicleParam('Rear lamp Z','rearLampZ',-2,2,.01)],
+ equipment:[vehicleParam('Equipment size X','equipmentScaleX',.1,4,.01),vehicleParam('Equipment size Y','equipmentScaleY',.1,4,.01),vehicleParam('Equipment size Z','equipmentScaleZ',.1,4,.01)]
+};
+function vehicleControlsNumberRow(def,read,write){
+ const row=document.createElement('div');row.className='vehicle-param-row';
+ const label=document.createElement('label');label.textContent=def.label;const id='vehicleControl'+def.key.replace(/[^a-z0-9]/gi,'_');label.htmlFor=id;
+ const slider=document.createElement('input');slider.type='range';slider.min=def.min;slider.max=def.max;slider.step=def.step;slider.id=id;
+ const number=document.createElement('input');number.type='number';number.min=def.min;number.max=def.max;number.step=def.step;
+ let initial=Number(read());if(!Number.isFinite(initial))initial=0;
+ slider.value=String(clamp(initial,def.min,def.max));number.value=String(Number(initial.toFixed(3)));
+ slider.addEventListener('input',()=>{number.value=slider.value});
+ const apply=value=>{const raw=Number(value);if(!Number.isFinite(raw))return;
+  const parsed=clamp(def.step>=1?Math.round(raw):raw,def.min,def.max);number.value=String(Number(parsed.toFixed(3)));slider.value=String(parsed);
+  write(parsed);scheduleHistory('Vehicle control: '+def.label);scheduleBuild();
+ };
+ slider.addEventListener('change',()=>apply(slider.value));number.addEventListener('change',()=>apply(number.value));
+ row.append(label,slider,number);return row;
+}
+function vehicleControlsSelectRow(label,options,value,callback){
+ const row=document.createElement('div');row.className='vehicle-param-row';
+ const heading=document.createElement('label');heading.textContent=label;
+ const select=document.createElement('select');for(const [name,key] of options)select.add(new Option(name,key));select.value=String(value);
+ select.addEventListener('change',()=>callback(select.value));row.append(heading,select);return row;
+}
+function renderVehicleControls(){
+ const tabs=$('vehicleControlsTabs'),container=$('vehicleControlsFields');if(!tabs||!container)return;
+ tabs.replaceChildren();container.replaceChildren();
+ for(const [key,label] of VEHICLE_CONTROL_TABS){const button=document.createElement('button');button.type='button';button.textContent=label;
+  button.setAttribute('aria-selected',String(vehicleControlsTab===key));button.onclick=()=>{vehicleControlsTab=key;renderVehicleControls()};tabs.append(button);}
+ $('vehicleControlsBreadcrumb').textContent=(cfg.name||'Vehicle')+' / '+VEHICLE_CONTROL_TABS.find(item=>item[0]===vehicleControlsTab)?.[1];
+ const add=(def,read,write)=>container.append(vehicleControlsNumberRow(def,read,write));
+ for(const def of VEHICLE_PARAM_SCHEMA[vehicleControlsTab]||[]){
+  if(def.key.startsWith('equipmentScale')){
+   const axis=def.key.at(-1).toLowerCase();
+   add(def,()=>cfg.partOverrides?.['module:equipment']?.scale?.['xyz'.indexOf(axis)]??1,value=>{
+    const root=editableVehicleParts.get('module:equipment');if(root){root.scale[axis]=value;writePartOverride('module:equipment',root)}
+   });
+  }else add(def,()=>cfg[def.key],value=>{cfg[def.key]=value;if(vehicleControlsTab==='wheels'&&def.key.endsWith('WheelRadius'))cfg.radius=Math.max(cfg.frontWheelRadius,cfg.rearWheelRadius)});
+ }
+ if(vehicleControlsTab==='wheels'){
+  const options=[];for(let axle=0;axle<cfg.axles;axle++)for(const side of [-1,1]){
+   const spec=wheelSpec(axle,side);options.push([(axle===0?'Front':axle===cfg.axles-1?'Rear':'Axle '+(axle+1))+' '+(side<0?'left':'right'),spec.key]);
+  }
+  if(!options.some(option=>option[1]===vehicleControlsWheel))vehicleControlsWheel=options[0]?.[1]||'';
+  container.append(vehicleControlsSelectRow('Individual wheel',options,vehicleControlsWheel,value=>{vehicleControlsWheel=value;renderVehicleControls()}));
+  const axle=options.findIndex(option=>option[1]===vehicleControlsWheel)>>1,side=vehicleControlsWheel.endsWith(':left')?-1:1;
+  for(const [label,field,min,max] of [['Mount X','x',-12,12],['Mount Y','y',-5,5],['Mount Z','z',-20,20],['Tyre radius','radius',.12,2.5],['Tyre width','width',.08,1.5]]){
+   const spec=wheelSpec(axle,side);
+   add(vehicleParam(label,'perWheel'+field,min,max,.01),()=>spec[field],value=>commitWheelSpec('wheel:'+spec.key,{[field]:value}));
+  }
+ }
+ if(vehicleControlsTab==='cabin'){
+  const options=Array.from({length:cfg.seats},(_,i)=>['Seat / occupant '+(i+1),String(i)]);
+  vehicleControlsSeat=Math.min(vehicleControlsSeat,cfg.seats-1);
+  container.append(vehicleControlsSelectRow('Edit seat',options,vehicleControlsSeat,value=>{vehicleControlsSeat=Number(value);renderVehicleControls()}));
+  for(const prefix of ['seatOffsets','avatarOffsets'])for(const axis of ['x','y','z']){
+   const label=(prefix==='seatOffsets'?'Seat ':'Passenger ')+axis.toUpperCase();
+   add(vehicleParam(label,prefix+'_'+axis,-3,3,.01),()=>cfg[prefix]?.[vehicleControlsSeat]?.[axis]??0,value=>{
+    cfg[prefix]=cfg[prefix]||{};cfg[prefix][vehicleControlsSeat]={...(cfg[prefix][vehicleControlsSeat]||{}),[axis]:value};
+   });
+  }
+ }
+ if(vehicleControlsTab==='lights')for(const [label,key] of [['Headlight colour','headlightColor'],['Rear light colour','tailLightColor']]){
+  const row=document.createElement('div');row.className='vehicle-param-row';const title=document.createElement('label');title.textContent=label;
+  const color=document.createElement('input');color.type='color';color.value=cfg[key]||'#ffffff';color.onchange=()=>{cfg[key]=color.value;scheduleBuild();scheduleHistory('Light colour')};
+  row.append(title,color);container.append(row);
+ }
+ if(vehicleControlsTab==='equipment'){
+  const available=['none','pickup','flatbed','cargo','compactor','dump','tanker','forks','boom','crane','sweeper','emergency','hitch','agv','scooter','cargo-bike','excavator','loader','stacker','dozer','mixer','roller','tractor','mining'];
+  container.prepend(vehicleControlsSelectRow('Equipment type',available.map(key=>[key,key]),cfg.equipment||'none',value=>{cfg.equipment=value;scheduleBuild();scheduleHistory('Equipment')}));
+ }
+}
+$('vehicleControlsSave').onclick=()=>void saveServer(false).catch(error=>note(error.message,true));
+$('vehicleControlsSelect').onclick=()=>{setWindowVisible('sceneTreeWindow',true);if(selectedSceneItem?.kind==='part')renderPartInspector(selectedSceneItem.key)};
 // A single non-destructive part inspector controls real Three.js objects and
 // stores visual-only transforms in the vehicle blueprint.
 function selectedPartObject(key){return key==='__scene_group__'?sceneGroupPivot:key==='__vehicle__'?car:editableVehicleParts.get(key)}
@@ -10649,9 +10927,41 @@ function selectSceneTreePart(key){
  if(!selectEditableVehiclePart(key))return;
  selectedSceneItem={kind:'part',key};renderPartInspector(key);renderSceneTree();
 }
+function wheelInspectorChange(key,id,value){
+ const info=wheelKeyInfo(key),root=selectedPartObject(key);
+ if(!info||!Number.isFinite(value)||!root)return false;
+ const before=wheelSpec(info.axle,info.side),patch={};
+ const field=PART_SLIDER_FIELDS[id];if(!field)return false;
+ const [,,axis,factor]=field;
+ if(id.startsWith('partInspectorS')){
+  // A wheel is cylindrical about X. Y/Z scale affects physical tyre radius;
+  // X changes physical width. Uniform scale changes both properties together.
+  const scale=Math.max(.05,value),uniform=$('objectUniformScale').checked;
+  const baseline=Number(root.userData.wheelInspectorScaleBaseline)||1;
+  const multiplier=scale/baseline;
+  if(!Number.isFinite(multiplier))return false;
+  const desired={};
+  if(uniform||axis==='x')desired.width=before.width*multiplier;
+  if(uniform||axis!=='x')desired.radius=before.radius*multiplier;
+  commitWheelSpec(key,desired);
+  root.userData.wheelInspectorScaleBaseline=scale;
+  root.scale.setScalar(1);
+ }else if(id.startsWith('partInspectorR')){
+  root.rotation[axis]=value*factor;
+  if(!cfg.partOverrides)cfg.partOverrides={};
+  cfg.partOverrides[key]={...(cfg.partOverrides[key]||{}),rotation:[root.rotation.x,root.rotation.y,root.rotation.z]};
+ }else{
+  const distance=value-before[axis];patch[axis]=value;
+  commitWheelSpec(key,patch);
+  if(root.parent===car)root.position[axis]=value;
+  else {const movement=new THREE.Vector3();movement[axis]=distance;movement.applyQuaternion(car.getWorldQuaternion(new THREE.Quaternion()));root.position.add(movement);}
+ }
+ root.updateMatrixWorld(true);return true;
+}
 function partInspectorSync(key){
  const node=selectedPartObject(key);if(!node)return;
- const fields={partInspectorX:node.position.x,partInspectorY:node.position.y,partInspectorZ:node.position.z,
+ const info=wheelKeyInfo(key),spec=info?wheelSpec(info.axle,info.side):null;
+ const fields={partInspectorX:spec?.x??node.position.x,partInspectorY:spec?.y??node.position.y,partInspectorZ:spec?.z??node.position.z,
   partInspectorRX:THREE.MathUtils.radToDeg(node.rotation.x),partInspectorRY:THREE.MathUtils.radToDeg(node.rotation.y),partInspectorRZ:THREE.MathUtils.radToDeg(node.rotation.z),
   partInspectorSX:node.scale.x,partInspectorSY:node.scale.y,partInspectorSZ:node.scale.z};
  for(const [name,value] of Object.entries(fields)){const input=$(name);if(document.activeElement!==input)input.value=Number(value.toFixed(3))}
@@ -10687,9 +10997,18 @@ for(const [inputName,target,axis,factor] of partFieldKeys)$(inputName).addEventL
  const key=selectedSceneItem?.kind==='car'?'__vehicle__':selectedSceneItem?.kind==='group'?'__scene_group__':selectedSceneItem?.key,root=selectedPartObject(key);
  if(!root)return;const value=Number($(inputName).value)*factor;
  if(!Number.isFinite(value)||Math.abs(value)>1000||(target==='scale'&&value<=0))return;
- root[target][axis]=value;root.updateMatrixWorld(true);
- if(key==='__scene_group__')syncSceneGroupFromPivot();else {writePartOverride(key,root);updateHighlight();}
- if(key==='__scene_group__')finishSceneGroupTransform();else scheduleHistory('Component '+target);partInspectorSync(key);bindObjectSlider(inputName);
+ if(wheelKeyInfo(key)){
+  wheelInspectorChange(key,inputName,Number($(inputName).value));
+  scheduleBuild();scheduleHistory('Wheel mounting / size');
+ }else{
+  if(target==='scale'&&$('objectUniformScale').checked){
+   const ratio=value/Math.max(.001,root.scale[axis]);root.scale.multiplyScalar(ratio);
+  }else root[target][axis]=value;
+  root.updateMatrixWorld(true);
+  if(key==='__scene_group__')syncSceneGroupFromPivot();else {writePartOverride(key,root);updateHighlight();}
+  if(key==='__scene_group__')finishSceneGroupTransform();else {if(/^(seat|avatar):/.test(key))scheduleBuild();scheduleHistory('Component '+target);}
+ }
+ partInspectorSync(key);bindObjectSlider(inputName);
 });
 for(const button of $('partInspector').querySelectorAll('[data-part-gizmo]'))button.onclick=()=>{
  if(!partGizmo?.object)return;partGizmo.setMode(button.dataset.partGizmo);
@@ -10715,17 +11034,35 @@ $('partInspectorReset').onclick=()=>{
  const key=selectedSceneItem?.kind==='car'?'__vehicle__':selectedSceneItem?.kind==='group'?'__scene_group__':selectedSceneItem?.key;
  if(!key||key==='__vehicle__')return;
  if(key==='__scene_group__'){note('To undo a group transformation use Undo; reset does not move members to world origin.',true);return;}
- delete cfg.partOverrides[key];partGizmo?.detach();buildVehicle();scheduleHistory('Reset component override');renderSceneTree();
+ delete cfg.partOverrides[key];
+ if(wheelKeyInfo(key)){const info=wheelKeyInfo(key),spec=wheelSpec(info.axle,info.side);delete cfg.wheelPlacements[spec.key];delete cfg.wheelSizing[spec.key];}
+ partGizmo?.detach();scheduleBuild();scheduleHistory('Reset component override');renderSceneTree();
 };
 partGizmo=new TransformControls(camera,renderer.domElement);
 partGizmo.setSize(.75);scene.add(partGizmo.getHelper());
 partGizmo.addEventListener('dragging-changed',e=>{
+ const key=selectedSceneItem?.kind==='part'?selectedSceneItem.key:null;
+ if(e.value&&wheelKeyInfo(key)){
+  const root=selectedPartObject(key),info=wheelKeyInfo(key);
+  wheelGizmoStart={key,spec:wheelSpec(info.axle,info.side),world:root.getWorldPosition(new THREE.Vector3()),scale:root.scale.clone()};
+ }
  transformDragging=!!e.value;
  if(e.value)beginDriveSceneEditing();
  orbit.enabled=!e.value&&(mode!=='drive'||driveSceneEditing||cfg.cameraMode!=='driver')&&!xrActive;
  if(!e.value){
   const key=selectedSceneItem?.kind==='car'?'__vehicle__':selectedSceneItem?.kind==='group'?'__scene_group__':selectedSceneItem?.key,root=selectedPartObject(key);
-  if(root){if(key==='__scene_group__')finishSceneGroupTransform();else {writePartOverride(key,root);scheduleHistory('Vehicle component gizmo');}renderSceneTree();partInspectorSync(key);updateHighlight();}
+  if(root){
+   if(key==='__scene_group__')finishSceneGroupTransform();
+   else if(wheelKeyInfo(key)){
+    writePartOverride(key,root);
+    // A wheel's visual transform becomes an actual raycast/rigid-body mount.
+    // Rebuild the solver without switching mode or losing driving velocity.
+    scheduleBuild();scheduleHistory('Move wheel mounting / size');
+   }else {writePartOverride(key,root);
+    if(/^(seat|avatar):/.test(key))scheduleBuild();
+    scheduleHistory('Vehicle component gizmo');}
+   wheelGizmoStart=null;renderSceneTree();partInspectorSync(key);updateHighlight();
+  }
  }
 });
 partGizmo.addEventListener('objectChange',()=>{
@@ -10843,6 +11180,7 @@ $('galleryRefreshBtn').onclick=()=>{gallerySource='public';setWindowVisible('gal
 $('layoutPublic').onchange=()=>{serverVisibility=$('layoutPublic').checked?'public':'private'};
 
 const RELEASE_NOTES=[
+ {v:'0.3.48',date:'2026-11-12',title:'Unified vehicle controls and physical wheel mounts',items:['Scene Objects rows can be renamed inline; Object Inspector provides proportional scaling by default.', 'A new Vehicle Controls panel exposes body, wheel mount, seat, passenger, light and equipment settings with compact sliders.', 'Wheel positions and radii from the transform inspector are saved as actual solver mounting points for Cannon-es, Rapier and Ammo, rather than visual-only overrides.']},
  {v:'0.3.47',date:'2026-11-12',title:'Pixel-verified full-car studio framing',items:['Body Studio now measures the actual vehicle silhouette in a separate low-resolution GPU pass rather than relying only on GLB bounds.', 'The camera zooms out whenever bodywork, mirrors or wheels touch the image border; all six orthographic views are then centred with visible white margins.', 'If a complete vehicle still cannot be framed, the app reports a capture error instead of replacing the previous reference with a cropped image.']},
  {v:'0.3.46',date:'2026-11-12',title:'Uncropped true orthographic studio captures',items:['Capture six exact axis-aligned views: left, right, front, rear, top and bottom; +Z is vehicle front and top view keeps the hood pointing up.', '3D projected bounds include the complete active body, wheels (when requested), and exterior lights; removed destructive pixel-crop zoom.', 'Technical black-on-white passes use a dedicated occupancy mask to avoid filling entire vehicle surfaces black.']},
  {v:'0.3.45',date:'2026-11-12',title:'Framed body studio shots and technical outline references',items:['Body Studio auto-fits each shot around the visible car pixels and recentres every angle without cutting off geometry.', 'Three reference styles: original materials, materials with outlines, and black lines on white.', 'Outline styles use offscreen surface-normal and depth passes, without changing live materials, saved maps or the 3D scene.']},
@@ -11829,6 +12167,7 @@ $('mapEditorBtn').onclick=()=>setWindowVisible('mapWindow',true);
 $('mediaBrowserBtn').onclick=()=>openMediaBrowser();$('profileMediaBtn').onclick=()=>{showDrawer(null);openMediaBrowser()};
 $('fleetBtn').onclick=()=>{renderFleetList();setWindowVisible('fleetWindow',true)};
 $('sceneTreeBtn').onclick=()=>{ensureFleet();renderSceneTree();setWindowVisible('sceneTreeWindow',true)};
+$('vehicleControlsBtn').onclick=()=>setWindowVisible('vehicleControlsWindow',true);
 $('cameraBtn').onclick=cycleCamera;$('uprightBtn').onclick=resetUpright;
 $('resetOriginBtn').onclick=()=>void resetDriveOrigin();
 $('autopilotBtn').onclick=()=>{cfg.autopilot=!cfg.autopilot;autopilotState.anchor=null;autopilotState.time=0;updateAutopilotButton();note('Autopilot '+(cfg.autopilot?'enabled':'disabled'));};
