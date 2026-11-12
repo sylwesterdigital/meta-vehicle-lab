@@ -718,11 +718,26 @@ def create_app(config=None):
         if not file.is_file():return jsonify(error='Model binary unavailable; recover from private backup'),503
         return send_file(file,mimetype='model/gltf-binary',as_attachment=True,download_name=item['filename'])
 
+    @app.get('/api/gallery/<identifier>/model/<client_id>')
+    def public_gallery_dependent_asset(identifier,client_id):
+        # Authenticated to the PUBLIC car by reference, not by the private
+        # profile session. Prevent guessing IDs to download unrelated models.
+        asset=store.public_car_part(identifier,client_id)
+        if not asset:return jsonify(error='Model is not a referenced public vehicle part'),404
+        ident=asset['id'];file=store.assets/(ident+'.glb')
+        if not file.is_file():file=store.dir/'asset-backups'/(ident+'.glb')
+        if not file.is_file():return jsonify(error='Published model binary is unavailable'),503
+        return send_file(file,mimetype='model/gltf-binary',as_attachment=True,
+                         download_name=asset['filename'],max_age=0)
+
     @app.get('/api/gallery/<identifier>/asset')
     def public_gallery_asset(identifier):
         item=store.gallery_layout(identifier)
         if not item or not item['asset_id']:return jsonify(error='Public asset not found'),404
-        return send_file(store.assets/(item['asset_id']+'.glb'),mimetype='model/gltf-binary',as_attachment=True,download_name='vehicle.glb')
+        asset_path=store.assets/(item['asset_id']+'.glb')
+        if not asset_path.is_file():asset_path=store.dir/'asset-backups'/(item['asset_id']+'.glb')
+        if not asset_path.is_file():return jsonify(error='Public chassis binary unavailable'),503
+        return send_file(asset_path,mimetype='model/gltf-binary',as_attachment=True,download_name='vehicle.glb')
 
     @app.get('/api/admin/logs')
     def log_tail():

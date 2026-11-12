@@ -1,3 +1,11 @@
+## v0.3.50 — November 12, 2026
+- Studio framing uses conservative geometry and pixel occupancy with no zoom-in from a potentially truncated GLB silhouette; captures are not overwritten when the full frame cannot be confirmed.
+- Unsaved configuration, vehicle and world edits are debounced to a dedicated, profile-scoped IndexedDB working draft (schema upgrade preserves existing stores); the latest browser draft is restored on login, without replacing private server libraries.
+- Independent front/rear lamp width and height, preserving old car dimensions when upgrading.
+- Public vehicles and world links explicitly enumerate the owner-scoped wheel, cap and avatar GLBs referenced by each public blueprint; import preflights binaries and refuses incomplete cars, with collision-safe local identifiers.
+- World share links now open Vehicle Lab instead of an API JSON document. Rights consent is visible at the top of the publishing dialog. Existing private assets are never implicitly public unless referenced by an explicitly public car.
+- No destructive data migration; model asset binaries and existing saved cars/maps remain unchanged.
+
 ## v0.3.49 — November 12, 2026
 - Vehicle Controls > Lights now has front and rear X/Y/Z positions; the Y field controls vertical placement, retaining symmetric left/right spacing.
 - Vehicle Controls > Cabin adds uniform passenger size for each seat; saved via the existing per-component scale override.

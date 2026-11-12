@@ -5,7 +5,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Vehicle Lab — Procedural Studio</title>
-  <meta name="vehicle-lab-version" content="0.3.49">
+  <meta name="vehicle-lab-version" content="0.3.50">
   <style>
     :root {
       color-scheme:dark;
@@ -867,6 +867,9 @@ body.ui-colored-headers .window-header-swatch{display:block}
 
 /* Explicit publishing never happens on a background upload. */
 #publishOverlay[hidden]{display:none!important}
+.publish-consent-top{display:flex;align-items:center;gap:8px;padding:10px 14px;margin:5px 0 12px;border:1px solid #7bacc5;border-radius:10px;background:#23475b;color:#f1f9ff;font-weight:650}
+.publish-consent-top input{width:19px;height:19px;flex:none}
+
 #publishOverlay{z-index:101}
 .publish-dialog{width:min(600px,96vw);max-height:90dvh;overflow:auto}
 .publish-dialog select{display:block;width:100%;margin:4px 0 10px;padding:8px;color:#f4f8ff;background:#102837;border:1px solid #6c8ca4;border-radius:7px}
@@ -1145,7 +1148,7 @@ input[type=color]:focus-visible{outline:2px solid var(--accent)!important;outlin
 
   <div id="stage">
   <div id="hud">
-    <div class="stage-badge"><strong>Vehicle Lab</strong><small id="appVersionBadge">v0.3.49</small></div>
+    <div class="stage-badge"><strong>Vehicle Lab</strong><small id="appVersionBadge">v0.3.50</small></div>
     <p id="vehicleName">City Car</p><p id="vehicleInfo">Procedural vehicle</p>
     <div id="speedHud"><strong id="speed">0</strong><div>km/h</div></div>
     <div id="cameraModeReadout" style="padding:3px 6px;margin-top:4px;width:max-content;max-width:260px;border-radius:5px;background:#132d3cc0;color:#e9f5fc;font:10px ui-monospace,monospace">Camera · Orbit follow</div>
@@ -1769,7 +1772,8 @@ input[type=color]:focus-visible{outline:2px solid var(--accent)!important;outlin
 <div id="publishOverlay" class="utility-overlay" hidden role="dialog" aria-modal="true" aria-label="Publish to Vehicle Lab community">
  <div class="modal-card publish-dialog">
   <div class="dialog-title"><h2>Publish to community</h2><button id="publishClose" type="button" aria-label="Close publishing">×</button></div>
-  <p>Choose what to share. All selected items must already be saved to your private server library. No other items are published.</p>
+  <p>Publish a complete saved world: choose a vehicle and a map. Referenced wheel and avatar models are included automatically. Your private originals remain unchanged.</p>
+  <label class="publish-consent publish-consent-top"><input id="publishConsent" type="checkbox"> I have the right to share the chosen world and its 3D models.</label>
   <div class="publish-scroll">
    <label class="publish-kind"><input type="checkbox" id="publishCars"> Cars <small>Choose individual saved cars</small></label>
    <div class="publish-choice-list" id="publishCarsChoices" role="group" aria-label="Cars to publish"></div><select class="publish-select-hidden" id="publishCarsList" multiple size="3" aria-label="Chosen cars"></select>
@@ -1777,8 +1781,7 @@ input[type=color]:focus-visible{outline:2px solid var(--accent)!important;outlin
    <div class="publish-choice-list" id="publishMapChoices" role="group" aria-label="Saved maps"></div><select class="publish-select-hidden" id="publishMapList" aria-label="Chosen map"></select>
    <label class="publish-kind"><input type="checkbox" id="publishModels"> 3D models / avatars <small>Share only assets you may distribute</small></label>
    <div class="publish-choice-list" id="publishModelChoices" role="group" aria-label="Models to publish"></div><select class="publish-select-hidden" id="publishModelList" multiple size="3" aria-label="Chosen models"></select>
-   <label class="publish-kind"><input type="checkbox" id="publishWorld"> World bundle <small>Link a selected car and map</small></label>
-   <label class="publish-consent"><input id="publishConsent" type="checkbox"> I own the rights to publish these selected items.</label>
+   <label class="publish-kind"><input type="checkbox" id="publishWorld" checked> Complete world <small>Vehicle + map + referenced wheels / avatars</small></label>
    <details class="publish-disclosure"><summary>My published links</summary><div id="publishMine" class="publish-links"></div></details>
   </div>
   <div class="publish-footer"><button type="button" id="publishConfirm">Publish selected</button><button type="button" id="publishRefresh">Refresh library</button><small id="publishStatus" role="status">Select items, then confirm.</small></div>
@@ -2002,7 +2005,7 @@ input[type=color]:focus-visible{outline:2px solid var(--accent)!important;outlin
    galleryExposure:1.65,driveHidePanels:true,
    seatWidth:.29,seatHeight:.10,seatBackHeight:.32,seatRecline:0,
    dashDepth:.42,dashHeight:.22,dashOffsetX:0,dashOffsetZ:0,steeringRadius:.17,steeringX:0,steeringY:0,steeringZ:0,
-   lampWidth:.25,lampHeight:.12,headlightPower:18,headlightColor:'#fff4ce',tailLightColor:'#fa263e',
+   lampWidth:.25,lampHeight:.12,frontLampWidth:.25,frontLampHeight:.12,rearLampWidth:.25,rearLampHeight:.12,headlightPower:18,headlightColor:'#fff4ce',tailLightColor:'#fa263e',
    frontLampX:0,frontLampY:0,frontLampZ:0,rearLampX:0,rearLampY:0,rearLampZ:0,
    audioEnabled:true,soundPreset:'electric',audioVolume:.2,baseRPM:780,
    soundPitchRange:2.2,engineHarmonics:.4,engineNoise:.18,
@@ -2026,6 +2029,8 @@ let objectGizmo=null,chassisGizmo=null,chassisGizmoEnabled=false,chassisGizmoMod
 // Pre-v0.2.7 IndexedDB and server layouts can lack wheel/texture properties.
 // lil-gui fails while creating a numeric controller for an absent property.
 function normalizeVehicleConfig(){
+ for(const side of ['front','rear'])for(const dim of ['Width','Height']){const key=side+'Lamp'+dim;if(!Number.isFinite(Number(cfg[key])))cfg[key]=Number(cfg['lamp'+dim])||defaults[key];}
+
  if(!['cliff','barrier','ramp','wrap','cells'].includes(cfg.worldEdgeMode))cfg.worldEdgeMode='barrier';
  if(cfg.vectorChassis!==null&&cfg.vectorChassis!==undefined)cfg.vectorChassis=vectorSanitize(cfg.vectorChassis);
  normalizeBiomeSettings();
@@ -2298,7 +2303,7 @@ let ghostObject=null,ghostSamples=[],ghostElapsed=0,ghostTick=0;
  function appConfirm(message){return showAppDialog('confirm',message)}
  function appPrompt(message,value='',options={}){return showAppDialog('prompt',message,value,options)}
 
- const VERSION='0.3.49';
+ const VERSION='0.3.50';
  document.getElementById('appVersionBadge').textContent='v'+VERSION;
  let imageReference=null,busyAI=false;
 
@@ -3249,6 +3254,7 @@ function rememberMapEdit(label='Map edit'){
  mapHistory.push({label,state,signature});
  if(mapHistory.length>MAP_HISTORY_LIMIT)mapHistory.shift();
  mapHistoryIndex=mapHistory.length-1;activeUndoDomain='map';
+ if(label!=='Initial map'&&label!=='Restored last saved map')scheduleWorkspaceDraft();
 }
 async function stepMapHistory(direction){
  if(replayingMapHistory)return;
@@ -3835,7 +3841,7 @@ function addLamp(parent,x,y,z,front){
  const lampRoot=new THREE.Group();lampRoot.position.set(x,-.13+y,z);parent.add(lampRoot);
  registerEditableVehiclePart(lampRoot,`lamp:${front?'front':'rear'}:${x<0?'left':'right'}`,
   `${front?'Headlight':'Tail light'} ${x<0?'left':'right'}`,front?'headlightColor':'tailLightColor');
- box(lampRoot,cfg.lampWidth,cfg.lampHeight,.05,m,0,0,0);
+ box(lampRoot,front?cfg.frontLampWidth:cfg.rearLampWidth,front?cfg.frontLampHeight:cfg.rearLampHeight,.05,m,0,0,0);
  if(front){
   headMaterials.push(m);
   const spot=new THREE.SpotLight(0xfff2da,0,22,Math.PI/7,.65,1.5);
@@ -4277,6 +4283,7 @@ async function rebuildVehiclePreservingDrive(){
  }
 }
 function scheduleBuild(){
+ scheduleWorkspaceDraft();
  if(queued){if(liveCarRebuilding)liveCarBuildPending=true;return}
  queued=true;
  requestAnimationFrame(()=>{queued=false;void rebuildVehiclePreservingDrive()});
@@ -5538,12 +5545,13 @@ let dbPromise=null;
 function database(){
  if(!dbPromise)dbPromise=new Promise((resolve,reject)=>{
   // Cache only. Never delete/recreate object stores during version upgrades.
-  const req=indexedDB.open(DB_NAME,3);
+  const req=indexedDB.open(DB_NAME,4);
   req.onupgradeneeded=()=>{
    if(!req.result.objectStoreNames.contains(STORE))
     req.result.createObjectStore(STORE,{keyPath:'id'});
    if(!req.result.objectStoreNames.contains(AVATAR_STORE))req.result.createObjectStore(AVATAR_STORE,{keyPath:'id'});
    if(!req.result.objectStoreNames.contains('test-maps'))req.result.createObjectStore('test-maps',{keyPath:'id'});
+   if(!req.result.objectStoreNames.contains('working-drafts'))req.result.createObjectStore('working-drafts',{keyPath:'id'});
 };
 req.onsuccess=()=>resolve(req.result);
 req.onerror=()=>reject(req.error);
@@ -5558,6 +5566,73 @@ req.onerror=()=>reject(req.error);
     req.onerror=()=>reject(req.error);
   });
  }
+// Per-profile crash/refresh recovery is independent of published/saved cars.
+// It NEVER deletes or replaces layouts, models, maps or media. A draft is a
+// temporary browser backup; the explicit cloud Save remains authoritative.
+let workspaceDraftTimer=null,workspaceDraftRestoring=false,workspaceDraftRevision=0;
+async function workspaceDraftStore(mode,method,value){
+ const db=await database();return new Promise((resolve,reject)=>{
+  const tx=db.transaction('working-drafts',mode),request=tx.objectStore('working-drafts')[method](value);
+  request.onsuccess=()=>resolve(request.result);request.onerror=()=>reject(request.error);
+ });
+}
+function scheduleWorkspaceDraft(){
+ if(!activeProfile?.id||workspaceDraftRestoring)return;
+ workspaceDraftRevision++;
+ clearTimeout(workspaceDraftTimer);
+ workspaceDraftTimer=setTimeout(()=>void persistWorkspaceDraft().catch(error=>recordEvent('WARN','Working draft could not be saved: '+error.message)),1200);
+}
+async function persistWorkspaceDraft(){
+ if(!activeProfile?.id||workspaceDraftRestoring)return;
+ clearTimeout(workspaceDraftTimer);workspaceDraftTimer=null;
+ const profileId=activeProfile.id,revision=workspaceDraftRevision;
+ const record={id:profileId,schema:'vehiclelab-workspace-draft/v1',updated:Date.now(),revision,
+  vehicle:structuredClone(cfg),modules:structuredClone(mods),occupants,seatOccupancy:structuredClone(seatPresence),
+  avatarBindings:structuredClone(seatBindings),avatarClipMappings:structuredClone(avatarClips),
+  modelId:currentChassisAssetId||null,modelName:modelName||null,vehicleDescription,vehicleCategory,
+  simulator:simulator.engine};
+ await workspaceDraftStore('readwrite','put',record);
+ if(profileId!==activeProfile?.id)recordEvent('WARN','Profile changed while draft was being saved; older profile draft retained separately.');
+}
+async function restoreWorkspaceDraftOnLogin(profileId){
+ let draft;
+ try{draft=await workspaceDraftStore('readonly','get',profileId)}
+ catch(error){recordEvent('WARN','Working draft unreadable; cloud maps remain available: '+error.message);return false}
+ if(!draft||draft.schema!=='vehiclelab-workspace-draft/v1'||!draft.vehicle||activeProfile?.id!==profileId)return false;
+ // Never overwrite an edit that happened while login/network requests ran.
+ if(mapEditedSinceStartup||workspaceDraftRevision>0)return false;
+ workspaceDraftRestoring=true;
+ try{
+  cfg={...structuredClone(defaults),...structuredClone(draft.vehicle)};
+  normalizeVehicleConfig();
+  mods={...defaultMods(),...structuredClone(draft.modules||{})};
+  occupants=clamp(draft.occupants??cfg.seats,0,cfg.seats);
+  seatPresence=Array.isArray(draft.seatOccupancy)?draft.seatOccupancy.slice(0,cfg.seats):[];
+  for(const key of Object.keys(seatBindings))delete seatBindings[key];Object.assign(seatBindings,draft.avatarBindings||{});
+  for(const key of Object.keys(avatarClips))delete avatarClips[key];Object.assign(avatarClips,draft.avatarClipMappings||{});
+  vehicleDescription=draft.vehicleDescription||'';vehicleCategory=draft.vehicleCategory||cfg.category||'Urban';
+  modelSource=null;modelBlob=null;modelName=null;currentChassisAssetId=null;
+  if(draft.modelId){
+   const entry=await avatarStore('readonly','get',draft.modelId).catch(()=>null);
+   if(entry?.blob)await loadGLB(entry.blob,draft.modelName||entry.name,false);
+   else recordEvent('WARN','Working draft body GLB is not cached; vehicle blueprint is retained, but source must be restored from model library.');
+  }
+  // Other private wheel/avatar GLBs may still be loading. Their binding IDs are
+  // retained, and will be restored by the existing library synchronizer.
+  readSculptData();normalizeCourseObjects();
+  buildTerrain();buildCourse();buildVegetation();renderPresets();setupGUI();buildVehicle();renderChassisAssets();renderWheelStudio();
+  $('mapName').value=cfg.courseName||'';showWorldCells();syncGeologyEditor();
+  if(draft.simulator&&ENGINE_LABELS[draft.simulator])simulator.engine=draft.simulator;
+  startupMapRestoreAttempted=true;
+  recordEvent('INFO','Restored unsaved vehicle and world edits from profile working draft.');
+  note('Your last working draft was restored on this device. Save the map and vehicle to your private cloud when ready.');
+  return true;
+ }catch(error){recordEvent('ERROR','Working draft recovery failed; local draft was preserved: '+error.message);return false}
+ finally{workspaceDraftRestoring=false}
+}
+window.addEventListener('pagehide',()=>{if(workspaceDraftTimer)void persistWorkspaceDraft()});
+document.addEventListener('visibilitychange',()=>{if(document.hidden&&workspaceDraftTimer)void persistWorkspaceDraft()});
+
 async function avatarStore(mode,method,value){
  const db=await database();return new Promise((resolve,reject)=>{
   const request=db.transaction(AVATAR_STORE,mode).objectStore(AVATAR_STORE)[method](value);
@@ -5934,6 +6009,7 @@ async function loadLayout(item){
  serverLayoutId=null;serverRevision=null;serverAssetId=null;serverAssetBlob=null;
  if(mode==='drive')leaveDrive();
  cfg={...structuredClone(defaults),...item.vehicle};
+ for(const side of ['front','rear'])for(const dim of ['Width','Height']){const key=side+'Lamp'+dim;if(item.vehicle?.[key]===undefined)cfg[key]=Number(item.vehicle?.['lamp'+dim])||defaults[key];}
  restoreSceneWorld(intactWorld); // Never load a world implicitly from a vehicle blueprint.
  if(item.simulation && ENGINE_LABELS[item.simulation.backend])
   simulator.engine=item.simulation.backend;
@@ -6569,15 +6645,32 @@ function captureChassisStudioShot({includeWheels=false,label='Left side',directi
   // children before tightening the framing; no image pixels are ever cropped.
   studioSetFrame(cam,(cam.left+cam.right)/2,(cam.top+cam.bottom)/2,
    (cam.right-cam.left)*2.4,(cam.top-cam.bottom)*2.4);
-  try{studioFitCameraToPixels(cam,()=>readPass(maskMat,false,fitRT,fitWidth,fitHeight),fitWidth,fitHeight)}
-  catch(fitError){
-   // Some drivers cannot return a reliable offscreen mask. Recover with the
-   // full projected bounds and a generous margin instead of a blank preview.
-   studioFrameCamera(cam,bounds,direction,up,aspect);
-   studioSetFrame(cam,(cam.left+cam.right)/2,(cam.top+cam.bottom)/2,
-    (cam.right-cam.left)*1.5,(cam.top-cam.bottom)*1.5);
-   recordEvent('WARN','Studio GPU pixel fit unavailable; using conservative geometry fit: '+fitError.message);
+  // The previous fit zoomed IN around a partial silhouette. A large GLB could
+  // therefore appear as the right/top half of a car even when the mask looked
+  // clear. Never zoom in on a single mask. Start with a generous complete-body
+  // box and zoom OUT until all visible pixels are away from every border.
+  const targetLength=Math.max(Number(cfg.L)||4,Number(cfg.modelScale)||1);
+  const minimumWorldWidth=targetLength*(direction[1]!==0?1.7:2.0);
+  const span=Math.max(cam.right-cam.left,minimumWorldWidth);
+  studioSetFrame(cam,(cam.left+cam.right)/2,(cam.top+cam.bottom)/2,span,span/aspect);
+  let framed=false;
+  for(let pass=0;pass<9;pass++){
+   const visible=studioMaskBounds(readPass(maskMat,false,fitRT,fitWidth,fitHeight),fitWidth,fitHeight);
+   if(!visible){studioSetFrame(cam,(cam.left+cam.right)/2,(cam.top+cam.bottom)/2,(cam.right-cam.left)*1.65,(cam.top-cam.bottom)*1.65);continue}
+   const edge=visible.minX<fitWidth*.08||visible.maxX>fitWidth*.92||visible.minY<fitHeight*.08||visible.maxY>fitHeight*.92;
+   const dx=(visible.minX+visible.maxX+1)/(2*fitWidth)-.5;
+   const dy=.5-(visible.minY+visible.maxY+1)/(2*fitHeight);
+   const w=cam.right-cam.left,h=cam.top-cam.bottom;
+   studioSetFrame(cam,(cam.left+cam.right)/2+dx*w*(edge?.3:1),(cam.top+cam.bottom)/2+dy*h*(edge?.3:1),w*(edge?1.5:1),h*(edge?1.5:1));
+   if(!edge&&Math.abs(dx)<.016&&Math.abs(dy)<.016){framed=true;break}
   }
+  if(!framed){
+   const confirmed=studioMaskBounds(readPass(maskMat,false,fitRT,fitWidth,fitHeight),fitWidth,fitHeight);
+   if(!confirmed||confirmed.minX<fitWidth*.055||confirmed.maxX>fitWidth*.945||confirmed.minY<fitHeight*.055||confirmed.maxY>fitHeight*.945)
+    throw Error('Full-vehicle framing could not be confirmed. The previous reference has been retained.');
+  }
+  // Keep a little extra whitespace around the complete car; never crop after rendering.
+  studioSetFrame(cam,(cam.left+cam.right)/2,(cam.top+cam.bottom)/2,(cam.right-cam.left)*1.10,(cam.top-cam.bottom)*1.10);
   const colour=readPass(null);
   const visibleMask=readPass(maskMat,false,fitRT,fitWidth,fitHeight);
   if(!studioMaskBounds(visibleMask,fitWidth,fitHeight))throw Error('Studio rendered no vehicle pixels. Select a visible body source and retry.');
@@ -6822,7 +6915,7 @@ function commitHistory(label='Edit'){
  editHistory=editHistory.slice(0,editCursor+1);
  editHistory.push({label,time:new Date().toISOString(),state,signature});
  if(editHistory.length>160)editHistory.shift();
- editCursor=editHistory.length-1;historyPersist();refreshHistoryUI();
+ editCursor=editHistory.length-1;historyPersist();refreshHistoryUI();scheduleWorkspaceDraft();
 }
 function scheduleHistory(label='Edit'){
  if(!historyReady||replayingHistory)return;activeUndoDomain='vehicle';
@@ -7235,7 +7328,7 @@ cockpitWorkshop.addColor(cfg,'interiorColor').name('Dashboard finish').onChange(
 cockpitWorkshop.close();
 const lampWorkshop=gui.addFolder('14 · Lighting assemblies');
 for(const [key,label,min,max,step] of [
- ['lampWidth','Lamp width',.08,.65,.01],['lampHeight','Lamp height',.04,.4,.01],
+ ['frontLampWidth','Front lamp width',.08,.8,.01],['frontLampHeight','Front lamp height',.04,.6,.01],['rearLampWidth','Rear lamp width',.08,.8,.01],['rearLampHeight','Rear lamp height',.04,.6,.01],
  ['headlightPower','Light intensity',0,80,1]])
  lampWorkshop.add(cfg,key,min,max,step).name(label).onChange(changed);
 lampWorkshop.add(cfg,'headlights').name('Lights enabled').onChange(()=>updateLights());
@@ -7408,7 +7501,8 @@ async function populatePublishOverlay(){
    };
    choice.append(input,text);root.append(choice);
   }
-  if(!multiple&&!prior.length)select.selectedIndex=-1;
+  if(!multiple&&!prior.length&&rows.length){select.selectedIndex=0;root.firstElementChild?.querySelector('input')?.click()}
+ if(multiple&&!prior.length&&id==='publishCarsList'&&rows.length){select.options[0].selected=true;const first=root.firstElementChild?.querySelector('input');if(first){first.checked=true;$('publishCars').checked=true;}}
  }
  fill('publishCarsList','publishCarsChoices',cars.layouts||[],row=>row.name+(row.visibility==='public'?' · already public':''));
  fill('publishMapList','publishMapChoices',(media.media||[]).filter(row=>row.kind==='map'),row=>row.name,false);
@@ -7417,7 +7511,7 @@ async function populatePublishOverlay(){
  for(const row of shares.shares||[]){const line=document.createElement('div');line.className='publish-row';
   const label=document.createElement('span');label.textContent=(row.kind==='world'?'World':row.kind==='model'?'Model':'Map')+' · '+row.name;
   const copy=document.createElement('button');copy.type='button';copy.textContent='Copy link';copy.onclick=()=>{
-   const url=location.origin+'/api/community/'+encodeURIComponent(row.id)+(row.kind==='model'?'/glb':'');
+   const url=row.kind==='model'?location.origin+'/api/community/'+encodeURIComponent(row.id)+'/glb':location.origin+'/?share='+encodeURIComponent(row.id);
    if(navigator.clipboard?.writeText){
     void navigator.clipboard.writeText(url).then(()=>{$('publishStatus').textContent='Link copied';})
      .catch(()=>{void appPrompt('Copy public link',url,{readOnly:true})});
@@ -7434,6 +7528,7 @@ async function populatePublishOverlay(){
 }
 $('publishBtn').onclick=()=>{
  $('publishOverlay').hidden=false;$('publishStatus').textContent='Loading your private cloud library…';
+ $('publishWorld').checked=true;
  void populatePublishOverlay().then(()=>{$('publishStatus').textContent='Select items, confirm rights, then publish.'})
   .catch(error=>{$('publishStatus').textContent='Library unavailable: '+error.message});
 };
@@ -7442,7 +7537,7 @@ $('publishOverlay').onclick=event=>{if(event.target===$('publishOverlay'))$('pub
 $('publishRefresh').onclick=()=>void populatePublishOverlay().catch(error=>{$('publishStatus').textContent=error.message});
 $('publishConfirm').onclick=()=>void(async()=>{
  if(!$('publishConsent').checked)throw Error('Confirm your rights to publish the selected items.');
- const cars=$('publishCars').checked?publishSelected($('publishCarsList')):[];
+ const cars=($('publishCars').checked||$('publishWorld').checked)?publishSelected($('publishCarsList')):[];
  const maps=$('publishMaps').checked||$('publishWorld').checked?publishSelected($('publishMapList')):[];
  const models=$('publishModels').checked?publishSelected($('publishModelList')):[];
  if(!cars.length&&!maps.length&&!models.length)throw Error('Select at least one item to publish.');
@@ -7451,8 +7546,14 @@ $('publishConfirm').onclick=()=>void(async()=>{
  const button=$('publishConfirm');button.disabled=true;let published=0;
  try{
   for(const id of cars){const result=await identityRequest('/api/me/layouts/'+encodeURIComponent(id));const row=result.layout;
-   if(row.visibility!=='public')await identityRequest('/api/me/layouts/'+encodeURIComponent(id),'PUT',{
-    name:row.name,blueprint:row.blueprint,revision:row.revision,asset_id:row.asset_id,visibility:'public'});
+   // Explicit rights checkbox covers attached wheels and occupants too.
+   // Pre-0.3.50 public cars must be republished before those private
+   // dependencies become downloadable by visitors.
+   if(row.visibility!=='public'||row.blueprint?.publishPartsConsent!==true){
+    const shareBlueprint=structuredClone(row.blueprint);shareBlueprint.publishPartsConsent=true;
+    await identityRequest('/api/me/layouts/'+encodeURIComponent(id),'PUT',{
+     name:row.name,blueprint:shareBlueprint,revision:row.revision,asset_id:row.asset_id,visibility:'public'});
+   }
    published++;
   }
   if($('publishMaps').checked)for(const id of maps){await identityRequest('/api/me/community','POST',{kind:'map',source_id:id,consent:true});published++}
@@ -10045,7 +10146,10 @@ async function setIdentity(token){
  void refreshVehicleGallery().catch(e=>recordEvent('WARN','Cloud cars: '+e.message));
  void refreshMediaBrowser().catch(e=>recordEvent('WARN','Cloud media: '+e.message));
  void refreshMapList().catch(e=>recordEvent('WARN','Cloud map selector: '+e.message));
- void restoreLastCloudMapOnStartup(activeProfile.id);
+ // Opening a shared world explicitly takes priority over a local working draft.
+ // Otherwise asynchronous profile restoration can overwrite the just imported world.
+ if(!new URL(location.href).searchParams.get('share'))
+  void restoreWorkspaceDraftOnLogin(activeProfile.id).then(restored=>{if(!restored)void restoreLastCloudMapOnStartup(activeProfile.id);}).catch(error=>recordEvent('WARN','Workspace draft recovery: '+error.message));
  // Do not block UI initialization on large downloads; never silently claim an empty library.
  void syncProtectedModelLibrary().catch(e=>recordEvent('ERROR','Cloud model sync failed: '+e.message));
 }
@@ -10197,13 +10301,7 @@ async function refreshGallery(){
     try{
      const reply=await fetch('/api/gallery/'+encodeURIComponent(entry.id),{cache:'no-store'});
      const body=await reply.json();if(!reply.ok)throw Error(body.error||'Gallery item unavailable');
-     const record=body.layout;
-     await loadLayout({...record.blueprint,name:record.name});
-     serverLayoutId=null;serverRevision=null;serverAssetId=null;serverAssetBlob=null;
-     if(record.asset_id){
-      const glb=await fetch('/api/gallery/'+encodeURIComponent(entry.id)+'/asset');
-      if(glb.ok)await loadGLB(await glb.blob(),'Published model.glb');
-     }
+     await openGalleryItem({id:entry.id,source:'public'});
      note('Viewing public vehicle by '+entry.creator_name+'. Save a copy to own it.');
     }catch(e){note(e.message,true)}
    };root.append(btn);
@@ -10270,8 +10368,14 @@ function makeGalleryCard(item){
     const current=await serverRequest('GET','/api/layouts/'+encodeURIComponent(item.id));
     const row=current.layout;
     const value=row.visibility==='public'?'private':'public';
+    let blueprint=row.blueprint;
+    if(value==='public'){
+     if(!await appConfirm('Make "'+row.name+'" and its referenced wheel and avatar models public? Only assets used by this car will be shared. You must own the rights to share them.'))return;
+     blueprint=structuredClone(row.blueprint);
+     blueprint.publishPartsConsent=true;
+    }
     const result=await serverRequest('PUT','/api/layouts/'+encodeURIComponent(item.id),{
-      name:row.name,revision:row.revision,asset_id:row.asset_id,blueprint:row.blueprint,visibility:value});
+      name:row.name,revision:row.revision,asset_id:row.asset_id,blueprint,visibility:value});
     if(serverLayoutId===item.id)serverRevision=result.layout.revision;
     note(value==='public'?'Vehicle published · visible in Public gallery':'Vehicle is private.');
     await refreshVehicleGallery();if(value==='public')void refreshGallery();
@@ -10879,7 +10983,7 @@ const VEHICLE_PARAM_SCHEMA={
   vehicleParam('Steering X','steeringX',-2,2,.01),vehicleParam('Steering Y','steeringY',-2,2,.01),vehicleParam('Steering Z','steeringZ',-2,2,.01),
   vehicleParam('Steering radius','steeringRadius',.05,.7,.01),vehicleParam('Dashboard X','dashOffsetX',-2,2,.01),vehicleParam('Dashboard Z','dashOffsetZ',-3,3,.01),
   vehicleParam('Dashboard height','dashHeight',-.9,2,.01),vehicleParam('Dashboard depth','dashDepth',.1,2,.01)],
- lights:[vehicleParam('Lamp width','lampWidth',.05,.8,.01),vehicleParam('Lamp height','lampHeight',.05,.5,.01),
+ lights:[vehicleParam('Front lamp width','frontLampWidth',.05,.8,.01),vehicleParam('Front lamp height','frontLampHeight',.05,.5,.01),vehicleParam('Rear lamp width','rearLampWidth',.05,.8,.01),vehicleParam('Rear lamp height','rearLampHeight',.05,.5,.01),
   vehicleParam('Headlight power','headlightPower',0,80,1),
   vehicleParam('Front lamps X · symmetric','frontLampX',-2,2,.01),vehicleParam('Front lamps Y · height','frontLampY',-2,2,.01),
   vehicleParam('Front lamps Z · fore/aft','frontLampZ',-3,3,.01),
@@ -11131,25 +11235,72 @@ renderer.domElement.addEventListener('pointerup',event=>{
   if(ray.intersectObject(entry.visual,true).length){void activateFleetVehicle(entry.id);return;}
  }
 });
+// Preflight the entire public car BEFORE changing the active vehicle. Wheel
+// meshes and avatars are independent GLBs; importing only the main chassis
+// silently stripped them from shared cars in earlier releases.
+async function preparePublicVehicle(record){
+ if(!record?.blueprint||typeof record.blueprint!=='object')throw Error('Published car has no valid blueprint');
+ const missing=record.missing_dependencies||[];
+ if(missing.length)throw Error('Published car is missing '+missing.length+' required wheel/occupant model(s). The current vehicle was not changed. Ask the creator to re-save the model library and republish.');
+ const dependencies=Array.isArray(record.dependencies)?record.dependencies:[];
+ if(dependencies.length>48)throw Error('Too many public model dependencies');
+ const prepared=[];
+ for(const dep of dependencies){
+  if(!/^[a-f0-9-]{36}$/i.test(dep.client_id||'')||!['avatar','passenger','wheel','cap'].includes(dep.kind))
+   throw Error('Invalid public model reference');
+  const response=await fetch('/api/gallery/'+encodeURIComponent(record.id)+'/model/'+encodeURIComponent(dep.client_id),{cache:'no-store'});
+  if(!response.ok)throw Error('Required '+dep.kind+' GLB '+dep.filename+' unavailable (HTTP '+response.status+'). Current vehicle unchanged.');
+  const blob=await verifiedGLB(await response.blob(),dep.filename||'Public model');
+  if(dep.sha256){const hash=await chassisFingerprint(blob);if(hash!==dep.sha256)throw Error('Public GLB checksum mismatch: '+dep.filename)}
+  prepared.push({dep,blob});
+ }
+ let shellBlob=null;
+ if(record.asset_id){
+  const response=await fetch('/api/gallery/'+encodeURIComponent(record.id)+'/asset',{cache:'no-store'});
+  if(!response.ok)throw Error('Published chassis GLB unavailable (HTTP '+response.status+'). Current vehicle unchanged.');
+  shellBlob=await verifiedGLB(await response.blob(),'Published chassis');
+ }else if(record.blueprint.modelName)throw Error('Published car has no downloadable chassis GLB. Current vehicle unchanged.');
+ return {shellBlob,prepared};
+}
+async function activatePublicVehicle(record,downloaded){
+ const blueprintCopy=structuredClone(record.blueprint);
+ // Never overwrite a differently hashed local model with the public client's ID.
+ // Remap its references to a new local ID instead.
+ for(const {dep,blob} of downloaded.prepared){
+  const prior=await avatarStore('readonly','get',dep.client_id).catch(()=>null);
+  const priorHash=prior?.blob?await chassisFingerprint(prior.blob):null;
+  const id=priorHash&&priorHash!==(dep.sha256||await chassisFingerprint(blob))?crypto.randomUUID():dep.client_id;
+  if(id!==dep.client_id){
+   for(const key of ['frontWheelModel','rearWheelModel','frontCapModel','rearCapModel'])if(blueprintCopy.vehicle?.[key]===dep.client_id)blueprintCopy.vehicle[key]=id;
+   for(const key of Object.keys(blueprintCopy.avatarBindings||{}))if(blueprintCopy.avatarBindings[key]===dep.client_id)blueprintCopy.avatarBindings[key]=id;
+  }
+  if(!prior?.blob||id!==dep.client_id){
+   const data={id,clientId:id,name:dep.filename||'Shared model.glb',kind:dep.kind,blob,
+    fingerprint:dep.sha256||await chassisFingerprint(blob),sourceGalleryId:record.id,
+    created:Date.now(),axis:'auto',rx:0,ry:0,rz:0,scale:.72};
+   await avatarStore('readwrite','put',data);
+   if(dep.kind==='wheel'||dep.kind==='cap')await parseWheelAsset(data);
+   else await parseAvatarAsset(data);
+  }else if(dep.kind==='wheel'||dep.kind==='cap'){
+   if(!wheelAssets.has(id))await parseWheelAsset(prior);
+  }else if(!occupantModels.has(id))await parseAvatarAsset(prior);
+ }
+ await loadLayout({...blueprintCopy,name:record.name});
+ serverLayoutId=null;layoutId=null;
+ if(downloaded.shellBlob){await loadGLB(downloaded.shellBlob,blueprintCopy.modelName||'Shared body.glb',false);buildVehicle();}
+ renderWheelStudio();renderChassisAssets();
+}
 async function openGalleryItem(item){
  if(item.source==='local')return loadLayout(item.original);
  if(item.source==='cloud')return loadServer(item.id);
  const response=await fetch('/api/gallery/'+encodeURIComponent(item.id),{cache:'no-store'});
  const data=await response.json();if(!response.ok)throw Error(data.error||'Public layout not found');
  const record=data.layout;
- const glb=record.asset_id?await (async()=>{
-  let response;
-  try{response=await fetch('/api/gallery/'+encodeURIComponent(item.id)+'/asset',{cache:'no-store'})}
-  catch(error){throw Error('Public GLB download failed: '+error.message)}
-  if(!response.ok)throw Error('Public GLB unavailable: HTTP '+response.status);
-  return verifiedGLB(await response.blob(),'Public GLB');
- })():null;
- if(!glb&&record.blueprint?.modelName)throw Error('Published vehicle has no downloadable GLB; keeping current vehicle unchanged.');
- await loadLayout({...record.blueprint,name:record.name});
- serverLayoutId=null;layoutId=null;
- if(glb){await loadGLB(glb,record.blueprint.modelName||'Gallery model.glb',false);buildVehicle();}
- note('Loaded public vehicle by '+record.creator_name+(glb?' · GLB ready':''));
+ const downloaded=await preparePublicVehicle(record);
+ await activatePublicVehicle(record,downloaded);
+ note('Loaded complete public vehicle by '+record.creator_name+' · '+downloaded.prepared.length+' linked parts.');
 }
+
 async function editLocalMetadata(item){
  const details=await askVehicleDetails(item.name);if(!details)return;
  const original=item.original;
@@ -11231,6 +11382,7 @@ $('galleryRefreshBtn').onclick=()=>{gallerySource='public';setWindowVisible('gal
 $('layoutPublic').onchange=()=>{serverVisibility=$('layoutPublic').checked?'public':'private'};
 
 const RELEASE_NOTES=[
+ {v:'0.3.50',date:'2026-11-12',title:'Studio framing, working drafts, separate lamps and complete sharing',items:['Studio reference shots use conservative complete-body framing with a visible-geometry check and no raster cropping.', 'Edits are saved as a per-profile recoverable IndexedDB working draft, separate from cloud maps and cars.', 'Front and rear lamps now have independent width and height settings; world publishing shows consent prominently and exposes linked car assets when authorized.']},
  {v:'0.3.49',date:'2026-11-12',title:'Wheel preview, XYZ lamps, passenger sizing and studio capture recovery',items:['Vehicle controls expose XYZ positions for both lamp pairs and proportional passenger scale.', 'BUILD shows wheel centres at their suspension rest positions, matching solver mount offsets without changing vehicle physics.', 'Body Studio yields between orthographic captures, shows failures in the preview, preserves successful shots and falls back to conservative geometric framing if GPU-mask fitting fails.']},
  {v:'0.3.48',date:'2026-11-12',title:'Unified vehicle controls and physical wheel mounts',items:['Scene Objects rows can be renamed inline; Object Inspector provides proportional scaling by default.', 'A new Vehicle Controls panel exposes body, wheel mount, seat, passenger, light and equipment settings with compact sliders.', 'Wheel positions and radii from the transform inspector are saved as actual solver mounting points for Cannon-es, Rapier and Ammo, rather than visual-only overrides.']},
  {v:'0.3.47',date:'2026-11-12',title:'Pixel-verified full-car studio framing',items:['Body Studio now measures the actual vehicle silhouette in a separate low-resolution GPU pass rather than relying only on GLB bounds.', 'The camera zooms out whenever bodywork, mirrors or wheels touch the image border; all six orthographic views are then centred with visible white margins.', 'If a complete vehicle still cannot be framed, the app reports a capture error instead of replacing the previous reference with a cropped image.']},
@@ -12285,8 +12437,9 @@ async function refreshMediaBrowser(){
        if(!await appConfirm('Open public '+row.kind+' "'+row.name+'"? This will replace the currently edited map. Save your map first.'))return;
        const response=await fetch('/api/community/'+encodeURIComponent(row.id),{cache:'no-store'});
        const item=await response.json();if(!response.ok)throw Error(item.error||'Public world unavailable');
+       const downloaded=item.kind==='world'&&item.car?await preparePublicVehicle(item.car):null;
        await applySavedTestMap({...item.map,name:item.map_name});
-       if(item.kind==='world'&&item.car)await openGalleryItem({id:item.car.id,source:'public'});
+       if(downloaded)await activatePublicVehicle(item.car,downloaded);
        note('Opened public '+row.kind+': '+row.name);
       }});
 
@@ -13270,6 +13423,19 @@ vectorInit();
 initWorkspace();initTheme();renderMaterialPalette();renderChassisAssets();initReleaseHistory();
  buildCourse();buildVegetation();
 void initIdentity();void refreshGallery();void refreshVehicleGallery();
+void (async()=>{
+ const share=new URL(location.href).searchParams.get('share');
+ if(!share||!/^[0-9a-f-]{36}$/i.test(share))return;
+ try{
+  const response=await fetch('/api/community/'+encodeURIComponent(share),{cache:'no-store'});
+  const data=await response.json();if(!response.ok)throw Error(data.error||'Public world not found');
+  if(!await appConfirm('Open the published '+data.kind+'? This replaces the currently edited world; keep or export your edits first.'))return;
+  const prepared=data.kind==='world'&&data.car?await preparePublicVehicle(data.car):null;
+  await applySavedTestMap({...data.map,name:data.map_name});
+  if(prepared)await activatePublicVehicle(data.car,prepared);
+  note('Opened published '+data.kind+'.');
+ }catch(error){note('Unable to open shared world: '+error.message,true)}
+})();
 void refreshMapList().catch(e=>recordEvent('WARN','Map library: '+e.message));
 recordEvent('INFO','Vehicle Lab v'+VERSION+' initialized. Profile and backend status pending.');
 

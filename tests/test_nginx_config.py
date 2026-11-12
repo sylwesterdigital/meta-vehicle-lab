@@ -435,7 +435,8 @@ console.log('studio full silhouette fit OK');
 """
         result=subprocess.run(['node','-e',script],capture_output=True,text=True,timeout=15)
         self.assertEqual(result.returncode,0,result.stdout+result.stderr)
-        self.assertIn('studioFitCameraToPixels(cam,()=>readPass(maskMat,false,fitRT,fitWidth,fitHeight)',html)
+        self.assertIn('const minimumWorldWidth=targetLength*',html)
+        self.assertIn('Never zoom in on a single mask',html)
         self.assertIn('const fitWidth=320,fitHeight=220;',html)
         self.assertIn('rt.dispose();fitRT.dispose();',html)
 
@@ -988,7 +989,7 @@ class VehicleLab0324LocalLibrarySafetyTests(unittest.TestCase):
 
     def test_same_browser_database_contract_is_preserved(self):
         self.assertIn("const DB_NAME='procedural-vehicle-studio';", self.source)
-        self.assertIn('indexedDB.open(DB_NAME,3)', self.source)
+        self.assertIn('indexedDB.open(DB_NAME,4)', self.source)
         self.assertNotIn('indexedDB.deleteDatabase(',self.source)
         self.assertNotIn('localStorage.clear(',self.source)
 
@@ -1622,7 +1623,7 @@ class VehicleLab0348VehicleEditingTests(unittest.TestCase):
                        "commitWheelSpec('wheel:'+spec.key,{[field]:value})",
                        "vehicleParam('Seat width'",
                        "vehicleParam('Steering X'",
-                       "vehicleParam('Lamp width'",
+                       "vehicleParam('Front lamp width'",
                        "'frontLampZ'",
                        "'avatarOffsets'"):
             self.assertIn(marker,self.html)

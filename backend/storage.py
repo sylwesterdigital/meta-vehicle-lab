@@ -701,6 +701,58 @@ class Storage:
             db.execute('DELETE FROM user_notes WHERE id=? AND profile_id=?',(identifier,owner))
             return True
 
+    @staticmethod
+    def blueprint_asset_client_ids(blueprint):
+        """Public dependency allowlist is derived from a published car, not user input.
+
+        The caller must also check that each referenced asset belongs to that car's
+        owner. Never enumerate/return private assets that the car does not use.
+        """
+        if not isinstance(blueprint,dict):return []
+        config=blueprint.get('vehicle') or {}
+        bindings=blueprint.get('avatarBindings') or {}
+        candidates=[]
+        if isinstance(bindings,dict):
+            candidates.extend((value,'avatar') for value in bindings.values())
+        for key,kind in [('frontWheelModel','wheel'),('rearWheelModel','wheel'),
+                         ('frontCapModel','cap'),('rearCapModel','cap')]:
+            candidates.append((config.get(key),kind))
+        result=[];seen=set()
+        for identifier,kind in candidates:
+            try:ident=validate_uuid(identifier)
+            except (TypeError,ValueError):continue
+            if ident not in seen:result.append((ident,kind));seen.add(ident)
+        return result[:48]
+
+    @classmethod
+    def public_car_dependencies(cls,db,owner,blueprint):
+        dependencies=[];missing=[]
+        refs=cls.blueprint_asset_client_ids(blueprint)
+        # Existing public cars were published before linked-avatar consent
+        # existed. Never retroactively expose their other private GLBs.
+        if blueprint.get('publishPartsConsent') is not True:
+            return [],[{'client_id':client_id,'kind':kind} for client_id,kind in refs]
+        for client_id,expected in refs:
+            row=db.execute('SELECT id,filename,kind,client_id,sha256 FROM assets '
+                           'WHERE owner_id=? AND client_id=? ORDER BY created_at DESC LIMIT 1',
+                           (owner,client_id)).fetchone()
+            if not row or (expected=='avatar' and row['kind'] not in ('avatar','passenger')) or \
+               (expected!='avatar' and row['kind']!=expected):
+                missing.append({'client_id':client_id,'kind':expected})
+            else:dependencies.append(dict(row))
+        return dependencies,missing
+
+    def public_car_part(self,car_id,client_id):
+        car_id=validate_uuid(car_id);client_id=validate_uuid(client_id)
+        with self.connect() as db:
+            row=db.execute('SELECT id,profile_id,blueprint FROM user_layouts WHERE id=? AND visibility=?',
+                           (car_id,'public')).fetchone()
+            if not row:return None
+            blueprint=json.loads(row['blueprint'])
+            if client_id not in {ref for ref,_ in self.blueprint_asset_client_ids(blueprint)}:return None
+            valid,_=self.public_car_dependencies(db,row['profile_id'],blueprint)
+            return next((entry for entry in valid if entry['client_id']==client_id),None)
+
     def gallery(self,limit=40):
         with self.connect() as db:
             rows=db.execute('SELECT l.id,l.name,l.revision,l.created_at,l.updated_at,l.asset_id,l.blueprint,p.name AS creator_name,p.id AS creator_id '
@@ -722,7 +774,10 @@ class Storage:
         with self.connect() as db:
             row=db.execute('SELECT l.*,p.name AS creator_name FROM user_layouts l JOIN profiles p ON l.profile_id=p.id '
                            'WHERE l.id=? AND l.visibility=?',(validate_uuid(identifier),'public')).fetchone()
-            return {**dict(row),'blueprint':json.loads(row['blueprint'])} if row else None
+            if not row:return None
+            entry={**dict(row),'blueprint':json.loads(row['blueprint'])}
+            entry['dependencies'],entry['missing_dependencies']=self.public_car_dependencies(db,row['profile_id'],entry['blueprint'])
+            return entry
 
     def find_owned_client_asset(self,owner,client_id):
         owner=validate_uuid(owner);client_id=validate_uuid(client_id)
@@ -881,8 +936,10 @@ class Storage:
                 car=db.execute('SELECT id,name,blueprint,asset_id FROM user_layouts WHERE id=? AND profile_id=? AND visibility=?',
                                (row['car_id'],row['profile_id'],'public')).fetchone()
                 if not car:return None
-                content['car']={'id':car['id'],'name':car['name'],'blueprint':json.loads(car['blueprint']),
-                                'asset_id':car['asset_id']}
+                blueprint=json.loads(car['blueprint'])
+                deps,missing=self.public_car_dependencies(db,row['profile_id'],blueprint)
+                content['car']={'id':car['id'],'name':car['name'],'blueprint':blueprint,
+                                'asset_id':car['asset_id'],'dependencies':deps,'missing_dependencies':missing}
             return content
 
     def get_asset(self,identifier):

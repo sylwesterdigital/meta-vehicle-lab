@@ -597,3 +597,64 @@ class SceneInspectorContracts(unittest.TestCase):
         self.assertIn('function syncSceneGroupFromPivot()', self.source)
         self.assertIn("['Select / transform group',()=>selectSceneGroup(path)]", self.source)
         self.assertIn('function finishSceneGroupTransform()', self.source)
+
+
+class PublicVehicleDependencies0350Tests(unittest.TestCase):
+    """Public world links can expose ONLY GLBs actually referenced by a public car."""
+    def setUp(self):
+        self.tmp=tempfile.TemporaryDirectory();self.addCleanup(self.tmp.cleanup)
+        self.db=Storage(self.tmp.name)
+        self.owner,_=self.db.create_guest('Complete World Owner')
+        self.other,_=self.db.create_guest('Unrelated Model Owner')
+        self.wheel_client=str(uuid.uuid4());self.avatar_client=str(uuid.uuid4())
+        self.private_client=str(uuid.uuid4())
+        self.wheel_id=str(uuid.uuid4());self.avatar_id=str(uuid.uuid4());self.private_id=str(uuid.uuid4())
+        for asset_id,client,kind,owner in [
+            (self.wheel_id,self.wheel_client,'wheel',self.owner['id']),
+            (self.avatar_id,self.avatar_client,'avatar',self.owner['id']),
+            (self.private_id,self.private_client,'wheel',self.other['id'])]:
+            self.db.add_asset(identifier=asset_id,filename=kind+'.glb',size=24,sha256='a'*64,
+                              owner_id=owner,kind=kind,client_id=client)
+        self.layout_id=str(uuid.uuid4())
+        self.payload=blueprint()
+        self.payload['vehicle']['frontWheelModel']=self.wheel_client
+        self.payload['publishPartsConsent']=True
+        self.payload['avatarBindings']={'0':self.avatar_client}
+        self.db.user_save_layout(self.owner['id'],self.layout_id,'Public car',self.payload,visibility='public')
+
+    def test_only_referenced_owned_models_are_downloadable(self):
+        item=self.db.gallery_layout(self.layout_id)
+        self.assertEqual({r['client_id'] for r in item['dependencies']},{self.wheel_client,self.avatar_client})
+        self.assertEqual(item['missing_dependencies'],[])
+        self.assertIsNotNone(self.db.public_car_part(self.layout_id,self.wheel_client))
+        self.assertIsNotNone(self.db.public_car_part(self.layout_id,self.avatar_client))
+        self.assertIsNone(self.db.public_car_part(self.layout_id,self.private_client))
+        self.assertIsNone(self.db.public_car_part(self.layout_id,str(uuid.uuid4())))
+
+    def test_missing_dependency_is_reported_and_private_car_denied(self):
+        other_client=str(uuid.uuid4());self.payload['avatarBindings']['1']=other_client
+        row=self.db.own_layout(self.owner['id'],self.layout_id)
+        self.db.user_save_layout(self.owner['id'],self.layout_id,'Public car',self.payload,visibility='public',revision=row['revision'])
+        self.assertEqual(self.db.gallery_layout(self.layout_id)['missing_dependencies'],[{'client_id':other_client,'kind':'avatar'}])
+        row=self.db.own_layout(self.owner['id'],self.layout_id)
+        self.db.user_save_layout(self.owner['id'],self.layout_id,'Private car',self.payload,visibility='private',revision=row['revision'])
+        self.assertIsNone(self.db.public_car_part(self.layout_id,self.wheel_client))
+        self.assertIsNone(self.db.gallery_layout(self.layout_id))
+
+    def test_legacy_public_car_cannot_expose_private_avatars_without_fresh_consent(self):
+        row=self.db.own_layout(self.owner['id'],self.layout_id)
+        self.payload.pop('publishPartsConsent',None)
+        self.db.user_save_layout(self.owner['id'],self.layout_id,'Legacy public car',self.payload,
+                                 visibility='public',revision=row['revision'])
+        self.assertIsNone(self.db.public_car_part(self.layout_id,self.avatar_client))
+        result=self.db.gallery_layout(self.layout_id)
+        self.assertEqual(result['dependencies'],[])
+        self.assertTrue(result['missing_dependencies'])
+
+    def test_world_manifest_lists_only_public_car_dependencies(self):
+        saved=self.db.save_media(self.owner['id'],'map','Demo',json.dumps({'schema':'vehiclelab-testmap/v3','objects':[]}).encode(),'application/json')
+        share=self.db.community_create(self.owner['id'],'world',saved['id'],self.layout_id)
+        content=self.db.community_content(share['id'])
+        self.assertEqual(content['kind'],'world')
+        self.assertEqual({r['client_id'] for r in content['car']['dependencies']},{self.wheel_client,self.avatar_client})
+        self.assertEqual(content['car']['missing_dependencies'],[])
