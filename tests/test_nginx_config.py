@@ -1669,3 +1669,28 @@ class VehicleLab0349SceneControlsTests(unittest.TestCase):
                      'capture stopped', 'Capture failed:',
                      "$('chassisCaptureSet').onclick=()=>{void captureChassisReferenceSet(false)}"):
             self.assertIn(term.lower() if term == 'capture stopped' else term,self.html.lower() if term == 'capture stopped' else self.html)
+
+
+class CommunityMapDiscoveryTests(unittest.TestCase):
+    """Public map discovery must not depend on private cloud auth or import car GLBs."""
+    @classmethod
+    def setUpClass(cls):
+        cls.html=(Path(__file__).resolve().parents[1]/'index.html').read_text(encoding='utf-8')
+
+    def test_map_selector_includes_public_maps_and_preserves_preset_fallback(self):
+        for term in ("fetch('/api/community',{cache:'no-store'})",
+                     "appendGroup('Community maps ('",
+                     "'community:'+item.id",
+                     "id.startsWith('community:')",
+                     "data=await fetchCommunityMap(id.slice(10))",
+                     "'preset:Practice ground'"):
+            self.assertIn(term,self.html)
+
+    def test_map_only_source_and_car_world_choice(self):
+        for term in ('<option value="community">Community</option>',
+                     "mediaType==='maps'&&mediaSource==='community'",
+                     "async function fetchCommunityMap(shareId)",
+                     "'/map',{cache:'no-store'}",
+                     "map.car_id===record.id",
+                     "await appConfirm('This public car includes the map"):
+            self.assertIn(term,self.html)

@@ -1013,11 +1013,12 @@ class Storage:
             db.execute('DELETE FROM community_shares WHERE id=? AND profile_id=?',(identifier,owner))
             return True
 
-    def community_content(self,identifier):
+    def community_content(self,identifier,*,map_only=False):
         with self.connect() as db:
             row=db.execute('SELECT * FROM community_shares WHERE id=?',(validate_uuid(identifier),)).fetchone()
             if not row:return None
             if row['kind']=='model':
+                if map_only:return None
                 asset=db.execute('SELECT id,filename FROM assets WHERE id=? AND owner_id=?',
                                  (row['source_id'],row['profile_id'])).fetchone()
                 return {'kind':'model','asset_id':asset['id'],'filename':asset['filename']} if asset else None
@@ -1025,6 +1026,15 @@ class Storage:
                              (row['source_id'],row['profile_id'],'map')).fetchone()
             if not entry:return None
             content={'kind':row['kind'],'map':json.loads(entry['payload']),'map_name':entry['name']}
+            if map_only:
+                # A public snapshot still needs its linked visible car. Return
+                # only its UUID for matching gallery cars; never its blueprint.
+                if row['kind']=='world':
+                    found=db.execute('SELECT 1 FROM user_layouts WHERE id=? AND profile_id=? AND visibility=?',
+                                     (row['car_id'],row['profile_id'],'public')).fetchone()
+                    if not found:return None
+                    content['car_id']=row['car_id']
+                return content
             if row['kind']=='world':
                 car=db.execute('SELECT id,name,blueprint,asset_id FROM user_layouts WHERE id=? AND profile_id=? AND visibility=?',
                                (row['car_id'],row['profile_id'],'public')).fetchone()

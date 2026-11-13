@@ -88,12 +88,21 @@ class FlaskAPITests(unittest.TestCase):
         self.assertEqual(created.status_code,201,created.json)
         share=created.json['share']
         self.assertEqual(self.client.get('/api/community/'+share['id']).json['car']['name'],'Active car')
+        # Public map-only discovery works without a profile; never serializes
+        # private vehicle blueprints or linked model metadata.
+        map_only=self.client.get('/api/community/'+share['id']+'/map')
+        self.assertEqual(map_only.status_code,200)
+        self.assertEqual(map_only.json['map_name'],'Active terrain')
+        self.assertEqual(map_only.json['car_id'],share['car_id'])
+        self.assertNotIn('car',map_only.json)
+        self.assertEqual(map_only.headers['Cache-Control'],'no-store')
         self.assertEqual(self.client.get('/api/gallery/'+share['car_id']).status_code,200)
         wrong=self.client.post('/api/identity/guest',json={'name':'Other viewer'}).json
         other={'Authorization':'Bearer '+wrong['token']}
         self.assertEqual(self.client.delete('/api/me/community/'+share['id'],headers=other).status_code,404)
         self.assertEqual(self.client.delete('/api/me/community/'+share['id'],headers=headers).status_code,204)
         self.assertEqual(self.client.get('/api/community/'+share['id']).status_code,404)
+        self.assertEqual(self.client.get('/api/community/'+share['id']+'/map').status_code,404)
         self.assertEqual(self.client.get('/api/gallery/'+share['car_id']).status_code,404)
         car['avatarBindings']={'0':str(uuid.uuid4())}
         missing=self.client.post('/api/me/community/world-snapshot',json={**payload,'blueprint':car},headers=headers)

@@ -463,6 +463,16 @@ def create_app(config=None):
         if item['kind']=='model':return jsonify(error='Use the model download URL'),400
         return jsonify(item)
 
+    @app.get('/api/community/<identifier>/map')
+    def community_shared_map(identifier):
+        # Read-only, public and small: a map chooser need not download car
+        # blueprints, avatars, chassis GLBs or private owner media.
+        item=store.community_content(identifier,map_only=True)
+        if not item:return jsonify(error='Shared map unavailable'),404
+        result=jsonify(item)
+        result.headers['Cache-Control']='no-store'
+        return result
+
     @app.get('/api/community/<identifier>/glb')
     def community_shared_model(identifier):
         item=store.community_content(identifier)

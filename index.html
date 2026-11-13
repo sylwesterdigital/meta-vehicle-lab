@@ -5,7 +5,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Vehicle Lab — Procedural Studio</title>
-  <meta name="vehicle-lab-version" content="0.3.51">
+  <meta name="vehicle-lab-version" content="0.3.52">
   <style>
     :root {
       color-scheme:dark;
@@ -1161,7 +1161,7 @@ input[type=color]:focus-visible{outline:2px solid var(--accent)!important;outlin
 
   <div id="stage">
   <div id="hud">
-    <div class="stage-badge"><strong>Vehicle Lab</strong><small id="appVersionBadge">v0.3.51</small></div>
+    <div class="stage-badge"><strong>Vehicle Lab</strong><small id="appVersionBadge">v0.3.52</small></div>
     <p id="vehicleName">City Car</p><p id="vehicleInfo">Procedural vehicle</p>
     <div id="speedHud"><strong id="speed">0</strong><div>km/h</div></div>
     <div id="cameraModeReadout" style="padding:3px 6px;margin-top:4px;width:max-content;max-width:260px;border-radius:5px;background:#132d3cc0;color:#e9f5fc;font:10px ui-monospace,monospace">Camera · Orbit follow</div>
@@ -1291,7 +1291,7 @@ input[type=color]:focus-visible{outline:2px solid var(--accent)!important;outlin
     <div class="media-toolbar"><div id="mediaTabs" role="group" aria-label="Media category">
      <button data-media-type="cars">Cars</button><button data-media-type="models">Models</button>
      <button data-media-type="images">Images</button><button data-media-type="maps">Maps</button><button data-media-type="music">Music</button><button data-media-type="public">Public</button></div>
-     <select id="mediaSource" aria-label="Media location"><option value="local">This device</option><option value="cloud">My cloud</option></select>
+     <select id="mediaSource" aria-label="Media location"><option value="local">This device</option><option value="cloud">My cloud</option><option value="community">Community</option></select>
      <input id="mediaSearch" type="search" placeholder="Search my assets" aria-label="Search media">
      <button id="mediaRefresh" title="Refresh media">↻</button><button id="mediaUpload" title="Upload an image privately" hidden>＋ Upload</button><input type="file" id="mediaUploadFile" accept="image/png,image/jpeg,image/webp" hidden></div>
     <div id="mediaGrid" class="media-grid" role="list"></div>
@@ -1788,7 +1788,7 @@ input[type=color]:focus-visible{outline:2px solid var(--accent)!important;outlin
   <p>Share your current scene in one action, including the active car, terrain, placed objects and referenced wheel / avatar models. Complete-world publishing leaves your private originals unchanged.</p>
   <label class="publish-consent publish-consent-top"><input id="publishConsent" type="checkbox"> I have the right to share this world and all its referenced 3D models.</label>
   <div class="publish-scroll">
-   <label class="publish-kind"><input type="checkbox" id="publishWorld" checked> Complete world <small>Automatic snapshot of the active car + current map + referenced models</small></label>
+   <label class="publish-kind"><input type="checkbox" id="publishWorld" checked> Complete world <small>Public car + discoverable community map + referenced models (private originals unchanged)</small></label>
    <p id="publishWorldHint">No manual item selection required. A separate public copy is created; your working scene and private library are not overwritten. Other parked fleet cars are not included.</p>
    <div id="publishIndividualOptions">
     <label class="publish-kind"><input type="checkbox" id="publishCars"> Cars <small>Choose individual saved cars</small></label>
@@ -2319,7 +2319,7 @@ let ghostObject=null,ghostSamples=[],ghostElapsed=0,ghostTick=0;
  function appConfirm(message){return showAppDialog('confirm',message)}
  function appPrompt(message,value='',options={}){return showAppDialog('prompt',message,value,options)}
 
- const VERSION='0.3.51';
+ const VERSION='0.3.52';
  document.getElementById('appVersionBadge').textContent='v'+VERSION;
  let imageReference=null,busyAI=false;
 
@@ -7627,7 +7627,7 @@ async function publishActiveWorld(){
  $('publishStatus').textContent='Creating a separate public world snapshot…';
  const response=await identityRequest('/api/me/community/world-snapshot','POST',{
   ...snapshot,car_asset_id:assetId,consent:true});
- $('publishStatus').textContent='World published. Public link is available under My published links.';
+ $('publishStatus').textContent='World published: car and map are available in the public gallery and Community maps. Copy the world link below.';
  return Boolean(response.share?.id);
 }
 $('publishBtn').onclick=()=>{
@@ -9162,7 +9162,7 @@ let mapListRefreshSerial=0;
 async function refreshMapList(){
  const list=$('mapSaved'),serial=++mapListRefreshSerial;
  const previous=list.value,owner=activeProfile?.id||null;
- let local=[],cloud=[],cloudError=null,localError=null;
+ let local=[],cloud=[],community=[],cloudError=null,communityError=null,localError=null;
  try{local=await mapTransaction('readonly','getAll')}catch(error){localError=error}
  if(owner&&guestToken){
   try{
@@ -9170,6 +9170,13 @@ async function refreshMapList(){
    cloud=(result.media||[]).filter(item=>item.kind==='map'&&item.id);
   }catch(error){cloudError=error}
  }
+ // Community maps are explicitly public; they do not require a profile.
+ try{
+  const response=await fetch('/api/community',{cache:'no-store'});
+  if(!response.ok)throw Error('HTTP '+response.status);
+  const listing=await response.json();
+  community=(listing.shares||[]).filter(item=>['map','world'].includes(item.kind)&&/^[0-9a-f-]{36}$/i.test(item.id));
+ }catch(error){communityError=error}
  // Discard late responses after a profile switch or a newer refresh.
  if(serial!==mapListRefreshSerial||owner!==(activeProfile?.id||null))return;
  list.replaceChildren();
@@ -9187,6 +9194,8 @@ async function refreshMapList(){
   .sort((a,b)=>(b.modified||0)-(a.modified||0));
  appendGroup('On this device ('+device.length+')',
   device.map(item=>[item.name,'local:'+item.id]));
+ appendGroup('Community maps ('+community.length+')',community.map(item=>[
+  (item.kind==='world'?'World map · ':'Map · ')+item.name+' · '+item.creator_name,'community:'+item.id]));
  appendGroup('Built-in presets',Object.keys(testMapPresets).map(name=>[name,'preset:'+name]));
  if(cloudError){
   const option=new Option('Cloud maps unavailable · Refresh to retry','');
@@ -9196,14 +9205,24 @@ async function refreshMapList(){
   const option=new Option('Sign in to see cloud maps','');
   option.disabled=true;list.prepend(option);
  }
+ if(communityError){
+  // A catalogue outage never hides cloud, local or preset maps.
+  recordEvent('WARN','Community maps unavailable: '+communityError.message);
+ }
  if(localError)recordEvent('WARN','Offline map cache unavailable: '+localError.message);
  // Recognize IDs selected by earlier versions while keeping cloud as the
  // preferred location for maps that exist both locally and remotely.
  const selected=previous&&[...list.options].find(option=>option.value===previous)?
   previous:previous&&cloudIds.has(previous)?'cloud:'+previous:
   previous&&device.some(item=>item.id===previous)?'local:'+previous:'';
- list.value=selected||list.querySelector('option:not([disabled])')?.value||'';
- list.title=cloudError?'Cloud maps could not be listed; existing device maps remain available.':'Cloud '+cloud.length+' · device '+device.length+' · presets '+Object.keys(testMapPresets).length;
+ // Keep the historical first-load preset, not an arbitrary stranger's
+ // community map, whenever no owner/device map was selected.
+ const initial=cloud.length?'cloud:'+cloud[0].id:
+  device.length?'local:'+device[0].id:'preset:Practice ground';
+ list.value=selected||initial;
+ list.title='Private cloud '+cloud.length+' · device '+device.length+' · public maps '+community.length+
+  ' · presets '+Object.keys(testMapPresets).length+
+  (communityError?' · Community catalogue unavailable':'');
 }
 $('mapRefreshList').onclick=()=>void refreshMapList().catch(error=>note('Map list refresh failed: '+error.message,true));
 const mapSaveDialog=document.createElement('dialog');mapSaveDialog.id='mapSaveDialog';
@@ -9347,6 +9366,18 @@ async function applySavedTestMap(data,{startup=false}={}){
  $('mapName').value=cfg.courseName;rememberMapEdit(startup?'Restored last saved map':'Loaded test map');
  await refreshEnvironmentForMap();setupGUI();syncGeologyEditor();trackUsage('map_loaded');
  if(!startup)note('Loaded test map: '+data.name)}
+// Map-only URL prevents downloading linked car blueprints/GLBs on Quest when
+// the player only wants the terrain. Community access is read-only.
+async function fetchCommunityMap(shareId){
+ if(!/^[0-9a-f-]{36}$/i.test(shareId))throw Error('Invalid community map link');
+ const response=await fetch('/api/community/'+encodeURIComponent(shareId)+'/map',{cache:'no-store'});
+ const payload=await response.json().catch(()=>({}));
+ if(!response.ok)throw Error(payload.error||'Community map unavailable (HTTP '+response.status+')');
+ if(!['map','world'].includes(payload.kind)||!payload.map||!Array.isArray(payload.map.objects)||payload.map.objects.length>250)
+  throw Error('Community map is missing or invalid; current map was not changed');
+ validateMapSculptPayload(payload.map);
+ return {...payload.map,name:payload.map_name||payload.map.name||'Community map'};
+}
 $('mapLoad').onclick=async()=>{
  const id=$('mapSaved').value,button=$('mapLoad');
  if(!id){note('Choose a map before loading.',true);return}
@@ -9359,6 +9390,9 @@ $('mapLoad').onclick=async()=>{
    if(result.media?.kind!=='map'||!result.media.data||!Array.isArray(result.media.data.objects))
     throw Error('Cloud map payload is invalid; the current world was not replaced');
    data={...result.media.data,name:result.media.name||result.media.data.name};
+  }else if(id.startsWith('community:')){
+   data=await fetchCommunityMap(id.slice(10));
+   if(!await appConfirm('Load community map "'+data.name+'"? This replaces your current unsaved map edits but keeps your active car.'))return;
   }else if(id.startsWith('local:')){
    data=await mapTransaction('readonly','get',id.slice(6));
    if(!data)throw Error('The device copy is missing. Refresh to find the cloud version.');
@@ -10452,7 +10486,7 @@ function makeGalleryCard(item){
  const buttons=document.createElement('div');buttons.className='thumb-actions';buttons.setAttribute('aria-label',name+' actions');
  const appendBtn=(label,icon,fn,danger=false)=>{
   const b=document.createElement('button');b.type='button';b.innerHTML=GALLERY_ICONS[icon];
-  const actionText=label==='Open'?'Replace active car (preserves current map and all other scene vehicles)':
+  const actionText=label==='Open'?(item.source==='public'?'Open public car; choose whether to load its linked world map':'Replace active car (preserves current map and all other scene vehicles)'):
    label==='Add to scene'?'Add another vehicle without replacing the current scene':label;
   b.title=actionText+' · '+name;b.setAttribute('aria-label',label+' '+name);
   b.setAttribute('aria-description',actionText);
@@ -11403,8 +11437,27 @@ async function openGalleryItem(item){
  const data=await response.json();if(!response.ok)throw Error(data.error||'Public layout not found');
  const record=data.layout;
  const downloaded=await preparePublicVehicle(record);
+ // New snapshot cars can be opened as a standalone vehicle OR with their
+ // creator's matching published terrain. Ask before replacing local map edits.
+ let pairedMap=null;
+ const worldId=record.blueprint?.metadata?.communityWorldSnapshotId;
+ if(typeof worldId==='string'&&/^[0-9a-f-]{36}$/i.test(worldId)){
+  try{
+   const response=await fetch('/api/community/'+encodeURIComponent(worldId)+'/map',{cache:'no-store'});
+   if(response.ok){
+    const map=await response.json();
+    if(map.kind==='world'&&map.car_id===record.id&&map.map?.objects&&Array.isArray(map.map.objects)){
+     if(await appConfirm('This public car includes the map "'+(map.map_name||'Community map')+'". Load that map too? Your current unsaved map edits will be replaced. Cancel keeps your current map.')){
+      pairedMap={...map.map,name:map.map_name||map.map.name||'Community map'};
+      validateMapSculptPayload(pairedMap);
+     }
+    }
+   }
+  }catch(error){recordEvent('WARN','Paired public map unavailable; car can still be loaded: '+error.message)}
+ }
+ if(pairedMap)await applySavedTestMap(pairedMap);
  await activatePublicVehicle(record,downloaded);
- note('Loaded complete public vehicle by '+record.creator_name+' · '+downloaded.prepared.length+' linked parts.');
+ note('Loaded complete public vehicle by '+record.creator_name+' · '+downloaded.prepared.length+' linked parts'+(pairedMap?' + community map':'')+'.');
 }
 
 async function editLocalMetadata(item){
@@ -11488,6 +11541,7 @@ $('galleryRefreshBtn').onclick=()=>{gallerySource='public';setWindowVisible('gal
 $('layoutPublic').onchange=()=>{serverVisibility=$('layoutPublic').checked?'public':'private'};
 
 const RELEASE_NOTES=[
+ {v:'0.3.52',date:'2026-11-13',title:'Community map discovery and linked-world loading',items:['Public world maps now appear in Test map and My media → Maps → Community, including on another device without signing in.', 'Open a public snapshot car and choose whether to load its matching world map; standalone car loading keeps local terrain.', 'Map-only public API avoids unnecessary car/GLB transfers on Quest; existing private work, links and publishing permissions remain unchanged.']},
  {v:'0.3.51',date:'2026-11-13',title:'One-click world snapshots and gesture-safe UI',items:['Complete world publishes the current active car, terrain and placed objects without saved-item selection or changing private originals.', 'Referenced wheel/avatar GLBs are checked before an atomic public snapshot; missing assets stop publication without exposing an incomplete world.', 'Prevent accidental selection highlighting across controls while retaining text selection in editors, inputs and logs.']},
  {v:'0.3.50',date:'2026-11-12',title:'Studio framing, working drafts, separate lamps and complete sharing',items:['Studio reference shots use conservative complete-body framing with a visible-geometry check and no raster cropping.', 'Edits are saved as a per-profile recoverable IndexedDB working draft, separate from cloud maps and cars.', 'Front and rear lamps now have independent width and height settings; world publishing shows consent prominently and exposes linked car assets when authorized.']},
  {v:'0.3.49',date:'2026-11-12',title:'Wheel preview, XYZ lamps, passenger sizing and studio capture recovery',items:['Vehicle controls expose XYZ positions for both lamp pairs and proportional passenger scale.', 'BUILD shows wheel centres at their suspension rest positions, matching solver mount offsets without changing vehicle physics.', 'Body Studio yields between orthographic captures, shows failures in the preview, preserves successful shots and falls back to conservative geometric framing if GPU-mask fitting fails.']},
@@ -12484,6 +12538,10 @@ $('autopilotBtn').onclick=()=>{cfg.autopilot=!cfg.autopilot;autopilotState.ancho
 // Media browser: owner-bound cloud APIs plus existing device-only libraries.
 let mediaType='cars',mediaSource='local',mediaRequest=0;
 let mediaObjectURLs=[];
+let communityMapPlaceholder=null;
+function blankCommunityMapPreview(){
+ return communityMapPlaceholder||(communityMapPlaceholder=mapAssetPreview({objects:[]}));
+}
 function mediaImageURL(blob){const url=URL.createObjectURL(blob);mediaObjectURLs.push(url);return url}
 function mapAssetPreview(m){
  const canvas=document.createElement('canvas');canvas.width=canvas.height=208;
@@ -12510,6 +12568,9 @@ function openMediaBrowser(type='cars'){
 async function refreshMediaBrowser(){
  const id=++mediaRequest,grid=$('mediaGrid');grid.replaceChildren();
  for(const b of $('mediaTabs').querySelectorAll('button'))b.setAttribute('aria-pressed',String(b.dataset.mediaType===mediaType));
+ // Community is a map-only source; avoid an empty choice on other tabs.
+ if(mediaSource==='community'&&mediaType!=='maps')mediaSource='local';
+ $('mediaSource').querySelector('option[value="community"]').hidden=mediaType!=='maps';
  $('mediaSource').value=mediaSource;
  $('mediaUpload').hidden=mediaType!=='images'||mediaSource!=='cloud';$('mediaSource').disabled=['music','public'].includes(mediaType);
  for(const url of mediaObjectURLs)URL.revokeObjectURL(url);mediaObjectURLs=[];
@@ -12533,7 +12594,7 @@ async function refreshMediaBrowser(){
      if(!res.ok)throw Error('Community map/model catalogue unavailable');return res.json()});
     for(const row of community.shares||[])entries.push({
       name:(row.kind==='world'?'World · ':row.kind==='map'?'Map · ':'3D model · ')+row.name+' · '+row.creator_name,
-      preview:row.kind==='model'?vehicleFallbackImage(row):mapAssetPreview({objects:[]}),
+      preview:row.kind==='model'?vehicleFallbackImage(row):blankCommunityMapPreview(),
       action:async()=>{
        if(row.kind==='model'){
         const response=await fetch('/api/community/'+encodeURIComponent(row.id)+'/glb',{cache:'no-store'});
@@ -12550,6 +12611,19 @@ async function refreshMediaBrowser(){
        note('Opened public '+row.kind+': '+row.name);
       }});
 
+   }else if(mediaType==='maps'&&mediaSource==='community'){
+    const response=await fetch('/api/community',{cache:'no-store'});
+    if(!response.ok)throw Error('Community maps unavailable (HTTP '+response.status+')');
+    const listing=await response.json();
+    for(const row of listing.shares||[]){
+     if(!['map','world'].includes(row.kind)||!/^[0-9a-f-]{36}$/i.test(row.id))continue;
+     entries.push({name:(row.kind==='world'?'World map · ':'Map · ')+row.name+' · '+row.creator_name,
+      preview:blankCommunityMapPreview(),action:async()=>{
+       const map=await fetchCommunityMap(row.id);
+       if(!await appConfirm('Load community map "'+map.name+'"? This replaces unsaved map edits but keeps the current car.'))return;
+       await applySavedTestMap(map);
+      }});
+    }
    }else if(mediaSource==='local'){
    if(mediaType==='cars')for(const item of await allLayouts()){
     const images=item.metadata?.images||item.previews||[];
@@ -12624,7 +12698,7 @@ async function refreshMediaBrowser(){
     }else loadPicture();
    }
   }
-  $('mediaFooter').textContent=grid.children.length+' '+mediaType+' · '+(mediaType==='public'?'published by the community':mediaType==='music'?'radio library':mediaSource==='local'?'on this device':'private cloud');
+  $('mediaFooter').textContent=grid.children.length+' '+mediaType+' · '+(mediaType==='public'||mediaSource==='community'?'published by the community':mediaType==='music'?'radio library':mediaSource==='local'?'on this device':'private cloud');
  }catch(e){if(id===mediaRequest){grid.textContent=e.message;recordEvent('WARN','Media: '+e.message)}}
 }
 for(const b of $('mediaTabs').querySelectorAll('button'))b.onclick=()=>{mediaType=b.dataset.mediaType;void refreshMediaBrowser()};

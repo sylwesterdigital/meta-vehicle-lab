@@ -1,3 +1,8 @@
+## v0.3.52 — 2026-11-13 02:15 GMT — Community maps in map picker
+- Complete-world maps now appear in the public Community maps group of Test map and in My media → Maps → Community; no creator login needed.
+- Published car gallery offers the matching map separately; choosing map-only never replaces the vehicle. Revoked links vanish on refresh.
+- Added read-only public map-only API for lower transfer on Quest, plus ownership/revocation tests. No database or watcher changes; private assets untouched.
+
 ## v0.3.51 — 2026-11-13 01:15 GMT — Automatic complete-world publishing
 - Complete world snapshots the active car, current terrain and placed objects with no manual saved-item selection; private originals remain unchanged.
 - Referenced wheel/seat/avatar GLBs are verified before an atomic, owner-scoped public share; revoking a world also hides its generated car.
