@@ -1,6 +1,6 @@
 {
   "project": "meta-vehicle-lab",
-  "version": "0.3.50",
+  "version": "0.3.51",
   "blueprintSchema": "procedural-vehicle/v3",
-  "releaseDate": "2026-11-12"
+  "releaseDate": "2026-11-13"
 }

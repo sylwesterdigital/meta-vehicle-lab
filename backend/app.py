@@ -423,6 +423,19 @@ def create_app(config=None):
         if error:return error
         return jsonify(shares=store.community_list(member['id']))
 
+    @app.post('/api/me/community/world-snapshot')
+    def publish_world_snapshot():
+        member,error=guest_or_error()
+        if error:return error
+        if request.content_length and request.content_length>600*1024:
+            return jsonify(error='Complete world request exceeds 600 KiB'),413
+        data=request.get_json(silent=True)
+        if not isinstance(data,dict) or data.get('consent') is not True:
+            return jsonify(error='Explicit rights consent is required to publish the world and all referenced 3D models'),400
+        item=store.community_create_world_snapshot(member['id'],data.get('map_name'),
+            data.get('map'),data.get('car_name'),data.get('blueprint'),data.get('car_asset_id'))
+        return jsonify(share=item),201
+
     @app.post('/api/me/community')
     def create_community_share():
         member,error=guest_or_error()

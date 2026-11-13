@@ -885,6 +885,84 @@ class Storage:
                 entries.append(item)
             return entries
 
+    def community_create_world_snapshot(self,owner,map_name,map_data,car_name,blueprint,car_asset_id=None):
+        """Publish an isolated, fully validated world in ONE SQLite transaction.
+
+        Existing user maps/layouts and their visibility are never modified. A
+        failure (including a missing referenced wheel/avatar) inserts nothing.
+        Uploaded private GLBs remain private if publishing is interrupted.
+        """
+        owner=validate_uuid(owner)
+        map_name=validate_name(map_name);car_name=validate_name(car_name)
+        if not isinstance(map_data,dict) or map_data.get('schema')!='vehiclelab-testmap/v3':
+            raise InvalidLayout('Complete world needs a supported map snapshot')
+        allowed_map_keys={'schema','name','terrainProfile','groundSurface','edge',
+            'worldCells','terrainSize','terrainBaseElevation','sculptData','seaEnabled',
+            'waterLevel','biome','weather','appearance','objects','sceneFolders','vehicleSpawn'}
+        if set(map_data)-allowed_map_keys:
+            raise InvalidLayout('Unexpected fields in world snapshot map')
+        objects=map_data.get('objects')
+        if not isinstance(objects,list) or len(objects)>250:
+            raise InvalidLayout('Complete world map contains invalid objects')
+        spawn=map_data.get('vehicleSpawn')
+        if spawn is not None:
+            if not isinstance(spawn,dict):raise InvalidLayout('Invalid world vehicle spawn')
+            xyz=spawn.get('position');quat=spawn.get('quaternion')
+            if not isinstance(xyz,list) or len(xyz)!=3 or not isinstance(quat,list) or len(quat)!=4 or \
+                any(type(v) not in (int,float) or not math.isfinite(v) or abs(v)>300 for v in xyz) or \
+                any(type(v) not in (int,float) or not math.isfinite(v) or abs(v)>1.1 for v in quat) or \
+                sum(v*v for v in quat)<0.1:
+                raise InvalidLayout('World vehicle spawn is invalid')
+        try:map_encoded=json.dumps(map_data,ensure_ascii=False,allow_nan=False,separators=(',',':')).encode('utf-8')
+        except (ValueError,TypeError,OverflowError) as error:raise InvalidLayout('World map contains invalid data') from error
+        if not 1<=len(map_encoded)<=256*1024:raise InvalidLayout('World map exceeds 256 KiB')
+        if not isinstance(blueprint,dict) or blueprint.get('publishPartsConsent') is not True:
+            raise InvalidLayout('Linked models require explicit publishing consent')
+        copy=json.loads(check_blueprint(blueprint))
+        # The marker belongs to the new public snapshot only. Never accept a
+        # caller-supplied owner/share ID for revocation of another user's car.
+        share_id=str(uuid.uuid4());map_id=str(uuid.uuid4());car_id=str(uuid.uuid4())
+        meta=copy.setdefault('metadata',{})
+        if not isinstance(meta,dict):raise InvalidLayout('Invalid car metadata')
+        meta['communityWorldSnapshotId']=share_id
+        car_encoded=check_blueprint(copy)
+        if car_asset_id is not None:validate_uuid(car_asset_id)
+        if copy.get('modelName') and not car_asset_id:
+            raise InvalidLayout('Active car chassis GLB is missing from the bundle')
+        now=int(time.time()*1000)
+        with self.connect() as db:
+            db.execute('BEGIN IMMEDIATE')
+            count=db.execute('SELECT COUNT(*) FROM community_shares WHERE profile_id=?',(owner,)).fetchone()[0]
+            if count>=60:raise InvalidLayout('Maximum 60 public shares per profile')
+            media_count=db.execute('SELECT COUNT(*) FROM user_media WHERE profile_id=?',(owner,)).fetchone()[0]
+            if media_count>=250:raise InvalidLayout('Media library limit reached')
+            if car_asset_id:
+                shell=db.execute('SELECT id FROM assets WHERE id=? AND owner_id=? AND kind=?',
+                                 (car_asset_id,owner,'chassis')).fetchone()
+                if not shell:raise InvalidLayout('Active car body does not belong to this profile')
+            available,missing=self.public_car_dependencies(db,owner,copy)
+            if missing:
+                types=', '.join(sorted({str(row['kind']) for row in missing}))
+                raise InvalidLayout('Missing referenced '+types+' GLB(s); no world was published')
+            # SQLite ownership is insufficient if a file is missing from disk.
+            # Test both the primary and recovery copy before making links public.
+            required=available
+            if car_asset_id:
+                required=[*available,{'id':car_asset_id}]
+            for row in required:
+                filename=row['id']+'.glb'
+                if not (self.assets/filename).is_file() and not (self.dir/'asset-backups'/filename).is_file():
+                    raise InvalidLayout('A referenced 3D model binary is unavailable; no world was published')
+            db.execute('INSERT INTO user_media(id,profile_id,kind,name,mime,payload,created_at,updated_at) '
+                       'VALUES(?,?,?,?,?,?,?,?)',
+                       (map_id,owner,'map',map_name,'application/json',map_encoded,now,now))
+            db.execute('INSERT INTO user_layouts(id,profile_id,name,blueprint,asset_id,visibility,revision,created_at,updated_at) '
+                       'VALUES(?,?,?,?,?,?,?,?,?)',
+                       (car_id,owner,car_name,car_encoded,car_asset_id,'public',1,now,now))
+            db.execute('INSERT INTO community_shares(id,profile_id,kind,source_id,car_id,created_at) '
+                       'VALUES(?,?,?,?,?,?)',(share_id,owner,'world',map_id,car_id,now))
+        return {'id':share_id,'kind':'world','source_id':map_id,'car_id':car_id,'created_at':now}
+
     def community_create(self,owner,kind,source_id,car_id=None):
         owner=validate_uuid(owner);source_id=validate_uuid(source_id)
         if kind not in ('map','model','world'):raise InvalidLayout('Unknown share category')
@@ -915,10 +993,25 @@ class Storage:
             return {'id':ident,'kind':kind,'source_id':source_id,'car_id':car_id,'created_at':now}
 
     def community_delete(self,owner,identifier):
+        owner=validate_uuid(owner);identifier=validate_uuid(identifier)
         with self.connect() as db:
-            result=db.execute('DELETE FROM community_shares WHERE id=? AND profile_id=?',
-                              (validate_uuid(identifier),validate_uuid(owner)))
-            return result.rowcount>0
+            db.execute('BEGIN IMMEDIATE')
+            share=db.execute('SELECT kind,car_id FROM community_shares WHERE id=? AND profile_id=?',
+                             (identifier,owner)).fetchone()
+            if not share:return False
+            if share['kind']=='world':
+                row=db.execute('SELECT blueprint FROM user_layouts WHERE id=? AND profile_id=?',
+                               (share['car_id'],owner)).fetchone()
+                if row:
+                    try:marker=(json.loads(row['blueprint']).get('metadata') or {}).get('communityWorldSnapshotId')
+                    except (TypeError,ValueError,AttributeError):marker=None
+                    if marker==identifier:
+                        # Revoking the only world link must also revoke public
+                        # gallery/model access for the generated snapshot car.
+                        db.execute('UPDATE user_layouts SET visibility=?,updated_at=? WHERE id=? AND profile_id=?',
+                                   ('private',int(time.time()*1000),share['car_id'],owner))
+            db.execute('DELETE FROM community_shares WHERE id=? AND profile_id=?',(identifier,owner))
+            return True
 
     def community_content(self,identifier):
         with self.connect() as db:

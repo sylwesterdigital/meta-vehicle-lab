@@ -10,6 +10,102 @@ from backend.storage import InvalidLayout, StaleLayout, Storage
 def blueprint():
     return {'schema':'procedural-vehicle/v3','vehicle':{'name':'City Car'},'modules':{'front':{},'cabin':{},'rear':{}},'occupants':2}
 
+class WorldSnapshotAtomicTests(unittest.TestCase):
+    """Independent publish snapshots may expose only owned referenced assets."""
+    def setUp(self):
+        self.temp=tempfile.TemporaryDirectory()
+        self.addCleanup(self.temp.cleanup)
+        self.db=Storage(self.temp.name)
+        self.owner,_=self.db.create_guest('Publisher')
+        self.other,_=self.db.create_guest('Unrelated')
+        self.wheel_client=str(uuid.uuid4())
+        self.wheel_asset=str(uuid.uuid4())
+        self.db.add_asset(identifier=self.wheel_asset,filename='wheel.glb',size=20,
+            sha256='a'*64,owner_id=self.owner['id'],kind='wheel',client_id=self.wheel_client)
+        (self.db.assets/(self.wheel_asset+'.glb')).write_bytes(b'glTF'+(2).to_bytes(4,'little')+(20).to_bytes(4,'little')+b'12345678')
+        self.car=blueprint()
+        self.car['vehicle']['frontWheelModel']=self.wheel_client
+        self.car['publishPartsConsent']=True
+        self.map={'schema':'vehiclelab-testmap/v3','name':'Current hills','objects':[{'kind':'rock','x':4,'z':3,'w':2,'d':2,'h':2}],
+            'vehicleSpawn':{'position':[1.0,2.0,3.0],'quaternion':[0.0,0.0,0.0,1.0]}}
+
+    def publish(self,**overrides):
+        params=dict(owner=self.owner['id'],map_name='Current hills',map_data=self.map,
+            car_name='Active EV',blueprint=self.car)
+        params.update(overrides)
+        return self.db.community_create_world_snapshot(**params)
+
+    def test_complete_snapshot_creates_separate_items_and_revokes_public_car(self):
+        original_id=str(uuid.uuid4())
+        original=self.db.user_save_layout(self.owner['id'],original_id,'Private original',blueprint(),visibility='private')
+        item=self.publish()
+        self.assertNotEqual(item['car_id'],original_id)
+        result=self.db.community_content(item['id'])
+        self.assertEqual(result['kind'],'world')
+        self.assertEqual(result['map']['vehicleSpawn']['position'],[1.0,2.0,3.0])
+        self.assertEqual(result['car']['name'],'Active EV')
+        self.assertEqual([d['client_id'] for d in result['car']['dependencies']],[self.wheel_client])
+        self.assertEqual(result['car']['missing_dependencies'],[])
+        self.assertEqual(self.db.own_layout(self.owner['id'],original_id)['visibility'],'private')
+        self.assertIsNotNone(self.db.public_car_part(item['car_id'],self.wheel_client))
+        self.assertFalse(self.db.community_delete(self.other['id'],item['id']))
+        self.assertTrue(self.db.community_delete(self.owner['id'],item['id']))
+        self.assertIsNone(self.db.community_content(item['id']))
+        self.assertIsNone(self.db.public_car_part(item['car_id'],self.wheel_client))
+        self.assertEqual(self.db.own_layout(self.owner['id'],item['car_id'])['visibility'],'private')
+        self.assertEqual(self.db.own_layout(self.owner['id'],original_id)['revision'],original['revision'])
+
+    def test_unavailable_model_rolls_back_all_snapshot_tables(self):
+        self.car['avatarBindings']={'0':str(uuid.uuid4())}
+        with self.assertRaisesRegex(InvalidLayout,'Missing referenced'):
+            self.publish()
+        self.assertEqual(self.db.community_list(),[])
+        self.assertEqual(self.db.own_layouts(self.owner['id']),[])
+        self.assertEqual(self.db.own_media_list(self.owner['id']),[])
+
+    def test_missing_file_rejected_and_local_chassis_allowed(self):
+        binary=self.db.assets/(self.wheel_asset+'.glb')
+        binary.unlink()
+        with self.assertRaisesRegex(InvalidLayout,'binary is unavailable'):self.publish()
+        self.assertEqual(self.db.community_list(),[])
+        binary.write_bytes(b'glTF'+(2).to_bytes(4,'little')+(20).to_bytes(4,'little')+b'12345678')
+        chassis=str(uuid.uuid4())
+        self.db.add_asset(identifier=chassis,filename='car.glb',size=20,
+            sha256='c'*64,owner_id=self.owner['id'],kind='chassis')
+        (self.db.assets/(chassis+'.glb')).write_bytes(binary.read_bytes())
+        with_body=dict(self.car);with_body['modelName']='car.glb'
+        public=self.publish(blueprint=with_body,car_asset_id=chassis)
+        self.assertEqual(self.db.community_content(public['id'])['car']['asset_id'],chassis)
+
+    def test_body_must_be_owned_and_typed(self):
+        foreign=str(uuid.uuid4())
+        self.db.add_asset(identifier=foreign,filename='private.glb',size=20,
+            sha256='b'*64,owner_id=self.other['id'],kind='chassis')
+        with self.assertRaisesRegex(InvalidLayout,'does not belong'):
+            self.publish(car_asset_id=foreign)
+        self.assertEqual(self.db.community_list(),[])
+        self.assertEqual(self.db.own_media_list(self.owner['id']),[])
+
+    def test_invalid_map_and_missing_consent_do_not_publish(self):
+        with self.assertRaises(InvalidLayout):
+            self.publish(map_data={'schema':'vehiclelab-testmap/v3','objects':[{}]*251})
+        with self.assertRaises(InvalidLayout):
+            self.publish(map_data={'schema':'vehiclelab-testmap/v3','objects':[],
+                'vehicleSpawn':{'position':[0,float('nan'),0],'quaternion':[0,0,0,1]}})
+        no_consent=dict(self.car);no_consent['publishPartsConsent']=False
+        with self.assertRaises(InvalidLayout):self.publish(blueprint=no_consent)
+        self.assertEqual(self.db.community_list(),[])
+
+    def test_revoke_legacy_world_does_not_make_manually_published_car_private(self):
+        car_id=str(uuid.uuid4())
+        self.db.user_save_layout(self.owner['id'],car_id,'Manual public car',self.car,visibility='public')
+        media=self.db.save_media(self.owner['id'],'map','Stored map',
+            json.dumps(self.map).encode(),'application/json')
+        share=self.db.community_create(self.owner['id'],'world',media['id'],car_id)
+        self.assertTrue(self.db.community_delete(self.owner['id'],share['id']))
+        self.assertEqual(self.db.own_layout(self.owner['id'],car_id)['visibility'],'public')
+
+
 class StorageTests(unittest.TestCase):
     def test_connection_closes_after_read_write_and_error(self):
         import sqlite3

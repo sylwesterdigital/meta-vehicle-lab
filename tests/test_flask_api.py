@@ -68,6 +68,38 @@ class FlaskAPITests(unittest.TestCase):
         self.assertEqual(self.client.post('/api/providers/test',headers=member_headers,
             json={'provider':'tripo','key':'short'}).status_code,400)
 
+    def test_publish_current_world_snapshot_is_atomic_and_revocable(self):
+        first=self.client.post('/api/identity/guest',json={'name':'World author'}).json
+        headers={'Authorization':'Bearer '+first['token']}
+        car={'schema':'procedural-vehicle/v3','vehicle':{'name':'Active car'},
+             'modules':{'front':{}},'occupants':1,'publishPartsConsent':True,
+             'avatarBindings':{}}
+        current_map={'schema':'vehiclelab-testmap/v3','name':'Active terrain','objects':[],
+                     'vehicleSpawn':{'position':[0,1,0],'quaternion':[0,0,0,1]}}
+        payload={'consent':True,'map_name':'Active terrain','map':current_map,
+                 'car_name':'Active car','blueprint':car,'car_asset_id':None}
+        self.assertEqual(self.client.post('/api/me/community/world-snapshot',json=payload).status_code,401)
+        denied=self.client.post('/api/me/community/world-snapshot',json={**payload,'consent':False},headers=headers)
+        self.assertEqual(denied.status_code,400)
+        denied_origin=self.client.post('/api/me/community/world-snapshot',json=payload,
+            headers={**headers,'Origin':'https://attacker.invalid'})
+        self.assertEqual(denied_origin.status_code,403)
+        created=self.client.post('/api/me/community/world-snapshot',json=payload,headers=headers)
+        self.assertEqual(created.status_code,201,created.json)
+        share=created.json['share']
+        self.assertEqual(self.client.get('/api/community/'+share['id']).json['car']['name'],'Active car')
+        self.assertEqual(self.client.get('/api/gallery/'+share['car_id']).status_code,200)
+        wrong=self.client.post('/api/identity/guest',json={'name':'Other viewer'}).json
+        other={'Authorization':'Bearer '+wrong['token']}
+        self.assertEqual(self.client.delete('/api/me/community/'+share['id'],headers=other).status_code,404)
+        self.assertEqual(self.client.delete('/api/me/community/'+share['id'],headers=headers).status_code,204)
+        self.assertEqual(self.client.get('/api/community/'+share['id']).status_code,404)
+        self.assertEqual(self.client.get('/api/gallery/'+share['car_id']).status_code,404)
+        car['avatarBindings']={'0':str(uuid.uuid4())}
+        missing=self.client.post('/api/me/community/world-snapshot',json={**payload,'blueprint':car},headers=headers)
+        self.assertEqual(missing.status_code,400,missing.json)
+        self.assertEqual(len(self.client.get('/api/me/community',headers=headers).json['shares']),0)
+
     def test_tripo_v3_balance_check_is_read_only_and_validates_credentials(self):
         import io, json, urllib.error
         from unittest.mock import patch

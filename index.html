@@ -5,7 +5,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Vehicle Lab — Procedural Studio</title>
-  <meta name="vehicle-lab-version" content="0.3.50">
+  <meta name="vehicle-lab-version" content="0.3.51">
   <style>
     :root {
       color-scheme:dark;
@@ -14,6 +14,15 @@
     }
     *{box-sizing:border-box}
     body{margin:0;background:var(--bg);color:var(--text);font:12px system-ui,sans-serif}
+    /* GUI is a manipulation surface, not a selectable document. Prevent the
+       full-window text highlight caused by dragging sliders and floating panels.
+       Real text fields, rich text editors and log output remain selectable. */
+    body,body *{-webkit-user-select:none;user-select:none}
+    body :is(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),textarea,
+      [contenteditable],[role="textbox"],pre,code,#logLines),
+    body :is(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),textarea,
+      [contenteditable],[role="textbox"],pre,code,#logLines) *{
+      -webkit-user-select:text;user-select:text}
     button,input{font:inherit}
     button{cursor:pointer;background:#233a49;color:var(--text);border:1px solid #3b5665;border-radius:6px;padding:8px 10px}
     button:hover{border-color:var(--accent)}
@@ -1128,6 +1137,10 @@ input[type=color]:focus-visible{outline:2px solid var(--accent)!important;outlin
 #objectWindow .part-inspector-note{order:97}
 #objectWindow[data-selected-type='part'] .object-slider{margin-top:auto}
 @media(max-width:800px){#vehicleControlsWindow{left:10px;top:80px;width:min(380px,calc(100vw - 20px))}}
+/* Publishing's default is one-click scene snapshot. Manual sharing is opt-in. */
+#publishWorldHint{margin:4px 2px 12px;color:var(--muted);font-size:calc(11px * var(--ui-scale));line-height:1.55}
+#publishOverlay.world-mode #publishIndividualOptions{display:none}
+#publishOverlay:not(.world-mode) #publishWorldHint{display:none}
 </style>
 
  <script type="importmap">
@@ -1148,7 +1161,7 @@ input[type=color]:focus-visible{outline:2px solid var(--accent)!important;outlin
 
   <div id="stage">
   <div id="hud">
-    <div class="stage-badge"><strong>Vehicle Lab</strong><small id="appVersionBadge">v0.3.50</small></div>
+    <div class="stage-badge"><strong>Vehicle Lab</strong><small id="appVersionBadge">v0.3.51</small></div>
     <p id="vehicleName">City Car</p><p id="vehicleInfo">Procedural vehicle</p>
     <div id="speedHud"><strong id="speed">0</strong><div>km/h</div></div>
     <div id="cameraModeReadout" style="padding:3px 6px;margin-top:4px;width:max-content;max-width:260px;border-radius:5px;background:#132d3cc0;color:#e9f5fc;font:10px ui-monospace,monospace">Camera · Orbit follow</div>
@@ -1772,16 +1785,19 @@ input[type=color]:focus-visible{outline:2px solid var(--accent)!important;outlin
 <div id="publishOverlay" class="utility-overlay" hidden role="dialog" aria-modal="true" aria-label="Publish to Vehicle Lab community">
  <div class="modal-card publish-dialog">
   <div class="dialog-title"><h2>Publish to community</h2><button id="publishClose" type="button" aria-label="Close publishing">×</button></div>
-  <p>Publish a complete saved world: choose a vehicle and a map. Referenced wheel and avatar models are included automatically. Your private originals remain unchanged.</p>
-  <label class="publish-consent publish-consent-top"><input id="publishConsent" type="checkbox"> I have the right to share the chosen world and its 3D models.</label>
+  <p>Share your current scene in one action, including the active car, terrain, placed objects and referenced wheel / avatar models. Complete-world publishing leaves your private originals unchanged.</p>
+  <label class="publish-consent publish-consent-top"><input id="publishConsent" type="checkbox"> I have the right to share this world and all its referenced 3D models.</label>
   <div class="publish-scroll">
-   <label class="publish-kind"><input type="checkbox" id="publishCars"> Cars <small>Choose individual saved cars</small></label>
-   <div class="publish-choice-list" id="publishCarsChoices" role="group" aria-label="Cars to publish"></div><select class="publish-select-hidden" id="publishCarsList" multiple size="3" aria-label="Chosen cars"></select>
-   <label class="publish-kind"><input type="checkbox" id="publishMaps"> Maps <small>Choose one saved map</small></label>
-   <div class="publish-choice-list" id="publishMapChoices" role="group" aria-label="Saved maps"></div><select class="publish-select-hidden" id="publishMapList" aria-label="Chosen map"></select>
-   <label class="publish-kind"><input type="checkbox" id="publishModels"> 3D models / avatars <small>Share only assets you may distribute</small></label>
-   <div class="publish-choice-list" id="publishModelChoices" role="group" aria-label="Models to publish"></div><select class="publish-select-hidden" id="publishModelList" multiple size="3" aria-label="Chosen models"></select>
-   <label class="publish-kind"><input type="checkbox" id="publishWorld" checked> Complete world <small>Vehicle + map + referenced wheels / avatars</small></label>
+   <label class="publish-kind"><input type="checkbox" id="publishWorld" checked> Complete world <small>Automatic snapshot of the active car + current map + referenced models</small></label>
+   <p id="publishWorldHint">No manual item selection required. A separate public copy is created; your working scene and private library are not overwritten. Other parked fleet cars are not included.</p>
+   <div id="publishIndividualOptions">
+    <label class="publish-kind"><input type="checkbox" id="publishCars"> Cars <small>Choose individual saved cars</small></label>
+    <div class="publish-choice-list" id="publishCarsChoices" role="group" aria-label="Cars to publish"></div><select class="publish-select-hidden" id="publishCarsList" multiple size="3" aria-label="Chosen cars"></select>
+    <label class="publish-kind"><input type="checkbox" id="publishMaps"> Maps <small>Choose saved maps</small></label>
+    <div class="publish-choice-list" id="publishMapChoices" role="group" aria-label="Saved maps"></div><select class="publish-select-hidden" id="publishMapList" multiple size="3" aria-label="Chosen maps"></select>
+    <label class="publish-kind"><input type="checkbox" id="publishModels"> 3D models / avatars <small>Share only assets you may distribute</small></label>
+    <div class="publish-choice-list" id="publishModelChoices" role="group" aria-label="Models to publish"></div><select class="publish-select-hidden" id="publishModelList" multiple size="3" aria-label="Chosen models"></select>
+   </div>
    <details class="publish-disclosure"><summary>My published links</summary><div id="publishMine" class="publish-links"></div></details>
   </div>
   <div class="publish-footer"><button type="button" id="publishConfirm">Publish selected</button><button type="button" id="publishRefresh">Refresh library</button><small id="publishStatus" role="status">Select items, then confirm.</small></div>
@@ -2303,7 +2319,7 @@ let ghostObject=null,ghostSamples=[],ghostElapsed=0,ghostTick=0;
  function appConfirm(message){return showAppDialog('confirm',message)}
  function appPrompt(message,value='',options={}){return showAppDialog('prompt',message,value,options)}
 
- const VERSION='0.3.50';
+ const VERSION='0.3.51';
  document.getElementById('appVersionBadge').textContent='v'+VERSION;
  let imageReference=null,busyAI=false;
 
@@ -7477,35 +7493,43 @@ $('lightsBtn').onclick=()=>{
 };
 $('saveBtn').onclick=()=>saveLayout(false).catch(e=>note(e.message,true));
 $('serverSaveBtn').onclick=()=>saveServer(false).catch(e=>note(e.message,true));
-// All publication requires an explicit, authenticated selection and confirmation.
+// Publishing: a complete world always snapshots the currently active scene.
+// Manual sharing remains available for individual saved assets, but is not used
+// to guess which car or map is presently in the viewport.
 function publishSelected(select){return [...select.selectedOptions].map(option=>option.value).filter(Boolean)}
+function syncPublishMode(){
+ const complete=$('publishWorld').checked;
+ $('publishOverlay').classList.toggle('world-mode',complete);
+ $('publishConfirm').textContent=complete?'Publish current world':'Publish selected';
+ $('publishStatus').textContent=complete?'Ready to share active vehicle + current terrain. Confirm rights first.':'Choose saved items to publish.';
+}
+$('publishWorld').onchange=()=>{syncPublishMode();if(!$('publishWorld').checked)void populatePublishOverlay().catch(error=>{$('publishStatus').textContent='Library unavailable: '+error.message});};
 async function populatePublishOverlay(){
  if(!guestToken||!activeProfile)throw Error('Create or restore your private profile first.');
+ const manual=!$('publishWorld').checked;
  const [cars,media,models,shares]=await Promise.all([
-  identityRequest('/api/me/layouts'),identityRequest('/api/me/media'),
-  identityRequest('/api/me/models'),identityRequest('/api/me/community')]);
- function fill(id,choiceId,rows,label,multiple=true){
+  manual?identityRequest('/api/me/layouts'):Promise.resolve({layouts:[]}),
+  manual?identityRequest('/api/me/media'):Promise.resolve({media:[]}),
+  manual?identityRequest('/api/me/models'):Promise.resolve({models:[]}),
+  identityRequest('/api/me/community')]);
+ function fill(id,choiceId,rows,label){
   const select=$(id),root=$(choiceId),prior=publishSelected(select);
   select.replaceChildren();root.replaceChildren();
   for(const row of rows){
    const option=new Option(label(row),row.id);option.selected=prior.includes(row.id);select.add(option);
    const choice=document.createElement('label');choice.className='publish-choice';
-   const input=document.createElement('input');input.type=multiple?'checkbox':'radio';input.name=multiple?id:choiceId;
-   input.value=row.id;input.checked=prior.includes(row.id);
+   const input=document.createElement('input');input.type='checkbox';input.name=id;
+   input.value=row.id;input.checked=option.selected;
    const text=document.createElement('span');text.className='publish-choice-name';text.textContent=label(row);
-   input.onchange=()=>{if(!multiple){for(const other of [...root.querySelectorAll('input')])if(other!==input)other.checked=false;}
-    for(const opt of select.options)opt.selected=opt.value===row.id?input.checked:(multiple?opt.selected:false);
-    if(id==='publishCarsList'&&input.checked)$('publishCars').checked=true;
-    if(id==='publishMapList'&&input.checked)$('publishMaps').checked=true;
-    if(id==='publishModelList'&&input.checked)$('publishModels').checked=true;
+   input.onchange=()=>{
+    option.selected=input.checked;
+    if(input.checked)$({publishCarsList:'publishCars',publishMapList:'publishMaps',publishModelList:'publishModels'}[id]).checked=true;
    };
    choice.append(input,text);root.append(choice);
   }
-  if(!multiple&&!prior.length&&rows.length){select.selectedIndex=0;root.firstElementChild?.querySelector('input')?.click()}
- if(multiple&&!prior.length&&id==='publishCarsList'&&rows.length){select.options[0].selected=true;const first=root.firstElementChild?.querySelector('input');if(first){first.checked=true;$('publishCars').checked=true;}}
  }
  fill('publishCarsList','publishCarsChoices',cars.layouts||[],row=>row.name+(row.visibility==='public'?' · already public':''));
- fill('publishMapList','publishMapChoices',(media.media||[]).filter(row=>row.kind==='map'),row=>row.name,false);
+ fill('publishMapList','publishMapChoices',(media.media||[]).filter(row=>row.kind==='map'),row=>row.name);
  fill('publishModelList','publishModelChoices',models.models||[],row=>row.name+' · '+row.kind);
  const root=$('publishMine');root.replaceChildren();
  for(const row of shares.shares||[]){const line=document.createElement('div');line.className='publish-row';
@@ -7526,29 +7550,112 @@ async function populatePublishOverlay(){
  }
  if(!root.children.length)root.textContent='No published maps, models or world bundles.';
 }
+// Snapshot only serializable map/vehicle data; never serialize WebGL meshes,
+// physics state, session tokens, unrelated user media or private cloud records.
+function captureWorldPublishSnapshot(){
+ if(!car)throw Error('No active vehicle in the scene. Add a car before publishing.');
+ const carData=blueprint();
+ carData.publishPartsConsent=true;
+ carData.metadata.images=[]; // Avoid stale thumbnails and a GPU capture on Quest.
+ // The map lives separately; don't duplicate its large sculpt grid in the car.
+ for(const key of SHARED_WORLD_KEYS)delete carData.vehicle[key];
+ const mapName=String(cfg.courseName||$('mapName').value||'My world').trim().slice(0,90)||'My world';
+ const map={schema:'vehiclelab-testmap/v3',name:mapName,
+  terrainProfile:cfg.terrainProfile,groundSurface:cfg.groundSurface,
+  edge:cfg.worldEdgeMode,worldCells:structuredClone(cfg.worldCells),
+  terrainSize:cfg.terrainSize,terrainBaseElevation:cfg.terrainBaseElevation,
+  sculptData:cfg.sculptData,seaEnabled:cfg.seaEnabled,waterLevel:cfg.waterLevel,
+  biome:mapBiomeSnapshot(),weather:mapWeatherSnapshot(),appearance:mapAppearanceSnapshot(),
+  objects:structuredClone(cfg.courseObjects),sceneFolders:structuredClone(cfg.sceneFolders||[]),
+  vehicleSpawn:{position:car.position.toArray(),quaternion:car.quaternion.toArray()}};
+ const carName=String(cfg.name||modelName||'Vehicle').trim().slice(0,90)||'Vehicle';
+ return {map_name:mapName,map,car_name:carName,blueprint:carData};
+}
+let publishBodyCache=null;
+async function cloudBodyForWorld(){
+ if(!modelBlob){if(modelName&&modelSource==='glb')throw Error('The active GLB body is missing. Restore its 3D model before publishing.');return null;}
+ await verifiedGLB(modelBlob,'Active car body');
+ const profileId=activeProfile.id;
+ if(publishBodyCache?.profile===profileId&&publishBodyCache.blob===modelBlob)return publishBodyCache.id;
+ if(serverAssetId&&serverAssetBlob===modelBlob){
+  const models=await identityRequest('/api/me/models');
+  if((models.models||[]).some(row=>row.id===serverAssetId&&row.kind==='chassis')){
+   publishBodyCache={profile:profileId,blob:modelBlob,id:serverAssetId};return serverAssetId;
+  }
+ }
+ const upload=new FormData();upload.append('file',modelBlob,(modelName||'vehicle').slice(0,110).replace(/\.glb$/i,'')+'.glb');
+ upload.append('kind','chassis');
+ const created=await identityRequest('/api/me/assets','POST',upload);
+ if(!created.asset?.id)throw Error('Active body upload was not confirmed');
+ publishBodyCache={profile:profileId,blob:modelBlob,id:created.asset.id};
+ return created.asset.id;
+}
+async function backupWorldDependencies(carData){
+ const refs=[];
+ for(const [key,kind] of [['frontWheelModel','wheel'],['rearWheelModel','wheel'],['frontCapModel','cap'],['rearCapModel','cap']]){
+  const id=carData.vehicle[key];if(id)refs.push({id,kind});
+ }
+ for(const id of Object.values(carData.avatarBindings||{}))if(id)refs.push({id,kind:'avatar'});
+ const distinct=[...new Map(refs.map(row=>[row.id,row])).values()];
+ if(distinct.length>48)throw Error('World contains too many distinct linked 3D models');
+ if(!distinct.length)return;
+ const local=await avatarStore('readonly','getAll');
+ const remote=(await identityRequest('/api/me/models')).models||[];
+ for(const {id,kind} of distinct){
+  if(!/^[a-f0-9-]{36}$/i.test(id))throw Error('The active car has an invalid '+kind+' model reference. Restore that model before publishing.');
+  const matching=remote.find(item=>item.client_id===id&&
+   (kind==='avatar'?['avatar','passenger'].includes(item.kind):item.kind===kind));
+  if(matching)continue;
+  const record=findLocalAssetByClientId(local,id);
+  if(!record?.blob)throw Error('Missing '+kind+' GLB '+id+'. Restore this model before publishing the world.');
+  if(kind==='avatar'&&!['avatar','passenger'].includes(record.kind))throw Error('The avatar reference has the wrong model type.');
+  if(kind!=='avatar'&&record.kind!==kind)throw Error('A referenced '+kind+' model has the wrong type.');
+  // Asset uploads are private. A public allowlist is activated only after the
+  // server atomically validates and commits the entire world snapshot.
+  const localRecord={...record,cloudId:null,clientId:id,ownerId:activeProfile.id};
+  await persistProtectedModel(localRecord);
+ }
+}
+async function publishActiveWorld(){
+ const snapshot=captureWorldPublishSnapshot();
+ if(!await appConfirm('Publish the active "'+snapshot.car_name+'" with the current "'+snapshot.map_name+'" map and all its referenced models? A separate public snapshot will be created.'))return false;
+ const owner=activeProfile.id;
+ $('publishStatus').textContent='Checking and backing up referenced 3D models…';
+ await backupWorldDependencies(snapshot.blueprint);
+ const assetId=await cloudBodyForWorld();
+ if(activeProfile?.id!==owner)throw Error('Profile changed during publishing; publication cancelled.');
+ $('publishStatus').textContent='Creating a separate public world snapshot…';
+ const response=await identityRequest('/api/me/community/world-snapshot','POST',{
+  ...snapshot,car_asset_id:assetId,consent:true});
+ $('publishStatus').textContent='World published. Public link is available under My published links.';
+ return Boolean(response.share?.id);
+}
 $('publishBtn').onclick=()=>{
- $('publishOverlay').hidden=false;$('publishStatus').textContent='Loading your private cloud library…';
- $('publishWorld').checked=true;
- void populatePublishOverlay().then(()=>{$('publishStatus').textContent='Select items, confirm rights, then publish.'})
+ $('publishOverlay').hidden=false;$('publishWorld').checked=true;syncPublishMode();
+ $('publishStatus').textContent='Loading your private cloud library…';
+ void populatePublishOverlay().then(()=>{syncPublishMode()})
   .catch(error=>{$('publishStatus').textContent='Library unavailable: '+error.message});
 };
 $('publishClose').onclick=()=>{$('publishOverlay').hidden=true};
 $('publishOverlay').onclick=event=>{if(event.target===$('publishOverlay'))$('publishClose').click()};
-$('publishRefresh').onclick=()=>void populatePublishOverlay().catch(error=>{$('publishStatus').textContent=error.message});
+$('publishRefresh').onclick=()=>void populatePublishOverlay().then(syncPublishMode).catch(error=>{$('publishStatus').textContent=error.message});
 $('publishConfirm').onclick=()=>void(async()=>{
- if(!$('publishConsent').checked)throw Error('Confirm your rights to publish the selected items.');
- const cars=($('publishCars').checked||$('publishWorld').checked)?publishSelected($('publishCarsList')):[];
- const maps=$('publishMaps').checked||$('publishWorld').checked?publishSelected($('publishMapList')):[];
- const models=$('publishModels').checked?publishSelected($('publishModelList')):[];
- if(!cars.length&&!maps.length&&!models.length)throw Error('Select at least one item to publish.');
- if($('publishWorld').checked&&(!cars.length||!maps.length))throw Error('World bundle needs one selected car and map.');
- if(!await appConfirm('Publish '+cars.length+' car(s), '+($('publishMaps').checked?maps.length:0)+' map(s), '+models.length+' model(s)'+($('publishWorld').checked?' and a world bundle':'')+'? They will become publicly accessible.'))return;
- const button=$('publishConfirm');button.disabled=true;let published=0;
+ if(!$('publishConsent').checked)throw Error('Confirm your rights to publish the selected world and models.');
+ const button=$('publishConfirm');if(button.disabled)return;
+ button.disabled=true;
  try{
-  for(const id of cars){const result=await identityRequest('/api/me/layouts/'+encodeURIComponent(id));const row=result.layout;
-   // Explicit rights checkbox covers attached wheels and occupants too.
-   // Pre-0.3.50 public cars must be republished before those private
-   // dependencies become downloadable by visitors.
+  if($('publishWorld').checked){
+   if(await publishActiveWorld())await populatePublishOverlay();
+   return;
+  }
+  const cars=$('publishCars').checked?publishSelected($('publishCarsList')):[];
+  const maps=$('publishMaps').checked?publishSelected($('publishMapList')):[];
+  const models=$('publishModels').checked?publishSelected($('publishModelList')):[];
+  if(!cars.length&&!maps.length&&!models.length)throw Error('Choose a saved item, or select Complete world to share your current scene automatically.');
+  if(!await appConfirm('Publish '+cars.length+' saved car(s), '+maps.length+' map(s) and '+models.length+' model(s)? They will become publicly accessible.'))return;
+  let published=0;
+  for(const id of cars){
+   const result=await identityRequest('/api/me/layouts/'+encodeURIComponent(id)),row=result.layout;
    if(row.visibility!=='public'||row.blueprint?.publishPartsConsent!==true){
     const shareBlueprint=structuredClone(row.blueprint);shareBlueprint.publishPartsConsent=true;
     await identityRequest('/api/me/layouts/'+encodeURIComponent(id),'PUT',{
@@ -7556,10 +7663,9 @@ $('publishConfirm').onclick=()=>void(async()=>{
    }
    published++;
   }
-  if($('publishMaps').checked)for(const id of maps){await identityRequest('/api/me/community','POST',{kind:'map',source_id:id,consent:true});published++}
+  for(const id of maps){await identityRequest('/api/me/community','POST',{kind:'map',source_id:id,consent:true});published++}
   for(const id of models){await identityRequest('/api/me/community','POST',{kind:'model',source_id:id,consent:true});published++}
-  if($('publishWorld').checked){await identityRequest('/api/me/community','POST',{kind:'world',source_id:maps[0],car_id:cars[0],consent:true});published++}
-  $('publishStatus').textContent='Published '+published+' items. Originals stay in your private library.';
+  $('publishStatus').textContent='Published '+published+' item(s). Source models/maps remain in your library.';
   await populatePublishOverlay();void refreshVehicleGallery().catch(()=>{});
  }finally{button.disabled=false}
 })().catch(error=>{$('publishStatus').textContent='Publishing stopped: '+error.message});
@@ -11382,6 +11488,7 @@ $('galleryRefreshBtn').onclick=()=>{gallerySource='public';setWindowVisible('gal
 $('layoutPublic').onchange=()=>{serverVisibility=$('layoutPublic').checked?'public':'private'};
 
 const RELEASE_NOTES=[
+ {v:'0.3.51',date:'2026-11-13',title:'One-click world snapshots and gesture-safe UI',items:['Complete world publishes the current active car, terrain and placed objects without saved-item selection or changing private originals.', 'Referenced wheel/avatar GLBs are checked before an atomic public snapshot; missing assets stop publication without exposing an incomplete world.', 'Prevent accidental selection highlighting across controls while retaining text selection in editors, inputs and logs.']},
  {v:'0.3.50',date:'2026-11-12',title:'Studio framing, working drafts, separate lamps and complete sharing',items:['Studio reference shots use conservative complete-body framing with a visible-geometry check and no raster cropping.', 'Edits are saved as a per-profile recoverable IndexedDB working draft, separate from cloud maps and cars.', 'Front and rear lamps now have independent width and height settings; world publishing shows consent prominently and exposes linked car assets when authorized.']},
  {v:'0.3.49',date:'2026-11-12',title:'Wheel preview, XYZ lamps, passenger sizing and studio capture recovery',items:['Vehicle controls expose XYZ positions for both lamp pairs and proportional passenger scale.', 'BUILD shows wheel centres at their suspension rest positions, matching solver mount offsets without changing vehicle physics.', 'Body Studio yields between orthographic captures, shows failures in the preview, preserves successful shots and falls back to conservative geometric framing if GPU-mask fitting fails.']},
  {v:'0.3.48',date:'2026-11-12',title:'Unified vehicle controls and physical wheel mounts',items:['Scene Objects rows can be renamed inline; Object Inspector provides proportional scaling by default.', 'A new Vehicle Controls panel exposes body, wheel mount, seat, passenger, light and equipment settings with compact sliders.', 'Wheel positions and radii from the transform inspector are saved as actual solver mounting points for Cannon-es, Rapier and Ammo, rather than visual-only overrides.']},
@@ -13432,7 +13539,17 @@ void (async()=>{
   if(!await appConfirm('Open the published '+data.kind+'? This replaces the currently edited world; keep or export your edits first.'))return;
   const prepared=data.kind==='world'&&data.car?await preparePublicVehicle(data.car):null;
   await applySavedTestMap({...data.map,name:data.map_name});
-  if(prepared)await activatePublicVehicle(data.car,prepared);
+  if(prepared){
+   await activatePublicVehicle(data.car,prepared);
+   const spawn=data.map?.vehicleSpawn;
+   if(spawn&&Array.isArray(spawn.position)&&spawn.position.length===3&&
+      spawn.position.every(Number.isFinite)&&Math.max(...spawn.position.map(Math.abs))<=300&&
+      Array.isArray(spawn.quaternion)&&spawn.quaternion.length===4&&
+      spawn.quaternion.every(Number.isFinite)&&car){
+    car.position.fromArray(spawn.position);car.quaternion.fromArray(spawn.quaternion).normalize();
+    car.updateMatrixWorld(true);
+   }
+  }
   note('Opened published '+data.kind+'.');
  }catch(error){note('Unable to open shared world: '+error.message,true)}
 })();

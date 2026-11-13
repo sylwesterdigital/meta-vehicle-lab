@@ -441,3 +441,7 @@ IndexedDB under the server asset ID; remote failures may fall back to that cache
 Old cloud layouts missing `asset_id` cannot recover a GLB automatically and must
 be resaved with the original binary. JSON exports still contain references, not
 GLB bytes. Network and live-provider rendering require browser verification.
+
+### v0.3.51 · complete-world snapshots and publishing safety
+
+The **Complete world** checkbox publishes a new public snapshot of the **active vehicle** and **current terrain**, including placed objects, world appearance and linked wheel/cap/seat-avatar GLBs. Neither a saved vehicle nor a saved map must be manually selected. Parked fleet vehicles other than the active car are not yet bundled. Private originals and the working scene remain unchanged. The backend validates dependencies and writes the public map, public car and share in one SQLite transaction; failure leaves no public world. Unpublishing a snapshot also changes its generated public car to private; it never changes another saved vehicle. Referenced GLBs must belong to the signed-in profile and be available on the server. Uploaded assets are private unless a referenced public snapshot is successfully created. Other item types can still be published via the manual selection mode. Accidental UI text selection is disabled outside of editable inputs and log/code text. This release requires no watcher upgrade and no database migration.

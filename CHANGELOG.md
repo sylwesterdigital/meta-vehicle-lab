@@ -1,3 +1,8 @@
+## v0.3.51 — 2026-11-13 01:15 GMT — Automatic complete-world publishing
+- Complete world snapshots the active car, current terrain and placed objects with no manual saved-item selection; private originals remain unchanged.
+- Referenced wheel/seat/avatar GLBs are verified before an atomic, owner-scoped public share; revoking a world also hides its generated car.
+- UI avoids accidental full-panel text selection while retaining editable input and log selection. No schema migration, automatic data deletion or watcher change.
+
 ## v0.3.50 — November 12, 2026
 - Studio framing uses conservative geometry and pixel occupancy with no zoom-in from a potentially truncated GLB silhouette; captures are not overwritten when the full frame cannot be confirmed.
 - Unsaved configuration, vehicle and world edits are debounced to a dedicated, profile-scoped IndexedDB working draft (schema upgrade preserves existing stores); the latest browser draft is restored on login, without replacing private server libraries.
