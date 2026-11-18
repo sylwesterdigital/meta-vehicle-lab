@@ -726,6 +726,21 @@ ROOT=Path(__file__).resolve().parents[1]
 SOURCE=(ROOT/'index.html').read_text('utf-8')
 
 class WorldMediaXRSourceTests(unittest.TestCase):
+    def test_xr_spatial_workbench_and_safe_mode_entry(self):
+        for marker in ('id="xrLaunchHero"','function xrHeadsetBrowser()',
+                       "navigator.xr.isSessionSupported('immersive-vr')",'function xrPanelDraw()',
+                       'xrPanelFollow(dt)','xrPanelGrabStep()', 'xrPanelToggle()',
+                       "id==='restart'", "id==='up'", "id==='exit'",
+                       'function xrExitCar()', 'function xrSelectPart(ray)',
+                       "for(const tool of ['translate','scale','rotate'])",
+                       'xrBeginPartDrag(', 'xrStepPartDrag()',
+                       'writePartOverride(d.key,node)', "scheduleHistory('XR ",
+                       'function xrHandPinches(frame)', "source.hand.get('thumb-tip')",
+                       "xrEdge('left-menu'",'function xrSound(', 'function xrPulse('):
+            self.assertIn(marker,SOURCE)
+        self.assertIn("xrUICleanup();trackUsage('xr_ended')",SOURCE)
+        self.assertIn('xrLaunchHero[hidden]',SOURCE)
+
     def test_umami_async_and_anonymous(self):
         self.assertIn('async src="https://analytics.mielniczuk.com/script.js"',SOURCE)
         self.assertIn('15fa1131-f0d3-49f1-95ec-b11df875bec2',SOURCE)
@@ -745,7 +760,7 @@ class WorldMediaXRSourceTests(unittest.TestCase):
     def test_xr_mapping_and_seat_controls(self):
         for marker in ('function updateXRDriving(dt)','source.handedness',"gp.mapping!=='xr-standard'",
                        'buttons[0]?.value','buttons[1]?.pressed','buttons[3]?.pressed',
-                       "xrEdge('right-4'", "xrEdge('right-5'",'xrResetHold>1.1',
+                       "xrEdge('right-4'", "xrEdge('right-5'",'xrPanelToggle()',
                        'updateXRVehicleRig()',"trackUsage('xr_started')"):
             self.assertIn(marker,SOURCE)
 

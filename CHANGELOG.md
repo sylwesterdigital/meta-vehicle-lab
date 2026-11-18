@@ -1,3 +1,10 @@
+## v0.3.54 — 2026-11-18 13:14 GMT — Immersive XR controls and part editing
+- Headset-only large Enter VR button with supplied VR icon; in-world panel follows, pins, moves, minimizes, closes.
+- Left-hand pinch / left X toggles Build–Ride menu; controller/hand rays select buttons, with hover, haptics and synthesized UI sounds.
+- Build selects car parts and manipulates move/rotate/scale axes; changes persist through existing vehicle overrides and undo history.
+- Ride adds Restart (origin), Up (upright) and Exit (standing next to vehicle); no database, watcher or server configuration changes.
+- Compatibility: older hardware without hand tracking can use Quest controllers; headset validation still required.
+
 ## v0.3.53 — 2026-11-18 10:05 GMT — Scene guidance and tyre-slip visuals
 - Short bottom-centred hints after scene loading (D), rollover (U) and extended build-mode inactivity (Actions); Settings toggle disables hints and persists locally.
 - Configurable visual tyre spin and brake lock-up, plus optional capped dust/mud/water particles; physics forces and simulation engines unchanged.
