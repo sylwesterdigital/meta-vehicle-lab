@@ -729,7 +729,7 @@ class WorldMediaXRSourceTests(unittest.TestCase):
     def test_xr_spatial_workbench_and_safe_mode_entry(self):
         for marker in ('id="xrLaunchHero"','function xrHeadsetBrowser()',
                        "navigator.xr.isSessionSupported('immersive-vr')",'function xrPanelDraw()',
-                       'xrPanelFollow(dt)','xrPanelGrabStep()', 'xrPanelToggle()',
+                       'xrPanelFollow(dt,frame)','xrPanelGrabStep(frame)', 'xrPanelToggle()',
                        "id==='restart'", "id==='up'", "id==='exit'",
                        'function xrExitCar()', 'function xrSelectPart(ray)',
                        "for(const tool of ['translate','scale','rotate'])",
@@ -740,6 +740,41 @@ class WorldMediaXRSourceTests(unittest.TestCase):
             self.assertIn(marker,SOURCE)
         self.assertIn("xrUICleanup();trackUsage('xr_ended')",SOURCE)
         self.assertIn('xrLaunchHero[hidden]',SOURCE)
+
+    def test_xr_055_teleport_is_thumbstick_only(self):
+        start=SOURCE.index('function xrSelectControllerStart(')
+        end=SOURCE.index('function xrSelectControllerEnd(', start)
+        handler=SOURCE[start:end]
+        self.assertNotIn('xrTeleportTo(', handler)
+        frame=SOURCE[SOURCE.index('function xrUIFrame('):SOURCE.index('function xrHeadsetBrowser(')]
+        self.assertIn('source.gamepad?.buttons?.[3]?.pressed',frame)
+        self.assertIn('xrUI.teleport.point=floorHit?.point.clone()',frame)
+        self.assertIn('xrTeleportTo(destination,frame)',frame)
+        self.assertIn('xrTeleportMark.visible=!!teleportCandidate',frame)
+        self.assertNotIn("xrEdge('left-3'", SOURCE)
+
+    def test_xr_055_panel_follow_and_rays(self):
+        for marker in ('function xrTrackedHead(', 'frame.getViewerPose(ref)',
+                       'xrRig.localToWorld(local.clone())',
+                       'function xrOutsideSpawn(frame)', 'xrUI.spawnPending&&xrOutsideSpawn(frame)',
+                       'xrUI.snapFollow=true', 'xrUI.followOffset',
+                       'function xrPanelSurfaceHit(ray)', 'xrBeginPanelGrab(controller,ray)',
+                       'renderOrder=10020','renderOrder=10030',
+                       'dot.visible=!!(surface||partHit||(click&&floorHit))',
+                       'uniform float uTime;', 'function xrDriverEye()',
+                       "editableVehicleParts.get('seat:0')",
+                       'xrCabinFloorPose=head.local.clone()',
+                       'point.sub(xrCabinFloorPose.clone().applyQuaternion(xrRig.quaternion))'):
+            self.assertIn(marker,SOURCE)
+        panel=SOURCE[SOURCE.index('function xrPanelDraw()'):SOURCE.index('function xrPanelCreate()')]
+        self.assertNotIn("button('move'",panel)
+        self.assertIn('width:.72',SOURCE)
+        self.assertIn('lookAt(xrUI.panel.position,uprightHead',SOURCE)
+        self.assertIn("xrUI.grab={hand:'right'",SOURCE)
+        self.assertIn('xrUI.grab.handPosition.copy(fingertip)',SOURCE)
+        self.assertIn('Math.atan2(-direction.x,-direction.z)',SOURCE)
+        self.assertIn('const localHeading=Math.atan2(-forward.x,-forward.z)',SOURCE)
+        self.assertNotIn("xrEdge('left-5'",SOURCE)
 
     def test_umami_async_and_anonymous(self):
         self.assertIn('async src="https://analytics.mielniczuk.com/script.js"',SOURCE)
@@ -759,7 +794,7 @@ class WorldMediaXRSourceTests(unittest.TestCase):
 
     def test_xr_mapping_and_seat_controls(self):
         for marker in ('function updateXRDriving(dt)','source.handedness',"gp.mapping!=='xr-standard'",
-                       'buttons[0]?.value','buttons[1]?.pressed','buttons[3]?.pressed',
+                       'buttons[0]?.value','buttons[1]?.pressed','source.gamepad?.buttons?.[3]?.pressed',
                        "xrEdge('right-4'", "xrEdge('right-5'",'xrPanelToggle()',
                        'updateXRVehicleRig()',"trackUsage('xr_started')"):
             self.assertIn(marker,SOURCE)

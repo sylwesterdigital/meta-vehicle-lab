@@ -1,3 +1,10 @@
+## v0.3.55 — 2026-11-18 13:59 GMT — XR menu, teleport and driver viewpoint
+- Smaller near-hand Build/Ride menu follows tracked headset after movement and teleport; smooth upright facing, pin/follow and drag from any unused panel surface.
+- Enter VR places the player outside alongside the car, facing it; Ride seats the tracked eyes behind and above the steering wheel rather than on the roof.
+- Hold a controller thumbstick click to reveal a teleport target; release to move. Triggers only select UI and edit vehicle parts.
+- Rectangular animated controller rays remain visible over panels with contact dots; right-hand pinch can drag an unused menu surface.
+- Frontend/tests only; no watcher, backend, database or published/private data changes. Actual Quest validation remains required.
+
 ## v0.3.54 — 2026-11-18 13:14 GMT — Immersive XR controls and part editing
 - Headset-only large Enter VR button with supplied VR icon; in-world panel follows, pins, moves, minimizes, closes.
 - Left-hand pinch / left X toggles Build–Ride menu; controller/hand rays select buttons, with hover, haptics and synthesized UI sounds.

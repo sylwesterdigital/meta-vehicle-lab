@@ -5,7 +5,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Vehicle Lab — Procedural Studio</title>
-  <meta name="vehicle-lab-version" content="0.3.54">
+  <meta name="vehicle-lab-version" content="0.3.55">
   <style>
     :root {
       color-scheme:dark;
@@ -1146,7 +1146,7 @@ input[type=color]:focus-visible{outline:2px solid var(--accent)!important;outlin
 #publishOverlay.world-mode #publishIndividualOptions{display:none}
 #publishOverlay:not(.world-mode) #publishWorldHint{display:none}
 
-/* v0.3.54 — headset-only immersive entry. Never intercept desktop/mobile UI. */
+/* v0.3.55 — headset-only immersive entry. Never intercept desktop/mobile UI. */
 #xrLaunchHero[hidden]{display:none!important}
 #xrLaunchHero{position:fixed;z-index:30;top:50%;left:50%;transform:translate(-50%,-50%);width:min(80vw,390px);
   display:flex;align-items:center;justify-content:center;gap:16px;min-height:100px;
@@ -1185,7 +1185,7 @@ input[type=color]:focus-visible{outline:2px solid var(--accent)!important;outlin
 </svg><span>Enter VR<span class="xr-hero-sub">IMMERSIVE VEHICLE LAB</span></span></button>
   <div id="experienceHint" role="status" aria-live="polite" aria-atomic="true" hidden></div>
   <div id="hud">
-    <div class="stage-badge"><strong>Vehicle Lab</strong><small id="appVersionBadge">v0.3.54</small></div>
+    <div class="stage-badge"><strong>Vehicle Lab</strong><small id="appVersionBadge">v0.3.55</small></div>
     <p id="vehicleName">City Car</p><p id="vehicleInfo">Procedural vehicle</p>
     <div id="speedHud"><strong id="speed">0</strong><div>km/h</div></div>
     <div id="cameraModeReadout" style="padding:3px 6px;margin-top:4px;width:max-content;max-width:260px;border-radius:5px;background:#132d3cc0;color:#e9f5fc;font:10px ui-monospace,monospace">Camera · Orbit follow</div>
@@ -2351,7 +2351,7 @@ let ghostObject=null,ghostSamples=[],ghostElapsed=0,ghostTick=0;
  function appConfirm(message){return showAppDialog('confirm',message)}
  function appPrompt(message,value='',options={}){return showAppDialog('prompt',message,value,options)}
 
- const VERSION='0.3.54';
+ const VERSION='0.3.55';
  document.getElementById('appVersionBadge').textContent='v'+VERSION;
  let imageReference=null,busyAI=false;
 
@@ -7890,13 +7890,14 @@ new ResizeObserver(()=>{
 
 const xrPanelIconSources={"ride": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxNiAxNiIgdmVyc2lvbj0iMS4xIiBjbGFzcz0ic2ktZ2x5cGggc2ktZ2x5cGgtd2hlZWwtc3RlZWwiIHdpZHRoPSI0OCIgaGVpZ2h0PSI0OCIgYXJpYS1oaWRkZW49InRydWUiPgogICAgCiAgICA8dGl0bGU+V2hlZWwtc3RlZWw8L3RpdGxlPgogICAgCiAgICA8ZGVmcz4KCjwvZGVmcz4KICAgIDxnIHN0cm9rZT0ibm9uZSIgc3Ryb2tlLXdpZHRoPSIxIiBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPgogICAgICAgIDxnIGZpbGw9IiNmNGZlZmYiPgogICAgICAgICAgICA8cGF0aCBkPSJNNy45OTg5OTA0MSwxNiBDMy41ODgwODY4MiwxNiAwLDEyLjQxMDgyNzIgMCw4IEMwLDMuNTg5MTcyNzggMy41ODgwODY4MiwwIDcuOTk4OTkwNDEsMCBDMTIuNDEwOTAzNiwwIDE2LDMuNTg5MTcyNzggMTYsOCBDMTYsMTIuNDEwODI3MiAxMi40MTA5MDM2LDE2IDcuOTk4OTkwNDEsMTYgTDcuOTk4OTkwNDEsMTYgWiBNOCwyIEM0LjY5MDgzMjI1LDIgMiw0LjY5MTUxNjcxIDIsOCBDMiwxMS4zMDg0ODMzIDQuNjkxODA3NTQsMTQgOCwxNCBDMTEuMzA4MTkyNSwxNCAxNCwxMS4zMDg0ODMzIDE0LDggQzE0LDQuNjkxNTE2NzEgMTEuMzA5MTY3OCwyIDgsMiBMOCwyIFoiIGNsYXNzPSJzaS1nbHlwaC1maWxsIj4KCjwvcGF0aD4KICAgICAgICAgICAgPHBhdGggZD0iTTcuOTkyLDYgQzUuNjc2LDYgMy44OTQsNi43OTcgMy4wMzEsOC4zNDYgQzMuMDY4LDguODE5IDMuMTg1LDkuMjc0IDMuMzY3LDkuNjk4IEM0LjU4OCw5LjA0NiA2LjkxOCwxMS41MjggNi4xODUsMTIuNjMzIEM2Ljc2NSwxMi44MzcgNy4zMjYsMTIuOTg4IDcuOTgyLDEyLjk4OCBDOC42MjcsMTIuOTg4IDkuMjk5LDEyLjg3IDkuODY5LDEyLjY3MyBDOS4xMzUsMTEuNTY4IDExLjM5NCw5LjEzOCAxMi42MjMsOS44MDQgQzEyLjgxMSw5LjM2NiAxMi45MzIsOC44OTggMTIuOTY3LDguNDA4IEMxMi4wOTUsNi44NzUgMTAuMjkzLDYgNy45OTIsNiBMNy45OTIsNiBaIE04LjAwMiw5LjE1NiBDNy4zNzcsOS4xNTYgNi44NzUsOC42NDYgNi44NzUsOC4wMTUgQzYuODc1LDcuMzg0IDcuMzc3LDYuODc0IDguMDAyLDYuODc0IEM4LjYyMSw2Ljg3NCA5LjEyNSw3LjM4NCA5LjEyNSw4LjAxNSBDOS4xMjUsOC42NDYgOC42MjEsOS4xNTYgOC4wMDIsOS4xNTYgTDguMDAyLDkuMTU2IFoiIGNsYXNzPSJzaS1nbHlwaC1maWxsIj4KCjwvcGF0aD4KICAgICAgICA8L2c+CiAgICA8L2c+Cjwvc3ZnPg==", "build": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgd2lkdGg9IjQ4IiBoZWlnaHQ9IjQ4IiBhcmlhLWhpZGRlbj0idHJ1ZSI+CjxwYXRoIGQ9Ik0yIDcuNUMyIDYuNzE0MDMgMi4xNjQ4NiA1Ljk2NjU3IDIuNDYxODkgNS4yOTAzMUw1LjAxMDQxIDcuODM4ODNDNS43OTE0NiA4LjYxOTg4IDcuMDU3NzkgOC42MTk4OCA3LjgzODg0IDcuODM4ODNDOC42MTk4OSA3LjA1Nzc5IDguNjE5ODkgNS43OTE0NiA3LjgzODg0IDUuMDEwNDFMNS4yOTAzMiAyLjQ2MTg5QzUuOTY2NTggMi4xNjQ4NiA2LjcxNDA0IDIgNy41IDJDMTAuNTM3NiAyIDEzIDQuNDYyNDMgMTMgNy41QzEzIDguMjg1OTYgMTIuODM1MSA5LjAzMzQyIDEyLjUzODEgOS43MDk2OEwyMS40MzUgMTguNjA2NkMyMi4yMTYxIDE5LjM4NzcgMjIuMjE2MSAyMC42NTQgMjEuNDM1IDIxLjQzNVYyMS40MzVDMjAuNjU0IDIyLjIxNjEgMTkuMzg3NyAyMi4yMTYxIDE4LjYwNjYgMjEuNDM1TDkuNzA5NjggMTIuNTM4MUM5LjAzMzQyIDEyLjgzNTEgOC4yODU5NyAxMyA3LjUgMTNDNC40NjI0MyAxMyAyIDEwLjUzNzYgMiA3LjVaIiBzdHJva2U9IiNmNGZlZmYiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIiAvPgo8L3N2Zz4="};
 
-// ===== XR spatial workbench v0.3.54 =====
+// ===== XR spatial workbench v0.3.55 =====
 // Single canvas-texture panel, two controller rays, no DOM overlay in XR.
 // The panel is scene-space (follow or pinned), not an XR native SDK window.
 const xrUI={open:false,follow:true,minimized:false,sound:true,tool:'translate',
  panel:null,canvas:null,ctx:null,texture:null,buttons:[],hover:'',selectedKey:null,
  grab:null,edit:null,lastAction:0,pinchLeft:false,pinchRight:false,images:{},hint:'',
- lastHoverSound:0,width:.98,height:.47};
+ lastHoverSound:0,width:.72,height:.345,followOffset:new THREE.Vector3(0,-.30,-.94),
+ snapFollow:true,teleport:null,lastHeadPose:null,spawnPending:false};
 let xrAudioContext=null;
 const xrAxisColors={x:0xff686c,y:0x79f6b1,z:0x69b9ff};
 let xrPartHandles=null;
@@ -7933,7 +7934,7 @@ function xrPanelDraw(){
  if(!xrUI.ctx||!xrUI.panel)return;
  const c=xrUI.canvas,ctx=xrUI.ctx;
  c.width=1024;c.height=xrUI.minimized?170:xrSeated?500:xrUI.selectedKey?640:475;
- xrUI.height=xrUI.minimized?.17:xrSeated?.49:xrUI.selectedKey?.625:.465;
+ xrUI.height=xrUI.minimized?.118:xrSeated?.35:xrUI.selectedKey?.45:.335;
  xrUI.panel.geometry.dispose();xrUI.panel.geometry=new THREE.PlaneGeometry(xrUI.width,xrUI.height);
  xrUI.buttons=[];
  const w=c.width,h=c.height;
@@ -7944,7 +7945,8 @@ function xrPanelDraw(){
  round(19,18,w-38,132,26,'#193b4c','#40677a');
  ctx.textBaseline='middle';ctx.fillStyle='#ebfeff';ctx.font='800 42px system-ui';
  ctx.fillText(xrSeated?'RIDE / DRIVE':'BUILD / RIDE',46,78);
- ctx.font='600 22px system-ui';ctx.fillStyle='#b8d5e1';ctx.fillText(xrUI.follow?'FOLLOW':'PINNED',48,119);
+ ctx.font='600 22px system-ui';ctx.fillStyle='#b8d5e1';
+ ctx.fillText((xrUI.follow?'FOLLOW · ':'PINNED · ')+'DRAG EMPTY SPACE TO MOVE',48,119);
  function button(id,label,x,y,width,height,color='#25465b',icon=null){
   const hover=xrUI.hover===id;
   round(x,y,width,height,23,hover?'#e1ffeb':color,hover?'#ffffff':'#7192a7');
@@ -7957,8 +7959,7 @@ function xrPanelDraw(){
   }else ctx.fillText(label,x+width/2,y+height/2+2);
   ctx.textAlign='left';xrUI.buttons.push({id,x,y,width,height});
  }
- button('move','MOVE',610,35,112,90,'#25465b');
- button('pin',xrUI.follow?'PIN':'FOLLOW',729,35,119,90,'#25465b');
+ button('pin',xrUI.follow?'PIN':'FOLLOW',722,35,126,90,'#25465b');
  button('min',xrUI.minimized?'+':'−',856,35,68,90,'#25465b');
  button('close','×',932,35,67,90,'#644047');
  if(!xrUI.minimized){
@@ -7990,7 +7991,7 @@ function xrPanelCreate(){
  const canvas=document.createElement('canvas');canvas.width=1024;canvas.height=475;
  const texture=new THREE.CanvasTexture(canvas);texture.colorSpace=THREE.SRGBColorSpace;
  texture.minFilter=THREE.LinearFilter;texture.magFilter=THREE.LinearFilter;
- const mesh=new THREE.Mesh(new THREE.PlaneGeometry(xrUI.width,.465),
+ const mesh=new THREE.Mesh(new THREE.PlaneGeometry(xrUI.width,xrUI.height),
   new THREE.MeshBasicMaterial({map:texture,transparent:true,depthTest:false,depthWrite:false,side:THREE.DoubleSide}));
  mesh.renderOrder=10000;mesh.frustumCulled=false;scene.add(mesh);
  xrUI.canvas=canvas;xrUI.ctx=canvas.getContext('2d');xrUI.texture=texture;xrUI.panel=mesh;
@@ -8001,31 +8002,60 @@ function xrPanelCreate(){
 }
 function xrPanelShow(open){
  xrPanelCreate();xrUI.open=Boolean(open);xrUI.panel.visible=xrUI.open;
- xrUI.hover='';xrUI.grab=null;xrPanelDraw();
+ xrUI.hover='';xrUI.grab=null;xrUI.snapFollow=true;xrPanelDraw();
  if(xrUI.open){xrSound('enter')}else xrSound('leave');
 }
 function xrPanelToggle(){xrPanelShow(!xrUI.open)}
-function xrPanelFollow(dt){
+// Read the CURRENT viewer pose in the XR reference space, then compose it with
+// our locomotion rig. XRManager.getCamera() is a synthetic ArrayCamera and its
+// getWorldPosition() can discard the rig transform before the render update.
+function xrTrackedHead(frame=renderer.xr.getFrame()){
+ let local=null,rotation=null;
+ const ref=renderer.xr.getReferenceSpace();
+ try{
+  const pose=frame&&ref?frame.getViewerPose(ref):null;
+  if(pose){const p=pose.transform.position,q=pose.transform.orientation;
+   local=new THREE.Vector3(p.x,p.y,p.z);rotation=new THREE.Quaternion(q.x,q.y,q.z,q.w)}
+ }catch{}
+ if(!local&&xrUI.lastHeadPose){local=xrUI.lastHeadPose.local.clone();rotation=xrUI.lastHeadPose.rotation.clone()}
+ if(!local)return null;
+ xrUI.lastHeadPose={local:local.clone(),rotation:rotation.clone()};
+ xrRig.updateMatrixWorld(true);
+ return {local,rotation,
+  position:xrRig.localToWorld(local.clone()),
+  quaternion:xrRig.getWorldQuaternion(new THREE.Quaternion()).multiply(rotation)};
+}
+function xrHorizontalFacing(quaternion){
+ const forward=new THREE.Vector3(0,0,-1).applyQuaternion(quaternion);forward.y=0;
+ if(forward.lengthSq()<.01)forward.set(0,0,-1);
+ return forward.normalize();
+}
+function xrPanelFollow(dt,frame){
  if(!xrUI.open||!xrUI.panel||xrUI.grab||!xrUI.follow)return;
- const head=renderer.xr.getCamera(),position=head.getWorldPosition(new THREE.Vector3());
- const headRotation=head.getWorldQuaternion(new THREE.Quaternion());
- const direction=new THREE.Vector3(0,0,-1).applyQuaternion(headRotation);
- if(!xrSeated){direction.y=0;if(direction.lengthSq()<.01)direction.set(0,0,-1);direction.normalize();}
- // During a rollover the Ride recovery panel stays inside the player's view,
- // rather than remaining upright relative to a world that has tipped over.
- const target=position.clone().addScaledVector(direction,1.62);
- if(xrSeated)target.add(new THREE.Vector3(0,-.16,0).applyQuaternion(headRotation));
- else target.y-=.16;
- const follow=1-Math.exp(-dt*9);
- if(xrUI.panel.position.distanceToSquared(target)>5)xrUI.panel.position.copy(target);
+ const head=xrTrackedHead(frame);if(!head)return;
+ const facing=xrHorizontalFacing(head.quaternion);
+ const yaw=Math.atan2(-facing.x,-facing.z);
+ const rotation=new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,1,0),yaw);
+ const target=head.position.clone().add(xrUI.followOffset.clone().applyQuaternion(rotation));
+ const follow=1-Math.exp(-Math.max(0,dt)*11);
+ if(xrUI.snapFollow||xrUI.panel.position.distanceToSquared(target)>.8*.8)
+  xrUI.panel.position.copy(target);
  else xrUI.panel.position.lerp(target,follow);
- const targetRotation=xrSeated?headRotation:new THREE.Quaternion().setFromRotationMatrix(new THREE.Matrix4().lookAt(
-  new THREE.Vector3(position.x,xrUI.panel.position.y,position.z),xrUI.panel.position,new THREE.Vector3(0,1,0)));
- xrUI.panel.quaternion.slerp(targetRotation,follow);
+ // A plane's positive-Z normal faces the user's eyes. Using lookAt(head,panel)
+ // instead caused its canvas to be seen from behind (mirrored on double-sided UI).
+ const uprightHead=new THREE.Vector3(head.position.x,xrUI.panel.position.y,head.position.z);
+ const targetRotation=new THREE.Quaternion().setFromRotationMatrix(
+  new THREE.Matrix4().lookAt(xrUI.panel.position,uprightHead,new THREE.Vector3(0,1,0)));
+ if(xrUI.snapFollow)xrUI.panel.quaternion.copy(targetRotation);
+ else xrUI.panel.quaternion.slerp(targetRotation,follow);
+ xrUI.snapFollow=false;
+}
+function xrPanelSurfaceHit(ray){
+ if(!xrUI.open||!xrUI.panel?.visible)return null;
+ return ray.intersectObject(xrUI.panel,false)[0]||null;
 }
 function xrPanelHit(ray){
- if(!xrUI.open||!xrUI.panel)return null;
- const hit=ray.intersectObject(xrUI.panel,false)[0];if(!hit?.uv)return null;
+ const hit=xrPanelSurfaceHit(ray);if(!hit?.uv)return null;
  return xrPanelHitPixel(hit.uv.x*xrUI.canvas.width,(1-hit.uv.y)*xrUI.canvas.height);
 }
 function xrPanelHitPixel(x,y){
@@ -8057,19 +8087,24 @@ function xrHandPinches(frame){
   if(left){hasLeft=true;if(down&&!was){xrPanelToggle();xrSound('tap')}}
   if(right){
    hasRight=true;
+   if(!down&&was&&xrUI.grab?.hand==='right')xrUI.grab=null;
+   if(!down||(!xrUI.open&&!xrUI.grab))continue;
+   const fingertip=new THREE.Vector3(bp.x,bp.y,bp.z);
+   xrRig.updateMatrixWorld(true);fingertip.applyMatrix4(xrRig.matrixWorld);
+   if(xrUI.grab?.hand==='right'){xrUI.grab.handPosition.copy(fingertip);continue}
    if(down&&!was&&xrUI.open&&!xrUI.grab){
-    const fingertip=new THREE.Vector3(bp.x,bp.y,bp.z);
-    xrRig.updateMatrixWorld(true);fingertip.applyMatrix4(xrRig.matrixWorld);
     const local=xrUI.panel.worldToLocal(fingertip);
     if(Math.abs(local.z)<.095&&Math.abs(local.x)<xrUI.width/2&&Math.abs(local.y)<xrUI.height/2){
      const id=xrPanelHitPixel((local.x/xrUI.width+.5)*xrUI.canvas.width,(.5-local.y/xrUI.height)*xrUI.canvas.height);
      if(id)void xrPanelAction(id,null);
+     else{xrUI.grab={hand:'right',handPosition:fingertip.clone(),
+       offset:xrUI.panel.position.clone().sub(fingertip)};xrSound('move')}
     }
    }
   }
  }
  if(!hasLeft)xrUI.pinchLeft=false;
- if(!hasRight)xrUI.pinchRight=false;
+ if(!hasRight){xrUI.pinchRight=false;if(xrUI.grab?.hand==='right')xrUI.grab=null}
 }
 function xrGizmoCreate(){
  if(xrPartHandles)return;
@@ -8189,22 +8224,17 @@ function xrFinishPartDrag(cancel=false){
 }
 function xrExitCar(){
  if(!xrActive||!xrSeated||!car)return;
- const q=car.getWorldQuaternion(new THREE.Quaternion());
- const side=new THREE.Vector3(1,0,0).applyQuaternion(q);side.y=0;
- if(side.lengthSq()<.01)side.set(1,0,0);side.normalize();
- const target=car.getWorldPosition(new THREE.Vector3()).addScaledVector(side,Math.max(2.1,cfg.W*.7+1));
- const fwd=new THREE.Vector3(0,0,1).applyQuaternion(q);fwd.y=0;
- if(fwd.lengthSq()<.01)fwd.set(0,0,1);fwd.normalize();
- const yaw=Math.atan2(fwd.x,fwd.z);
- const ground=heightAt(target.x,target.z);
- target.y=ground+1.58;
- xrSeated=false;xrOutside=false;xrDriving.throttle=0;xrDriving.steer=0;xrDriving.brake=false;xrDriving.handbrake=false;
- leaveDrive();
- xrRig.quaternion.setFromAxisAngle(new THREE.Vector3(0,1,0),yaw);
- xrRig.position.set(0,0,0);xrRig.updateMatrixWorld(true);
- const head=renderer.xr.getCamera().getWorldPosition(new THREE.Vector3());
- xrRig.position.copy(target.sub(head));
- xrUI.selectedKey=null;xrUI.minimized=false;xrPanelDraw();xrSound('leave');
+ const carPos=car.getWorldPosition(new THREE.Vector3());
+ const yaw=xrCarYaw(),q=new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,1,0),yaw);
+ const side=new THREE.Vector3(1,0,0).applyQuaternion(q);
+ const target=carPos.clone().addScaledVector(side,Math.max(2.1,cfg.W*.5+1.2));
+ target.y=heightAt(target.x,target.z);
+ xrSeated=false;xrOutside=false;xrCabinFloorPose=null;xrRestoreDriverFigure();
+ xrDriving.throttle=0;xrDriving.steer=0;xrDriving.brake=false;xrDriving.handbrake=false;
+ leaveDrive(); // Editor resumes at the vehicle's physical position, no public data change.
+ xrViewerFloorAt(target,new THREE.Vector3(carPos.x,target.y+1,carPos.z));
+ xrUI.selectedKey=null;xrUI.minimized=false;xrUI.snapFollow=true;
+ xrPanelDraw();xrSound('leave');
  note('Exited beside vehicle in upright standing orientation.');
 }
 async function xrPanelAction(id,controller){
@@ -8212,12 +8242,7 @@ async function xrPanelAction(id,controller){
  xrUI.lastAction=now;
  if(id==='close'){xrPanelShow(false);return}
  if(id==='min'){xrUI.minimized=!xrUI.minimized;xrPanelDraw();xrSound('tap');return}
- if(id==='pin'){xrUI.follow=!xrUI.follow;xrPanelDraw();xrSound('tap');return}
- if(id==='move'){
-  if(!controller){xrSound('error');return}
-  xrUI.follow=false;xrUI.grab={controller,distance:clamp(controller.getWorldPosition(new THREE.Vector3()).distanceTo(xrUI.panel.position),.85,2.1)};
-  xrPanelDraw();xrSound('move');return;
- }
+ if(id==='pin'){xrUI.follow=!xrUI.follow;xrUI.snapFollow=false;xrPanelDraw();xrSound('tap');return}
  if(id==='build'){
   if(xrSeated)xrExitCar();else if(mode==='drive')leaveDrive();
   xrUI.selectedKey=null;xrUI.minimized=false;xrPanelDraw();xrSound('tap');
@@ -8235,26 +8260,50 @@ async function xrPanelAction(id,controller){
  if(id==='exit'){xrExitCar();xrPanelShow(true);return}
  if(id.startsWith('tool-')){xrUI.tool=id.slice(5);xrPanelDraw();xrSound('tap')}
 }
-function xrPanelGrabStep(){
+function xrBeginPanelGrab(controller,ray){
+ if(!controller||!xrUI.open||xrUI.grab)return;
+ const surface=xrPanelSurfaceHit(ray);if(!surface)return;
+ xrUI.grab={controller,distance:clamp(surface.distance,.35,2.6)};
+ xrSound('move');xrPulse(controller,.24,16);
+}
+function xrPanelGrabStep(frame){
  if(!xrUI.grab)return;
- const {controller,distance}=xrUI.grab,ray=xrRayFromController(controller);
- xrUI.panel.position.copy(ray.ray.at(clamp(distance,.85,2.1),new THREE.Vector3()));
- const head=renderer.xr.getCamera().getWorldPosition(new THREE.Vector3());
- xrUI.panel.lookAt(head.x,xrUI.panel.position.y,head.z);
+ const {controller,distance,hand,handPosition,offset}=xrUI.grab;
+ if(hand==='right')xrUI.panel.position.copy(handPosition).add(offset);
+ else{const ray=xrRayFromController(controller);
+  xrUI.panel.position.copy(ray.ray.at(distance,new THREE.Vector3()))}
+ const head=xrTrackedHead(frame);if(!head)return;
+ if(xrUI.follow){
+  const facing=xrHorizontalFacing(head.quaternion),yaw=Math.atan2(-facing.x,-facing.z);
+  const inv=new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,1,0),-yaw);
+  xrUI.followOffset.copy(xrUI.panel.position).sub(head.position).applyQuaternion(inv);
+  xrUI.followOffset.x=clamp(xrUI.followOffset.x,-.8,.8);
+  xrUI.followOffset.y=clamp(xrUI.followOffset.y,-.65,.35);
+  xrUI.followOffset.z=clamp(xrUI.followOffset.z,-1.6,-.45);
+ }
+ const facingPos=new THREE.Vector3(head.position.x,xrUI.panel.position.y,head.position.z);
+ xrUI.panel.quaternion.setFromRotationMatrix(new THREE.Matrix4().lookAt(
+  xrUI.panel.position,facingPos,new THREE.Vector3(0,1,0)));
 }
 function xrSelectControllerStart(controller,event){
  if(!xrActive)return;
  const source=event?.data||controller.userData.xrInput;
- if(source?.hand&&source.handedness==='left')return; // left hand pinch is menu shortcut
- const ray=xrRayFromController(controller),uiId=xrPanelHit(ray);
- if(uiId){xrPulse(controller,.35,22);void xrPanelAction(uiId,controller);return}
- if(xrUI.grab||xrSeated)return;
+ if(source?.hand&&source.handedness==='left')return;
+ const ray=xrRayFromController(controller),surface=xrPanelSurfaceHit(ray);
+ if(surface){
+  const id=surface.uv?xrPanelHitPixel(surface.uv.x*xrUI.canvas.width,(1-surface.uv.y)*xrUI.canvas.height):null;
+  if(id){xrPulse(controller,.35,22);void xrPanelAction(id,controller)}
+  else xrBeginPanelGrab(controller,ray); // Any unused panel surface is a drag handle.
+  return;
+ }
+ if(xrUI.grab||xrSeated||xrUI.teleport)return;
  if(mode==='build'){
   const handle=xrHandleHit(ray);
   if(handle){xrBeginPartDrag(controller,handle,ray);return}
   if(xrSelectPart(ray)){xrPulse(controller,.25,18);return}
  }
- const hit=ray.intersectObject(terrain,false)[0];if(hit){xrTeleportTo(hit.point);xrSound('move')}
+ // Teleport is deliberately NOT bound to trigger/select. Hold and release a
+ // controller thumbstick click instead; triggers remain free for building/UI.
 }
 function xrSelectControllerEnd(controller){
  if(xrUI.grab?.controller===controller){xrUI.grab=null;xrSound('tap')}
@@ -8264,6 +8313,8 @@ function xrUICleanup(){
  xrUI.open=false;xrUI.grab=null;xrFinishPartDrag(true);xrUI.selectedKey=null;
  xrUI.follow=true;xrUI.minimized=false;xrUI.tool='translate';
  xrUI.pinchLeft=false;xrUI.pinchRight=false;xrUI.hover='';
+ xrUI.teleport=null;xrUI.lastHeadPose=null;xrUI.spawnPending=false;xrUI.snapFollow=true;
+ xrUI.followOffset.set(0,-.30,-.94);
  if(xrUI.panel){scene.remove(xrUI.panel);xrUI.panel.geometry.dispose();xrUI.panel.material.dispose();xrUI.panel=null}
  if(xrUI.texture){xrUI.texture.dispose();xrUI.texture=null}
  if(xrPartHandles){scene.remove(xrPartHandles);xrPartHandles.traverse(obj=>{
@@ -8275,29 +8326,55 @@ function xrUICleanup(){
 }
 function xrUIFrame(dt,frame){
  if(!xrActive||!xrSession)return;
- xrHandPinches(frame);xrPanelFollow(dt);xrGizmoUpdate();
- if(!xrSeated)for(const source of xrSession.inputSources){
+ xrHandPinches(frame);xrPanelFollow(dt,frame);xrGizmoUpdate();
+ for(const source of xrSession.inputSources){
   if(source.handedness==='left'&&!source.hand&&source.gamepad?.buttons?.[4]){
+   // X opens/closes the spatial menu in Build and Ride alike.
    if(xrEdge('left-menu',source.gamepad.buttons[4].pressed))xrPanelToggle();
   }
  }
- if(xrUI.grab)xrPanelGrabStep();
+ if(xrUI.grab)xrPanelGrabStep(frame);
  if(xrUI.edit)xrStepPartDrag();
- let hover='',hoverController=null,handle=null,ground=null;
- if(!xrUI.grab&&!xrUI.edit){
-  for(const controller of xrControllers){
-   if(!controller.userData.xrInput)continue;
-   const ray=xrRayFromController(controller);
-   hover=xrPanelHit(ray)||'';
-   if(hover){hoverController=controller;break}
-   if(!xrSeated&&mode==='build'&&!handle)handle=xrHandleHit(ray);
-   if(!xrSeated&&!ground){const hit=ray.intersectObject(terrain,false)[0];if(hit)ground=hit.point.clone()}
+ let hover='',hoverController=null,handle=null,teleportCandidate=null;
+ // The thumbstick is held to aim at the ground; release to confirm. Only the
+ // owning controller can finish this teleport, never a trigger or gizmo action.
+ for(const controller of xrControllers){
+  const source=controller.userData.xrInput,beam=controller.userData.xrBeam,dot=controller.userData.xrDot;
+  if(!source){beam.visible=false;dot.visible=false;continue}
+  beam.visible=true;
+  const ray=xrRayFromController(controller);
+  const surface=xrPanelSurfaceHit(ray);
+  const panelId=surface?.uv?xrPanelHitPixel(surface.uv.x*xrUI.canvas.width,(1-surface.uv.y)*xrUI.canvas.height):null;
+  const partHit=!surface&&!xrSeated&&mode==='build'?xrHandleHit(ray):null;
+  const floorHit=!surface&&!partHit&&!xrSeated?ray.intersectObject(terrain,false)[0]:null;
+  const click=!!source.gamepad?.buttons?.[3]?.pressed;
+  const canAim=!xrSeated&&!xrUI.grab&&!xrUI.edit&&mode==='build'&&!surface&&!partHit;
+  if(click&&canAim){
+   if(!xrUI.teleport)xrUI.teleport={controller,point:null};
+   if(xrUI.teleport.controller===controller)xrUI.teleport.point=floorHit?.point.clone()||null;
+  }else if(xrUI.teleport?.controller===controller){
+   const destination=xrUI.teleport.point;
+   xrUI.teleport=null;
+   if(destination&&!xrUI.grab&&!xrUI.edit&&canAim)xrTeleportTo(destination,frame);
   }
+  if(panelId&&!hover){hover=panelId;hoverController=controller}
+  if(partHit&&!handle)handle=partHit;
+  if(xrUI.teleport?.controller===controller&&xrUI.teleport.point)teleportCandidate=xrUI.teleport.point;
+  // Beams terminate on the first interaction surface and their dots remain
+  // visible over the menu, rather than disappearing behind its overlay.
+  const length=clamp(surface?.distance??partHit?.getWorldPosition(new THREE.Vector3()).distanceTo(
+   controller.getWorldPosition(new THREE.Vector3()))??floorHit?.distance??2.3,.13,4.5);
+  beam.position.z=-length*.5;beam.scale.z=length;
+  beam.material.uniforms.uTime.value=performance.now()*.001;
+  beam.material.uniforms.uHover.value=surface?1:0;
+  dot.visible=!!(surface||partHit||(click&&floorHit));
+  if(dot.visible){dot.position.set(0,0,-length);dot.scale.setScalar(surface?1.45:1)}
  }
  if(xrUI.hover!==hover){xrUI.hover=hover;xrPanelDraw();
-  if(hover&&performance.now()-xrUI.lastHoverSound>150){xrUI.lastHoverSound=performance.now();xrSound('hover');xrPulse(hoverController,.13,9)}}
- xrTeleportMark.visible=!xrSeated&&!xrUI.grab&&!xrUI.edit&&!hover&&!handle&&!!ground;
- if(xrTeleportMark.visible)xrTeleportMark.position.copy(ground).y+=.05;
+  if(hover&&performance.now()-xrUI.lastHoverSound>150){
+   xrUI.lastHoverSound=performance.now();xrSound('hover');xrPulse(hoverController,.13,9)}}
+ xrTeleportMark.visible=!!teleportCandidate&&!xrSeated&&!xrUI.grab&&!xrUI.edit;
+ if(xrTeleportMark.visible)xrTeleportMark.position.copy(teleportCandidate).y+=.05;
 }
 function xrHeadsetBrowser(){
  // A WebXR API object alone also exists on desktop and Android phones.
@@ -8315,53 +8392,144 @@ if(navigator.xr?.addEventListener)navigator.xr.addEventListener('devicechange',(
 void xrRefreshLaunch();
 // ===== End XR spatial workbench =====
 
+// Thin rectangular beams with an animated axial highlight stay visible even
+// against the unlit spatial panel (rendered AFTER the panel for occlusion).
+const xrRayBeamGeometry=new THREE.BoxGeometry(.012,.009,1);
+const xrRayDotGeometry=new THREE.SphereGeometry(.011,10,8);
+const xrRayShader={
+ vertexShader:`varying vec3 vLocal;void main(){vLocal=position;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}`,
+ fragmentShader:`uniform float uTime;uniform float uHover;varying vec3 vLocal;
+  void main(){float along=clamp(.5-vLocal.z,0.0,1.0);
+   float streak=pow(max(0.0,sin(along*27.0-uTime*6.0)),9.0);
+   float glow=(0.24+0.30*along+0.40*streak)*(1.0-0.26*uHover);
+   vec3 ink=mix(vec3(.18,.84,.83),vec3(.84,1.,.97),.38+streak*.6);
+   gl_FragColor=vec4(ink,clamp(glow+.25*uHover,.0,.85));}`
+};
 const xrControllers=[0,1].map(index=>{
  const controller=renderer.xr.getController(index);xrRig.add(controller);
- const geom=new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(),new THREE.Vector3(0,0,-8)]);
- const line=new THREE.Line(geom,new THREE.LineBasicMaterial({color:0xa6ffe3,transparent:true,opacity:.78,depthTest:false}));
- controller.add(line);
- controller.addEventListener('connected',event=>{controller.userData.xrInput=event.data;line.visible=true});
- controller.addEventListener('disconnected',()=>{controller.userData.xrInput=null;line.visible=false});
+ const material=new THREE.ShaderMaterial({
+  ...xrRayShader,uniforms:{uTime:{value:0},uHover:{value:0}},
+  transparent:true,depthTest:false,depthWrite:false,side:THREE.DoubleSide,
+  blending:THREE.AdditiveBlending});
+ const beam=new THREE.Mesh(xrRayBeamGeometry,material);
+ beam.renderOrder=10020;beam.position.z=-1;beam.scale.z=2;beam.visible=false;controller.add(beam);
+ const dot=new THREE.Mesh(xrRayDotGeometry,new THREE.MeshBasicMaterial({
+  color:0xd6fff1,transparent:true,opacity:.95,depthTest:false,depthWrite:false}));
+ dot.renderOrder=10030;dot.visible=false;controller.add(dot);
+ controller.userData.xrBeam=beam;controller.userData.xrDot=dot;
+ controller.addEventListener('connected',event=>{controller.userData.xrInput=event.data;beam.visible=true});
+ controller.addEventListener('disconnected',()=>{controller.userData.xrInput=null;beam.visible=false;dot.visible=false});
  controller.addEventListener('selectstart',event=>xrSelectControllerStart(controller,event));
  controller.addEventListener('selectend',()=>xrSelectControllerEnd(controller));
  controller.addEventListener('squeezestart',()=>{
-  if(!xrActive||!xrUI.open||xrUI.grab)return;
-  const hit=xrPanelHit(xrRayFromController(controller));
-  if(hit){xrUI.follow=false;xrUI.grab={controller,distance:clamp(controller.getWorldPosition(new THREE.Vector3()).distanceTo(xrUI.panel.position),.85,2.1)};xrPanelDraw();xrSound('move');}
+  if(!xrActive||xrUI.grab)return;
+  const ray=xrRayFromController(controller);
+  if(xrPanelSurfaceHit(ray)&&!xrPanelHit(ray))xrBeginPanelGrab(controller,ray);
  });
  controller.addEventListener('squeezeend',()=>{if(xrUI.grab?.controller===controller)xrUI.grab=null});
  return controller;
 });
-function xrTeleportTo(position){
- if(!xrActive)return;
- const head=renderer.xr.getCamera();
- const worldHead=head.getWorldPosition(new THREE.Vector3());
- xrRig.position.x+=position.x-worldHead.x;
- xrRig.position.z+=position.z-worldHead.z;
- xrRig.position.y+=position.y-(worldHead.y-1.58);
+function xrViewerFloorAt(position,lookTarget=null,frame=renderer.xr.getFrame()){
+ const head=xrTrackedHead(frame);if(!head)return false;
+ let yaw=0;
+ if(lookTarget){
+  const direction=lookTarget.clone().sub(position);direction.y=0;
+  if(direction.lengthSq()>.01){
+   const current=xrHorizontalFacing(head.rotation);
+   yaw=Math.atan2(-direction.x,-direction.z)-Math.atan2(-current.x,-current.z);
+  }
+ }else yaw=new THREE.Euler().setFromQuaternion(xrRig.quaternion,'YXZ').y;
+ xrRig.quaternion.setFromAxisAngle(new THREE.Vector3(0,1,0),yaw);
+ const local=head.local.clone().applyQuaternion(xrRig.quaternion);
+ xrRig.position.set(position.x-local.x,position.y,position.z-local.z);
+ xrRig.updateMatrixWorld(true);xrUI.snapFollow=true;
+ return true;
+}
+function xrOutsideSpawn(frame){
+ if(!car)return false;
+ const carPos=car.getWorldPosition(new THREE.Vector3());
+ const forward=new THREE.Vector3(0,0,1).applyQuaternion(car.getWorldQuaternion(new THREE.Quaternion()));
+ forward.y=0;if(forward.lengthSq()<.01)forward.set(0,0,1);forward.normalize();
+ const side=new THREE.Vector3(forward.z,0,-forward.x);
+ const target=carPos.clone().addScaledVector(side,Math.max(2.2,cfg.W*.5+1.6))
+  .addScaledVector(forward,Math.min(cfg.L*.2,1.5));
+ target.y=heightAt(target.x,target.z);
+ const aim=carPos.clone();aim.y=target.y+1;
+ return xrViewerFloorAt(target,aim,frame);
+}
+function xrTeleportTo(position,frame){
+ if(!xrActive||xrSeated)return;
+ const target=position.clone();target.y=heightAt(target.x,target.z);
+ if(!xrViewerFloorAt(target,null,frame))return;
+ xrUI.teleport=null;xrTeleportMark.visible=false;xrSound('move');
  note('WebXR teleport: '+position.x.toFixed(1)+', '+position.z.toFixed(1));
 }
 async function xrEnterCabin(){
  if(!xrActive||!car){note('Start an immersive XR session before entering the cabin.',true);return}
  if(mode!=='drive')await enterDrive();
  if(mode!=='drive'){note('Vehicle physics must be running before XR driving.',true);return}
- xrSeated=true;xrOutside=false;xrResetHold=0;
+ const head=xrTrackedHead();
+ if(!head){note('Waiting for headset tracking before seating.',true);xrSound('error');return}
+ // Headset forward (-Z) must point toward the car's nose (+Z) at entry.
+ const forward=xrHorizontalFacing(head.rotation);
+ const localHeading=Math.atan2(-forward.x,-forward.z);
+ xrCabinOffset.setFromAxisAngle(new THREE.Vector3(0,1,0),Math.PI-localHeading);
+ xrCabinFloorPose=head.local.clone();
+ xrSeated=true;xrOutside=false;xrResetHold=0;xrHideDriverFigure();
  if(themeSettings.hintsEnabled&&!xrUI.open){drawXRHint('Left stick steer · right trigger accelerate');hintState.until=performance.now()+1800;}
  cfg.autopilot=false;updateAutopilotButton();
  xrButtons.clear();doorsOpen=false;
  updateXRVehicleRig();if(xrUI.panel)xrPanelDraw();trackUsage('xr_seated');
  note('XR driving · left stick steer · right trigger accelerate · left trigger brake');
 }
+// Driver eye is anchored to the steering wheel/driver seat, not to the roof.
+// The XR floor pose is removed ONCE on entry; the user's subsequent physical
+// lean remains tracked while the car moves.
+let xrCabinOffset=new THREE.Quaternion(),xrCabinFloorPose=null;
+let xrHiddenDriverFigure=null,xrDriverFigureWasVisible=false;
+function xrHideDriverFigure(){
+ const figure=rigs[0]?.figure||null;
+ if(xrHiddenDriverFigure===figure)return;
+ xrRestoreDriverFigure();
+ if(figure){xrHiddenDriverFigure=figure;xrDriverFigureWasVisible=figure.visible;figure.visible=false}
+}
+function xrRestoreDriverFigure(){
+ if(xrHiddenDriverFigure)xrHiddenDriverFigure.visible=xrDriverFigureWasVisible;
+ xrHiddenDriverFigure=null;
+}
+function xrDriverEye(){
+ if(!car)return null;
+ if(steeringWheel){
+  const wheel=car.worldToLocal(steeringWheel.getWorldPosition(new THREE.Vector3()));
+  const seat=editableVehicleParts.get('seat:0');
+  const seatLocal=seat?car.worldToLocal(seat.getWorldPosition(new THREE.Vector3())):null;
+  const distance=clamp(cfg.L*.065,.24,.5);
+  return new THREE.Vector3(
+   seatLocal?THREE.MathUtils.lerp(wheel.x,seatLocal.x,.35):wheel.x,
+   wheel.y+clamp(cfg.H*.17,.23,.39),wheel.z-distance);
+ }
+ const seat=editableVehicleParts.get('seat:0');
+ if(seat){const local=car.worldToLocal(seat.getWorldPosition(new THREE.Vector3()));
+  return local.add(new THREE.Vector3(0,clamp(cfg.H*.32,.45,.75),-.04))}
+ return new THREE.Vector3(-cfg.W*.22,Math.max(.35,cfg.H*.40),cfg.L*.1);
+}
+function xrCarYaw(){
+ const forward=new THREE.Vector3(0,0,1).applyQuaternion(car.getWorldQuaternion(new THREE.Quaternion()));
+ forward.y=0;if(forward.lengthSq()<.01)forward.set(0,0,1);forward.normalize();
+ return Math.atan2(forward.x,forward.z);
+}
 function updateXRVehicleRig(){
  if(!xrActive||!xrSeated||!car)return;
- const offset=xrOutside
-  ?new THREE.Vector3(0,cfg.H*1.75,-cfg.L*2.0)
-  :new THREE.Vector3(-cfg.W*.22,Math.max(.65,cfg.H*.70),cfg.L*.13);
- const point=car.localToWorld(offset);
+ const yaw=xrCarYaw();
+ const carTurn=new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,1,0),yaw);
+ xrRig.quaternion.copy(carTurn).multiply(xrCabinOffset);
+ const local=xrOutside
+  ?new THREE.Vector3(0,cfg.H*1.65,-cfg.L*1.8)
+  :xrDriverEye();
+ const point=car.localToWorld(local);
+ if(xrCabinFloorPose)point.sub(xrCabinFloorPose.clone().applyQuaternion(xrRig.quaternion));
  xrRig.position.copy(point);
- xrRig.quaternion.copy(car.quaternion);
- if(xrOutside){const q=new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,1,0),xrRightLook);
-  xrRig.quaternion.multiply(q)}
+ xrRig.updateMatrixWorld(true);
 }
 function updateXRDriving(dt){
  if(!xrActive||!xrSession||!xrSeated||mode!=='drive')return;
@@ -8374,17 +8542,15 @@ function updateXRDriving(dt){
    steer=Math.abs(stick)>.12?stick:0;
    brake=clamp(buttons[0]?.value||0,0,1);
    if(xrEdge('left-menu',buttons[4]?.pressed)&&!source.hand)xrPanelToggle();
-   if(xrEdge('left-5',buttons[5]?.pressed)){xrOutside=!xrOutside;xrRightLook=0;
-    note('XR camera: '+(xrOutside?'Exterior chase':'Seated cockpit'))}
-   if(xrEdge('left-3',buttons[3]?.pressed)){
-    xrRightLook=0;updateXRVehicleRig();note('XR orientation recentered.');}
+   // Ride stays inside the driver's seat; no accidental chase-camera switch.
+   // Thumbstick click is reserved for teleport outside the vehicle.
   }else if(source.handedness==='right'){
    throttle=clamp(buttons[0]?.value||0,0,1);
    handbrake=!!buttons[1]?.pressed;
    if(xrEdge('right-4',buttons[4]?.pressed))xrHorn();
    if(xrEdge('right-5',buttons[5]?.pressed)){
     xrExitCar();xrPanelShow(true);return;}
-   if(xrOutside&&Math.abs(stick)>.18)xrRightLook+=stick*dt*.8;
+   // Right thumbstick remains available for future deliberate cockpit controls.
   }
  }
  // Smoother steering at speed to avoid nausea and wheel oscillation.
@@ -8406,10 +8572,12 @@ async function toggleXR(){
  try{
   const session=await navigator.xr.requestSession('immersive-vr',{optionalFeatures:['local-floor','bounded-floor','hand-tracking']});
   xrSession=session;xrActive=true;xrSeated=false;xrOutside=false;xrButtons.clear();orbit.enabled=false;orbit.autoRotate=false;dismissExperienceHint();
+  xrUI.spawnPending=true;xrUI.lastHeadPose=null;xrUI.followOffset.set(0,-.30,-.94);xrUI.snapFollow=true;xrUI.teleport=null;
   trackUsage('xr_started');
   $('xrLaunchHero').hidden=true;xrRig.position.set(0,0,0);xrRig.attach(camera);
   session.addEventListener('end',()=>{
-   xrActive=false;xrSession=null;xrSeated=false;xrTeleportMark.visible=false;xrButtons.clear();
+   xrActive=false;xrSession=null;xrSeated=false;xrCabinFloorPose=null;xrRestoreDriverFigure();xrTeleportMark.visible=false;xrButtons.clear();
+   for(const c of xrControllers){c.userData.xrBeam.visible=false;c.userData.xrDot.visible=false;}
    xrDriving.throttle=0;xrDriving.brake=false;dismissExperienceHint();disposeXRHint();xrSound('leave');xrUICleanup();trackUsage('xr_ended');
    scene.attach(camera);orbit.enabled=true;
    preserveCameraOrbit();camera.position.copy(orbit.target).add(offset);orbit.update();
@@ -8425,7 +8593,8 @@ $('xrBtn').onclick=()=>void toggleXR().catch(e=>note('WebXR: '+e.message,true));
 $('xrSeatBtn').onclick=()=>void xrEnterCabin().catch(e=>note(e.message,true));
 function updateXRInteraction(dt,frame){
  if(!xrActive)return;
- if(xrSeated)updateXRVehicleRig();
+ if(xrUI.spawnPending&&xrOutsideSpawn(frame)){xrUI.spawnPending=false;xrUI.snapFollow=true;}
+ if(xrSeated){xrHideDriverFigure();updateXRVehicleRig()}
  xrUIFrame(dt,frame);
 }
 
@@ -12188,6 +12357,7 @@ $('galleryRefreshBtn').onclick=()=>{gallerySource='public';setWindowVisible('gal
 $('layoutPublic').onchange=()=>{serverVisibility=$('layoutPublic').checked?'public':'private'};
 
 const RELEASE_NOTES=[
+ {v:'0.3.55',date:'2026-11-18',title:'XR spatial navigation and cockpit alignment',items:['The compact Build/Ride menu follows the tracked headset after walking or teleporting, smoothly turns to face the player, and can be dragged from any non-button surface while following or pinned.', 'XR entry places the player outside beside the car, facing it. Ride places their eyes inside the cabin just above and behind the steering wheel, accounting for real headset height.', 'Teleporting requires a held controller thumbstick click and releases to land; select triggers are reserved for UI and component manipulation.', 'Controller rays show bright animated rectangular beams and visible UI contact dots. XR changes affect presentation only; no stored maps, cars or backend data are changed.']},
  {v:'0.3.54',date:'2026-11-18',title:'Immersive VR workshop and navigation',items:['Headset-only central Enter VR launch using supplied VR icon; controller-readable follow/pin/minimize spatial menu with Build and Ride actions.', 'XR ray editing: select car parts and drag X/Y/Z move, rotate or scale handles; edits use the existing part overrides and history.', 'Ride menu: restart at origin, upright recovery and safe standing exit near the car; left hand pinch or left X opens the menu.', 'Procedural interface sounds, hover states and controller haptics. No backend migration or watcher changes.']},
  {v:'0.3.53',date:'2026-11-18',title:'Configurable scene hints and tyre slip feedback',items:['Optional 1.8-second scene, rollover-recovery and idle Actions hints appear at the bottom of the scene, with a persistent Settings toggle.', 'Driving wheels can visually spin under throttle when stuck and lock under braking; optional capped dust, mud and water feedback is off by default.', 'Rendering-only tyre feedback leaves all existing physics solvers and published maps untouched; no backend migration or watcher update.']},
  {v:'0.3.52',date:'2026-11-13',title:'Community map discovery and linked-world loading',items:['Public world maps now appear in Test map and My media → Maps → Community, including on another device without signing in.', 'Open a public snapshot car and choose whether to load its matching world map; standalone car loading keeps local terrain.', 'Map-only public API avoids unnecessary car/GLB transfers on Quest; existing private work, links and publishing permissions remain unchanged.']},
