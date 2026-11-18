@@ -5,7 +5,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Vehicle Lab — Procedural Studio</title>
-  <meta name="vehicle-lab-version" content="0.3.52">
+  <meta name="vehicle-lab-version" content="0.3.53">
   <style>
     :root {
       color-scheme:dark;
@@ -1114,6 +1114,10 @@ input[type=color]:focus-visible{outline:2px solid var(--accent)!important;outlin
 .publish-dialog .publish-kind{font-weight:600}
 .publish-dialog .publish-select-hidden{position:absolute!important;width:1px!important;height:1px!important;opacity:0;pointer-events:none;overflow:hidden}
 @media(max-width:690px){#sceneTreeWindow{left:5px;top:100px;width:min(390px,95vw)}.publish-dialog{padding:12px}}
+/* v0.3.53 — short, non-interactive driving guidance. Never steals focus. */
+#experienceHint{position:fixed;left:50%;bottom:max(22px,env(safe-area-inset-bottom,0px) + 16px);transform:translateX(-50%);z-index:8990;max-width:min(88vw,560px);padding:11px 20px;border:1px solid #759bb1bb;border-radius:12px;background:#102b3ae8;color:#f4f8fc;box-shadow:0 6px 22px #0005;text-align:center;font:600 clamp(13px,1.5vw,17px)/1.3 system-ui,sans-serif;pointer-events:none;user-select:none;-webkit-user-select:none;backdrop-filter:blur(6px)}
+#experienceHint[hidden]{display:none}
+@media(prefers-reduced-motion:reduce){#experienceHint{backdrop-filter:none}}
 /* v0.3.48 · unified vehicle controls and consistent transform editing */
 #vehicleControlsWindow{left:calc(100vw - 820px);top:130px;width:380px;min-width:320px;max-width:calc(100vw - 10px);height:min(720px,80vh)}
 #vehicleControlsWindow .window-body{display:flex;flex-direction:column;gap:8px;min-height:0;overflow:auto}
@@ -1160,8 +1164,9 @@ input[type=color]:focus-visible{outline:2px solid var(--accent)!important;outlin
 <body>
 
   <div id="stage">
+  <div id="experienceHint" role="status" aria-live="polite" aria-atomic="true" hidden></div>
   <div id="hud">
-    <div class="stage-badge"><strong>Vehicle Lab</strong><small id="appVersionBadge">v0.3.52</small></div>
+    <div class="stage-badge"><strong>Vehicle Lab</strong><small id="appVersionBadge">v0.3.53</small></div>
     <p id="vehicleName">City Car</p><p id="vehicleInfo">Procedural vehicle</p>
     <div id="speedHud"><strong id="speed">0</strong><div>km/h</div></div>
     <div id="cameraModeReadout" style="padding:3px 6px;margin-top:4px;width:max-content;max-width:260px;border-radius:5px;background:#132d3cc0;color:#e9f5fc;font:10px ui-monospace,monospace">Camera · Orbit follow</div>
@@ -1639,6 +1644,10 @@ input[type=color]:focus-visible{outline:2px solid var(--accent)!important;outlin
     <div class="drawer-actions"><button id="resetWorkspace">Reset window positions</button><button id="openLogs">Application logs</button>
       <button id="workspaceExport">Export workspace JSON</button><button id="workspaceImport">Import workspace JSON</button></div>
   </details>
+  <details><summary>Guidance & driving feedback</summary>
+    <label class="inline-field"><input type="checkbox" id="guidanceHints" checked> Show short on-screen hints</label>
+    <small>1.8-second hints after a world loads, when the car is flipped, and occasionally when idle. Hints can be disabled here at any time. Driving tyre slip and spray are configured in Parameters → Physics & camera.</small>
+  </details>
   <details><summary>Theme & typography</summary><p>Changes affect the interface; exported separately from your profile.</p>
     <label>Theme preset<select id="themeChoice" aria-label="Theme preset"></select></label>
     <div class="theme-generator"><button type="button" id="generateTheme" title="Generate an accessible theme" aria-label="Generate accessible theme">✦ Generate accessible variant</button><small id="themeContrast" role="status">WCAG AA</small></div>
@@ -2019,6 +2028,7 @@ input[type=color]:focus-visible{outline:2px solid var(--accent)!important;outlin
    frontRake:.64,rearRake:.42,roofWidth:.76,roofArch:.045,
    doorStyle:'swing',galleryBackdrop:'studio',galleryBackdropColor:'#eff4fa',
    galleryExposure:1.65,driveHidePanels:true,
+   wheelSlipVisual:true,wheelSpray:false,slipResponse:1,
    seatWidth:.29,seatHeight:.10,seatBackHeight:.32,seatRecline:0,
    dashDepth:.42,dashHeight:.22,dashOffsetX:0,dashOffsetZ:0,steeringRadius:.17,steeringX:0,steeringY:0,steeringZ:0,
    lampWidth:.25,lampHeight:.12,frontLampWidth:.25,frontLampHeight:.12,rearLampWidth:.25,rearLampHeight:.12,headlightPower:18,headlightColor:'#fff4ce',tailLightColor:'#fa263e',
@@ -2101,6 +2111,8 @@ function normalizeVehicleConfig(){
   if(ov.position||ov.scale){delete ov.position;delete ov.scale;}
  }
 
+ for(const key of ['wheelSlipVisual','wheelSpray'])if(typeof cfg[key]!=='boolean')cfg[key]=defaults[key];
+ cfg.slipResponse=Number.isFinite(Number(cfg.slipResponse))?clamp(Number(cfg.slipResponse),.25,2):1;
  if(!CAMERA_MODES.includes(cfg.cameraMode))cfg.cameraMode='orbit';
  for(const [k,min,max,fallback] of [['cameraFollowLag',.015,.32,.07],['cameraVerticalLag',.035,.9,.20],['cameraClearanceLag',.035,1.2,.22]]){
   if(!Number.isFinite(Number(cfg[k])))cfg[k]=fallback;else cfg[k]=clamp(Number(cfg[k]),min,max);
@@ -2319,7 +2331,7 @@ let ghostObject=null,ghostSamples=[],ghostElapsed=0,ghostTick=0;
  function appConfirm(message){return showAppDialog('confirm',message)}
  function appPrompt(message,value='',options={}){return showAppDialog('prompt',message,value,options)}
 
- const VERSION='0.3.52';
+ const VERSION='0.3.53';
  document.getElementById('appVersionBadge').textContent='v'+VERSION;
  let imageReference=null,busyAI=false;
 
@@ -4469,7 +4481,7 @@ function cycleCamera(){
 function resetUpright(){
  if(mode!=='drive'||!physics){note('Enter DRIVE to reset a flipped vehicle.');return}
  if(typeof physics.upright!=='function'){note('Upright recovery unavailable in this solver.',true);return}
- physics.upright();resetPhysicsInterpolation();note('Vehicle upright recovery applied.');
+ physics.upright();resetPhysicsInterpolation();hintState.flippedSince=0;hintState.flippedNotified=false;dismissExperienceHint();note('Vehicle upright recovery applied.');
 }
 async function resetDriveOrigin(){
  const wasDriving=mode==='drive';
@@ -4740,6 +4752,104 @@ const motorPower=()=>({electric:4500,petrol:3600,diesel:4900,hybrid:4000,hydroge
 const wheelAxle=i=>Math.floor(i/2);
 const WHEEL_SUSPENSION_REST_LENGTH=.32; // Attachment-to-wheel-centre distance at rest; shared by BUILD and all physics solvers.
 const wheelSpinAngles=[];
+const wheelVisualRates=[],wheelSlipAmounts=[];
+let sprayCooldown=0,sprayCloud=null;
+// Rendering-only wheel feedback. Physical wheel traction, suspension and force
+// remain entirely owned by the selected physics solver.
+function visualWheelRate(i,dt,forward,input,grip){
+ const axle=wheelAxle(i),side=i%2===0?-1:1;
+ const radius=cfg.wheelSizing?.[wheelSpecKey(axle,side)]?.radius||wheelRadiusFor(axle);
+ const roadRate=clamp(forward,-70,70)/Math.max(.12,radius);
+ const throttle=drivenWheel(i)&&!input.handbrake?clamp(input.throttle||0,-1,1):0;
+ const wheelBrake=!!input.brake||(!!input.handbrake&&axle===cfg.axles-1);
+ let target=roadRate;
+ if(cfg.wheelSlipVisual&&Math.abs(throttle)>.10&&!wheelBrake){
+  const lowTraction=clamp(1.05-grip,0,.85);
+  const extra=(5+lowTraction*12)*Math.abs(throttle)*cfg.slipResponse*Math.exp(-Math.abs(forward)/10);
+  target+=Math.sign(throttle)*extra;
+ }
+ // Lock-up is visual only; it must never change brake force or grip.
+ if(cfg.wheelSlipVisual&&wheelBrake)target=0;
+ const responsiveness=wheelBrake?22:12;
+ const previous=wheelVisualRates[i]??roadRate;
+ const rate=!cfg.wheelSlipVisual?roadRate:previous+(target-previous)*(1-Math.exp(-Math.max(0,dt)*responsiveness));
+ wheelVisualRates[i]=rate;
+ wheelSlipAmounts[i]=cfg.wheelSlipVisual?Math.abs(rate*radius-forward):0;
+ return rate;
+}
+// Allocation is lazy: a single reusable Points draw call with at most 96
+// small untextured particles, and zero GPU work when the optional spray is off.
+function createWheelSpray(){
+ if(sprayCloud)return sprayCloud;
+ const count=96,positions=new Float32Array(count*3),colors=new Float32Array(count*3);
+ const velocity=new Float32Array(count*3),life=new Float32Array(count);
+ for(let i=0;i<count;i++)positions[i*3+1]=-10000;
+ const geometry=new THREE.BufferGeometry();
+ geometry.setAttribute('position',new THREE.BufferAttribute(positions,3).setUsage(THREE.DynamicDrawUsage));
+ geometry.setAttribute('color',new THREE.BufferAttribute(colors,3).setUsage(THREE.DynamicDrawUsage));
+ const points=new THREE.Points(geometry,new THREE.PointsMaterial({size:.13,vertexColors:true,transparent:true,opacity:.7,depthWrite:false,sizeAttenuation:true}));
+ points.frustumCulled=false;points.visible=false;scene.add(points);
+ return sprayCloud={count,points,geometry,positions,colors,velocity,life,cursor:0,active:false};
+}
+function disposeWheelSpray(){
+ if(!sprayCloud)return;
+ scene.remove(sprayCloud.points);sprayCloud.geometry.dispose();sprayCloud.points.material.dispose();sprayCloud=null;sprayCooldown=0;
+}
+function updateWheelSpray(dt){
+ if(!sprayCloud||!sprayCloud.active)return;
+ const s=sprayCloud;let living=false;
+ for(let i=0;i<s.count;i++){
+  if(s.life[i]<=0)continue;
+  const j=i*3;s.life[i]=Math.max(0,s.life[i]-dt);
+  if(!s.life[i]){s.positions[j+1]=-10000;continue}
+  living=true;
+  s.positions[j]+=s.velocity[j]*dt;s.positions[j+1]+=s.velocity[j+1]*dt;
+  s.positions[j+2]+=s.velocity[j+2]*dt;s.velocity[j+1]-=4.5*dt;
+ }
+ s.active=living;s.points.visible=living;
+ if(living)s.geometry.attributes.position.needsUpdate=true;
+}
+function emitWheelSlipSpray(dt){
+ if(!cfg.wheelSpray||!cfg.wheelSlipVisual||!physics||!wheels.length){if(sprayCloud)disposeWheelSpray();return}
+ sprayCooldown+=dt;
+ if(sprayCooldown<.09)return;
+ sprayCooldown=0;
+ let cloud=null;
+ const direction=new THREE.Vector3(0,0,1).applyQuaternion(car.quaternion);
+ const maxEmit=Math.min(wheels.length,6); // no unbounded cost for long vehicles
+ for(let i=0;i<maxEmit;i++){
+  const slip=wheelSlipAmounts[i]||0;
+  if(slip<1.2)continue;
+  const axle=wheelAxle(i),side=i%2===0?-1:1,spec=wheelSpec(axle,side),pos=wheels[i].position;
+  const ground=heightAt(pos.x,pos.z);
+  if(Math.abs(pos.y-spec.radius-ground)>.38)continue; // airborne wheels cannot kick up soil
+  const sea=(cfg.seaEnabled||cfg.terrainProfile==='beach')&&ground<cfg.waterLevel+.18;
+  const puddle=!sea&&puddleAt(pos.x,pos.z);
+  const muddy=puddle&&['dirt','grass','gravel','sand'].includes(cfg.groundSurface);
+  if(sea||(puddle&&!muddy)){
+   if(cfg.waterEffect)splashAt(pos.x,Math.max(ground,cfg.waterLevel)+.09,pos.z,Math.max(2,slip));
+   continue;
+  }
+  if(!cloud)cloud=createWheelSpray();
+  const surface=cfg.groundSurface;
+  const color=muddy?[.33,.28,.22]:surface==='snow'?[.91,.94,.97]:surface==='sand'?[.73,.63,.43]:surface==='grass'?[.42,.45,.31]:[.55,.45,.33];
+  for(let k=0;k<2;k++){
+   const j=(cloud.cursor++%cloud.count)*3,id=j/3;
+   cloud.life[id]=.26+Math.random()*.34;
+   cloud.positions[j]=pos.x+(Math.random()-.5)*.22;
+   cloud.positions[j+1]=ground+.11;
+   cloud.positions[j+2]=pos.z+(Math.random()-.5)*.22;
+   const backward=(Math.sign(wheelVisualRates[i]||1)||1)*(.6+Math.random()*1.3);
+   cloud.velocity[j]=-direction.x*backward+(Math.random()-.5)*1.2;
+   cloud.velocity[j+1]=.5+Math.random()*1.4;
+   cloud.velocity[j+2]=-direction.z*backward+(Math.random()-.5)*1.2;
+   cloud.colors[j]=color[0];cloud.colors[j+1]=color[1];cloud.colors[j+2]=color[2];
+  }
+  cloud.active=true;cloud.points.visible=true;
+ }
+ if(cloud){cloud.geometry.attributes.position.needsUpdate=true;cloud.geometry.attributes.color.needsUpdate=true}
+}
+
 const wheelRadiusFor=axle=>axle===0?(cfg.frontWheelRadius||cfg.radius):(cfg.rearWheelRadius||cfg.radius);
 const wheelMountYFor=axle=>axle===0?(cfg.frontWheelMountY??-.3):(cfg.rearWheelMountY??-.3);
 const wheelWidthFor=axle=>axle===0?(cfg.frontWheelWidth||cfg.wheelWidth):(cfg.rearWheelWidth||cfg.wheelWidth);
@@ -5230,7 +5340,7 @@ async function enterDrive(){
   if(highlightGlow){highlightGlow.dispose();scene.remove(highlightGlow);highlightGlow=null}
   clearThickHighlight();
   for(const w of wheels)scene.attach(w);
-  telemetry.stepCount=0;telemetry.stepMs=0;wheelSpinAngles.length=0;
+  telemetry.stepCount=0;telemetry.stepMs=0;wheelSpinAngles.length=0;wheelVisualRates.length=0;wheelSlipAmounts.length=0;sprayCooldown=0;
   updatePhysicsHud();updateCameraLabel();updateAutopilotButton();
   trackUsage('drive_started');note(ENGINE_LABELS[simulator.engine]+': arrows / joystick to drive · Space / touch to brake · Orbit / pinch to follow');
  }catch(e){
@@ -5252,6 +5362,7 @@ function leaveDrive(){
    o.rotX=THREE.MathUtils.radToDeg(m.rotation.x);o.angle=THREE.MathUtils.radToDeg(m.rotation.y);o.rotZ=THREE.MathUtils.radToDeg(m.rotation.z);}
  }}
  try{physics?.destroy()}catch(e){console.warn('Physics cleanup',e)}
+ disposeWheelSpray();wheelVisualRates.length=0;wheelSlipAmounts.length=0;
  trackUsage('drive_ended');vehicleAudio.stop();physics=null;mode='build';driveSceneEditing=false;driveSceneCameraSnapshot=null;parkingBrake=false;updateParkingBrake();stepAccumulator=0;previousYaw=null;braking=false;
  physicsVisual.previous=physicsVisual.current=null;clearFollowLift();orbit.enabled=!xrActive;
  $('buildBtn').classList.add('active');
@@ -5484,17 +5595,22 @@ function stepVehicle(dt){
  for(const wheel of wheels){
   wheel.position.sub(current.position).applyQuaternion(wheelPoseCorrection).add(car.position);
  }
- // The wheel graphics rotate about +local X: a positive roll carries the tyre
- // TOP forward toward +Z. Identical world spin on both sides, regardless of
- // GLB wheel-face mirroring. Physics still owns suspension/contact positions.
+ // The physics solver owns contact and suspension, while the optional visual
+ // slip lets driven tyres spin against the ground even if the chassis is stuck.
+ // Braking/handbrake can lock wheel graphics without changing solver forces.
  const forward=clamp(physics.getForwardSpeed?.()||0,-70,70);
- const steerNow=inputForStep().steer||0;
+ const visualInput=inputForStep(),steerNow=visualInput.steer||0;
+ const grip=cfg.wheelSlipVisual?surfaceGrip(p.position.x,p.position.z):1;
  for(let i=0;i<wheels.length;i++){
-   wheelSpinAngles[i]=(wheelSpinAngles[i]||0)+forward*dt/Math.max(.12,wheelRadiusFor(wheelAxle(i)));
+   const rate=visualWheelRate(i,dt,forward,{...visualInput,brake:braking},grip);
+   wheelSpinAngles[i]=(wheelSpinAngles[i]||0)+rate*dt;
+   // Keep angles finite during long-running headset sessions.
+   if(Math.abs(wheelSpinAngles[i])>Math.PI*2)wheelSpinAngles[i]%=Math.PI*2;
    const spin=new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1,0,0),wheelSpinAngles[i]);
    const steering=new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,1,0),wheelAxle(i)===0?-steerNow*.47:0);
    wheels[i].quaternion.copy(car.quaternion).multiply(steering).multiply(spin);
  }
+ emitWheelSlipSpray(dt);
  updateLights();followCamera(dt);recordGhost(dt);
  leaveWheelTracks(p,dt);
  if(cfg.waterEffect&&physics.getSpeed()>1.5){
@@ -7140,6 +7256,15 @@ const driving=gui.addFolder('08 · Physics solver & camera');
  driving.add({run:()=>startBenchmark()},'run').name('Run controlled drive test');
  driving.add({csv:exportBenchmarks},'csv').name('Export benchmark CSV');
 driving.add(cfg,'maxSpeed',15,180,5).name('Max speed km/h');
+const tyreVisuals=driving.addFolder('Tyre grip / slip visuals');
+tyreVisuals.add(cfg,'wheelSlipVisual').name('Throttle spin / brake lock').onChange(value=>{
+ if(!value)disposeWheelSpray();scheduleHistory('Wheel slip visuals');
+});
+tyreVisuals.add(cfg,'slipResponse',.25,2,.05).name('Slip response').onFinishChange(()=>scheduleHistory('Wheel slip response'));
+tyreVisuals.add(cfg,'wheelSpray').name('Dust / mud / water spray').onChange(value=>{
+ if(!value)disposeWheelSpray();scheduleHistory('Wheel spray');
+});
+tyreVisuals.close();
  driving.add(cfg,'cameraMode',Object.fromEntries(CAMERA_MODES.map(v=>[CAMERA_LABELS[v],v]))).name('Drive camera mode').onChange(()=>{followRig.yaw=null;updateCameraLabel();scheduleHistory('Camera mode')});
  const followTuning=driving.addFolder('Orbit follow · smoothness');
  followTuning.add(cfg,'cameraFollowLag',.015,.32,.005).name('Horizontal lag (s)').onFinishChange(()=>scheduleHistory('Camera follow lag'));
@@ -7781,6 +7906,7 @@ async function xrEnterCabin(){
  if(mode!=='drive')await enterDrive();
  if(mode!=='drive'){note('Vehicle physics must be running before XR driving.',true);return}
  xrSeated=true;xrOutside=false;xrResetHold=0;
+ if(themeSettings.hintsEnabled){drawXRHint('Left stick steer · right trigger accelerate');hintState.until=performance.now()+1800;}
  cfg.autopilot=false;updateAutopilotButton();
  xrButtons.clear();doorsOpen=false;
  updateXRVehicleRig();trackUsage('xr_seated');
@@ -7843,19 +7969,20 @@ async function toggleXR(){
  const offset=camera.position.clone().sub(orbit.target);
  try{
   const session=await navigator.xr.requestSession('immersive-vr',{optionalFeatures:['local-floor','bounded-floor']});
-  xrSession=session;xrActive=true;xrSeated=false;xrOutside=false;xrButtons.clear();orbit.enabled=false;orbit.autoRotate=false;
+  xrSession=session;xrActive=true;xrSeated=false;xrOutside=false;xrButtons.clear();orbit.enabled=false;orbit.autoRotate=false;dismissExperienceHint();
   trackUsage('xr_started');
   xrRig.position.set(0,0,0);xrRig.attach(camera);
   session.addEventListener('end',()=>{
    xrActive=false;xrSession=null;xrSeated=false;xrTeleportMark.visible=false;xrButtons.clear();
-   xrDriving.throttle=0;xrDriving.brake=false;trackUsage('xr_ended');
+   xrDriving.throttle=0;xrDriving.brake=false;dismissExperienceHint();disposeXRHint();trackUsage('xr_ended');
    scene.attach(camera);orbit.enabled=true;
    preserveCameraOrbit();camera.position.copy(orbit.target).add(offset);orbit.update();
    $('xrBtn').dataset.actionLabel='Enter XR';applyButtonMode();
   });
   await renderer.xr.setSession(session);
   $('xrBtn').dataset.actionLabel='Exit XR';applyButtonMode();
- }catch(e){xrActive=false;xrSession=null;orbit.enabled=true;note('WebXR session: '+e.message,true)}
+  showExperienceHint('BUILD / DRIVE: use Actions before entering XR',true);
+  }catch(e){xrActive=false;xrSession=null;disposeXRHint();orbit.enabled=true;note('WebXR session: '+e.message,true)}
 }
 $('xrBtn').onclick=()=>void toggleXR().catch(e=>note('WebXR: '+e.message,true));
 $('xrSeatBtn').onclick=()=>void xrEnterCabin().catch(e=>note(e.message,true));
@@ -7877,6 +8004,7 @@ const clock=new THREE.Clock();
 function animate(){
  const frameDelta=clock.getDelta();
  const dt=Math.min(frameDelta,.05);
+ updateExperienceGuidance();updateWheelSpray(dt);
  updateXRDriving(dt);
  if(cfg.autopilot&&mode==='drive')autopilotState.time+=dt;
  if($('mapWindow').style.display!=='none'&&!$('mapWindow').classList.contains('is-minimized')&&++mapFrame%12===0)requestMinimapPaint();
@@ -9589,8 +9717,86 @@ function initWorkspace(){
 }
 
 const THEME_STORAGE='vehiclelab.theme.v1';
-const defaultsTheme={theme:'dark',font:'system',size:1,accent:null,panel:null,actionMode:'icon-text',noBorders:false,noShadows:false,introEnabled:true,introSound:true,paneOpacity:93,paneBlur:14,coloredHeaders:false,headerColors:{}};
+const defaultsTheme={hintsEnabled:true,theme:'dark',font:'system',size:1,accent:null,panel:null,actionMode:'icon-text',noBorders:false,noShadows:false,introEnabled:true,introSound:true,paneOpacity:93,paneBlur:14,coloredHeaders:false,headerColors:{}};
 let themeSettings={...defaultsTheme};
+// Short informational hints are global UI preferences, never stored in or
+// published with another creator's vehicle or map.
+const hintState={until:0,lastActivity:performance.now(),idleShown:0,flippedSince:0,flippedNotified:false,nextCheck:0};
+let xrHintCard=null;
+function drawXRHint(message){
+ // Render at most one small, reused billboard anchored below eye level. No
+ // per-frame canvas painting, DOM overlay dependency or extra scene lights.
+ if(!xrHintCard){
+  const canvas=document.createElement('canvas');canvas.width=768;canvas.height=128;
+  const texture=new THREE.CanvasTexture(canvas);
+  texture.colorSpace=THREE.SRGBColorSpace;
+  const material=new THREE.MeshBasicMaterial({map:texture,transparent:true,depthTest:false,depthWrite:false,side:THREE.DoubleSide});
+  const mesh=new THREE.Mesh(new THREE.PlaneGeometry(1.25,.21),material);
+  mesh.position.set(0,-.31,-1.55);mesh.renderOrder=9999;mesh.frustumCulled=false;
+  camera.add(mesh);xrHintCard={mesh,canvas,texture};
+ }
+ const {mesh,canvas,texture}=xrHintCard,ctx=canvas.getContext('2d');
+ ctx.clearRect(0,0,768,128);ctx.fillStyle='rgba(15,41,54,0.90)';
+ ctx.beginPath();ctx.roundRect(4,4,760,120,19);ctx.fill();
+ ctx.strokeStyle='rgba(152,199,221,0.75)';ctx.lineWidth=2;ctx.stroke();
+ ctx.fillStyle='#f4f8fc';ctx.textAlign='center';ctx.textBaseline='middle';
+ ctx.font='600 28px system-ui,sans-serif';ctx.fillText(message,384,64,735);
+ texture.needsUpdate=true;mesh.visible=true;
+}
+function dismissExperienceHint(){
+ const element=$('experienceHint');element.hidden=true;hintState.until=0;
+ if(xrHintCard)xrHintCard.mesh.visible=false;
+}
+function disposeXRHint(){
+ if(!xrHintCard)return;
+ const {mesh,texture}=xrHintCard;camera.remove(mesh);
+ mesh.geometry.dispose();mesh.material.dispose();texture.dispose();xrHintCard=null;
+}
+function showExperienceHint(message,priority=false){
+ if(!themeSettings.hintsEnabled||document.hidden||!car)return;
+ const now=performance.now();
+ if(!priority&&hintState.until>now)return;
+ if(xrActive){
+  const xrMessage=message.includes('"U"')?'Hold left controller button 4 to reset':
+   message.includes('"D"')?'BUILD / DRIVE: use Actions before entering XR':
+   'More controls are available in Actions (desktop)';
+  drawXRHint(xrMessage);$('experienceHint').hidden=true;
+ }else{
+  const element=$('experienceHint');element.textContent=message;element.hidden=false;
+  if(xrHintCard)xrHintCard.mesh.visible=false;
+ }
+ hintState.until=now+1800;
+}
+function sceneReadyHint(){
+ // A world shared by URL is displayed only after its asynchronous assets load.
+ showExperienceHint('Press "D" to Drive or Build',true);
+}
+function updateExperienceGuidance(){
+ const now=performance.now(),element=$('experienceHint');
+ if(hintState.until&&now>=hintState.until)dismissExperienceHint();
+ if(!themeSettings.hintsEnabled||document.hidden||now<hintState.nextCheck)return;
+ hintState.nextCheck=now+500;
+ if(mode==='drive'&&physics){
+  const q=physics.pose().rotation;
+  const up=1-2*(q.x*q.x+q.z*q.z);
+  if(up<.12){
+   if(!hintState.flippedSince)hintState.flippedSince=now;
+   if(!hintState.flippedNotified&&now-hintState.flippedSince>1000){
+    showExperienceHint('Press "U" to reset',true);
+    hintState.flippedNotified=true;
+   }
+  }else if(up>.72){hintState.flippedSince=0;hintState.flippedNotified=false}
+ }else{hintState.flippedSince=0;hintState.flippedNotified=false}
+ if(!xrActive&&mode!=='drive'&&now-hintState.lastActivity>35000&&(!hintState.idleShown||now-hintState.idleShown>95000)&&element.hidden){
+  showExperienceHint('For more see Actions window');hintState.idleShown=now;
+ }
+}
+for(const eventName of ['pointerdown','keydown','wheel','touchstart']){
+ window.addEventListener(eventName,()=>{hintState.lastActivity=performance.now()}, {passive:true,capture:true});
+}
+window.addEventListener('pointermove',event=>{if(event.buttons)hintState.lastActivity=performance.now()},{passive:true});
+document.addEventListener('visibilitychange',()=>{hintState.lastActivity=performance.now();dismissExperienceHint()});
+
 const themes=['dark','light','graphite','amber'];
 const fonts=['system','mono','rounded','Arial','Verdana','Tahoma','Trebuchet MS','Georgia','Times New Roman','Courier New'];
 const scales=[.85,1,1.15,1.3];
@@ -9635,6 +9841,7 @@ function applyTheme(){
   win.style.setProperty('--window-header-color',headColor);
   const swatch=win.querySelector('.window-header-swatch');if(swatch&&swatch.value!==headColor)swatch.value=headColor;
  }
+ $('guidanceHints').checked=themeSettings.hintsEnabled;
  for(const [id,key,label] of [['introEnabled','introEnabled','Splash'],['introSound','introSound','Sound']]){
   const button=$(id);button.setAttribute('aria-pressed',String(Boolean(themeSettings[key])));
   button.textContent=label+(themeSettings[key]?' on':' off');
@@ -9838,6 +10045,7 @@ function initTheme(){
   if(typeof imported.noShadows==='boolean')themeSettings.noShadows=imported.noShadows;
   if(typeof imported.introEnabled==='boolean')themeSettings.introEnabled=imported.introEnabled;
   if(typeof imported.introSound==='boolean')themeSettings.introSound=imported.introSound;
+ if(typeof imported.hintsEnabled==='boolean')themeSettings.hintsEnabled=imported.hintsEnabled;
   if(Number.isInteger(imported.paneOpacity)&&imported.paneOpacity>=25&&imported.paneOpacity<=100)themeSettings.paneOpacity=imported.paneOpacity;
   if(Number.isInteger(imported.paneBlur)&&imported.paneBlur>=0&&imported.paneBlur<=30)themeSettings.paneBlur=imported.paneBlur;
   if(typeof imported.coloredHeaders==='boolean')themeSettings.coloredHeaders=imported.coloredHeaders;
@@ -9861,6 +10069,7 @@ $('themeFile').onchange=async e=>{
    (value.noShadows!=null&&typeof value.noShadows!=='boolean')||
    (value.introEnabled!=null&&typeof value.introEnabled!=='boolean')||
    (value.introSound!=null&&typeof value.introSound!=='boolean')||
+   (value.hintsEnabled!=null&&typeof value.hintsEnabled!=='boolean')||
    (value.paneOpacity!=null&&(!Number.isInteger(value.paneOpacity)||value.paneOpacity<25||value.paneOpacity>100))||
    (value.paneBlur!=null&&(!Number.isInteger(value.paneBlur)||value.paneBlur<0||value.paneBlur>30))||
    (value.coloredHeaders!=null&&typeof value.coloredHeaders!=='boolean')||
@@ -9869,7 +10078,7 @@ $('themeFile').onchange=async e=>{
   themeSettings={theme:value.theme,font:value.font,size:value.size,
    accent:value.accent||null,panel:value.panel||null,actionMode:value.actionMode||'icon-text',
    noBorders:value.noBorders===true,noShadows:value.noShadows===true,
-   introEnabled:value.introEnabled!==false,introSound:value.introSound!==false,
+   introEnabled:value.introEnabled!==false,introSound:value.introSound!==false,hintsEnabled:value.hintsEnabled!==false,
    paneOpacity:value.paneOpacity??93,paneBlur:value.paneBlur??14,coloredHeaders:value.coloredHeaders===true,headerColors:value.headerColors||{}};applyTheme();note('Theme imported.');
  }catch(e){note(e.message,true)}e.target.value='';
 };
@@ -9881,6 +10090,11 @@ for(const [id,field] of [['themeAccent','accent'],['themePanel','panel']]){
 for(const [id,field] of [['themePaneOpacity','paneOpacity'],['themePaneBlur','paneBlur']])
  $(id).addEventListener('input',e=>{themeSettings[field]=Number(e.target.value);applyTheme()});
 $('themeColoredHeaders').onclick=()=>{themeSettings.coloredHeaders=!themeSettings.coloredHeaders;applyTheme()};
+$('guidanceHints').onchange=event=>{
+ themeSettings.hintsEnabled=event.target.checked;
+ if(!themeSettings.hintsEnabled)dismissExperienceHint();
+ applyTheme();
+};
 $('resetWorkspace').onclick=resetWorkspace;
 $('workspaceExport').onclick=()=>{
  let windows={};try{windows=JSON.parse(safeRead('vehiclelab.windows.v1')||'{}')}catch(e){}
@@ -11458,6 +11672,7 @@ async function openGalleryItem(item){
  if(pairedMap)await applySavedTestMap(pairedMap);
  await activatePublicVehicle(record,downloaded);
  note('Loaded complete public vehicle by '+record.creator_name+' · '+downloaded.prepared.length+' linked parts'+(pairedMap?' + community map':'')+'.');
+ requestAnimationFrame(()=>requestAnimationFrame(sceneReadyHint));
 }
 
 async function editLocalMetadata(item){
@@ -11541,6 +11756,7 @@ $('galleryRefreshBtn').onclick=()=>{gallerySource='public';setWindowVisible('gal
 $('layoutPublic').onchange=()=>{serverVisibility=$('layoutPublic').checked?'public':'private'};
 
 const RELEASE_NOTES=[
+ {v:'0.3.53',date:'2026-11-18',title:'Configurable scene hints and tyre slip feedback',items:['Optional 1.8-second scene, rollover-recovery and idle Actions hints appear at the bottom of the scene, with a persistent Settings toggle.', 'Driving wheels can visually spin under throttle when stuck and lock under braking; optional capped dust, mud and water feedback is off by default.', 'Rendering-only tyre feedback leaves all existing physics solvers and published maps untouched; no backend migration or watcher update.']},
  {v:'0.3.52',date:'2026-11-13',title:'Community map discovery and linked-world loading',items:['Public world maps now appear in Test map and My media → Maps → Community, including on another device without signing in.', 'Open a public snapshot car and choose whether to load its matching world map; standalone car loading keeps local terrain.', 'Map-only public API avoids unnecessary car/GLB transfers on Quest; existing private work, links and publishing permissions remain unchanged.']},
  {v:'0.3.51',date:'2026-11-13',title:'One-click world snapshots and gesture-safe UI',items:['Complete world publishes the current active car, terrain and placed objects without saved-item selection or changing private originals.', 'Referenced wheel/avatar GLBs are checked before an atomic public snapshot; missing assets stop publication without exposing an incomplete world.', 'Prevent accidental selection highlighting across controls while retaining text selection in editors, inputs and logs.']},
  {v:'0.3.50',date:'2026-11-12',title:'Studio framing, working drafts, separate lamps and complete sharing',items:['Studio reference shots use conservative complete-body framing with a visible-geometry check and no raster cropping.', 'Edits are saved as a per-profile recoverable IndexedDB working draft, separate from cloud maps and cars.', 'Front and rear lamps now have independent width and height settings; world publishing shows consent prominently and exposes linked car assets when authorized.']},
@@ -13626,6 +13842,7 @@ void (async()=>{
   }
   note('Opened published '+data.kind+'.');
  }catch(error){note('Unable to open shared world: '+error.message,true)}
+ finally{requestAnimationFrame(()=>requestAnimationFrame(sceneReadyHint));}
 })();
 void refreshMapList().catch(e=>recordEvent('WARN','Map library: '+e.message));
 recordEvent('INFO','Vehicle Lab v'+VERSION+' initialized. Profile and backend status pending.');
@@ -13635,6 +13852,10 @@ setupGUI();
 buildVehicle();
 renderWheelStudio();
 resetCamera();
+// Display guidance after the first drawn frames. Shared-world assets are
+// handled by the asynchronous share-loading path after import completes.
+if(!new URL(location.href).searchParams.has('share'))
+ requestAnimationFrame(()=>requestAnimationFrame(sceneReadyHint));
 try{const view=JSON.parse(safeRead('vehiclelab.camera.v1')||'null');
  if(Array.isArray(view?.offset)&&view.offset.length===3&&view.offset.every(Number.isFinite)){
   const v=new THREE.Vector3(...view.offset);if(v.length()>2&&v.length()<130){camera.position.copy(orbit.target).add(v);orbit.update()}}}

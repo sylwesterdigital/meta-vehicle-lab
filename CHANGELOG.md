@@ -1,3 +1,8 @@
+## v0.3.53 — 2026-11-18 10:05 GMT — Scene guidance and tyre-slip visuals
+- Short bottom-centred hints after scene loading (D), rollover (U) and extended build-mode inactivity (Actions); Settings toggle disables hints and persists locally.
+- Configurable visual tyre spin and brake lock-up, plus optional capped dust/mud/water particles; physics forces and simulation engines unchanged.
+- Client-side changes only; no schema, backend, watcher or asset migration. Existing private work and published worlds preserved.
+
 ## v0.3.52 — 2026-11-13 02:15 GMT — Community maps in map picker
 - Complete-world maps now appear in the public Community maps group of Test map and in My media → Maps → Community; no creator login needed.
 - Published car gallery offers the matching map separately; choosing map-only never replaces the vehicle. Revoked links vanish on refresh.

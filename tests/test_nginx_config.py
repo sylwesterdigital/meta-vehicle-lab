@@ -1694,3 +1694,38 @@ class CommunityMapDiscoveryTests(unittest.TestCase):
                      "map.car_id===record.id",
                      "await appConfirm('This public car includes the map"):
             self.assertIn(term,self.html)
+
+class VehicleLab0353GuidanceAndSlipTests(unittest.TestCase):
+    """Guard configurability and rendering/physics separation in this frontend release."""
+    @classmethod
+    def setUpClass(cls):
+        cls.html=(Path(__file__).resolve().parents[1]/'index.html').read_text(encoding='utf-8')
+
+    def test_hint_is_brief_accessible_and_can_be_disabled(self):
+        for fragment in ('id="experienceHint" role="status" aria-live="polite"',
+                         'id="guidanceHints" checked',
+                         "themeSettings.hintsEnabled=event.target.checked",
+                         'hintState.until=now+1800',
+                         "showExperienceHint('Press \"D\" to Drive or Build',true)",
+                         "showExperienceHint('Press \"U\" to reset',true)",
+                         "showExperienceHint('For more see Actions window')"):
+            self.assertIn(fragment,self.html)
+        self.assertIn('if(!themeSettings.hintsEnabled)dismissExperienceHint()',self.html)
+
+    def test_slip_is_visual_only_and_sprite_allocation_is_capped(self):
+        for fragment in ('wheelSlipVisual:true,wheelSpray:false,slipResponse:1',
+                         'function visualWheelRate(i,dt,forward,input,grip)',
+                         'if(cfg.wheelSlipVisual&&wheelBrake)target=0',
+                         'const count=96,positions=new Float32Array(count*3)',
+                         'if(!cfg.wheelSpray||!cfg.wheelSlipVisual||!physics||!wheels.length)',
+                         'const maxEmit=Math.min(wheels.length,6)',
+                         'function disposeWheelSpray()',
+                         "driving.addFolder('Tyre grip / slip visuals')"):
+            self.assertIn(fragment,self.html)
+        self.assertIn('physics.step(FIXED_STEP,{...input,brake:braking,power})',self.html)
+
+    def test_hint_preference_is_local_not_part_of_shared_world(self):
+        for fragment in ("if(typeof imported.hintsEnabled==='boolean')themeSettings.hintsEnabled=imported.hintsEnabled",
+                         "(value.hintsEnabled!=null&&typeof value.hintsEnabled!=='boolean')",
+                         "hintsEnabled:value.hintsEnabled!==false"):
+            self.assertIn(fragment,self.html)
