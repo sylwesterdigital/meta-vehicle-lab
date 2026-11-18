@@ -5,7 +5,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Vehicle Lab — Procedural Studio</title>
-  <meta name="vehicle-lab-version" content="0.3.55">
+  <meta name="vehicle-lab-version" content="0.3.56">
   <style>
     :root {
       color-scheme:dark;
@@ -1185,7 +1185,7 @@ input[type=color]:focus-visible{outline:2px solid var(--accent)!important;outlin
 </svg><span>Enter VR<span class="xr-hero-sub">IMMERSIVE VEHICLE LAB</span></span></button>
   <div id="experienceHint" role="status" aria-live="polite" aria-atomic="true" hidden></div>
   <div id="hud">
-    <div class="stage-badge"><strong>Vehicle Lab</strong><small id="appVersionBadge">v0.3.55</small></div>
+    <div class="stage-badge"><strong>Vehicle Lab</strong><small id="appVersionBadge">v0.3.56</small></div>
     <p id="vehicleName">City Car</p><p id="vehicleInfo">Procedural vehicle</p>
     <div id="speedHud"><strong id="speed">0</strong><div>km/h</div></div>
     <div id="cameraModeReadout" style="padding:3px 6px;margin-top:4px;width:max-content;max-width:260px;border-radius:5px;background:#132d3cc0;color:#e9f5fc;font:10px ui-monospace,monospace">Camera · Orbit follow</div>
@@ -2351,7 +2351,7 @@ let ghostObject=null,ghostSamples=[],ghostElapsed=0,ghostTick=0;
  function appConfirm(message){return showAppDialog('confirm',message)}
  function appPrompt(message,value='',options={}){return showAppDialog('prompt',message,value,options)}
 
- const VERSION='0.3.55';
+ const VERSION='0.3.56';
  document.getElementById('appVersionBadge').textContent='v'+VERSION;
  let imageReference=null,busyAI=false;
 
@@ -7894,7 +7894,7 @@ const xrPanelIconSources={"ride": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR
 // Single canvas-texture panel, two controller rays, no DOM overlay in XR.
 // The panel is scene-space (follow or pinned), not an XR native SDK window.
 const xrUI={open:false,follow:true,minimized:false,sound:true,tool:'translate',
- panel:null,canvas:null,ctx:null,texture:null,buttons:[],hover:'',selectedKey:null,
+ panel:null,canvas:null,ctx:null,texture:null,buttons:[],hover:'',selectedKey:null,beforeRidePanel:null,
  grab:null,edit:null,lastAction:0,pinchLeft:false,pinchRight:false,images:{},hint:'',
  lastHoverSound:0,width:.72,height:.345,followOffset:new THREE.Vector3(0,-.30,-.94),
  snapFollow:true,teleport:null,lastHeadPose:null,spawnPending:false};
@@ -7933,8 +7933,8 @@ function xrPulse(controller,strength=.2,duration=16){
 function xrPanelDraw(){
  if(!xrUI.ctx||!xrUI.panel)return;
  const c=xrUI.canvas,ctx=xrUI.ctx;
- c.width=1024;c.height=xrUI.minimized?170:xrSeated?500:xrUI.selectedKey?640:475;
- xrUI.height=xrUI.minimized?.118:xrSeated?.35:xrUI.selectedKey?.45:.335;
+ c.width=1024;c.height=xrUI.minimized?170:xrSeated?600:xrUI.selectedKey?640:475;
+ xrUI.height=xrUI.minimized?.118:xrSeated?.42:xrUI.selectedKey?.45:.335;
  xrUI.panel.geometry.dispose();xrUI.panel.geometry=new THREE.PlaneGeometry(xrUI.width,xrUI.height);
  xrUI.buttons=[];
  const w=c.width,h=c.height;
@@ -7944,7 +7944,7 @@ function xrPanelDraw(){
  round(4,4,w-8,h-8,38,'rgba(9,24,35,.975)','#bce7ec');
  round(19,18,w-38,132,26,'#193b4c','#40677a');
  ctx.textBaseline='middle';ctx.fillStyle='#ebfeff';ctx.font='800 42px system-ui';
- ctx.fillText(xrSeated?'RIDE / DRIVE':'BUILD / RIDE',46,78);
+ ctx.fillText(xrSeated?'RIDE CONTROLS':'BUILD / RIDE',46,78);
  ctx.font='600 22px system-ui';ctx.fillStyle='#b8d5e1';
  ctx.fillText((xrUI.follow?'FOLLOW · ':'PINNED · ')+'DRAG EMPTY SPACE TO MOVE',48,119);
  function button(id,label,x,y,width,height,color='#25465b',icon=null){
@@ -7964,11 +7964,17 @@ function xrPanelDraw(){
  button('close','×',932,35,67,90,'#644047');
  if(!xrUI.minimized){
   if(xrSeated){
-   button('restart','RESTART',38,194,307,155,'#197c79');
-   button('up','UP',357,194,307,155,'#296d91');
-   button('exit','EXIT',676,194,307,155,'#a4434e');
-   ctx.font='600 25px system-ui';ctx.fillStyle='#d2ecf3';
-   ctx.fillText('Restart: origin   ·   Up: upright   ·   Exit: beside car',48,429);
+   // Dedicated two-row cockpit menu: keep driving commands large enough for Quest rays.
+   button('return','RETURN 0,0',38,183,300,125,'#197c79');
+   button('up','UP',357,183,300,125,'#296d91');
+   button('exit','EXIT',676,183,307,125,'#a4434e');
+   button('chair-up','CHAIR UP  +',38,329,462,146,'#285e7f');
+   button('chair-down','CHAIR DOWN  −',523,329,462,146,'#285e7f');
+   ctx.font='700 27px system-ui';ctx.fillStyle='#d2ecf3';
+   const seatCm=Math.round(xrSeatHeightOffset*100);
+   ctx.fillText('SEAT HEIGHT: '+(seatCm>0?'+':'')+seatCm+' cm',48,525);
+   ctx.font='500 22px system-ui';ctx.fillStyle='#a7c8d5';
+   ctx.fillText('5 cm per press  ·  Max ±30 cm  ·  View only',48,567);
   }else{
    button('build','BUILD',38,193,462,156,'#28696f','build');
    button('ride','RIDE',523,193,462,156,'#157c71','ride');
@@ -8230,6 +8236,12 @@ function xrExitCar(){
  const target=carPos.clone().addScaledVector(side,Math.max(2.1,cfg.W*.5+1.2));
  target.y=heightAt(target.x,target.z);
  xrSeated=false;xrOutside=false;xrCabinFloorPose=null;xrRestoreDriverFigure();
+ // Restore the Build panel's placement after leaving the driver-side cockpit menu.
+ if(xrUI.beforeRidePanel){
+  xrUI.follow=xrUI.beforeRidePanel.follow;
+  xrUI.followOffset.copy(xrUI.beforeRidePanel.offset);
+  xrUI.beforeRidePanel=null;
+ }
  xrDriving.throttle=0;xrDriving.steer=0;xrDriving.brake=false;xrDriving.handbrake=false;
  leaveDrive(); // Editor resumes at the vehicle's physical position, no public data change.
  xrViewerFloorAt(target,new THREE.Vector3(carPos.x,target.y+1,carPos.z));
@@ -8249,14 +8261,18 @@ async function xrPanelAction(id,controller){
   note('XR Build: point at a car component, select it, then drag coloured handles.');return;
  }
  if(id==='ride'){
-  try{await xrEnterCabin();if(xrSeated){xrUI.selectedKey=null;xrUI.minimized=false;xrPanelDraw();xrSound('enter')}}
+  try{await xrEnterCabin();if(xrSeated)xrUI.selectedKey=null}
   catch(error){xrSound('error');note('XR ride: '+error.message,true)}return;
  }
- if(id==='restart'){
+ if(id==='return'||id==='restart'){
+  if(!xrSeated)return;
   try{await resetDriveOrigin();updateXRVehicleRig();xrSound('tap')}
-  catch(error){xrSound('error');note('XR restart: '+error.message,true)}return;
+  catch(error){xrSound('error');note('XR return: '+error.message,true)}return;
  }
- if(id==='up'){resetUpright();updateXRVehicleRig();xrSound('tap');return}
+ if(id==='up'){if(!xrSeated)return;resetUpright();updateXRVehicleRig();xrSound('tap');return}
+ if(id==='chair-up'||id==='chair-down'){
+  xrAdjustSeatHeight(id==='chair-up'?1:-1);return;
+ }
  if(id==='exit'){xrExitCar();xrPanelShow(true);return}
  if(id.startsWith('tool-')){xrUI.tool=id.slice(5);xrPanelDraw();xrSound('tap')}
 }
@@ -8314,7 +8330,7 @@ function xrUICleanup(){
  xrUI.follow=true;xrUI.minimized=false;xrUI.tool='translate';
  xrUI.pinchLeft=false;xrUI.pinchRight=false;xrUI.hover='';
  xrUI.teleport=null;xrUI.lastHeadPose=null;xrUI.spawnPending=false;xrUI.snapFollow=true;
- xrUI.followOffset.set(0,-.30,-.94);
+ xrUI.followOffset.set(0,-.30,-.94);xrUI.beforeRidePanel=null;xrSeatHeightOffset=0;
  if(xrUI.panel){scene.remove(xrUI.panel);xrUI.panel.geometry.dispose();xrUI.panel.material.dispose();xrUI.panel=null}
  if(xrUI.texture){xrUI.texture.dispose();xrUI.texture=null}
  if(xrPartHandles){scene.remove(xrPartHandles);xrPartHandles.traverse(obj=>{
@@ -8476,6 +8492,11 @@ async function xrEnterCabin(){
  xrCabinOffset.setFromAxisAngle(new THREE.Vector3(0,1,0),Math.PI-localHeading);
  xrCabinFloorPose=head.local.clone();
  xrSeated=true;xrOutside=false;xrResetHold=0;xrHideDriverFigure();
+ // The ride controls must remain within reach, including after the car moves.
+ // The menu is offset to the right, below the sightline, not over the road ahead.
+ if(!xrUI.beforeRidePanel)xrUI.beforeRidePanel={follow:xrUI.follow,offset:xrUI.followOffset.clone()};
+ xrUI.follow=true;xrUI.followOffset.set(.35,-.28,-.86);xrUI.snapFollow=true;
+ xrUI.minimized=false;xrPanelShow(true);
  if(themeSettings.hintsEnabled&&!xrUI.open){drawXRHint('Left stick steer · right trigger accelerate');hintState.until=performance.now()+1800;}
  cfg.autopilot=false;updateAutopilotButton();
  xrButtons.clear();doorsOpen=false;
@@ -8486,6 +8507,25 @@ async function xrEnterCabin(){
 // The XR floor pose is removed ONCE on entry; the user's subsequent physical
 // lean remains tracked while the car moves.
 let xrCabinOffset=new THREE.Quaternion(),xrCabinFloorPose=null;
+// Session-only eye-height adjustment. Never changes seat geometry, vehicle physics,
+// an avatar, or any persisted vehicle/map blueprint.
+const XR_SEAT_STEP=.05,XR_SEAT_LIMIT=.30;
+let xrSeatHeightOffset=0;
+function xrSeatHeightNext(current,direction){
+ if(!Number.isFinite(current))current=0;
+ return Math.round(Math.max(-XR_SEAT_LIMIT,Math.min(XR_SEAT_LIMIT,
+  current+Math.sign(direction)*XR_SEAT_STEP))*100)/100;
+}
+function xrAdjustSeatHeight(direction){
+ if(!xrActive||!xrSeated)return false;
+ const next=xrSeatHeightNext(xrSeatHeightOffset,direction);
+ if(next===xrSeatHeightOffset){xrSound('error');note('XR chair height limit reached (±30 cm).');return false}
+ xrSeatHeightOffset=next;
+ updateXRVehicleRig();xrPanelDraw();xrSound('tap');
+ note('XR driver eye height: '+(Math.round(xrSeatHeightOffset*100)>0?'+':'')+
+  Math.round(xrSeatHeightOffset*100)+' cm from default.');
+ return true;
+}
 let xrHiddenDriverFigure=null,xrDriverFigureWasVisible=false;
 function xrHideDriverFigure(){
  const figure=rigs[0]?.figure||null;
@@ -8526,6 +8566,8 @@ function updateXRVehicleRig(){
  const local=xrOutside
   ?new THREE.Vector3(0,cfg.H*1.65,-cfg.L*1.8)
   :xrDriverEye();
+ // Seat control adjusts tracked eyes, without moving the physical car/seat.
+ if(!xrOutside)local.y+=xrSeatHeightOffset;
  const point=car.localToWorld(local);
  if(xrCabinFloorPose)point.sub(xrCabinFloorPose.clone().applyQuaternion(xrRig.quaternion));
  xrRig.position.copy(point);
@@ -8538,14 +8580,16 @@ function updateXRDriving(dt){
   const gp=source.gamepad;if(!gp||gp.mapping!=='xr-standard')continue;
   const buttons=gp.buttons||[],axes=gp.axes||[];
   const stick=axes.length>=4?(axes[2]||0):(axes[0]||0);
+  const aimingUI=xrUI.open&&xrControllers.some(controller=>
+   controller.userData.xrInput===source&&!!xrPanelSurfaceHit(xrRayFromController(controller)));
   if(source.handedness==='left'){
    steer=Math.abs(stick)>.12?stick:0;
-   brake=clamp(buttons[0]?.value||0,0,1);
+   brake=aimingUI?0:clamp(buttons[0]?.value||0,0,1);
    if(xrEdge('left-menu',buttons[4]?.pressed)&&!source.hand)xrPanelToggle();
    // Ride stays inside the driver's seat; no accidental chase-camera switch.
    // Thumbstick click is reserved for teleport outside the vehicle.
   }else if(source.handedness==='right'){
-   throttle=clamp(buttons[0]?.value||0,0,1);
+   throttle=aimingUI?0:clamp(buttons[0]?.value||0,0,1);
    handbrake=!!buttons[1]?.pressed;
    if(xrEdge('right-4',buttons[4]?.pressed))xrHorn();
    if(xrEdge('right-5',buttons[5]?.pressed)){
@@ -8573,10 +8617,11 @@ async function toggleXR(){
   const session=await navigator.xr.requestSession('immersive-vr',{optionalFeatures:['local-floor','bounded-floor','hand-tracking']});
   xrSession=session;xrActive=true;xrSeated=false;xrOutside=false;xrButtons.clear();orbit.enabled=false;orbit.autoRotate=false;dismissExperienceHint();
   xrUI.spawnPending=true;xrUI.lastHeadPose=null;xrUI.followOffset.set(0,-.30,-.94);xrUI.snapFollow=true;xrUI.teleport=null;
+  xrUI.beforeRidePanel=null;xrSeatHeightOffset=0;
   trackUsage('xr_started');
   $('xrLaunchHero').hidden=true;xrRig.position.set(0,0,0);xrRig.attach(camera);
   session.addEventListener('end',()=>{
-   xrActive=false;xrSession=null;xrSeated=false;xrCabinFloorPose=null;xrRestoreDriverFigure();xrTeleportMark.visible=false;xrButtons.clear();
+   xrActive=false;xrSession=null;xrSeated=false;xrCabinFloorPose=null;xrRestoreDriverFigure();xrSeatHeightOffset=0;xrTeleportMark.visible=false;xrButtons.clear();
    for(const c of xrControllers){c.userData.xrBeam.visible=false;c.userData.xrDot.visible=false;}
    xrDriving.throttle=0;xrDriving.brake=false;dismissExperienceHint();disposeXRHint();xrSound('leave');xrUICleanup();trackUsage('xr_ended');
    scene.attach(camera);orbit.enabled=true;
@@ -12357,6 +12402,7 @@ $('galleryRefreshBtn').onclick=()=>{gallerySource='public';setWindowVisible('gal
 $('layoutPublic').onchange=()=>{serverVisibility=$('layoutPublic').checked?'public':'private'};
 
 const RELEASE_NOTES=[
+ {v:'0.3.56',date:'2026-11-18',title:'In-ride XR menu and adjustable eye height',items:['Riding opens a compact, off-centre, headset-following panel with Return 0,0, Up, Chair Up, Chair Down and Exit.', 'Chair controls adjust tracked driver eye height by 5 cm per press within ±30 cm; only the view moves, not the car, avatars or seat geometry.', 'Controller triggers aimed at the XR panel do not apply throttle or brake while activating UI buttons. Ride state and prior Build panel placement are restored when exiting.', 'No backend, data schema, watcher or stored-asset changes; Quest hardware validation is still required.']},
  {v:'0.3.55',date:'2026-11-18',title:'XR spatial navigation and cockpit alignment',items:['The compact Build/Ride menu follows the tracked headset after walking or teleporting, smoothly turns to face the player, and can be dragged from any non-button surface while following or pinned.', 'XR entry places the player outside beside the car, facing it. Ride places their eyes inside the cabin just above and behind the steering wheel, accounting for real headset height.', 'Teleporting requires a held controller thumbstick click and releases to land; select triggers are reserved for UI and component manipulation.', 'Controller rays show bright animated rectangular beams and visible UI contact dots. XR changes affect presentation only; no stored maps, cars or backend data are changed.']},
  {v:'0.3.54',date:'2026-11-18',title:'Immersive VR workshop and navigation',items:['Headset-only central Enter VR launch using supplied VR icon; controller-readable follow/pin/minimize spatial menu with Build and Ride actions.', 'XR ray editing: select car parts and drag X/Y/Z move, rotate or scale handles; edits use the existing part overrides and history.', 'Ride menu: restart at origin, upright recovery and safe standing exit near the car; left hand pinch or left X opens the menu.', 'Procedural interface sounds, hover states and controller haptics. No backend migration or watcher changes.']},
  {v:'0.3.53',date:'2026-11-18',title:'Configurable scene hints and tyre slip feedback',items:['Optional 1.8-second scene, rollover-recovery and idle Actions hints appear at the bottom of the scene, with a persistent Settings toggle.', 'Driving wheels can visually spin under throttle when stuck and lock under braking; optional capped dust, mud and water feedback is off by default.', 'Rendering-only tyre feedback leaves all existing physics solvers and published maps untouched; no backend migration or watcher update.']},

@@ -776,6 +776,47 @@ class WorldMediaXRSourceTests(unittest.TestCase):
         self.assertIn('const localHeading=Math.atan2(-forward.x,-forward.z)',SOURCE)
         self.assertNotIn("xrEdge('left-5'",SOURCE)
 
+    def test_xr_056_in_ride_menu_and_safe_trigger_controls(self):
+        panel=SOURCE[SOURCE.index('function xrPanelDraw()'):SOURCE.index('function xrPanelCreate()')]
+        for label in ("button('return','RETURN 0,0'", "button('up','UP'",
+                      "button('chair-up','CHAIR UP  +'", "button('chair-down','CHAIR DOWN  −'",
+                      "button('exit','EXIT'"):
+            self.assertIn(label,panel)
+        actions=SOURCE[SOURCE.index('async function xrPanelAction('):SOURCE.index('function xrBeginPanelGrab(')]
+        self.assertIn("id==='return'||id==='restart'",actions)
+        self.assertIn("xrAdjustSeatHeight(id==='chair-up'?1:-1)",actions)
+        self.assertIn('await resetDriveOrigin()',actions)
+        self.assertIn('resetUpright()',actions)
+        self.assertIn('xrExitCar()',actions)
+        seating=SOURCE[SOURCE.index('async function xrEnterCabin()'):SOURCE.index('function xrCarYaw()')]
+        self.assertIn('xrUI.followOffset.set(.35,-.28,-.86)',seating)
+        self.assertIn('xrUI.minimized=false;xrPanelShow(true)',seating)
+        self.assertIn('if(!xrOutside)local.y+=xrSeatHeightOffset',SOURCE)
+        driving=SOURCE[SOURCE.index('function updateXRDriving(dt)'):SOURCE.index('async function toggleXR()')]
+        self.assertIn('const aimingUI=xrUI.open&&xrControllers.some(',driving)
+        self.assertIn('throttle=aimingUI?0:clamp(',driving)
+        self.assertIn('brake=aimingUI?0:clamp(',driving)
+        self.assertIn('xrSeatHeightOffset=0',SOURCE)
+
+    def test_xr_056_chair_height_is_bounded_and_session_only(self):
+        code=SOURCE[SOURCE.index('const XR_SEAT_STEP='):SOURCE.index('function xrAdjustSeatHeight(')]
+        self.assertIn('XR_SEAT_STEP=.05,XR_SEAT_LIMIT=.30',code)
+        self.assertNotIn('safeStore(',code)
+        self.assertNotIn('scheduleHistory(',code)
+        self.assertNotIn('cfg.',code)
+        checks='''
+          if(xrSeatHeightNext(0,1)!==.05)throw Error('chair up increment');
+          if(xrSeatHeightNext(.05,-1)!==0)throw Error('chair down increment');
+          if(xrSeatHeightNext(.29,1)!==.30)throw Error('upper limit');
+          if(xrSeatHeightNext(-.29,-1)!==-.30)throw Error('lower limit');
+          if(xrSeatHeightNext(.30,1)!==.30)throw Error('upper clamp');
+          if(xrSeatHeightNext(-.30,-1)!==-.30)throw Error('lower clamp');
+          if(xrSeatHeightNext(NaN,1)!==.05)throw Error('non-finite protection');
+        '''
+        result=subprocess.run(['node','--input-type=module','-e',code+'\n'+checks],
+                              capture_output=True,text=True,timeout=15)
+        self.assertEqual(result.returncode,0,result.stderr)
+
     def test_umami_async_and_anonymous(self):
         self.assertIn('async src="https://analytics.mielniczuk.com/script.js"',SOURCE)
         self.assertIn('15fa1131-f0d3-49f1-95ec-b11df875bec2',SOURCE)

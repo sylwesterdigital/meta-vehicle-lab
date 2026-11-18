@@ -1,3 +1,8 @@
+## v0.3.56 — 2026-11-18 15:39 GMT — XR Ride menu and chair height
+- Riding opens headset-following Return (0,0), Up, Chair Up/Down, and Exit controls, offset from the road view.
+- Chair adjusts only the driver’s viewpoint in 5 cm steps (±30 cm); existing seat and vehicle data remain unchanged.
+- UI trigger selection suppresses simultaneous acceleration/braking; no backend, database, or watcher changes.
+
 ## v0.3.55 — 2026-11-18 13:59 GMT — XR menu, teleport and driver viewpoint
 - Smaller near-hand Build/Ride menu follows tracked headset after movement and teleport; smooth upright facing, pin/follow and drag from any unused panel surface.
 - Enter VR places the player outside alongside the car, facing it; Ride seats the tracked eyes behind and above the steering wheel rather than on the roof.

@@ -1,3 +1,10 @@
+## XR ride controls (v0.3.56)
+- Entering Ride now opens a five-action in-headset menu: Return 0,0 (reset vehicle to map origin), Up (upright recovery), Chair Up, Chair Down, and Exit (stand beside the car).
+- Chair Up/Down shifts only the XR driver viewpoint by 5 cm per tap, capped to ±30 cm; seat geometry, physics, private data and published models do not change. The adjustment lasts for the current XR session and is not written to a saved layout.
+- The ride menu follows the headset from an off-centre position to keep the road visible. It can still be pinned, minimized, dragged or reopened via left X/hand pinch. On leaving Ride, the previous Build menu placement returns.
+- Controllers selecting an XR panel action cannot simultaneously accelerate or brake from the same trigger; normal control resumes when not pointing at the panel.
+- Source and release validation are automated; verify visibility and controls in a physical Quest before declaring headset acceptance.
+
 ## XR navigation and cockpit fixes (v0.3.55)
 
 **Getting started:** On a supported XR headset, choose the central Enter VR button. The headset starts **outside** the current vehicle on its right-hand side, looking toward it. The compact Build/Ride panel stays in front of the headset after walking or teleporting and turns smoothly as the user rotates. **Left X** or a **left thumb–index pinch** toggles the panel. **Pin/Follow** changes whether it remains fixed in the world or moves with the player. Hold the selection trigger on **any empty area of the panel** (or use squeeze on an empty area) to drag it; dragging a follow-mode panel changes its head-relative offset rather than unexpectedly pinning it. Right-hand direct pinch can also move an empty part of the panel when hand tracking is supported.
